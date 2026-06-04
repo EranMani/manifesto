@@ -6,7 +6,18 @@
   "next_commit_name": "project-scaffold",
   "next_commit_assignee": "adam",
   "status": "ready",
-  "open_handoffs": [],
+  "open_handoffs": [
+    {
+      "from": "adam",
+      "to": "rex",
+      "commit": "C02",
+      "items": [
+        "DATABASE_URL format is postgresql+asyncpg:// — asyncpg driver, not psycopg2",
+        "Backend volume ./backend:/app — working dir inside container is /app",
+        "uv sync is the install command in Dockerfile — use pyproject.toml, not requirements.txt"
+      ]
+    }
+  ],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],

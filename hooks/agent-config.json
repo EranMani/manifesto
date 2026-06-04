@@ -4,11 +4,14 @@
     "DECISIONS.md",
     "ARCHITECTURE.md",
     "GLOSSARY.md",
+    "TOKEN_RECORDS.md",
     "AGENTS.md",
     "commit-protocol.md",
     "project-state.json",
     ".gitignore",
-    "README.md"
+    "README.md",
+    ".claude/agents/logs/",
+    "hooks/"
   ],
   "agents": {
     "rex@manifesto.local": {

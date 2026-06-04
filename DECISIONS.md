@@ -270,4 +270,26 @@ Without measurement, token reduction is guesswork. `TOKEN_RECORDS.md` is the ins
 
 ---
 
+## D09 — Git Hook: sh Wrapper Instead of Direct Python Copy (Windows)
+
+- **Date:** 2026-06-04
+- **Decided by:** Adam (C01 execution)
+- **Context:** `hooks/pre_commit_check.py` has a `#!/usr/bin/env python3` shebang. On Windows, Git for Windows runs hooks through its bundled `sh`. A bare `.py` file is not reliably executable there because `python3` is not always on PATH in Git's sh environment.
+
+### Decision
+
+Install `.git/hooks/pre-commit` as a POSIX sh wrapper that explicitly calls `python hooks/pre_commit_check.py` rather than copying the `.py` file directly.
+
+### Rationale
+
+The wrapper pattern is portable: Git's sh executes the wrapper; the wrapper calls Python with an explicit path. Direct copy would require `python3` to be on PATH within Git's sh environment — not guaranteed on Windows.
+
+### Consequences
+
+- Pre-commit hook works reliably on Windows Git for Windows
+- The hook file at `.git/hooks/pre-commit` is a small sh wrapper, not the Python script itself
+- If `hooks/pre_commit_check.py` is moved, the wrapper path must be updated
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
