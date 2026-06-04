@@ -79,12 +79,28 @@ OPENAI_API_KEY=
 
 ---
 
+## Git Setup
+
+Initialize the git repository and wire the pre-commit check as a real git hook:
+
+```bash
+git init
+cp hooks/pre_commit_check.py .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+Also create an initial `.gitignore` before the first commit so no secrets or build artifacts slip in.
+
+---
+
 ## Done When
 
 - [ ] `docker-compose up` starts without errors (backend may exit — no app yet)
 - [ ] `db` container passes healthcheck
 - [ ] `.env.example` contains all vars referenced in compose
 - [ ] `backend/Dockerfile` builds successfully with `docker build ./backend`
+- [ ] `git init` done, `.git/hooks/pre-commit` installed and executable
+- [ ] `git status` shows only tracked files — no `.env`, no `__pycache__`, no `node_modules`
 
 ---
 

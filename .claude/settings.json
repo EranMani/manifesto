@@ -22,22 +22,16 @@
         ]
       }
     ],
-    "PostCommit": [
+    "Stop": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "python hooks/post_commit_next_step.py"
-          }
-        ]
-      }
-    ],
-    "PreCommit": [
-      {
-        "hooks": [
+          },
           {
             "type": "command",
-            "command": "python hooks/pre_commit_check.py"
+            "command": "python hooks/generate_domain_map.py"
           }
         ]
       }

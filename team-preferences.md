@@ -131,6 +131,7 @@ EXECUTION CONSTRAINTS:
 - Worklog: one write at task completion only.
 - Test runs: maximum 2. On second failure, report and stop.
 - Code comments: one line max, functional only.
+- Verbose output: alembic/pytest/docker/npm → summary line + ERROR/FAIL lines only. No full output.
 ```
 
 ### Reviewers (Viktor, Sage)
@@ -150,28 +151,52 @@ EXECUTION CONSTRAINTS:
 
 ---
 
-## Quality Gate Trigger Matrix
+## Quality Gate Trigger
 
-| Commit type | Viktor | Sage | Mira |
-|---|---|---|---|
-| Infrastructure only | every 5th | skip | skip |
-| Config / env / secrets | every 5th | **run** | skip |
-| Auth, JWT, password | every 5th | **run** | skip |
-| New route with user input | every 5th | **run** | **run** |
-| New service / business logic | every 5th | conditional | conditional |
-| Frontend — no user data | every 5th | skip | **run** |
-| Frontend — renders user data | every 5th | **run** | **run** |
-| Stub / placeholder only | skip | skip | skip |
-| Smoke test commit | skip | skip | skip |
+**Step 8 of every commit loop: invoke `/gate-triage` with the diff.**
+
+The full triage matrix lives in `.claude/commands/gate-triage.md` — loaded on demand only.
+This keeps always-loaded files lean. The rule here is simple: run the skill, get the verdict.
+
+Do not reason through gate decisions manually. Do not skip `/gate-triage`. It is a protocol step.
+
+---
+
+## Verbose Output Rules
+
+Certain commands produce output that is mostly noise. Apply these filters in the execution constraints
+block when invoking agents that will run these commands:
+
+```
+VERBOSE OUTPUT RULES:
+- alembic upgrade/downgrade: capture last 5 lines + any line containing ERROR or FAIL
+- pytest: capture summary line only ("X passed, Y failed in Zs") + any FAILED test names
+- docker-compose up: capture service startup confirmations + any ERROR lines only
+- npm install: capture final line only ("added N packages")
+- uv sync: capture final line only
+Do not paste full command output into the worklog or response. Summary only.
+```
 
 ---
 
 ## Context Window Management
 
 ```
-After every commit:     /clear — all state is in project files, nothing is lost
-Mid-commit at ~60k:     /compact — preserves in-flight work
+After every commit:              /clear — all state is in project files, nothing is lost
+Mid-commit at ~60k:              /compact — preserves in-flight work
+Before gate wave if >40k:        /compact first, then spawn reviewers
+At Commit Preview if >30k
+  and no agent invoked yet:      /compact before proceeding
 ```
+
+**No speculative file reads mid-session.** Claude reads a file only at the moment its content
+is needed to make a specific decision or write a specific edit. Reading files "just in case"
+compounds across the session history and inflates every subsequent message.
+
+**Agent context tiers:**
+- Fresh agent (first commit, no worklog): Tier 0 only (identity file)
+- Continuing agent (2+ commits done): Tier 0 + Current State Header
+- Never pass full worklog history unless the task explicitly requires historical depth
 
 ---
 
@@ -253,3 +278,7 @@ Add commit-specific items where the spec has known sharp edges.
 | Date | Change | Reason |
 |---|---|---|
 | 2026-06-04 | Initial creation | Project initialized |
+| 2026-06-04 | Gate matrix moved to /gate-triage skill | On-demand loading reduces always-loaded token cost (D06) |
+| 2026-06-04 | Verbose output rules added to execution constraints | Alembic/pytest output can be 200+ lines — summary only (D05) |
+| 2026-06-04 | Session checkpoint rules added | Token checkpoints before gate wave and at Commit Preview (D05) |
+| 2026-06-04 | Agent context tier rules made explicit | Warm/cold agent distinction — no full worklog by default (D05) |
