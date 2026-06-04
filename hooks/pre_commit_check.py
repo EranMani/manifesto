@@ -20,6 +20,10 @@ import json
 import os
 from pathlib import Path
 
+# ensure unicode output works on Windows cp1252 terminals
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 
 # ---------------------------------------------------------------------------
 # Load agent configuration from hooks/agent-config.json
@@ -78,10 +82,13 @@ def get_staged_files() -> list[str]:
 
 
 def get_commit_message() -> str:
+    # prefer explicit env override (set by CI or commit wrappers)
+    if os.environ.get("GIT_MESSAGE"):
+        return os.environ["GIT_MESSAGE"].strip()
     editmsg = Path(".git/COMMIT_EDITMSG")
     if editmsg.exists():
         return editmsg.read_text().strip()
-    return os.environ.get("GIT_MESSAGE", "")
+    return ""
 
 
 def detect_agent_email(msg: str) -> str | None:

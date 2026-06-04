@@ -46,6 +46,7 @@
       "domains": [
         "frontend/src/",
         "frontend/package.json",
+        "frontend/package-lock.json",
         "frontend/vite.config.ts",
         "frontend/tailwind.config.ts",
         "frontend/tsconfig.json",
