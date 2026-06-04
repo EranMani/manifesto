@@ -150,4 +150,124 @@ Replace "What" with "Summary" in the Commit Preview format. Summary is 1-2 sente
 
 ---
 
+## D05 — Token Optimization Strategy: What We Adopt and What We Reject
+
+- **Date:** 2026-06-04
+- **Decided by:** Andrej + Boris (debate), Eran (approval)
+- **Context:** Pre-development review of 4 published token optimization strategies before C01 begins.
+
+### Strategy 1 — Codebase indexing (CodeGraph)
+
+**Initial position (Andrej):** Domain boundaries make this redundant — Rex doesn't scan `frontend/`, so a graph adds no value.
+
+**Boris's reversal:** Correct for cross-domain reads, but wrong for within-domain navigation. As `backend/app/` grows across 15+ commits, Rex will spend tool uses tracing import chains internally. A pre-built domain graph lets him query structure instead of reading 4 files to answer one structural question.
+
+**Decision:** Build lightweight per-domain import graphs scoped to each agent's domain only. Rex gets a graph of `backend/`. Aria gets a graph of `frontend/src/`. Implemented as a post-commit hook script (`hooks/generate_domain_map.py`) that writes `backend/DOMAIN_MAP.md` and `frontend/DOMAIN_MAP.md`. No agent sees the full project graph — domain boundaries preserved.
+
+**Deferred:** Not built before C01. Added to the pre-C01 build list for the next preparation session.
+
+### Strategy 2 — Output compression (RTK)
+
+**Decision:** Adopt the principle, skip the library. Two additions to execution constraints in `team-preferences.md`:
+- Verbose command output rules: alembic and pytest return summary line + any ERROR/FAIL lines only
+- Bash filter snippets for known-verbose commands
+
+Rationale: Our agents don't consume raw logs by default. The problem only manifests on specific commands. A one-line convention in the invocation prompt costs zero tokens and solves the same problem.
+
+### Strategy 3 — Forced output shortening (Caveman)
+
+**Decision:** Reject. Worklogs and handoffs are the connective tissue of the system — truncating them degrades the context loop on subsequent invocations. The 25-tool cap and one-write-at-completion rule already enforce discipline without sacrificing meaning. The risk is asymmetric: save tokens on output, pay more on the next invocation when the agent re-derives lost context.
+
+### Strategy 4 — Session management
+
+**Decision:** Already implemented at a high level. Four specific improvements added from the debate:
+
+1. **No speculative file reads mid-session.** No file reads that aren't directly required by the active commit spec. Every speculative read compounds across session history.
+2. **Agent warm/cold context distinction.** Fresh agent (no worklog) → Tier 0 only. Continuing agent (3+ commits) → Tier 0 + Current State Header. No full worklog history passed by default.
+3. **Token checkpoint before gate wave.** If session tokens > 40k before spawning Viktor/Sage/Mira → `/compact` first, then run the gate wave.
+4. **Commit Preview as natural checkpoint.** If session tokens > 30k at Preview time and no agent has been invoked yet → `/compact` before proceeding.
+
+---
+
+## D06 — Gate-Triage: Skill vs. Inline Matrix
+
+- **Date:** 2026-06-04
+- **Decided by:** Andrej + Boris (debate), Eran (approval)
+- **Context:** Gate-triage matrix currently lives in `team-preferences.md` and `AGENTS.md` — always loaded, always consuming tokens.
+
+### The debate
+
+**Boris (initial):** The matrix is already in `team-preferences.md` — Claude reads it at boot. Making it a skill adds invocation overhead for a decision Claude should already be making. Encoding it twice adds maintenance burden.
+
+**Andrej's reversal:** Boris was wrong on this one, and the logic is sound. The matrix in `team-preferences.md` is *always* loaded — it costs tokens whether it's needed or not. Moving it to a skill means it's loaded only when Claude explicitly invokes it. Smaller always-loaded files, on-demand logic. Net token reduction.
+
+**Boris's risk flag:** If Claude forgets to invoke the skill, the gate decision gets made without the matrix. Mitigation: make invocation mandatory and mechanical — the commit loop protocol says "Step 8 always starts with `/gate-triage`." Not a judgment call — a protocol step.
+
+### Decision
+
+Build `gate-triage` as a skill. Remove the full matrix from `team-preferences.md` — keep only the pointer: "Step 8: invoke `/gate-triage` with the diff." Matrix logic lives in the skill only.
+
+### Consequences
+
+- Always-loaded files (`team-preferences.md`, `AGENTS.md`) shrink
+- Gate logic is on-demand — zero cost on commits where no gate runs
+- Risk: invocation must be mechanical (protocol step), not optional
+
+---
+
+## D07 — Skills Build List: What to Build Before C01
+
+- **Date:** 2026-06-04
+- **Decided by:** Andrej + Boris (debate), Eran (approval)
+- **Context:** 21 skill ideas in skillsmith/skills_ideas reviewed against Manifesto's needs.
+
+### Skills to build now (before C01)
+
+| Skill | Rationale |
+|---|---|
+| `gate-triage` | Replaces inline matrix — on-demand, token-efficient |
+| `pre-commit-doc-checklist` | Evaluates DECISIONS/ARCHITECTURE/GLOSSARY checklist against diff — saves Claude reasoning tokens every commit |
+| `parallel-wave-detector` | Detects parallelizable commits — gets harder to reason manually as project grows |
+
+### Infrastructure to build now
+
+| Item | Rationale |
+|---|---|
+| `hooks/generate_domain_map.py` | Per-agent import graph, scoped to domain, updated post-commit |
+| `TOKEN_RECORDS.md` | Token usage tracker — schema defined now, first entry after C01 |
+| `team-preferences.md` updates | Verbose output rules, session checkpoint rules, gate-triage pointer |
+
+### Skills deferred
+
+Everything else from the 21-idea catalog — either already implemented as project files (`agentic-workflow-bootstrap`, `hook-bundle-installer`), applicable only Phase 2+ (`commit-spec-from-issue`, `repo-risk-surface-map`), or redundant with existing conventions (`tool-cap-enforcer`, `worklog-current-state`).
+
+---
+
+## D08 — TOKEN_RECORDS.md: Schema and Purpose
+
+- **Date:** 2026-06-04
+- **Decided by:** Andrej + Boris (debate), Eran (approval)
+- **Context:** Token measurement needed to track cost per commit and per agent, validate optimization strategies over time.
+
+### Schema (per commit entry)
+
+```
+| Commit | Agent | Model | Tokens | Tool uses | vs. Target |
+```
+
+One row per agent invocation. Session total at the bottom. Delta vs. target shows whether optimization strategies are working.
+
+### Rules
+
+- Updated by Claude before every approval prompt — no agent needed
+- Token counts come from the `<usage>` block returned by each Agent tool call
+- First entry: C01 after Adam completes
+- File must never be estimated — exact counts only. An estimated entry is worse than no entry.
+
+### Why this matters
+
+Without measurement, token reduction is guesswork. `TOKEN_RECORDS.md` is the instrument that tells us whether the per-domain graphs, skill extractions, and session checkpoints are actually reducing cost — or just adding complexity.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
