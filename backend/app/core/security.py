@@ -2,10 +2,13 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
+import structlog
 from fastapi import HTTPException, status
 from jwt.exceptions import InvalidTokenError
 
 from app.core.config import settings
+
+logger = structlog.get_logger()
 
 
 def hash_password(plain: str) -> str:
@@ -26,5 +29,6 @@ def create_access_token(data: dict) -> str:
 def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except InvalidTokenError:
+    except InvalidTokenError as exc:
+        logger.warning("token_validation_failed", error=str(exc))
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")

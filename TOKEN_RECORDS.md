@@ -3,7 +3,7 @@
 > Maintained by Claude. Updated before every Team Lead approval prompt — no exceptions.
 > Token counts come from the `<usage>` block returned by each Agent tool call.
 > Exact numbers only. Estimated entries are worse than no entry.
-> Last updated: 2026-06-04 (C02 complete)
+> Last updated: 2026-06-04 (C04b gate pending)
 
 ---
 
@@ -37,6 +37,8 @@ The delta column is the signal — positive means over budget, negative means un
 | C03 | frontend-scaffold (gate) | Sage | haiku | 20,274 | 8 | +5,274 ⚠️ | Triggered by .env.example; clean pass; 5k over reviewer target |
 | C04 | config-and-security | Rex | sonnet | 24,064 | 11 | -35,936 ✅ | 2 files, 6 test gates; passlib replaced with direct bcrypt due to version incompatibility |
 | C04 | config-and-security (gate) | Sage | haiku | 18,564 | 2 | +3,564 ⚠️ | BLOCKING — 2 dismissed (false pos + spec contradiction), 2 deferred to C04b |
+| C04b | config-security-hardening | Rex | sonnet | — | — | — | Token data lost — session reset before capture; work complete, matches spec |
+| C04b | config-security-hardening (gate) | Sage | haiku | 17,212 | 0 | +2,212 ⚠️ | PASS — both hardening measures clean; dismissed findings confirmed |
 
 ---
 
@@ -48,6 +50,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C02 | 23,116 | 1 (Rex) | none | 61% under target |
 | C03 | 54,169 | 1 (Aria) | Sage 20,274 | Aria 44% under target; Sage 35% over reviewer target |
 | C04 | 42,628 | 1 (Rex) | Sage 18,564 | Rex 60% under target; Sage 24% over reviewer target; gate: BLOCKING → C04b inserted |
+| C04b | — (lost) | Rex + Sage gate | Rex: sonnet / Sage: haiku | Rex tokens lost to session reset; Sage 17,212 | gate: PASS |
 
 ---
 

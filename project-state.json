@@ -1,14 +1,14 @@
 {
   "project": "manifesto",
   "phase": 1,
-  "last_completed_commit": "03",
-  "next_commit": "04",
-  "next_commit_name": "config-and-security",
+  "last_completed_commit": "04",
+  "next_commit": "04b",
+  "next_commit_name": "config-security-hardening",
   "next_commit_assignee": "rex",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C04 work complete 2026-06-04 -- awaiting Eran commit. Rex built config.py (pydantic-settings) + security.py (bcrypt + JWT). All 6 test gates pass. Sage gate: BLOCKING -- 2 findings dismissed (false pos + spec contradiction), 2 deferred. C04b inserted after C04 for security hardening (SECRET_KEY validator + decode_token logging). After C04 commits, next is C04b."
+  "notes": "C04 committed 2026-06-04 (518e50e). C04b work complete -- SECRET_KEY validator + decode_token warning added. Changes staged/unstaged in working tree. Awaiting Sage gate + Eran approval before commit."
 }

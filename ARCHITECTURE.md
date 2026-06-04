@@ -194,4 +194,52 @@ All API and auth requests from the frontend are proxied to the FastAPI backend a
 
 ---
 
+## C04 — Config and Security
+
+**Introduced by:** Rex (Backend), Commit 04
+
+### Application Configuration (config.py)
+
+`Settings` class inherits `pydantic_settings.BaseSettings`. Reads from `.env` file + environment.
+
+| Field | Default | Purpose |
+|---|---|---|
+| DATABASE_URL | (required) | asyncpg connection string |
+| SECRET_KEY | (required) | JWT signing key |
+| ALGORITHM | HS256 | JWT algorithm |
+| ACCESS_TOKEN_EXPIRE_MINUTES | 30 | JWT access TTL |
+| REFRESH_TOKEN_EXPIRE_DAYS | 7 | JWT refresh TTL |
+| OLLAMA_BASE_URL | http://ollama:11434 | Local LLM endpoint |
+| OPENAI_API_KEY | "" | Cloud LLM fallback (optional) |
+
+Settings singleton: `from app.core.config import settings`.
+
+### Security Utilities (security.py)
+
+| Function | Signature | Notes |
+|---|---|---|
+| `hash_password` | `(plain: str) → str` | bcrypt hash via direct `bcrypt` library |
+| `verify_password` | `(plain: str, hashed: str) → bool` | bcrypt verify |
+| `create_access_token` | `(data: dict) → str` | JWT with expiry delta; claims: `{"sub": ..., "exp": ...}` |
+| `decode_token` | `(token: str) → dict` | Decodes JWT; raises HTTP 401 on any `InvalidTokenError` |
+
+**Library changes from C02 spec:**
+- `passlib` removed → `bcrypt` used directly (version incompatibility)
+- `python-jose` removed → `PyJWT>=2.8.0` (see D16)
+
+---
+
+## C04b — Config Security Hardening
+
+**Introduced by:** Rex (Backend), Commit 04b — Sage gate deferred findings from C04 (see D15)
+
+No new files. No interface changes.
+
+| File | Change |
+|---|---|
+| `config.py` | `field_validator` on `SECRET_KEY` — rejects values shorter than 32 chars; fails fast at startup |
+| `security.py` | `structlog.get_logger()` + `logger.warning("token_validation_failed", error=str(exc))` in `decode_token` catch block — structured forensics; external error message unchanged |
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*
