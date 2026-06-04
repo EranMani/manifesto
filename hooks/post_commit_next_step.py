@@ -10,7 +10,6 @@ Runs after every successful `git commit`. Does three things:
 This script is what keeps project-state.json accurate without manual updates.
 """
 
-import io
 import json
 import re
 import subprocess
@@ -18,11 +17,9 @@ import sys
 from datetime import date
 from pathlib import Path
 
-# Ensure stdout/stderr use UTF-8 on Windows (emoji in print statements).
-if hasattr(sys.stdout, "buffer"):
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-if hasattr(sys.stderr, "buffer"):
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+# Ensure stdout/stderr use UTF-8 on Windows.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 ROOT = Path(subprocess.check_output(
@@ -142,14 +139,14 @@ def main() -> int:
             updated_protocol = update_protocol_status(protocol_text, commit_number, today)
             if updated_protocol != protocol_text:
                 PROTOCOL_FILE.write_text(updated_protocol, encoding="utf-8")
-                print(f"📋 commit-protocol.md: Commit {commit_number} marked ✅ done · {today}")
+                print(f">> commit-protocol.md: Commit {commit_number} marked done · {today}")
             else:
-                print(f"⚠️  commit-protocol.md: Could not find 'pending' row for commit {commit_number}. Update manually.")
+                print(f"[WARN] commit-protocol.md: Could not find 'pending' row for commit {commit_number}. Update manually.")
         else:
-            print("⚠️  post_commit: Could not detect commit step number from message. commit-protocol.md not updated.")
+            print("[WARN] post_commit: Could not detect commit step number from message. commit-protocol.md not updated.")
             commits = parse_commit_index(protocol_text)
     else:
-        print("⚠️  post_commit: commit-protocol.md not found. Skipping protocol update.")
+        print("[WARN] post_commit: commit-protocol.md not found. Skipping protocol update.")
         commits = []
 
     # ── Step 2: Derive next pending from protocol (read-only — no state file write) ──
@@ -163,10 +160,10 @@ def main() -> int:
     if commit_number:
         committed = next((c for c in commits if c["number"] == commit_number), None)
         if committed:
-            print(f"✅  Commit {commit_number} `{committed['name']}` complete. "
+            print(f"[OK] Commit {commit_number} `{committed['name']}` complete. "
                   f"Assignee: {committed['assignee'].title()}")
         else:
-            print(f"✅  Commit {commit_number} complete.")
+            print(f"[OK] Commit {commit_number} complete.")
 
     if next_commit:
         print()
@@ -177,7 +174,7 @@ def main() -> int:
         print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     else:
         print()
-        print("🎉 All commits in commit-protocol.md are complete!")
+        print("[DONE] All commits in commit-protocol.md are complete!")
         print("   Run /status to confirm and review the final project state.")
 
     # ── Context hygiene reminder ──────────────────────────────────────────────

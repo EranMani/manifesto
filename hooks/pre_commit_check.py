@@ -44,7 +44,7 @@ def load_agent_config() -> dict | None:
     try:
         config = json.loads(config_path.read_text())
     except json.JSONDecodeError as e:
-        print(f"⚠️  hooks/agent-config.json is malformed: {e}")
+        print(f"[WARN] hooks/agent-config.json is malformed: {e}")
         print("    Allowing commit through — fix the config and re-commit.")
         return None
 
@@ -132,9 +132,9 @@ def check_domain_boundaries(
         return [
             f"Domain boundary violation for {name} ({agent_email}).\n"
             f"  Staged outside domain:\n"
-            + "".join(f"    ✗ {v}\n" for v in violations)
+            + "".join(f"    x {v}\n" for v in violations)
             + f"  Allowed prefixes:\n"
-            + "".join(f"    ✓ {a}\n" for a in allowed)
+            + "".join(f"    v {a}\n" for a in allowed)
         ]
 
     return []
@@ -191,11 +191,11 @@ def main() -> int:
         # Still enforce commit message format even without config
         errors.extend(check_commit_message_format(msg))
         if errors:
-            print("\n🚫 Pre-commit check FAILED:\n")
+            print("\n[FAIL] Pre-commit check FAILED:\n")
             for e in errors:
                 print(f"  {e}\n")
             return 2
-        print(f"✅ Commit message format valid. ({len(staged)} file(s) staged)")
+        print(f"[OK] Commit message format valid. ({len(staged)} file(s) staged)")
         return 0
 
     # Full enforcement — config is present and initialized
@@ -214,19 +214,19 @@ def main() -> int:
     errors.extend(check_not_already_done(msg))
 
     if warnings:
-        print("\n⚠️  Pre-commit warnings:")
+        print("\n[WARN] Pre-commit warnings:")
         for w in warnings:
             print(f"   {w}")
 
     if errors:
-        print("\n🚫 Pre-commit check FAILED — commit blocked:\n")
+        print("\n[FAIL] Pre-commit check FAILED — commit blocked:\n")
         for i, e in enumerate(errors, 1):
             print(f"  [{i}] {e}\n")
         print("Fix the above issues, then commit again.\n")
         return 2
 
     agent_name = config["agents"].get(agent_email, {}).get("name", agent_email) if agent_email else "unknown"
-    print(f"✅ Pre-commit check passed ({len(staged)} file(s) staged, agent: {agent_name})")
+    print(f"[OK] Pre-commit check passed ({len(staged)} file(s) staged, agent: {agent_name})")
     return 0
 
 
