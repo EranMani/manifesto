@@ -667,4 +667,56 @@ If a fix fails once, stop patching symptoms. State the root-cause hypothesis exp
 
 ---
 
+## D15 — Sage Gate C04: Two Findings Dismissed, Two Deferred to C04b
+
+- **Date:** 2026-06-04
+- **Decided by:** Claude (gate analysis), Eran (approval)
+- **Context:** Sage returned BLOCKING on C04 with 2 CRITICAL and 2 HIGH findings. Claude assessed each against Sage's identity-file blocking criteria before surfacing.
+
+### Findings assessed
+
+| # | Sage severity | Finding | Verdict |
+|---|---|---|---|
+| 1 | CRITICAL | `SECRET_KEY` needs minimum-length validator | Deferred to C04b — valid defense-in-depth, overstated severity |
+| 2 | CRITICAL | `OPENAI_API_KEY: str = ""` is a "plaintext credential" | **Dismissed** — empty string is not a secret; Sage's own rule requires "secrets committed to code" |
+| 3 | HIGH | `create_access_token(data: dict)` should accept typed params | **Dismissed** — contradicts C04 spec and C08/C09 handoff contracts; internal callers only |
+| 4 | HIGH | `decode_token` needs warning log on JWTError | Deferred to C04b — valid forensics improvement |
+
+### Decision
+
+Insert C04b (`config-security-hardening`) immediately after C04. Rex adds a `SECRET_KEY` minimum-length validator and a structlog warning in `decode_token`. C04 commits as-is; C04b follows before C05 begins.
+
+### Consequences
+
+- C04b is a new row in commit-protocol.md between C04 and C05
+- Future Sage invocations on these files should not re-flag findings 2 or 3
+- `SECRET_KEY` now fails fast at startup with a clear error message if weak
+- `decode_token` failures emit structured logs without leaking details to callers
+
+---
+
+## D16 — JWT Library: PyJWT replaces python-jose
+
+- **Date:** 2026-06-04
+- **Decided by:** Eran
+- **Context:** During C04 review, Eran noted `python-jose` has had periods of slow maintenance.
+
+### Decision
+
+Replace `python-jose[cryptography]` with `PyJWT>=2.8.0` in `pyproject.toml`.
+Update `security.py` imports: `from jwt.exceptions import InvalidTokenError` instead of `from jose import JWTError, jwt`.
+
+### Rationale
+
+`PyJWT` is more actively maintained, has a cleaner API, and is the more common choice in greenfield Python projects post-2023. The interface change is a two-line import swap — no behaviour changes.
+
+### Consequences
+
+- `pyproject.toml`: `python-jose[cryptography]>=3.3.0` → `PyJWT>=2.8.0`
+- `security.py`: `JWTError` → `InvalidTokenError`; `jwt` module is now the top-level `jwt` package
+- `uv sync` must be re-run after this change to update the lockfile
+- No other files reference `jose` — change is fully contained in `security.py`
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

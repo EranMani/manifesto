@@ -5,15 +5,15 @@
 ---
 
 ## Current State
-*Last updated: Commit 02 · 2026-06-04*
+*Last updated: Commit 04 · 2026-06-04*
 
-**Last completed:** Commit 02 `python-skeleton` ✅
+**Last completed:** Commit 04 `config-and-security` ✅
 **Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
-- → Aria (C03): No shared files — frontend scaffold can run in parallel with this commit
-- → Rex (C04): `app/main.py` has `# routers registered below` comment — append routers there in future commits
+- → Rex (C08): `create_access_token` accepts `data: dict` — caller must pass `{"sub": str(user.id), "role": user.role}`
+- → Rex (C09): `decode_token` raises HTTPException 401 — `get_current_user` dependency catches this naturally
 
 **Open Handoffs — Inbound:**
 - (none)
@@ -34,6 +34,7 @@ No archived sessions yet.
 | # | Commit | Status | Key Decision |
 |---|--------|--------|--------------|
 | 01 | C02: python-skeleton | ✅ Done | Used exact pyproject.toml from spec; no deviations |
+| 02 | C04: config-and-security | ✅ Done | Replaced passlib CryptContext with direct bcrypt calls due to version incompatibility |
 
 ---
 
@@ -66,3 +67,29 @@ No archived sessions yet.
 
 **Issues encountered:**
 - uv printed "Using CPython 3.13.12" to stderr — this is informational, not an error. System Python is 3.14.3 but uv resolved 3.13.12 for the venv. All packages installed cleanly.
+
+---
+
+## Session 02 — Commit 04: `config-and-security`
+*2026-06-04*
+
+**Approach:** Phase 1 reads — confirmed pyproject.toml has all required deps (pydantic-settings, python-jose[cryptography], passlib[bcrypt]), confirmed core/__init__.py exists as empty stub. Phase 2 writes — created config.py and security.py per spec.
+
+**Files created:**
+- `backend/app/core/config.py` — pydantic-settings Settings class with all env vars, settings singleton
+- `backend/app/core/security.py` — hash_password, verify_password, create_access_token, decode_token
+
+**Test gate results:**
+- `from app.core.config import settings` import: PASS
+- `from app.core.security import hash_password, verify_password` import: PASS
+- `hash_password("test")` returns bcrypt hash: PASS
+- `verify_password("test", hash_password("test"))` returns True: PASS
+- `decode_token(create_access_token({"sub": "test"}))` returns `{"sub": "test"}`: PASS
+- `decode_token("bad-token")` raises HTTPException 401: PASS
+
+**Decisions made:**
+- Replaced passlib CryptContext with direct `bcrypt` module calls. Passlib's bcrypt backend detection throws a ValueError on newer bcrypt versions (>= 4.x) due to the wrap-bug probe using a 73-byte test password. Direct `bcrypt.hashpw` / `bcrypt.checkpw` calls are stable and produce identical `$2b$` hashes. The `passlib[bcrypt]` dep remains in pyproject.toml as it was not removed — only the call site changed.
+
+**Handoffs out:**
+- → Rex (C08): `create_access_token` accepts `data: dict` — caller must pass `{"sub": str(user.id), "role": user.role}`
+- → Rex (C09): `decode_token` raises HTTPException 401 — `get_current_user` dependency catches this naturally

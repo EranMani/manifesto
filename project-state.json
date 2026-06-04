@@ -10,5 +10,5 @@
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C03 complete 2026-06-04. Frontend scaffold built by Aria -- 9 spec files + postcss.config.js (required by Tailwind v3). npm install and npm run build both pass. Hook bugs fixed: GIT_MESSAGE priority order, Windows cp1252 encoding. Sage gate: clean pass. Next: C04 config-and-security (Rex)."
+  "notes": "C04 work complete 2026-06-04 -- awaiting Eran commit. Rex built config.py (pydantic-settings) + security.py (bcrypt + JWT). All 6 test gates pass. Sage gate: BLOCKING -- 2 findings dismissed (false pos + spec contradiction), 2 deferred. C04b inserted after C04 for security hardening (SECRET_KEY validator + decode_token logging). After C04 commits, next is C04b."
 }
