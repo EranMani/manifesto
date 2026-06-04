@@ -89,3 +89,33 @@ Actions for Claude:
 - Do not hallucinate decisions. If unsure whether a choice was non-obvious, ask: "Would a new engineer reading only the spec understand why this was done this way?" If no — log it.
 - ARCHITECTURE.md and DECISIONS.md entries are written by Claude immediately — not deferred.
 - TOKEN_RECORDS.md row is written last, after all agent `<usage>` blocks are confirmed.
+
+---
+
+## Governance Sync Check (always run last)
+
+Before closing the checklist, run a grep sweep to catch missed files:
+
+```bash
+# If any of these files were edited this commit:
+# commit-protocol.md, team-preferences.md, CLAUDE.md, AGENTS.md, ORCHESTRATION.md
+# — then check whether the same rule/term appears in the others.
+
+grep -r "[changed rule or term]" --include="*.md" --include="*.json" . | grep -v ".git"
+```
+
+**Related file map — when you edit one, check the others:**
+
+| File edited | Also check |
+|---|---|
+| `commit-protocol.md` | `project-state.json`, `team-preferences.md` |
+| `team-preferences.md` | `CLAUDE.md` (Critical Rules section), `AGENTS.md` |
+| `CLAUDE.md` | `team-preferences.md`, `ORCHESTRATION.md` |
+| `AGENTS.md` | `hooks/agent-config.json` (domain boundaries must match) |
+| `ORCHESTRATION.md` | `CLAUDE.md` (commit loop steps must stay in sync) |
+| Any agent identity file | `AGENTS.md` roster table |
+| `hooks/agent-config.json` | `AGENTS.md` domain boundaries section |
+
+Output a final line: `Governance sync: CLEAN` or `Governance sync: [file] also needs updating — [what]`
+
+Do not mark the checklist complete until governance sync is CLEAN.

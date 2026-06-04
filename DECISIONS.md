@@ -338,24 +338,4 @@ Tailwind CSS v3 requires PostCSS to process `@tailwind` directives at build time
 
 - **Date:** 2026-06-04
 - **Decided by:** Aria (C03 execution), retroactively noted by Claude
-- **Context:** Pre-commit hook's `get_commit_message()` originally checked `COMMIT_EDITMSG` before the `GIT_MESSAGE` env var. On Windows, `COMMIT_EDITMSG` contains the *previous* commit's message when the pre-commit hook fires (git hasn't written the new message yet). This caused format validation failures on every commit.
-
-**Updates D10:** D10 described a workaround — pre-write `COMMIT_EDITMSG` before every `git commit -m` call. This fix eliminates the need for that workaround.
-
-### Decision
-
-In `get_commit_message()`, check `GIT_MESSAGE` env var **first**, fall back to `COMMIT_EDITMSG`, then return `""`.
-
-### Rationale
-
-`GIT_MESSAGE` is explicitly set by commit wrappers and CI before calling `git commit`. It is always the intended message. `COMMIT_EDITMSG` at pre-commit time contains the prior commit's message on Windows — an unreliable source. The priority inversion was the root cause of D10's pre-write workaround.
-
-### Consequences
-
-- `GIT_MESSAGE` must be set in the environment before `git commit -m` is called
-- D10's pre-write-COMMIT_EDITMSG workaround is no longer needed but remains harmless if done
-- Sage confirmed this change cannot be exploited: message still passes through the conventional-commit format validator regardless of source
-
----
-
-*This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
+- **Context:** Pre-commit hook's `get_commit_message()` originally checked `COMMIT_EDITMSG` before the `GIT_MESSAGE` env var. On Windows, `COMMIT_EDITMSG` contains the *previous* commit's message when the pre-commit hook fires (git has

@@ -47,27 +47,4 @@
       "role": "devops",
       "domains": [
         "docker-compose.yml",
-        "docker-compose.prod.yml",
-        ".env.example",
-        "backend/Dockerfile",
-        "scripts/",
-        "SMOKE_TEST_RESULTS.md"
-      ]
-    },
-    "aria@manifesto.local": {
-      "name": "Aria",
-      "role": "frontend",
-      "domains": [
-        "frontend/src/",
-        "frontend/package.json",
-        "frontend/package-lock.json",
-        "frontend/vite.config.ts",
-        "frontend/tailwind.config.ts",
-        "frontend/tsconfig.json",
-        "frontend/index.html",
-        "frontend/postcss.config.js",
-        "frontend/.env.example"
-      ]
-    }
-  }
-}
+      

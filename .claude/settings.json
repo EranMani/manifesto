@@ -9,6 +9,15 @@
             "command": "python hooks/tool_cap_enforce.py"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/block_agent_commit.py"
+          }
+        ]
       }
     ],
     "PostToolUse": [

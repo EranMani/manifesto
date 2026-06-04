@@ -42,3 +42,12 @@ Thumbs.db
 # Claude Code local artifacts
 .claude/settings.local.json
 .claude/worktrees/
+
+# Usage data and session artifacts
+claude_usage_data/
+
+# Hook runtime state
+hooks/tool_cap.json
+
+# Frontend lockfile (optional — remove this line if you want to track it)
+frontend/package-lock.json

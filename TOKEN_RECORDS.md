@@ -52,21 +52,4 @@ The delta column is the signal — positive means over budget, negative means un
 
 *Populated after 5+ commits — enough data to identify patterns.*
 
-High-cost commits: —
-Most expensive agent: —
-Gate wave efficiency: —
-Strategy impact: —
-
----
-
-## How to Update (Claude's job)
-
-1. After every agent invocation, note the token count from the `<usage>` block in the tool result
-2. Before the approval prompt, append one row per agent to the Commit Log table
-3. Add a row to Session Totals with the commit-level aggregate
-4. After every 5 commits, update the Running Analysis section with patterns observed
-
-Column definitions:
-- **Tokens**: total input + output tokens from `<usage>` block
-- **Tool uses**: number of tool calls the agent made
-- **vs. Target**: `tokens - target` (negative = under budget ✅, positive = over ⚠️)
+High-cost commits: 

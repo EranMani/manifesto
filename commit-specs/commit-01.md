@@ -99,13 +99,4 @@ Also create an initial `.gitignore` before the first commit so no secrets or bui
 - [ ] `db` container passes healthcheck
 - [ ] `.env.example` contains all vars referenced in compose
 - [ ] `backend/Dockerfile` builds successfully with `docker build ./backend`
-- [ ] `git init` done, `.git/hooks/pre-commit` installed and executable
-- [ ] `git status` shows only tracked files — no `.env`, no `__pycache__`, no `node_modules`
-
----
-
-## Handoffs Out
-
-→ Rex (C02): `DATABASE_URL` format is `postgresql+asyncpg://` — asyncpg driver, not psycopg2.
-→ Rex (C02): Backend volume mounts `./backend:/app` — working dir inside container is `/app`.
-→ Rex (C02): `uv sync` is the install command in Dockerfile — use `pyproject.toml`, not `requirements.txt`.
+- [ ] `git init` done, `

@@ -58,5 +58,4 @@ Load `commit-specs/commit-XX.md` (active commit only) when executing a step.
 5. If a commit reveals a prior commit needs changing — stop. Surface to Eran first.
 6. `DECISIONS.md` and `ARCHITECTURE.md` are updated by Claude before every approval prompt when applicable.
 7. Scope overflow is logged immediately — never silently absorbed.
-8. Viktor reviews every 5th commit (C05, C10, C15, C20). Sage reviews any commit touching auth, secrets, or external API calls.
-9. No gate-fix passes. A blocking finding becomes its own next commit.
+8. Viktor reviews every 5th commit (C05, C10, C15, C20). Sage reviews any commit touching auth, secrets, or exte

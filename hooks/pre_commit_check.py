@@ -226,16 +226,4 @@ def main() -> int:
             print(f"   {w}")
 
     if errors:
-        print("\n[FAIL] Pre-commit check FAILED -- commit blocked:\n")
-        for i, e in enumerate(errors, 1):
-            print(f"  [{i}] {e}\n")
-        print("Fix the above issues, then commit again.\n")
-        return 2
-
-    agent_name = config["agents"].get(agent_email, {}).get("name", agent_email) if agent_email else "unknown"
-    print(f"[OK] Pre-commit check passed ({len(staged)} file(s) staged, agent: {agent_name})")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+     
