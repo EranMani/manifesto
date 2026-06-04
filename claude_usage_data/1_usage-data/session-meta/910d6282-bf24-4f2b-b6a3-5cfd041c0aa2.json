@@ -1,0 +1,59 @@
+{
+  "session_id": "910d6282-bf24-4f2b-b6a3-5cfd041c0aa2",
+  "project_path": "C:\\_MyProjects\\rag-from-scratch",
+  "start_time": "2026-05-15T18:34:35.082Z",
+  "duration_minutes": 40,
+  "user_message_count": 7,
+  "assistant_message_count": 57,
+  "tool_counts": {
+    "Agent": 7,
+    "Read": 11,
+    "Edit": 2,
+    "Bash": 3
+  },
+  "languages": {
+    "Python": 11,
+    "Markdown": 2
+  },
+  "git_commits": 1,
+  "git_pushes": 0,
+  "input_tokens": 107,
+  "output_tokens": 101696,
+  "first_prompt": "im having an issue with services health function in @src/app/api/routes/health.py  when this route is working, the server stuck in a loop and doesnt work. when i comment it out everytihng works fine i…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    204.578,
+    183.35,
+    204.716,
+    718.961,
+    35.543,
+    70.017
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 38,
+  "lines_removed": 9,
+  "files_modified": 2,
+  "message_hours": [
+    21,
+    21,
+    21,
+    21,
+    22,
+    22,
+    22
+  ],
+  "user_message_timestamps": [
+    "2026-05-15T18:34:35.082Z",
+    "2026-05-15T18:39:23.566Z",
+    "2026-05-15T18:43:48.663Z",
+    "2026-05-15T18:53:37.761Z",
+    "2026-05-15T19:07:28.684Z",
+    "2026-05-15T19:08:55.355Z",
+    "2026-05-15T19:13:32.186Z"
+  ]
+}

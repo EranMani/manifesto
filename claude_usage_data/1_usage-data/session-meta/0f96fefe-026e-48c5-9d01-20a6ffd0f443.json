@@ -1,0 +1,63 @@
+{
+  "session_id": "0f96fefe-026e-48c5-9d01-20a6ffd0f443",
+  "project_path": "C:\\_MyProjects\\manifesto",
+  "start_time": "2026-06-04T12:33:36.644Z",
+  "duration_minutes": 23,
+  "user_message_count": 6,
+  "assistant_message_count": 127,
+  "tool_counts": {
+    "Read": 19,
+    "Glob": 6,
+    "Agent": 2,
+    "Edit": 27,
+    "Bash": 5,
+    "PowerShell": 3,
+    "Write": 1,
+    "Grep": 4
+  },
+  "languages": {
+    "JSON": 7,
+    "Markdown": 16,
+    "Python": 20
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 157,
+  "output_tokens": 111934,
+  "first_prompt": "proceed",
+  "user_interruptions": 0,
+  "user_response_times": [
+    86.508,
+    89.362,
+    23.267,
+    127.86
+  ],
+  "tool_errors": 4,
+  "tool_error_categories": {
+    "Command Failed": 2,
+    "File Not Found": 2
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 133,
+  "lines_removed": 43,
+  "files_modified": 9,
+  "message_hours": [
+    15,
+    15,
+    15,
+    15,
+    15,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-06-04T12:33:36.644Z",
+    "2026-06-04T12:33:36.644Z",
+    "2026-06-04T12:35:51.408Z",
+    "2026-06-04T12:42:22.488Z",
+    "2026-06-04T12:51:15.953Z",
+    "2026-06-04T12:55:46.903Z"
+  ]
+}
