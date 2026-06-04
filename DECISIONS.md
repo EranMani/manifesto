@@ -575,7 +575,58 @@ If a fix fails once, stop patching symptoms. State the root-cause hypothesis exp
 
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
 
-oesn't update `.git/COMMIT_EDITMSG` before the pre-commit hook runs. Every commit uses a two-step pattern: `printf ... > .git/COMMIT_EDITMSG`, then `git commit -m`. Co-Authored-By must use single-word agent names matching agent-config.json keys.
+---
+
+## D13 — Local Validation: npm install Must Run Before npm run build
+
+- **Date:** 2026-06-04
+- **Decided by:** Observed during C03 local validation
+- **Context:** `npm run build` failed with `'tsc' is not recognized` on Eran's machine after C03 was marked done.
+
+### Root cause
+
+Session notes recorded "npm install and npm run build both pass" — this referred to the agent's execution environment, not the developer's local machine. `node_modules/` is gitignored and was never present locally.
+
+### Fix
+
+Run `npm install` in `frontend/` before any build or dev command on a fresh checkout.
+
+### Consequences
+
+- Any new machine or fresh clone must run `npm install` in `frontend/` before `npm run build`
+- C03's "Done When" criteria should be read as: "passes in the build environment" — local setup requires `npm install` first
+- README.md quick-start should include `cd frontend && npm install` as a setup step
+
+---
+
+## D14 — Dockerfile CMD: uvicorn Must Be Invoked via uv run
+
+- **Date:** 2026-06-04
+- **Decided by:** Observed during C01 Docker validation
+- **Context:** `docker-compose up` failed: `exec: "uvicorn": executable file not found in $PATH` in the backend container.
+
+### Root cause
+
+`uv sync` installs all dependencies — including uvicorn — into a `.venv/` virtual environment inside the container. The `.venv/bin/` directory is not on the system PATH, so `CMD ["uvicorn", ...]` cannot find the executable.
+
+### Fix
+
+Changed `backend/Dockerfile` CMD from:
+```
+CMD ["uvicorn", "app.main:app", ...]
+```
+to:
+```
+CMD ["uv", "run", "uvicorn", "app.main:app", ...]
+```
+
+`uv run` activates the virtual environment before executing the command.
+
+### Consequences
+
+- Any executable installed by `uv sync` must be invoked via `uv run <executable>` in Docker CMD/ENTRYPOINT
+- This applies to all future Dockerfiles in this project using uv (alembic, pytest, etc.)
+- Rex must use `uv run` for any process-launch commands in Docker context
 
 ---
 
