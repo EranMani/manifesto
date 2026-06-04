@@ -1,0 +1,46 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/tool_cap_enforce.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/tool_cap_end.py"
+          }
+        ]
+      }
+    ],
+    "PostCommit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/post_commit_next_step.py"
+          }
+        ]
+      }
+    ],
+    "PreCommit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/pre_commit_check.py"
+          }
+        ]
+      }
+    ]
+  }
+}

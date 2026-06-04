@@ -1,0 +1,107 @@
+# AGENTS.md — Manifesto
+
+> Cross-agent protocol and roster. Claude reads this at boot.
+> Updated when agents are added or domain boundaries change.
+> Last updated: 2026-06-04
+
+---
+
+## Active Roster — Phase 1
+
+| Role | Name | Model | Domain |
+|---|---|---|---|
+| Orchestrator | Claude | sonnet | Pure orchestration — no code files |
+| Backend Engineer | Rex | sonnet | `backend/` — all Python application code |
+| DevOps Engineer | Adam | sonnet | `Dockerfile`, `docker-compose*.yml`, `.env*.example`, `scripts/` |
+| Frontend Engineer | Aria | sonnet | `frontend/` — all React/TypeScript |
+| Code Reviewer | Viktor | haiku | Cross-domain review — reads any file, touches none |
+| Security Engineer | Sage | haiku | Security review — auth, secrets, user input, external calls |
+| Product Manager | Mira | haiku | Product review — user-facing behavior only, advisory |
+
+## Deferred Roster (activate when phase requires)
+
+| Role | Name | Activates | Trigger |
+|---|---|---|---|
+| AI/ML Engineer | Nova | Phase 2 | When LLMService is wired |
+| QA Engineer | Quinn | Phase 2 | When business logic warrants coverage review |
+| Tech Writer | Ryan | Phase 4 | Hardening / docs phase |
+
+To add an agent: write their identity file to `.claude/agents/[name].md` and add a row to this table.
+
+---
+
+## Domain Boundaries
+
+### Rex — Backend
+**Owns:** `backend/app/`, `backend/alembic/`, `backend/seed.py`, `backend/pyproject.toml`, `backend/Dockerfile`
+**Does not touch:** `frontend/`, `docker-compose.yml` (Adam's), nginx config
+
+### Adam — DevOps
+**Owns:** `docker-compose.yml`, `docker-compose.prod.yml`, `.env.example`, `backend/Dockerfile`, `scripts/`
+**Does not touch:** `backend/app/` (Rex's), `frontend/` (Aria's)
+**Note:** Dockerfile is co-owned — Adam writes it in C01, Rex may add deps via `pyproject.toml` changes. Conflicts route through Claude.
+
+### Aria — Frontend
+**Owns:** `frontend/src/`, `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tailwind.config.ts`, `frontend/tsconfig.json`, `frontend/index.html`
+**Does not touch:** `backend/` (Rex's)
+
+### Viktor — Reviewer
+**Reads:** any file in the diff
+**Touches:** nothing
+**Reports to:** Claude (who routes findings to the owning agent)
+
+### Sage — Security
+**Reads:** auth routes, config, env handling, external API calls, file uploads — targeted only
+**Touches:** nothing
+
+### Mira — Product
+**Reads:** nothing (assesses from Claude's brief only)
+**Touches:** nothing
+
+---
+
+## Cross-Agent Communication Protocol
+
+All agent-to-agent communication routes through Claude. No direct agent-to-agent contact.
+
+**Standard handoff format:**
+```
+## Handoff → [Agent]
+From: [Agent]
+Commit [N] `[name]` is complete.
+What I built: [one paragraph]
+What you need to know: [interfaces, env vars, constraints]
+Files to read: [list]
+```
+
+**Cross-domain finding format:**
+```
+🐛 CROSS-DOMAIN FINDING → [Agent]
+Found by: [Agent] during Commit [N]
+File: [path:line]
+Problem: [description]
+Impact: [what breaks]
+Suggested fix: [direction only]
+I will not touch this file.
+```
+
+---
+
+## Quality Gate Trigger Matrix
+
+| Commit type | Viktor | Sage | Mira |
+|---|---|---|---|
+| Infrastructure only (Dockerfile, compose) | every 5th | skip | skip |
+| Pure config / env | every 5th | run | skip |
+| Auth, JWT, password handling | every 5th | **run** | skip |
+| New route with user input | every 5th | **run** | **run** |
+| New service / business logic | every 5th | conditional | conditional |
+| Frontend UI — no user data rendered | every 5th | skip | **run** |
+| Frontend renders user-supplied data | every 5th | **run** | **run** |
+| Stub / placeholder only | skip | skip | skip |
+| Smoke test / verification commit | skip | skip | skip |
+
+Viktor runs as a **batch wave every 5 commits** (C05, C10, C15, C20) — not per-commit.
+Sage and Mira run per-commit when triggered by the matrix above.
+
+**No gate-fix passes.** A blocking finding becomes the next commit in the sequence.

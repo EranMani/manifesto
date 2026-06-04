@@ -1,0 +1,14 @@
+{
+  "project": "manifesto",
+  "phase": 1,
+  "last_completed_commit": null,
+  "next_commit": "01",
+  "next_commit_name": "project-scaffold",
+  "next_commit_assignee": "adam",
+  "status": "ready",
+  "open_handoffs": [],
+  "blockers": [],
+  "replan_history": [],
+  "rollback_history": [],
+  "notes": "Phase 1 initialized 2026-06-04. Commit index approved by Eran. Ready to begin C01."
+}
