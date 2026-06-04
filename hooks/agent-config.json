@@ -13,7 +13,8 @@
     ".claude/agents/logs/",
     "hooks/",
     "backend/DOMAIN_MAP.md",
-    "frontend/DOMAIN_MAP.md"
+    "frontend/DOMAIN_MAP.md",
+    "claude_usage_data/"
   ],
   "agents": {
     "claude@manifesto.local": {
