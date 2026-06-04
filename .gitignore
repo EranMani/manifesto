@@ -38,3 +38,7 @@ Thumbs.db
 
 # Docker
 *.log
+
+# Claude Code local artifacts
+.claude/settings.local.json
+.claude/worktrees/

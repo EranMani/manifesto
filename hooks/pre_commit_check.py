@@ -45,7 +45,7 @@ def load_agent_config() -> dict | None:
         config = json.loads(config_path.read_text())
     except json.JSONDecodeError as e:
         print(f"[WARN] hooks/agent-config.json is malformed: {e}")
-        print("    Allowing commit through — fix the config and re-commit.")
+        print("    Allowing commit through -- fix the config and re-commit.")
         return None
 
     if not config.get("initialized", False):
@@ -184,7 +184,7 @@ def main() -> int:
     config = load_agent_config()
     if config is None:
         print(
-            "⚠️  hooks/agent-config.json not found or not initialized.\n"
+            "[WARN] hooks/agent-config.json not found or not initialized.\n"
             "    Domain boundary checks are SKIPPED for this commit.\n"
             "    Run /init to set up the project and enable full enforcement."
         )
@@ -219,7 +219,7 @@ def main() -> int:
             print(f"   {w}")
 
     if errors:
-        print("\n[FAIL] Pre-commit check FAILED — commit blocked:\n")
+        print("\n[FAIL] Pre-commit check FAILED -- commit blocked:\n")
         for i, e in enumerate(errors, 1):
             print(f"  [{i}] {e}\n")
         print("Fix the above issues, then commit again.\n")

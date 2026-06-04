@@ -11,7 +11,7 @@
 | # | Name | Assignee | Status |
 |---|---|---|---|
 | 01 | project-scaffold | adam | done |
-| 02 | python-skeleton | rex | pending |
+| 02 | python-skeleton | rex | ✅ done · 2026-06-04 |
 | 03 | frontend-scaffold | aria | pending |
 | 04 | config-and-security | rex | pending |
 | 05 | database-session | rex | pending |

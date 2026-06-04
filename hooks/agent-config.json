@@ -11,7 +11,9 @@
     ".gitignore",
     "README.md",
     ".claude/agents/logs/",
-    "hooks/"
+    "hooks/",
+    "backend/DOMAIN_MAP.md",
+    "frontend/DOMAIN_MAP.md"
   ],
   "agents": {
     "rex@manifesto.local": {
@@ -22,7 +24,8 @@
         "backend/alembic/",
         "backend/seed.py",
         "backend/pyproject.toml",
-        "backend/alembic.ini"
+        "backend/alembic.ini",
+        "backend/uv.lock"
       ]
     },
     "adam@manifesto.local": {

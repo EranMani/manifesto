@@ -1,25 +1,23 @@
 {
   "project": "manifesto",
   "phase": 1,
-  "last_completed_commit": "01",
-  "next_commit": "02",
-  "next_commit_name": "python-skeleton",
-  "next_commit_assignee": "rex",
+  "last_completed_commit": "02",
+  "next_commit": "03",
+  "next_commit_name": "frontend-scaffold",
+  "next_commit_assignee": "aria",
   "status": "ready",
   "open_handoffs": [
     {
-      "from": "adam",
-      "to": "rex",
-      "commit": "C02",
+      "from": "rex",
+      "to": "aria",
+      "commit": "C03",
       "items": [
-        "DATABASE_URL format is postgresql+asyncpg:// — asyncpg driver, not psycopg2",
-        "Backend volume ./backend:/app — working dir inside container is /app",
-        "uv sync is the install command in Dockerfile — use pyproject.toml, not requirements.txt"
+        "No shared files with C02 — frontend scaffold can run in parallel with python-skeleton (Wave A already complete, this note is for record)"
       ]
     }
   ],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "Phase 1 initialized 2026-06-04. Commit index approved by Eran. Ready to begin C01."
+  "notes": "C02 complete 2026-06-04. FastAPI skeleton built by Rex — 10 files, uv sync passes, all test gates green. Hook encoding bugs fixed (emoji removed, both hooks now installed). Next: C03 frontend-scaffold (Aria)."
 }

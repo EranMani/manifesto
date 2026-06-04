@@ -25,6 +25,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 
 def git_root() -> Path:
     result = subprocess.run(
@@ -162,7 +165,7 @@ def write_domain_map(output_path: Path, domain_name: str, graph: dict[str, list[
         lines.append(f"| `{module}` | {imp_str} |")
 
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"📊 {output_path.relative_to(output_path.parent.parent)} updated ({len(graph)} modules mapped)")
+    print(f">> {output_path.relative_to(output_path.parent.parent)} updated ({len(graph)} modules mapped)")
 
 
 def main() -> int:

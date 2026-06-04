@@ -1,7 +1,7 @@
 # GLOSSARY.md — Manifesto
 
 > Maintained by Claude. New terms are added when first introduced — not retroactively.
-> Last updated: 2026-06-04 (C01)
+> Last updated: 2026-06-04 (C02)
 
 ---
 
@@ -24,6 +24,9 @@ ASGI server that runs the FastAPI application. Launched with `--reload` in dev s
 
 ### Ollama
 Local LLM serving layer. Runs as a Docker service (`ollama/ollama`). Exposes an API at `http://ollama:11434` inside the Docker network. Used to serve embedding and generation models locally without cloud API calls.
+
+### structlog
+Python structured logging library. Produces log output as key-value pairs or JSON instead of plain text — makes logs machine-parseable and searchable. Imported in `main.py` as `logger = structlog.get_logger()`. Added in C02.
 
 ### commit-protocol
 The ordered build sequence for Phase 1. Each entry is one atomic unit of work with one owner and one test gate. No commit is made without Eran's approval. Stored in `commit-protocol.md` (index) and `commit-specs/` (full specs).

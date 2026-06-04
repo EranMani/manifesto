@@ -3,7 +3,7 @@
 > Maintained by Claude. Updated before every Team Lead approval prompt — no exceptions.
 > Token counts come from the `<usage>` block returned by each Agent tool call.
 > Exact numbers only. Estimated entries are worse than no entry.
-> Last updated: 2026-06-04 (C01 complete)
+> Last updated: 2026-06-04 (C02 complete)
 
 ---
 
@@ -32,6 +32,7 @@ The delta column is the signal — positive means over budget, negative means un
 | Commit | Name | Agent | Model | Tokens | Tool uses | vs. Target | Notes |
 |---|---|---|---|---|---|---|---|
 | C01 | project-scaffold | Adam | sonnet | 25,870 | 17 | -34,130 ✅ | First commit; fresh agent, no prior worklog |
+| C02 | python-skeleton | Rex | sonnet | 23,116 | 25 | -36,884 ✅ | First Rex session; all 25 tool uses consumed — at cap |
 
 ---
 
@@ -40,6 +41,7 @@ The delta column is the signal — positive means over budget, negative means un
 | Commit | Total tokens | Agents invoked | Gate wave cost | Notes |
 |---|---|---|---|---|
 | C01 | 25,870 | 1 (Adam) | none | 57% under target |
+| C02 | 23,116 | 1 (Rex) | none | 61% under target |
 
 ---
 

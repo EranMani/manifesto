@@ -139,7 +139,7 @@ def main() -> int:
             updated_protocol = update_protocol_status(protocol_text, commit_number, today)
             if updated_protocol != protocol_text:
                 PROTOCOL_FILE.write_text(updated_protocol, encoding="utf-8")
-                print(f">> commit-protocol.md: Commit {commit_number} marked done · {today}")
+                print(f">> commit-protocol.md: Commit {commit_number} marked done - {today}")
             else:
                 print(f"[WARN] commit-protocol.md: Could not find 'pending' row for commit {commit_number}. Update manually.")
         else:
@@ -167,11 +167,11 @@ def main() -> int:
 
     if next_commit:
         print()
-        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print(f"  NEXT: Commit {next_commit['number']} — `{next_commit['name']}`")
+        print(f"--------------------------------------------------------------")
+        print(f"  NEXT: Commit {next_commit['number']} - `{next_commit['name']}`")
         print(f"  Assignee: {next_commit['assignee'].title()}")
         print(f"  Run /next-step to proceed or /status for a full project overview.")
-        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print(f"--------------------------------------------------------------")
     else:
         print()
         print("[DONE] All commits in commit-protocol.md are complete!")
@@ -179,11 +179,11 @@ def main() -> int:
 
     # ── Context hygiene reminder ──────────────────────────────────────────────
     print()
-    print("┌─────────────────────────────────────────────────────────────┐")
-    print("│  TYPE /clear NOW — all state is saved in project files.    │")
-    print("│  Start the next commit in a fresh context window.          │")
-    print("│  Mid-commit if session grows heavy: type /compact instead. │")
-    print("└─────────────────────────────────────────────────────────────┘")
+    print("=============================================================")
+    print("  TYPE /clear NOW -- all state is saved in project files.")
+    print("  Start the next commit in a fresh context window.")
+    print("  Mid-commit if session grows heavy: type /compact instead.")
+    print("=============================================================")
 
     return 0
 

@@ -2,7 +2,7 @@
 
 > Maintained by Claude. Every new component, data flow, or structural pattern introduced
 > during this project is documented here as it is built.
-> Last updated: 2026-06-04 (C01)
+> Last updated: 2026-06-04 (C02)
 
 ---
 
@@ -85,6 +85,60 @@ manifesto/
 ```
 
 `backend/app/` and `frontend/` do not yet exist — Rex creates `backend/app/` in C02, Aria creates `frontend/` in C03.
+
+---
+
+## C02 — Python Skeleton
+
+**Introduced by:** Rex (Backend), Commit 02
+
+### Backend Application Structure
+
+```
+backend/
+├── pyproject.toml          ← project metadata + all dependencies (uv managed)
+├── app/
+│   ├── __init__.py
+│   ├── main.py             ← FastAPI app entry point
+│   ├── dependencies.py     ← empty stub (auth deps added C09)
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── v1/
+│   │       └── __init__.py
+│   ├── core/
+│   │   └── __init__.py
+│   ├── models/
+│   │   └── __init__.py
+│   ├── schemas/
+│   │   └── __init__.py
+│   └── services/
+│       └── __init__.py
+```
+
+### FastAPI App Bootstrap (main.py)
+
+- `FastAPI(title="Manifesto", version="0.1.0")` with CORS middleware (allow all origins — tighten in production)
+- `structlog` logger at module level
+- `GET /` returns `{"status": "ok"}` — health check only
+- `# routers registered below` comment block — all future route commits append here
+
+### Dependency Stack (pyproject.toml)
+
+| Package | Purpose |
+|---|---|
+| fastapi, uvicorn[standard] | Web framework + ASGI server |
+| sqlalchemy[asyncio], asyncpg | Async ORM + PostgreSQL driver |
+| alembic | Database migrations |
+| pydantic-settings | Config from environment |
+| python-jose[cryptography], passlib[bcrypt] | JWT auth |
+| pgvector | Vector similarity search |
+| pymupdf, python-docx | Document parsing (PDF, Word) |
+| structlog | Structured logging |
+| python-multipart | File upload support |
+
+### uv Environment
+
+`uv sync` creates `.venv/` inside `backend/` and installs all deps. Lock file: `uv.lock`. All agents working in `backend/` must use `uv add <package>` — never `pip install`.
 
 ---
 
