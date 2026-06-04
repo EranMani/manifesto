@@ -10,7 +10,7 @@
 
 | # | Name | Assignee | Status |
 |---|---|---|---|
-| 01 | project-scaffold | adam | pending |
+| 01 | project-scaffold | adam | done |
 | 02 | python-skeleton | rex | pending |
 | 03 | frontend-scaffold | aria | pending |
 | 04 | config-and-security | rex | pending |

@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
   "phase": 1,
-  "last_completed_commit": null,
-  "next_commit": "01",
-  "next_commit_name": "project-scaffold",
-  "next_commit_assignee": "adam",
+  "last_completed_commit": "01",
+  "next_commit": "02",
+  "next_commit_name": "python-skeleton",
+  "next_commit_assignee": "rex",
   "status": "ready",
   "open_handoffs": [
     {

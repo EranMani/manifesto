@@ -292,4 +292,24 @@ The wrapper pattern is portable: Git's sh executes the wrapper; the wrapper call
 
 ---
 
+## D10 — Pre-Commit Hook: COMMIT_EDITMSG Pre-Write Workaround (Windows)
+
+- **Date:** 2026-06-04
+- **Decided by:** Claude (orchestrator, C01 commit)
+- **Context:** On this Windows setup, `git commit -m "message"` does not update `.git/COMMIT_EDITMSG` before the pre-commit hook runs. The hook reads the stale previous commit's message, causing false format validation failures.
+
+### Decision
+
+Pre-write `.git/COMMIT_EDITMSG` with the intended commit message immediately before every `git commit -m` call. Git overwrites it with the same content anyway — the pre-write ensures the hook reads the correct message.
+
+Also: the `Co-Authored-By` regex in `pre_commit_check.py` uses `\S+\s+<email>` — it expects a single-word name before the email. Multi-word names like "Claude Sonnet 4.6" are not matched. Convention: use single-word agent names in `Co-Authored-By` trailers (e.g., `Co-Authored-By: Adam <adam@manifesto.local>`).
+
+### Consequences
+
+- Every commit requires a two-step pattern: `printf ... > .git/COMMIT_EDITMSG`, then `git commit -m`
+- Co-Authored-By must use single-word names matching agent-config.json keys
+- This should be investigated in C21 (Adam's smoke test) to see if a hook fix is preferable
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
