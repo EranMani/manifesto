@@ -4,8 +4,8 @@
     "DECISIONS.md",
     "ARCHITECTURE.md",
     "GLOSSARY.md",
-    "TOKEN_RECORDS.md",
     "AGENTS.md",
+    "TOKEN_RECORDS.md",
     "commit-protocol.md",
     "project-state.json",
     ".gitignore",
@@ -17,7 +17,7 @@
     "claude_usage_data/"
   ],
   "agents": {
-    "claude@manifesto.local": {
+    "claude@anthropic.com": {
       "name": "Claude",
       "role": "orchestrator",
       "domains": [
@@ -30,7 +30,7 @@
         ".claude/commands/"
       ]
     },
-    "rex@manifesto.local": {
+    "rex.stockagent@gmail.com": {
       "name": "Rex",
       "role": "backend",
       "domains": [
@@ -42,7 +42,7 @@
         "backend/uv.lock"
       ]
     },
-    "adam@manifesto.local": {
+    "adam.stockagent@gmail.com": {
       "name": "Adam",
       "role": "devops",
       "domains": [
@@ -54,13 +54,12 @@
         "SMOKE_TEST_RESULTS.md"
       ]
     },
-    "aria@manifesto.local": {
+    "aria.stockagent@gmail.com": {
       "name": "Aria",
       "role": "frontend",
       "domains": [
         "frontend/src/",
         "frontend/package.json",
-        "frontend/package-lock.json",
         "frontend/vite.config.ts",
         "frontend/tailwind.config.ts",
         "frontend/tsconfig.json",
