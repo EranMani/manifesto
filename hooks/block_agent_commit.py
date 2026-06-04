@@ -6,7 +6,8 @@ Intercepts any bash command containing 'git commit' or 'git push'.
 Blocks agents from committing without Eran's explicit approval.
 
 To commit as Eran (bypasses this hook):
-    ERAN_COMMIT=1 git commit -m "..."
+    $env:ERAN_COMMIT="1"; git commit -m "..."  # PowerShell
+    ERAN_COMMIT=1 git commit -m "..."          # bash/git-bash
     or set the env var in your shell: export ERAN_COMMIT=1
 
 Agents never set ERAN_COMMIT, so they are always blocked.

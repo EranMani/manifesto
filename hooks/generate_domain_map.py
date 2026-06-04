@@ -177,4 +177,14 @@ def main() -> int:
         graph = build_python_map(backend_domain)
         write_domain_map(root / "backend" / "DOMAIN_MAP.md", "Rex — backend/app/", graph)
 
-    # Aria's domain: fron
+    # Aria's domain: frontend/src/
+    frontend_domain = root / "frontend" / "src"
+    if frontend_domain.exists():
+        graph = build_ts_map(frontend_domain)
+        write_domain_map(root / "frontend" / "DOMAIN_MAP.md", "Aria — frontend/src/", graph)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

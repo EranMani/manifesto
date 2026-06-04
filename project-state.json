@@ -10,4 +10,5 @@
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C03 complete 2026-06-04. Frontend scaffold built by Aria -- 9 spec files
+  "notes": "C03 complete 2026-06-04. Frontend scaffold built by Aria -- 9 spec files + postcss.config.js (required by Tailwind v3). npm install and npm run build both pass. Hook bugs fixed: GIT_MESSAGE priority order, Windows cp1252 encoding. Sage gate: clean pass. Next: C04 config-and-security (Rex)."
+}

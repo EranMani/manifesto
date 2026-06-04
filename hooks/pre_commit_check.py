@@ -179,6 +179,11 @@ def check_not_already_done(msg: str) -> list[str]:
 # ---------------------------------------------------------------------------
 
 def main() -> int:
+    # Eran commits freely — bypass all checks when ERAN_COMMIT=1
+    if os.environ.get("ERAN_COMMIT") == "1":
+        print(f"✅ ERAN_COMMIT=1 — pre-commit checks bypassed.")
+        return 0
+
     staged = get_staged_files()
     if not staged:
         return 0
@@ -226,4 +231,16 @@ def main() -> int:
             print(f"   {w}")
 
     if errors:
-     
+        print("\n[FAIL] Pre-commit check FAILED -- commit blocked:\n")
+        for i, e in enumerate(errors, 1):
+            print(f"  [{i}] {e}\n")
+        print("Fix the above issues, then commit again.\n")
+        return 2
+
+    agent_name = config["agents"].get(agent_email, {}).get("name", agent_email) if agent_email else "unknown"
+    print(f"[OK] Pre-commit check passed ({len(staged)} file(s) staged, agent: {agent_name})")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

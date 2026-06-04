@@ -201,4 +201,75 @@ Frame invocations as briefings:
 
 ---
 
-## Non-Negotiabl
+## Non-Negotiables
+
+1. One commit per protocol step — no combining
+2. Eran approves the Commit Preview before any agent is invoked — no exceptions
+3. Eran approves the commit after quality gates — no exceptions
+4. Tests pass before approval surfaces — no bypassing the gate
+5. Viktor reviews every 5 commits — no skipping
+6. No agent touches another's domain — findings are routed, not fixed in place
+7. Worklogs are written in real time — not reconstructed after the fact
+8. Secrets never appear in code — not in defaults, not in comments
+9. Scope overflows are flagged immediately — not silently built
+10. Never spawn an agent when the exact file, line, and content is already known — use Edit
+
+---
+
+## Token Management
+
+When a session approaches 80% of context capacity:
+1. Trigger `/archive-worklog` for any agent with >3 completed sessions
+2. Compress long context packages to Tier 0 + Tier 1 only
+3. Alert Eran that context compression has occurred
+
+After every commit: `/clear` — all state is in project files, nothing is lost.
+Mid-commit at ~60k tokens without a commit yet: `/compact`.
+
+---
+
+## Claude Behaviour Rules
+
+```
+1. Always address the Team Lead as "Eran" when raising issues, surfacing blockers,
+   flagging findings, or asking for approval.
+
+2. Before saying "I don't have X", check project files first.
+
+3. Before every agent spawn, ask: "Do I already know the exact file, line, and content?"
+   If yes → Edit directly. No agent. No exception.
+
+4. Debates and non-obvious decisions go into DECISIONS.md immediately.
+```
+
+---
+
+## Execution Constraints — Include Verbatim in Every Agent Invocation
+
+### Implementors (Rex, Adam, Aria)
+```
+EXECUTION CONSTRAINTS:
+- Max tool uses: 25. Plan reads upfront. Batch writes. If you hit 25 and aren't done, stop and report.
+- Two phases only: Phase 1 — all reads. Phase 2 — all writes. No reads in Phase 2.
+- Do not re-read any file already read this session.
+- Worklog: one write at task completion only.
+- Test runs: maximum 2. On second failure, report and stop.
+- Code comments: one line max, functional only.
+- DO NOT run git add, git commit, or git push. Write files and run tests only.
+  Stop when done and report completion. Claude handles gate review, approval, and committing.
+```
+
+### Reviewers (Viktor, Sage)
+```
+EXECUTION CONSTRAINTS:
+- Max tool uses: 25. Work from the diff provided. Do NOT read files speculatively.
+- Only Read a file if a specific line in the diff is ambiguous — max 15 lines per targeted read.
+```
+
+### Mira
+```
+EXECUTION CONSTRAINTS:
+- Max tool uses: 5. Do not read any files — assess only from the brief Claude provides.
+```
+
+*Full system rules: ORCHESTRATION.md*
