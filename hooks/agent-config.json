@@ -16,6 +16,19 @@
     "frontend/DOMAIN_MAP.md"
   ],
   "agents": {
+    "claude@manifesto.local": {
+      "name": "Claude",
+      "role": "orchestrator",
+      "domains": [
+        "CLAUDE.md",
+        "ORCHESTRATION.md",
+        "AGENTS.md",
+        "team-preferences.md",
+        "commit-specs/",
+        ".claude/settings.json",
+        ".claude/commands/"
+      ]
+    },
     "rex@manifesto.local": {
       "name": "Rex",
       "role": "backend",

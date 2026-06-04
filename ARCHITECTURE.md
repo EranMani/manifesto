@@ -142,4 +142,56 @@ backend/
 
 ---
 
+## C03 — Frontend Scaffold
+
+**Introduced by:** Aria (Frontend), Commit 03
+
+### Frontend Application Structure
+
+```
+frontend/
+├── package.json            ← React 18, Vite, TypeScript, Tailwind, Zustand, Axios, TanStack Query, React Router
+├── package-lock.json       ← npm lockfile
+├── vite.config.ts          ← Vite config; proxy /api + /auth → http://localhost:8000
+├── tailwind.config.ts      ← Tailwind content paths: src/**/*.{ts,tsx}
+├── tsconfig.json           ← TypeScript strict mode; moduleResolution: bundler; noEmit: true
+├── postcss.config.js       ← PostCSS config (required by Tailwind v3 for Vite CSS processing)
+├── index.html              ← HTML entry point; <div id="root">; loads src/main.tsx
+├── .env.example            ← VITE_API_BASE_URL=http://localhost:8000
+└── src/
+    ├── main.tsx            ← ReactDOM.createRoot renders App into #root (StrictMode)
+    ├── App.tsx             ← Stub: returns <div>Manifesto</div>; routing added C18
+    └── index.css           ← Tailwind directives: @tailwind base/components/utilities
+```
+
+### Vite Proxy
+
+```
+/api  → http://localhost:8000
+/auth → http://localhost:8000
+```
+
+All API and auth requests from the frontend are proxied to the FastAPI backend at port 8000 during development.
+
+### TypeScript Config Notes
+
+- `"moduleResolution": "bundler"` + `"allowImportingTsExtensions": true` — standard Vite + TypeScript strict setup
+- `"noEmit": true` — TypeScript only type-checks; Vite handles transpilation
+- Strict flags on: `strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`
+
+### Frontend Dependency Stack
+
+| Package | Purpose |
+|---|---|
+| react 18 + react-dom | UI framework |
+| @vitejs/plugin-react | Vite React plugin (JSX transform) |
+| typescript 5 | Type safety; strict mode |
+| tailwindcss 3 + postcss + autoprefixer | Utility-first CSS |
+| react-router-dom 6 | Client-side routing (wired in C18) |
+| zustand 4 | In-memory state management (auth store added C17) |
+| axios 1 | HTTP client (instance + interceptors added C17) |
+| @tanstack/react-query 5 | Server state caching (configured C17) |
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*

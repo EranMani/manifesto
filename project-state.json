@@ -1,23 +1,14 @@
 {
   "project": "manifesto",
   "phase": 1,
-  "last_completed_commit": "02",
-  "next_commit": "03",
-  "next_commit_name": "frontend-scaffold",
-  "next_commit_assignee": "aria",
+  "last_completed_commit": "03",
+  "next_commit": "04",
+  "next_commit_name": "config-and-security",
+  "next_commit_assignee": "rex",
   "status": "ready",
-  "open_handoffs": [
-    {
-      "from": "rex",
-      "to": "aria",
-      "commit": "C03",
-      "items": [
-        "No shared files with C02 — frontend scaffold can run in parallel with python-skeleton (Wave A already complete, this note is for record)"
-      ]
-    }
-  ],
+  "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C02 complete 2026-06-04. FastAPI skeleton built by Rex — 10 files, uv sync passes, all test gates green. Hook encoding bugs fixed (emoji removed, both hooks now installed). Next: C03 frontend-scaffold (Aria)."
+  "notes": "C03 complete 2026-06-04. Frontend scaffold built by Aria -- 9 spec files + postcss.config.js (required by Tailwind v3). npm install and npm run build both pass. Hook bugs fixed: GIT_MESSAGE priority order, Windows cp1252 encoding. Sage gate: clean pass. Next: C04 config-and-security (Rex)."
 }

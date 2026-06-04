@@ -132,6 +132,9 @@ EXECUTION CONSTRAINTS:
 - Test runs: maximum 2. On second failure, report and stop.
 - Code comments: one line max, functional only.
 - Verbose output: alembic/pytest/docker/npm → summary line + ERROR/FAIL lines only. No full output.
+- DO NOT run git add, git commit, or git push. Write files and run tests only.
+  Stop after all files are written and tests pass. Report completion to Claude.
+  Claude runs the gate, gets Team Lead approval, then commits. Never the agent.
 ```
 
 ### Reviewers (Viktor, Sage)
@@ -159,6 +162,37 @@ The full triage matrix lives in `.claude/commands/gate-triage.md` — loaded on 
 This keeps always-loaded files lean. The rule here is simple: run the skill, get the verdict.
 
 Do not reason through gate decisions manually. Do not skip `/gate-triage`. It is a protocol step.
+
+---
+
+## Post-Commit File Checklist (Claude's responsibility — no exceptions)
+
+After every agent completes work, before presenting the next Commit Preview,
+Claude must verify and update ALL of the following files as applicable:
+
+```
+□ project-state.json   — ALWAYS: advance last_completed_commit, next_commit,
+                          next_commit_name, next_commit_assignee, clear resolved
+                          handoffs, update notes.
+
+□ TOKEN_RECORDS.md     — ALWAYS: add one row per agent invocation to Commit Log,
+                          add one row to Session Totals.
+
+□ DECISIONS.md         — if any non-obvious design choice was made this commit.
+
+□ ARCHITECTURE.md      — if any new component, pattern, or data flow was introduced.
+
+□ GLOSSARY.md          — if any new term was introduced.
+
+□ team-preferences.md  — if execution constraints, protocol rules, hook behavior,
+                          or agent calibration changed this commit.
+
+□ Agent identity files — if an agent's domain, standards, or interfaces changed.
+```
+
+**The first two are unconditional.** Missing project-state.json means the next
+session boots with stale state. Missing TOKEN_RECORDS.md means cost data is lost.
+Neither is acceptable.
 
 ---
 
@@ -282,3 +316,5 @@ Add commit-specific items where the spec has known sharp edges.
 | 2026-06-04 | Verbose output rules added to execution constraints | Alembic/pytest output can be 200+ lines — summary only (D05) |
 | 2026-06-04 | Session checkpoint rules added | Token checkpoints before gate wave and at Commit Preview (D05) |
 | 2026-06-04 | Agent context tier rules made explicit | Warm/cold agent distinction — no full worklog by default (D05) |
+| 2026-06-04 | Added "DO NOT git commit" to Implementors constraints | Aria (C03) committed without gate/approval — rule now written in both CLAUDE.md and team-preferences.md |
+| 2026-06-04 | Added Post-Commit File Checklist section | project-state.json and team-preferences.md were not being updated consistently — checklist now covers all required files |

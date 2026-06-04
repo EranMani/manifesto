@@ -115,16 +115,24 @@ You do **not** load files from other agents' domains unless this step explicitly
 
 ---
 
-## Pre-Commit Documentation Checklist
+## Post-Commit File Checklist
+
+After every agent completes work — before presenting the next Commit Preview.
+**No exceptions. No partial updates.**
 
 ```
-□ DECISIONS.md      — non-obvious design choice or debate made?
-□ ARCHITECTURE.md   — new component, pattern, or data flow introduced?
-□ GLOSSARY.md       — new term introduced?
-□ TOKEN_RECORDS.md  — always: add commit entry with exact token counts
+□ project-state.json   — ALWAYS: advance commit pointer, clear resolved handoffs
+□ TOKEN_RECORDS.md     — ALWAYS: add commit row + session total row
+□ DECISIONS.md         — if a non-obvious design choice was made
+□ ARCHITECTURE.md      — if a new component, pattern, or data flow was introduced
+□ GLOSSARY.md          — if a new term was introduced
+□ team-preferences.md  — if execution constraints, protocol rules, or agent
+                          calibration changed this commit
+□ Agent identity files — if an agent's domain, standards, or interfaces changed
 ```
 
 These are your job — no agent needed.
+Full checklist rules in `team-preferences.md` → "Post-Commit File Checklist".
 
 ---
 
@@ -219,6 +227,8 @@ EXECUTION CONSTRAINTS:
 - Worklog: one write at task completion only.
 - Test runs: maximum 2. On second failure, report and stop.
 - Code comments: one line max, functional only.
+- DO NOT run git add, git commit, or git push. Write files and run tests only.
+  Stop when done and report completion. Claude handles gate review, approval, and committing.
 ```
 
 ### Reviewers (Viktor, Sage)

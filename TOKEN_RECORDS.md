@@ -33,6 +33,8 @@ The delta column is the signal — positive means over budget, negative means un
 |---|---|---|---|---|---|---|---|
 | C01 | project-scaffold | Adam | sonnet | 25,870 | 17 | -34,130 ✅ | First commit; fresh agent, no prior worklog |
 | C02 | python-skeleton | Rex | sonnet | 23,116 | 25 | -36,884 ✅ | First Rex session; all 25 tool uses consumed — at cap |
+| C03 | frontend-scaffold | Aria | sonnet | 33,895 | 49 | -26,105 ✅ | First Aria session; 49 tool uses — **exceeded 25-use cap** ⚠️; also fixed hook bugs in Claude's domain |
+| C03 | frontend-scaffold (gate) | Sage | haiku | 20,274 | 8 | +5,274 ⚠️ | Triggered by .env.example; clean pass; 5k over reviewer target |
 
 ---
 
@@ -42,6 +44,7 @@ The delta column is the signal — positive means over budget, negative means un
 |---|---|---|---|---|
 | C01 | 25,870 | 1 (Adam) | none | 57% under target |
 | C02 | 23,116 | 1 (Rex) | none | 61% under target |
+| C03 | 54,169 | 1 (Aria) | Sage 20,274 | Aria 44% under target; Sage 35% over reviewer target |
 
 ---
 
