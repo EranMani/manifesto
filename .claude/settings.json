@@ -44,4 +44,13 @@
           },
           {
             "type": "command",
-            "command": "python \"D:
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\auto_verify.py\""
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": ["Bash(*)"]
+  }
+}

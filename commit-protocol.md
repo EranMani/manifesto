@@ -16,8 +16,8 @@
 | 04 | config-and-security | rex | ✅ done · 2026-06-04 |
 | 04b | config-security-hardening | rex | ✅ done · 2026-06-05 |
 | 05 | database-session | rex | ✅ done · 2026-06-05 |
-| 06 | sqlalchemy-models | rex | pending |
-| 07 | alembic-migration | rex | pending |
+| 06 | sqlalchemy-models | rex | ✅ done · 2026-06-05 |
+| 07 | alembic-migration | rex | ✅ done · 2026-06-05 |
 | 08 | seed-script | rex | pending |
 | 09 | auth-dependencies | rex | pending |
 | 10 | auth-route | rex | pending |
