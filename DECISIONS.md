@@ -767,4 +767,26 @@ Update `security.py` imports: `from jwt.exceptions import InvalidTokenError` ins
 
 ---
 
+## D17 — PolicyChunk IVFFlat Index Deferred to Alembic Migration
+
+- **Date:** 2026-06-05
+- **Decided by:** Rex (C06 execution)
+- **Context:** `PolicyChunk.embedding` (Vector 1536) requires an IVFFlat index with pgvector-specific DDL (`USING ivfflat (embedding vector_cosine_ops)`). This cannot be expressed as a standard SQLAlchemy `Index` object.
+
+### Decision
+
+Leave `PolicyChunk.__table_args__` as an empty dict tuple in C06. The IVFFlat index will be created in C07 via `op.execute("CREATE INDEX ... USING ivfflat (embedding vector_cosine_ops) ...")` in the Alembic migration.
+
+### Rationale
+
+SQLAlchemy's `Index` constructor does not support pgvector-specific index methods. The correct pattern for pgvector indexes is to define them in the migration, not the model.
+
+### Consequences
+
+- `PolicyChunk` in C06 has no index on `embedding` — correct until C07 runs
+- C07 Alembic migration must include `op.execute(...)` for this index explicitly
+- Rex (C07) handed off via worklog
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

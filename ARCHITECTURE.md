@@ -264,4 +264,42 @@ app.core.database
 
 ---
 
+## C06 — SQLAlchemy Models
+
+**Introduced by:** Rex (Backend), Commit 06
+
+### ORM Model Layer
+
+All 9 models defined in `backend/app/models/`. All inherit from `Base` (C05). All UUIDs are Postgres-generated via `server_default=text("gen_random_uuid()")`.
+
+| Model | Table | Key relationships |
+|---|---|---|
+| `User` | `users` | Referenced by Product (added_by), Conversation (user_id), PolicyDocument (uploaded_by) |
+| `Vendor` | `vendors` | Parent of Shipment |
+| `Shipment` | `shipments` | FK→vendors CASCADE; parent of Product |
+| `Category` | `categories` | Referenced by Product (nullable FK) |
+| `Product` | `products` | FK→shipments CASCADE; FK→categories nullable; FK→users (added_by) nullable |
+| `Conversation` | `conversations` | FK→users CASCADE; parent of Message |
+| `Message` | `messages` | FK→conversations CASCADE; composite index on (conversation_id, created_at) |
+| `PolicyDocument` | `policy_documents` | FK→users (uploaded_by) nullable; parent of PolicyChunk |
+| `PolicyChunk` | `policy_chunks` | FK→policy_documents CASCADE; `Vector(1536)` embedding (pgvector) |
+
+### Constraints
+
+All finite-value string fields use `CheckConstraint` for DB-level enforcement:
+- `User.role`: `IN ('admin', 'manager', 'employee')`
+- `Conversation.chat_type`: `IN ('policy', 'logistics')`
+- `Conversation.llm_provider`: `IN ('ollama', 'openai')`
+- `Message.role`: `IN ('user', 'assistant')`
+
+### IVFFlat index
+
+`PolicyChunk.embedding` requires pgvector-specific DDL (`USING ivfflat (embedding vector_cosine_ops)`). Not expressible as a standard SQLAlchemy `Index`. Deferred to C07 Alembic migration via `op.execute(...)`. See D17.
+
+### Alembic discovery
+
+`backend/app/models/__init__.py` imports all 9 model classes. Alembic's `env.py` (C07) imports this module — the side-effect populates `Base.metadata` with all table definitions.
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*

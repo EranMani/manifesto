@@ -7,12 +7,21 @@
 
 ## Key Hubs (imported by 3+ modules)
 
-- (none yet — domain is small)
+- `app.core.database` — imported by 8 modules
 
 ## Entry Points (import others, not imported themselves)
 
 - `core\database.py`
 - `core\security.py`
+- `models\category.py`
+- `models\conversation.py`
+- `models\message.py`
+- `models\policy.py`
+- `models\product.py`
+- `models\shipment.py`
+- `models\user.py`
+- `models\vendor.py`
+- `models\__init__.py`
 
 ## Full Import Graph
 
@@ -27,6 +36,14 @@
 | `core\security.py` | `app.core.config` |
 | `dependencies.py` | — |
 | `main.py` | — |
-| `models\__init__.py` | — |
+| `models\__init__.py` | `app.models.user`, `app.models.vendor`, `app.models.shipment`, `app.models.category`, `app.models.product` (+3 more) |
+| `models\category.py` | `app.core.database` |
+| `models\conversation.py` | `app.core.database` |
+| `models\message.py` | `app.core.database` |
+| `models\policy.py` | `app.core.database` |
+| `models\product.py` | `app.core.database` |
+| `models\shipment.py` | `app.core.database` |
+| `models\user.py` | `app.core.database` |
+| `models\vendor.py` | `app.core.database` |
 | `schemas\__init__.py` | — |
 | `services\__init__.py` | — |

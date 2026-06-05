@@ -5,13 +5,14 @@
 ---
 
 ## Current State
-*Last updated: Commit 04 · 2026-06-04*
+*Last updated: Commit 06 · 2026-06-05*
 
-**Last completed:** Commit 04 `config-and-security` ✅
+**Last completed:** Commit 06 `sqlalchemy-models` ✅
 **Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
+- → Rex (C07): `models/__init__.py` imports all models — Alembic `env.py` will import `Base.metadata` from `app.core.database` and models from `app.models` to populate it
 - → Rex (C08): `create_access_token` accepts `data: dict` — caller must pass `{"sub": str(user.id), "role": user.role}`
 - → Rex (C09): `decode_token` raises HTTPException 401 — `get_current_user` dependency catches this naturally
 
@@ -35,6 +36,7 @@ No archived sessions yet.
 |---|--------|--------|--------------|
 | 01 | C02: python-skeleton | ✅ Done | Used exact pyproject.toml from spec; no deviations |
 | 02 | C04: config-and-security | ✅ Done | Replaced passlib CryptContext with direct bcrypt calls due to version incompatibility |
+| 03 | C06: sqlalchemy-models | ✅ Done | PolicyChunk IVFFlat index deferred to migration; `__table_args__` left as empty dict tuple |
 
 ---
 
@@ -93,3 +95,33 @@ No archived sessions yet.
 **Handoffs out:**
 - → Rex (C08): `create_access_token` accepts `data: dict` — caller must pass `{"sub": str(user.id), "role": user.role}`
 - → Rex (C09): `decode_token` raises HTTPException 401 — `get_current_user` dependency catches this naturally
+
+---
+
+## Session 03 — Commit 06: `sqlalchemy-models`
+*2026-06-05*
+
+**Approach:** Phase 1 reads — confirmed `database.py` exports `Base` (DeclarativeBase), confirmed `models/__init__.py` was empty (1 line), confirmed `pgvector>=0.2.0` in pyproject.toml. Phase 2 writes — created all 8 model files plus updated `__init__.py`.
+
+**Files created:**
+- `backend/app/models/user.py` — User model, CheckConstraint on role
+- `backend/app/models/vendor.py` — Vendor model, all nullable fields
+- `backend/app/models/shipment.py` — Shipment model, FK→vendors CASCADE
+- `backend/app/models/category.py` — Category model, unique name
+- `backend/app/models/product.py` — Product model, FK→shipments CASCADE, nullable FKs for category and added_by
+- `backend/app/models/conversation.py` — Conversation model, two CheckConstraints
+- `backend/app/models/message.py` — Message model, CheckConstraint on role, composite Index on (conversation_id, created_at)
+- `backend/app/models/policy.py` — PolicyDocument + PolicyChunk models; PolicyChunk uses `Vector(1536)` from pgvector.sqlalchemy
+
+**Files updated:**
+- `backend/app/models/__init__.py` — imports all 9 model classes, full `__all__`
+
+**Test gate results:**
+- `from app.models import User, Vendor, Shipment, Category, Product, Conversation, Message, PolicyDocument, PolicyChunk`: PASS (with dummy env vars — `DATABASE_URL` and `SECRET_KEY` required at import time by pydantic-settings)
+
+**Decisions made:**
+- PolicyChunk IVFFlat index on `embedding` cannot be expressed as a standard SQLAlchemy `Index` without pgvector-specific DDL. Left `__table_args__` as an empty dict tuple — the index will be created in the Alembic migration (`op.execute("CREATE INDEX ...")`) at C07.
+- `added_by` (Product) and `uploaded_by` (PolicyDocument) are nullable FKs with no CASCADE — intentional per spec.
+
+**Handoffs out:**
+- → Rex (C07): `models/__init__.py` imports all models — Alembic `env.py` will import `Base.metadata` from `app.core.database` and models from `app.models` to populate it
