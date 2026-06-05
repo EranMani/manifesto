@@ -101,3 +101,15 @@ Error messages must not reveal whether email or password was wrong — use gener
 ## Handoffs Out
 
 → Aria (C17): Token format is `{access_token: string, token_type: "bearer"}`. Store `access_token` in Zustand, attach as `Authorization: Bearer <token>` header.
+
+---
+
+## Security Note (Sage C09 Finding #1 — verify at C10)
+
+Sage flagged during the C09 gate that the `get_current_user` dependency trusts the JWT `sub` claim as the user ID. This is safe **only if** the login route issues tokens with `sub` hardcoded to the authenticated user's own ID after password verification. The C10 spec already prescribes exactly this:
+
+```python
+create_access_token({"sub": str(user.id), "role": user.role})
+```
+
+Rex: confirm this line is the only call to `create_access_token` in the login route, and that it is placed **after** `verify_password` succeeds. Sage will re-review this commit (C10 triggers Viktor + Sage wave).

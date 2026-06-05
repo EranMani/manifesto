@@ -5,15 +5,16 @@
 ---
 
 ## Current State
-*Last updated: Commit 08 · 2026-06-05*
+*Last updated: Commit 09 · 2026-06-05*
 
-**Last completed:** Commit 08 `seed-script` ✅
+**Last completed:** Commit 09 `auth-dependencies` ✅
 **Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
-- → Rex (C09): `decode_token` raises HTTPException 401 — `get_current_user` dependency catches this naturally
-- → Rex (C09): Admin user exists with `role='admin'`. `get_current_user` dependency can be tested with real credentials from this point.
+- → Rex (C10): `get_current_user` returns `User` ORM model. Auth route uses `verify_password` directly — does not use this dependency (login is unauthenticated by definition).
+- → Rex (C11): `require_role("admin")` is the guard for all admin routes.
+- → Rex (C12–C14): `require_role("admin", "manager")` guards all inventory routes.
 - → Aria (C20): Login credentials for frontend testing: `admin@manifesto.local` / `admin123`.
 
 **Open Handoffs — Inbound:**
@@ -39,6 +40,7 @@ No archived sessions yet.
 | 03 | C06: sqlalchemy-models | ✅ Done | PolicyChunk IVFFlat index deferred to migration; `__table_args__` left as empty dict tuple |
 | 04 | C07: alembic-migration | ✅ Done | Ran migration inside Docker container — native Windows Postgres on port 5432 blocked host-based asyncpg connections |
 | 05 | C08: seed-script | ✅ Done | Written directly by orchestrator (exact file/content known; no agent spawn) |
+| 06 | C09: auth-dependencies | ✅ Done | `require_role` returns async inner function; `decode_token` already raises 401 — no extra try/except needed |
 
 ---
 
@@ -154,6 +156,36 @@ No archived sessions yet.
 
 **Handoffs out:**
 - → Rex (C08): Database schema is live. `seed.py` can now INSERT into the `users` table. Run migrations via `docker-compose run --rm --no-deps backend sh -c "cd /app && uv run alembic upgrade head"`.
+
+---
+
+## Session 06 — Commit 09: `auth-dependencies`
+*2026-06-05*
+
+**Approach:** Phase 1 reads — read `database.py` (get_db yields AsyncSession), `security.py` (decode_token raises HTTPException 401 directly; create_access_token uses `sub` key), `user.py` (User model fields: id UUID-as-string, role string, is_active bool), `dependencies.py` (empty stub). Phase 2 — wrote complete `dependencies.py`, ran import test and behavioral tests in Docker.
+
+**Files updated:**
+- `backend/app/dependencies.py` — implemented `get_current_user` and `require_role`
+
+**Test gate results:**
+- `from app.dependencies import get_current_user, require_role` import: PASS
+- `decode_token(valid_token)` returns payload with `sub`: PASS
+- `decode_token("bad.token")` raises HTTPException 401: PASS (structlog warning logged as expected)
+- `require_role("admin")` returns a callable async dependency: PASS
+- `require_role` inner function is `asyncio.iscoroutinefunction`: PASS
+
+**Decisions made:**
+- `require_role` returns an inner async function (`_check_role`) rather than a class-based dependency — simpler, idiomatic FastAPI, no extra boilerplate.
+- No try/except around `decode_token` in `get_current_user` — `decode_token` already raises `HTTPException 401` directly. Any wrapping would shadow the correct exception.
+- `user_id` extracted from `payload.get("sub")` — consistent with `create_access_token({"sub": str(user.id), ...})` pattern from C04 handoff.
+- `result.scalars().first()` used for DB lookup — correct async SQLAlchemy 2.0 pattern, returns `None` if not found.
+
+**Handoffs out:**
+- → Rex (C10): `get_current_user` returns `User` ORM model. Auth route uses `verify_password` directly — does not use this dependency (login is unauthenticated by definition).
+- → Rex (C11): `require_role("admin")` is the guard for all admin routes.
+- → Rex (C12–C14): `require_role("admin", "manager")` guards all inventory routes.
+
+Tool usage: reads=4, writes=1, total=5
 
 ---
 

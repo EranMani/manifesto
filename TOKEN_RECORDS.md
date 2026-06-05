@@ -45,6 +45,9 @@ The delta column is the signal — positive means over budget, negative means un
 | C07 | alembic-migration | Rex | sonnet | 57,199 | 81 | -2,801 ✅ | **81 tool uses — 3× over cap** ⚠️; Docker port conflict required diagnostic iteration; tokens near target |
 | C08 | seed-script | Claude (direct) | — | 0 | 1 write | — | Pre-invocation check: exact content known from tier1 reads; no agent spawned |
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = verify script section-regex quirk; tool-usage line present in worklog |
+| C09 | auth-dependencies | Rex | sonnet | 34,562 | 5 | -25,438 ✅ | 1 file modified; clean implementation; self-reported 4 reads + 1 write |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ✅ | | | Verify script regex quirk; tool-usage line confirmed at worklog:188 |
+| C09 | auth-dependencies (gate) | Sage | haiku | 20,855 | 4 | +5,855 ⚠️ | BLOCK dismissed — Finding #1 premature (C10 not built); Finding #3 misread; F2/4 JWT trade-off accepted (D19) |
 
 ---
 
@@ -61,6 +64,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C06 | 28,765 | 1 (Rex) | none | Rex 28,765; 26 tool uses (1 over cap); no gate |
 | C07 | 57,199 | 1 (Rex) | none | Rex 57,199; **81 tool uses — 3× over cap** ⚠️; Docker troubleshooting; no gate |
 | C08 | 0 | none (direct write) | none | Orchestrator direct write; 1 tool use; no gate |
+| C09 | 55,417 | 1 (Rex) | Sage 20,855 | Rex 42% under target; Sage 39% over reviewer target; Sage BLOCK dismissed |
 
 ---
 

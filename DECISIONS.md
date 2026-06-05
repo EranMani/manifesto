@@ -813,4 +813,26 @@ This bypasses the port conflict entirely.
 
 ---
 
+## D19 — JWT Auth: Accepted TOCTOU Trade-off on User State
+
+- **Date:** 2026-06-05
+- **Decided by:** Eran (approval), Claude (gate triage of Sage C09 Finding #2)
+- **Context:** Sage flagged that `get_current_user` fetches user state (is_active, role) from the DB once at request entry, but a concurrent admin operation could deactivate or demote the user between token issuance and the next request.
+
+### Decision
+
+Accept the standard stateless JWT trade-off: user state is checked once per request against the DB, but the JWT is not revoked on deactivation. A deactivated user's existing tokens remain valid until they expire (governed by `ACCESS_TOKEN_EXPIRE_MINUTES`).
+
+### Why
+
+Re-fetching user state per operation (serializable transactions, re-verify after every ORM action) adds complexity and latency with minimal practical security gain at this scale. The short token TTL (default 30 min) bounds the exposure window.
+
+### Consequences
+
+- Admin revocation is "eventually consistent" — takes effect within one token TTL window
+- If immediate revocation is required in a future phase, add a token denylist (Redis or DB table)
+- All route implementations (C10–C14) rely on this pattern without modification
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

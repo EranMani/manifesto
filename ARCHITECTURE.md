@@ -341,4 +341,62 @@ See D18.
 
 ---
 
+## C09 — Auth Dependencies
+
+**Introduced by:** Rex (Backend), Commit 09
+
+### FastAPI Auth Dependency Layer (dependencies.py)
+
+```
+app.dependencies
+├── oauth2_scheme          ← OAuth2PasswordBearer(tokenUrl="/auth/login")
+├── get_current_user()     ← async dependency: validates JWT → fetches User from DB → checks is_active
+└── require_role(*roles)   ← factory → returns async _check_role dependency → raises 403 if role not in roles
+```
+
+### get_current_user flow
+
+```
+Request header: Authorization: Bearer <token>
+        │
+        ▼
+oauth2_scheme extracts token string
+        │
+        ▼
+decode_token(token)   ── invalid/expired ──► HTTP 401
+        │
+        ▼
+payload["sub"] = user_id
+        │
+        ▼
+DB: SELECT * FROM users WHERE id = user_id
+        │
+   not found / inactive ──► HTTP 401
+        │
+        ▼
+return User ORM object
+```
+
+### require_role pattern
+
+```python
+require_role("admin")          # use as: Depends(require_role("admin"))
+require_role("admin", "manager")  # passes if user.role is either
+```
+
+Returns a new async dependency each call. The inner `_check_role` calls `get_current_user` (full auth chain) then enforces the role constraint.
+
+### Accepted trade-off (D19)
+
+User state (`is_active`, `role`) is fetched once per request from the DB. JWT tokens are not revoked on user deactivation — a deactivated user's token remains valid for up to `ACCESS_TOKEN_EXPIRE_MINUTES`. If immediate revocation is needed in a future phase, add a token denylist.
+
+### Downstream contracts
+
+- All protected routes use `Depends(get_current_user)` or `Depends(require_role(...))`
+- C10 (login route): issues tokens with `{"sub": str(user.id), "role": user.role}` — `sub` is always the authenticated user's own ID
+- C11 (admin routes): `Depends(require_role("admin"))`
+- C12–C14 (inventory routes): `Depends(require_role("admin", "manager"))`
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*
