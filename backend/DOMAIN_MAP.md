@@ -7,10 +7,11 @@
 
 ## Key Hubs (imported by 3+ modules)
 
-- `app.core.database` — imported by 8 modules
+- `app.core.database` — imported by 9 modules
 
 ## Entry Points (import others, not imported themselves)
 
+- `dependencies.py`
 - `core\database.py`
 - `core\security.py`
 - `models\category.py`
@@ -34,7 +35,7 @@
 | `core\config.py` | — |
 | `core\database.py` | `app.core.config` |
 | `core\security.py` | `app.core.config` |
-| `dependencies.py` | — |
+| `dependencies.py` | `app.core.database`, `app.core.security`, `app.models.user` |
 | `main.py` | — |
 | `models\__init__.py` | `app.models.user`, `app.models.vendor`, `app.models.shipment`, `app.models.category`, `app.models.product` (+3 more) |
 | `models\category.py` | `app.core.database` |

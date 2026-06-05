@@ -236,6 +236,13 @@ def append_to_log(commit_num: str, agent: str, results: dict, all_pass: bool, to
     budget_detail = f" r={counts['reads']} w={counts['writes']} t={counts['total']}" if counts else ""
     result    = "PASS" if all_pass else "FAIL"
 
+    commit_key = f"C{commit_num.zfill(2)}"
+    if log_path.exists():
+        for line in log_path.read_text(encoding="utf-8").splitlines():
+            cells = [c.strip() for c in line.split("|") if c.strip()]
+            if len(cells) >= 3 and cells[1] == commit_key and cells[2] == agent:
+                return
+
     row = f"| {date} | C{commit_num.zfill(2)} | {agent} | {tokens_str} | {context} | {forbidden} | {budget}{budget_detail} | {result} |\n"
 
     with open(log_path, "a", encoding="utf-8") as f:
@@ -247,51 +254,99 @@ def append_to_log(commit_num: str, agent: str, results: dict, all_pass: bool, to
 # ----------------------------------------------
 
 def embed_into_dashboard(commit_num: str, agent: str, results: dict, all_pass: bool, tokens: int = None):
-    """Read all rows from CONSTRAINT_LOG.md and inject as JS data into the HTML dashboard."""
+    """Regenerate constraint-dashboard.html as pure static HTML from CONSTRAINT_LOG.md."""
     dashboard_path = REPO_ROOT / "constraint-dashboard.html"
     log_path       = REPO_ROOT / "CONSTRAINT_LOG.md"
+    if not log_path.exists(): return
 
-    if not dashboard_path.exists() or not log_path.exists():
-        return
+    TOOLTIPS = {
+        "context":   {"PASS": "Context block present in spec — agent had an explicit file list before starting.",
+                      "FAIL": "No context block in spec — agent had to discover files speculatively.",
+                      "WARN": "Context block incomplete — missing tier0, forbidden, or estimated_reads."},
+        "forbidden": {"PASS": "No forbidden-path files touched — agent stayed within its domain.",
+                      "FAIL": "Agent touched files outside its allowed domain.",
+                      "WARN": "No forbidden paths defined in spec — boundary check skipped."},
+        "budget":    {"PASS": "Agent self-reported tool usage within phase caps (reads<=10, writes<=12, total<=25).",
+                      "FAIL": "Agent exceeded a phase budget cap.",
+                      "WARN": "Agent did not write a Tool usage line in worklog — budget unverified."},
+        "result":    {"PASS": "All three checks passed.",
+                      "FAIL": "One or more checks failed — see individual columns.",
+                      "WARN": "Passed with warnings — review budget and context columns."},
+    }
 
-    # Parse log into row dicts
+    def badge(val, check):
+        v = val.upper().split()[0]
+        tip = TOOLTIPS.get(check, {}).get(v, val)
+        if v == "PASS":   color, bg, icon = "#16a34a", "#f0fdf4", "pass"
+        elif v == "FAIL": color, bg, icon = "#dc2626", "#fef2f2", "fail"
+        elif v == "WARN": color, bg, icon = "#d97706", "#fffbeb", "warn"
+        else: return val
+        return (f'<span class="tip-wrap">'
+                f'<span style="background:{bg};color:{color};border-radius:4px;padding:2px 8px;font-size:12px;font-weight:500;cursor:default">{icon}</span>'
+                f'<span class="tooltip">{tip}</span>'
+                f'</span>')
+
     rows = []
     for line in log_path.read_text(encoding="utf-8").splitlines():
         if not line.startswith("|"): continue
         cells = [c.strip() for c in line.split("|") if c.strip()]
-        # skip header and separator rows
-        if not cells or cells[0] in ("Date", "---", "----"):
-            continue
-        if len(cells) >= 8:
-            rows.append({
-                "date":      cells[0],
-                "commit":    cells[1],
-                "agent":     cells[2],
-                "tokens":    cells[3],
-                "context":   cells[4],
-                "forbidden": cells[5],
-                "budget":    cells[6],
-                "result":    cells[7],
-            })
+        if not cells or cells[0] == "Date": continue
+        if all(set(c) <= set("-") for c in cells): continue
+        if len(cells) >= 8: rows.append(cells)
 
-    js_data = json.dumps(rows, indent=2)
+    if not rows: return
+    total   = len(rows)
+    passed  = sum(1 for r in rows if r[7].upper() == "PASS")
+    failed  = sum(1 for r in rows if r[7].upper() == "FAIL")
+    warned  = sum(1 for r in rows if any(c.upper() == "WARN" for c in r[4:7]))
+    tnums   = [int(r[3].replace(",","")) for r in rows if r[3].replace(",","").isdigit() and int(r[3].replace(",","")) > 0]
+    avg_tok = f"{round(sum(tnums)/len(tnums)):,}" if tnums else "-"
+    last_dt = rows[-1][0]
 
-    html = dashboard_path.read_text(encoding="utf-8")
+    trows = ""
+    for r in rows:
+        tok = r[3]
+        tcell = (f'<span style="background:#f0f9ff;color:#0369a1;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:500">{tok}</span>'
+                 if tok not in ("-","0") else '<span style="color:#94a3b8">-</span>')
+        rpass = r[7].upper() == "PASS"
+        trows += (f'<tr><td>{r[0]}</td>'
+                  f'<td><span style="background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:500">{r[1]}</span></td>'
+                  f'<td><span style="background:#f3f4f6;color:#374151;border-radius:4px;padding:2px 8px;font-size:12px">{r[2]}</span></td>'
+                  f'<td>{tcell}</td>'
+                  f'<td>{badge(r[4],"context")}</td>'
+                  f'<td>{badge(r[5],"forbidden")}</td>'
+                  f'<td>{badge(r[6],"budget")}</td>'
+                  f'<td>{badge(r[7],"result")}</td></tr>')
 
-    # Replace the embedded data block
-    marker_start = "/* CONSTRAINT_DATA_START */"
-    marker_end   = "/* CONSTRAINT_DATA_END */"
-    new_block    = f"{marker_start}\nconst EMBEDDED_DATA = {js_data};\n{marker_end}"
-
-    if marker_start in html:
-        html = re.sub(
-            re.escape(marker_start) + r".*?" + re.escape(marker_end),
-            new_block, html, flags=re.DOTALL
-        )
-    else:
-        # First time: insert before closing </script>
-        html = html.replace("loadLog();", f"{new_block}\nloadLog();")
-
+    html = f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Constraint Dashboard - Manifesto</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}body{{font-family:Inter,-apple-system,sans-serif;background:#f8fafc;color:#1e293b;padding:32px 24px;line-height:1.5}}
+.container{{max-width:920px;margin:0 auto}}h1{{font-size:22px;font-weight:600;color:#0f172a;margin-bottom:4px}}.subtitle{{font-size:13px;color:#64748b;margin-bottom:28px}}
+.summary-row{{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}}.stat-card{{background:#fff;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px}}
+.stat-label{{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}}.stat-value{{font-size:26px;font-weight:600}}
+.table-wrap{{background:#fff;border:0.5px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:20px}}table{{width:100%;border-collapse:collapse;font-size:13px}}
+thead th{{padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#64748b;background:#f8fafc;border-bottom:0.5px solid #e2e8f0}}
+tbody tr{{border-bottom:0.5px solid #f1f5f9}}tbody tr:last-child{{border-bottom:none}}tbody tr:hover{{background:#f8fafc}}tbody td{{padding:10px 14px;color:#334155}}
+.hint{{background:#f0f9ff;border:0.5px solid #bae6fd;border-radius:8px;padding:12px 16px;font-size:13px;color:#0369a1}}.hint code{{background:#e0f2fe;padding:1px 5px;border-radius:3px;font-size:12px}}
+.tip-wrap{{position:relative;display:inline-block}}.tooltip{{visibility:hidden;opacity:0;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1e293b;color:#f8fafc;font-size:12px;line-height:1.4;padding:7px 10px;border-radius:6px;white-space:normal;width:220px;z-index:10;pointer-events:none;transition:opacity .15s}}
+.tooltip::after{{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1e293b}}.tip-wrap:hover .tooltip{{visibility:visible;opacity:1}}
+</style></head><body><div class="container">
+<h1>Constraint Dashboard</h1>
+<p class="subtitle">Manifesto &middot; {total} commits verified &middot; last updated {last_dt}</p>
+<div class="summary-row">
+<div class="stat-card"><div class="stat-label">Commits checked</div><div class="stat-value" style="color:#0f172a">{total}</div></div>
+<div class="stat-card"><div class="stat-label">All passed</div><div class="stat-value" style="color:#16a34a">{passed}</div></div>
+<div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value" style="color:#dc2626">{failed}</div></div>
+<div class="stat-card"><div class="stat-label">Warnings</div><div class="stat-value" style="color:#d97706">{warned}</div></div>
+<div class="stat-card"><div class="stat-label">Avg tokens</div><div class="stat-value" style="color:#2563eb">{avg_tok}</div></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Date</th><th>Commit</th><th>Agent</th><th>Tokens</th><th>Context</th><th>Forbidden</th><th>Budget</th><th>Result</th></tr></thead>
+<tbody>{trows}</tbody></table></div>
+<div class="hint">Regenerated by <code>hooks/verify_constraints.py</code> after each commit. Hover any badge for details.</div>
+</div></body></html>"""
     dashboard_path.write_text(html, encoding="utf-8")
 
 
