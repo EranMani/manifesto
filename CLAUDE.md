@@ -141,6 +141,19 @@ You do **not** load files from other agents' domains unless this step explicitly
 10. Run pre-commit documentation checklist
 11. Surface to Eran for approval
 12. After approval: Claude commits using CLAUDE_COMMIT=1 with Co-Authored-By for the owning agent; hooks update protocol and state
+    Commit message format — required every time:
+    ```
+    type(scope): short subject line
+
+    Commit #NN
+
+    What: [1-2 sentences — what was built or changed. Be specific: name files, routes, patterns.]
+    Why:  [1 sentence — why this commit exists now; what it unblocks or satisfies.]
+
+    Co-Authored-By: AgentName <agent@email.com>
+    ```
+    The What/Why block is mandatory. The email notification hook reads it verbatim.
+    No What/Why = Eran gets a content-free email and cannot approve remotely.
 13. Brief Eran on next step with Commit Preview; ask to proceed
 
 **Quality gate rule:** Tests must pass before the gate wave runs.

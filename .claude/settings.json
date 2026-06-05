@@ -29,6 +29,15 @@
             "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\tool_cap_end.py\""
           }
         ]
+      },
+      {
+        "matcher": "Bash(CLAUDE_COMMIT=1*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\notify_agent_done.py\""
+          }
+        ]
       }
     ],
     "Stop": [
@@ -45,16 +54,12 @@
           {
             "type": "command",
             "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\auto_verify.py\""
-          },
-          {
-            "type": "command",
-            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\notify_agent_done.py\""
           }
         ]
       }
     ]
   },
   "permissions": {
-    "allow": ["Bash(*)"]
+    "allow": ["*"]
   }
 }

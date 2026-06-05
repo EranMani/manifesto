@@ -23,7 +23,7 @@
 | 10 | auth-route | rex | ✅ done · 2026-06-05 |
 | 11 | admin-routes | rex | ✅ done · 2026-06-05 |
 | 12 | vendor-routes | rex | ✅ done · 2026-06-05 |
-| 13 | shipment-routes | rex | pending |
+| 13 | shipment-routes | rex | ✅ done · 2026-06-05 |
 | 14 | product-routes | rex | pending |
 | 15 | stub-routes | rex | pending |
 | 16 | llm-service-stub | rex | pending |

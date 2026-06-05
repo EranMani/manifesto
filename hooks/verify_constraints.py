@@ -210,17 +210,29 @@ def main():
 # ----------------------------------------------
 
 def get_tokens_from_records(commit_num: str):
+    """
+    Parse TOKEN_RECORDS.md for the token count of a given commit.
+    Scans both the Commit Log and Session Totals tables.
+    Returns int (0 is valid for direct writes), or None if not found.
+    """
     path = REPO_ROOT / "TOKEN_RECORDS.md"
     if not path.exists(): return None
     padded = f"C{str(commit_num).zfill(2)}"
+    best = None
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line.startswith("|"): continue
         cells = [c.strip() for c in line.split("|") if c.strip()]
-        if len(cells) < 5: continue
-        if cells[0] == padded and cells[4].replace(",","").isdigit():
-            val = int(cells[4].replace(",",""))
-            return val if val > 0 else None
-    return None
+        if not cells or cells[0] != padded: continue
+        # Scan all cells for the first bare integer (handles variable column order)
+        for cell in cells[1:]:
+            clean = cell.replace(",", "")
+            if clean.isdigit():
+                val = int(clean)
+                # Prefer the largest value found (session total beats per-agent row)
+                if best is None or val > best:
+                    best = val
+                break
+    return best
 
 
 # ----------------------------------------------
