@@ -199,9 +199,28 @@ def main():
         print(f"  RESULT: {'ALL CHECKS PASSED' if all_pass else 'FAILED - ' + ', '.join(k for k,v in results.items() if not v['pass'])}")
         print()
 
-    append_to_log(args.commit, args.agent, results, all_pass, args.tokens)
-    embed_into_dashboard(args.commit, args.agent, results, all_pass, args.tokens)
+    tokens = args.tokens or get_tokens_from_records(args.commit)
+    append_to_log(args.commit, args.agent, results, all_pass, tokens)
+    embed_into_dashboard(args.commit, args.agent, results, all_pass, tokens)
     sys.exit(0 if all_pass else 1)
+
+
+# ----------------------------------------------
+# Token lookup from TOKEN_RECORDS.md
+# ----------------------------------------------
+
+def get_tokens_from_records(commit_num: str):
+    path = REPO_ROOT / "TOKEN_RECORDS.md"
+    if not path.exists(): return None
+    padded = f"C{str(commit_num).zfill(2)}"
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("|"): continue
+        cells = [c.strip() for c in line.split("|") if c.strip()]
+        if len(cells) < 5: continue
+        if cells[0] == padded and cells[4].replace(",","").isdigit():
+            val = int(cells[4].replace(",",""))
+            return val if val > 0 else None
+    return None
 
 
 # ----------------------------------------------
