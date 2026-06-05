@@ -880,4 +880,24 @@ Viktor's proposed fix rearranges the inactive-user check to after `verify_passwo
 
 ---
 
+## D22 — Admin User Creation: Unrestricted Role Assignment (Viktor C15 Finding 2)
+
+- **Date:** 2026-06-05
+- **Decided by:** Pending — flagged at C15 Viktor batch wave, not yet resolved
+- **Context:** Viktor flagged (WARN) that `create_user` in `admin.py` accepts any role including `"admin"` with no secondary confirmation or audit log. An admin can create new admins in one step.
+
+### Finding
+
+Viktor Finding 2 (C11 batch wave, C15 wave): `UserCreate.role` accepts `"admin"` freely. No friction, no escalation check, no audit event.
+
+### Status: OPEN
+
+Not addressed in C15a (which fixes the field-discard and self-demotion bugs). Whether unrestricted admin-creation is acceptable depends on product requirements:
+- **Option A (accept):** This is an internal tool. The admin user set is small and controlled. Document it and move on.
+- **Option B (restrict):** Require a separate permission level or emit an audit log entry when an admin-role user is created.
+
+Eran to decide before C17 frontend work touches the admin page.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

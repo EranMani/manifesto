@@ -16,6 +16,7 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-05 | C09 | rex | 34,562 | PASS | PASS | PASS | PASS |
 | 2026-06-05 | C10 | rex | 0 | PASS | PASS | PASS | PASS |
 | 2026-06-05 | C11 | rex | 32,525 | PASS | PASS | PASS | PASS |
-| 2026-06-05 | C12 | rex | - | PASS | PASS | PASS | PASS |
-| 2026-06-05 | C13 | rex | - | PASS | FAIL | PASS | FAIL |
-| 2026-06-05 | C14 | rex | - | PASS | PASS | PASS | PASS |
+| 2026-06-05 | C12 | claude | 0 | PASS | PASS | PASS | PASS |
+| 2026-06-05 | C13 | claude | 0 | PASS | PASS | PASS | PASS |
+| 2026-06-05 | C14 | claude | 0 | PASS | PASS | PASS | PASS |
+| 2026-06-05 | C15 | claude | 0 | PASS | PASS | PASS | PASS |

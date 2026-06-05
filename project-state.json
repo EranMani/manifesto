@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C14 complete. C15 pending (Rex, stub-routes). No blockers. No open handoffs.",
+  "tldr": "C15 complete. C15a pending (Rex, fix-admin-update). Viktor batch wave found 3 BLOCKs in C11-C14 — C15a/b/c inserted as fix commits. No open handoffs.",
   "phase": 1,
-  "last_completed_commit": "14",
-  "next_commit": "15",
-  "next_commit_name": "stub-routes",
+  "last_completed_commit": "15",
+  "next_commit": "15a",
+  "next_commit_name": "fix-admin-update",
   "next_commit_assignee": "rex",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C14 committed 2026-06-05. GET/GET-by-id/POST/PUT/DELETE /api/v1/products. ProductRead/ProductCreate schemas. Shipment FK validated on POST. added_by set from JWT current_user. Written directly by Claude (exact pattern known from shipment-routes). No gate wave at C14. Next: C15 stub-routes (Rex). Viktor batch wave at C15."
+  "notes": "C15 committed 2026-06-05. chat.py (4 stub endpoints) + documents.py (2 stub endpoints). All return 501. Written directly by Claude. Viktor batch wave (C11-C15): 3 BLOCKs found — F1 update_user ignores name/email/password + no self-demotion guard (C11), F4 update_vendor cannot clear fields to NULL (C12), F5 update_product uses ProductCreate for PUT allowing shipment_id reassignment (C14). 2 WARNs: admin-create friction (C11), conversation_id should be str (C15). Fix commits inserted: C15a/b/c. C16 (llm-service-stub) follows C15c."
 }

@@ -44,6 +44,8 @@
 | `api\v1\__init__.py` | — |
 | `api\v1\admin.py` | `app.core.database`, `app.core.security`, `app.dependencies`, `app.models.user`, `app.schemas.user` |
 | `api\v1\auth.py` | `app.core.database`, `app.core.security`, `app.models.user`, `app.schemas.auth` |
+| `api\v1\chat.py` | — |
+| `api\v1\documents.py` | — |
 | `api\v1\products.py` | `app.core.database`, `app.dependencies`, `app.models.product`, `app.models.shipment`, `app.models.user` (+1 more) |
 | `api\v1\shipments.py` | `app.core.database`, `app.dependencies`, `app.models.shipment`, `app.models.vendor`, `app.schemas.shipment` |
 | `api\v1\vendors.py` | `app.core.database`, `app.dependencies`, `app.models.user`, `app.models.vendor`, `app.schemas.vendor` |
@@ -52,7 +54,7 @@
 | `core\database.py` | `app.core.config` |
 | `core\security.py` | `app.core.config` |
 | `dependencies.py` | `app.core.database`, `app.core.security`, `app.models.user` |
-| `main.py` | `app.api.v1.admin`, `app.api.v1.auth`, `app.api.v1.products`, `app.api.v1.shipments`, `app.api.v1.vendors` |
+| `main.py` | `app.api.v1.admin`, `app.api.v1.auth`, `app.api.v1.chat`, `app.api.v1.documents`, `app.api.v1.products` (+2 more) |
 | `models\__init__.py` | `app.models.user`, `app.models.vendor`, `app.models.shipment`, `app.models.category`, `app.models.product` (+3 more) |
 | `models\category.py` | `app.core.database` |
 | `models\conversation.py` | `app.core.database` |

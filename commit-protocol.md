@@ -25,7 +25,10 @@
 | 12 | vendor-routes | rex | ✅ done · 2026-06-05 |
 | 13 | shipment-routes | rex | ✅ done · 2026-06-05 |
 | 14 | product-routes | rex | ✅ done · 2026-06-05 |
-| 15 | stub-routes | rex | pending |
+| 15 | stub-routes | rex | ✅ done · 2026-06-05 |
+| 15a | fix-admin-update | rex | pending |
+| 15b | fix-vendor-update | rex | pending |
+| 15c | fix-product-update | rex | pending |
 | 16 | llm-service-stub | rex | pending |
 | 17 | auth-store-and-client | aria | pending |
 | 18 | protected-route | aria | pending |

@@ -157,11 +157,14 @@ You do **not** load files from other agents' domains unless this step explicitly
 
     Commit command format — required every time:
     ```
-    NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py && CLAUDE_COMMIT=1 git commit -m "..."
+    NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py && CLAUDE_COMMIT=1 git commit -m "..." && python hooks/verify_constraints.py --commit NN --agent NAME --tokens N
     ```
-    The notify script runs first (sends email), then git commit follows.
-    Pass NOTIFY_WHAT and NOTIFY_WHY as env vars — they match the What/Why lines in the commit message.
-    If SMTP is not configured the script exits 0 silently and the commit proceeds normally.
+    Three steps, always in this order:
+    1. notify_agent_done.py — sends email (exits 0 silently if SMTP not configured)
+    2. git commit — lands the commit with CLAUDE_COMMIT=1 bypass
+    3. verify_constraints.py — updates CONSTRAINT_LOG.md and constraint-dashboard.html
+    Pass --tokens 0 for Claude direct writes. Pass actual token count for agent invocations.
+    Never skip step 3 — this is what keeps the dashboard accurate.
 13. Brief Eran on next step with Commit Preview; ask to proceed
 
 **Quality gate rule:** Tests must pass before the gate wave runs.

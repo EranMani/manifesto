@@ -1,25 +1,17 @@
 #!/usr/bin/env python3
 """
-notify_agent_done.py — Email notification before a commit is made.
+notify_agent_done.py — Email notification after a commit lands.
 
-Called directly by Claude as part of the commit command:
-  python hooks/notify_agent_done.py && CLAUDE_COMMIT=1 git commit -m "..."
+Triggered automatically via PostToolUse hook on Bash(CLAUDE_COMMIT=1*).
+Reads git diff-tree HEAD for files, commit-protocol.md + git log for info.
 
-Reads staged diff + commit-protocol.md + project-state.json.
-Does NOT read git log HEAD — the commit hasn't happened yet.
+Usage:
+  python hooks/notify_agent_done.py           # normal (called by hook)
+  python hooks/notify_agent_done.py --test    # send test email immediately
 
 Required env vars (in .env):
-  SMTP_HOST      e.g. smtp.gmail.com
-  SMTP_PORT      e.g. 587
-  SMTP_USER      sending address
-  SMTP_PASSWORD  app password or SMTP credential
-  NOTIFY_EMAIL   recipient address (defaults to SMTP_USER if unset)
-
-Optional:
-  NOTIFY_AGENT   agent name override
-  NOTIFY_COMMIT  commit number override (e.g. "13")
-  NOTIFY_WHAT    What: line override
-  NOTIFY_WHY     Why: line override
+  SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
+  NOTIFY_EMAIL  — recipient (defaults to SMTP_USER)
 """
 
 import json
@@ -40,6 +32,8 @@ ROOT = Path(subprocess.check_output(
     ["git", "rev-parse", "--show-toplevel"], text=True
 ).strip())
 
+TEST_MODE = "--test" in sys.argv
+
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -53,8 +47,7 @@ def load_env() -> dict:
                 continue
             key, _, val = line.partition("=")
             env[key.strip()] = val.strip().strip('"').strip("'")
-    for key in ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD",
-                "NOTIFY_EMAIL", "NOTIFY_AGENT", "NOTIFY_COMMIT", "NOTIFY_WHAT", "NOTIFY_WHY"]:
+    for key in ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "NOTIFY_EMAIL"]:
         if key in os.environ:
             env[key] = os.environ[key]
     return env
@@ -64,76 +57,95 @@ def smtp_configured(env: dict) -> bool:
     return all(env.get(k) for k in ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD"])
 
 
-# ── Project state ─────────────────────────────────────────────────────────────
+# ── Git helpers ───────────────────────────────────────────────────────────────
 
-def load_state() -> dict:
-    state_file = ROOT / "project-state.json"
-    if state_file.exists():
-        try:
-            return json.loads(state_file.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-    return {}
+def git(*args) -> str:
+    return subprocess.run(list(args), capture_output=True, text=True, cwd=ROOT).stdout.strip()
 
 
-def get_project_name(state: dict) -> str:
-    return state.get("project", ROOT.name)
+def get_commit_info() -> dict:
+    if TEST_MODE:
+        return {
+            "number": "XX",
+            "name":   "test commit — email system check",
+            "agent":  "Claude",
+            "project": load_state().get("project", ROOT.name),
+            "what":   "This is a test email to verify the notification system is working.",
+            "why":    "Triggered manually via --test flag.",
+        }
 
+    message = git("git", "log", "-1", "--pretty=%B")
+    subject = git("git", "log", "-1", "--pretty=%s")
 
-def get_commit_number_from_protocol() -> str | None:
-    """Return the first pending commit number from commit-protocol.md."""
-    protocol = ROOT / "commit-protocol.md"
-    if not protocol.exists():
-        return None
-    for line in protocol.read_text(encoding="utf-8").splitlines():
-        if not line.startswith("|"):
-            continue
-        cells = [c.strip() for c in line.split("|") if c.strip()]
-        if len(cells) < 4 or not cells[0].isdigit():
-            continue
-        if "pending" in cells[3].lower():
-            return cells[0].zfill(2)
-    return None
+    # Commit name: strip conventional prefix
+    name = re.sub(r"^(feat|fix|chore|refactor|docs|test|style|ci)(\([^)]+\))?:\s*", "", subject, flags=re.IGNORECASE)
 
+    # Agent from Co-Authored-By
+    agent = "Claude"
+    m = re.search(r"Co-Authored-By:\s*(\w+)", message, re.IGNORECASE)
+    if m:
+        agent = m.group(1).title()
 
-def get_commit_info(env: dict) -> dict:
-    state = load_state()
-    cc = state.get("current_commit", {})
-
-    # Commit number: env override → protocol pending → state
-    number = env.get("NOTIFY_COMMIT")
+    # Commit number: message → last done in protocol → state
+    number = None
+    for pat in [r"(?:^|\n)\s*[Cc]ommit\s+#0*(\d{1,2})\b", r"(?:^|\n)\s*[Ss]tep\s+#0*(\d{1,2})\b"]:
+        m2 = re.search(pat, message)
+        if m2:
+            number = m2.group(1).zfill(2)
+            break
     if not number:
         number = get_commit_number_from_protocol()
-    if not number and cc.get("number"):
-        number = str(cc["number"]).zfill(2)
 
-    # Agent: env override → state assignee
-    agent = env.get("NOTIFY_AGENT") or cc.get("assignee", "Agent")
-    if agent:
-        agent = agent.title()
+    # What/Why from commit body
+    what, why = "", ""
+    for line in message.splitlines():
+        mw = re.match(r"^\s*What:\s*(.+)", line, re.IGNORECASE)
+        if mw: what = mw.group(1).strip()
+        my = re.match(r"^\s*Why:\s*(.+)", line, re.IGNORECASE)
+        if my: why = my.group(1).strip()
 
-    # Commit name from state
-    name = cc.get("name", "")
-
-    # What/Why: env override (Claude passes these as env vars)
-    what = env.get("NOTIFY_WHAT", "")
-    why  = env.get("NOTIFY_WHY", "")
-
+    state = load_state()
     return {
         "number":  number or "??",
         "name":    name,
         "agent":   agent,
-        "project": get_project_name(state),
+        "project": state.get("project", ROOT.name),
         "what":    what,
         "why":     why,
     }
 
 
-# ── Staged diff ───────────────────────────────────────────────────────────────
+def get_commit_number_from_protocol() -> str | None:
+    protocol = ROOT / "commit-protocol.md"
+    if not protocol.exists():
+        return None
+    last_done = None
+    for line in protocol.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("|"): continue
+        cells = [c.strip() for c in line.split("|") if c.strip()]
+        if len(cells) < 4 or not cells[0].isdigit(): continue
+        if "done" in cells[3].lower():
+            last_done = cells[0].zfill(2)
+    return last_done
 
-def get_staged_files() -> list:
+
+def load_state() -> dict:
+    f = ROOT / "project-state.json"
+    if f.exists():
+        try: return json.loads(f.read_text(encoding="utf-8"))
+        except Exception: pass
+    return {}
+
+
+def get_diff_files() -> list:
+    if TEST_MODE:
+        return [
+            {"status": "Added",    "path": "hooks/notify_agent_done.py"},
+            {"status": "Modified", "path": "CLAUDE.md"},
+            {"status": "Modified", "path": ".env.example"},
+        ]
     result = subprocess.run(
-        ["git", "diff", "--cached", "--name-status"],
+        ["git", "diff-tree", "--no-commit-id", "-r", "--name-status", "HEAD"],
         capture_output=True, text=True, cwd=ROOT
     )
     files = []
@@ -141,15 +153,15 @@ def get_staged_files() -> list:
     for line in result.stdout.strip().splitlines():
         parts = line.split("\t")
         if len(parts) >= 2:
-            code = parts[0][0]
-            path = parts[-1]
-            files.append({"status": status_map.get(code, code), "path": path})
+            files.append({"status": status_map.get(parts[0][0], parts[0][0]), "path": parts[-1]})
     return files
 
 
-def get_staged_stat() -> str:
+def get_diff_stat() -> str:
+    if TEST_MODE:
+        return "3 files changed, 42 insertions(+), 7 deletions(-)"
     result = subprocess.run(
-        ["git", "diff", "--cached", "--stat"],
+        ["git", "show", "--stat", "--format=", "HEAD"],
         capture_output=True, text=True, cwd=ROOT
     )
     if result.stdout.strip():
@@ -170,7 +182,7 @@ STATUS_COLORS = {
 
 def build_file_rows(files: list) -> str:
     if not files:
-        return "<tr><td colspan='2' style='color:#888;padding:6px 0;'>No staged changes detected.</td></tr>"
+        return "<tr><td colspan='2' style='color:#888;padding:6px 0;'>No changes detected.</td></tr>"
     rows = []
     for f in files:
         color, letter = STATUS_COLORS.get(f["status"], ("#888", "?"))
@@ -191,24 +203,19 @@ def build_what_why_html(what: str, why: str) -> str:
     rows = ""
     if what:
         rows += (
-            "<tr>"
-            "<td style='padding:4px 12px 4px 0;font-size:12px;font-weight:600;color:#999;"
+            "<tr><td style='padding:4px 12px 4px 0;font-size:12px;font-weight:600;color:#999;"
             "white-space:nowrap;vertical-align:top;'>What</td>"
-            "<td style='padding:4px 0;font-size:13px;color:#1a1a18;line-height:1.6;'>" + what + "</td>"
-            "</tr>"
+            "<td style='padding:4px 0;font-size:13px;color:#1a1a18;line-height:1.6;'>" + what + "</td></tr>"
         )
     if why:
         rows += (
-            "<tr>"
-            "<td style='padding:4px 12px 4px 0;font-size:12px;font-weight:600;color:#999;"
+            "<tr><td style='padding:4px 12px 4px 0;font-size:12px;font-weight:600;color:#999;"
             "white-space:nowrap;vertical-align:top;'>Why</td>"
-            "<td style='padding:4px 0;font-size:13px;color:#444;line-height:1.6;'>" + why + "</td>"
-            "</tr>"
+            "<td style='padding:4px 0;font-size:13px;color:#444;line-height:1.6;'>" + why + "</td></tr>"
         )
     return (
         "<div style='background:#f9f8f4;border-radius:8px;padding:14px 16px;margin-bottom:20px;'>"
-        "<table cellpadding='0' cellspacing='0' style='width:100%;'>" + rows + "</table>"
-        "</div>"
+        "<table cellpadding='0' cellspacing='0' style='width:100%;'>" + rows + "</table></div>"
     )
 
 
@@ -222,6 +229,8 @@ def build_email(env: dict, info: dict, files: list, diff_stat: str):
     why         = info.get("why", "")
 
     subject = project + " — commit " + commit_num + " — " + agent_name + " finished"
+    if TEST_MODE:
+        subject = "[TEST] " + subject
 
     file_rows     = build_file_rows(files)
     what_why_html = build_what_why_html(what, why)
@@ -236,59 +245,34 @@ def build_email(env: dict, info: dict, files: list, diff_stat: str):
         "<tr><td align='center'>"
         "<table width='560' cellpadding='0' cellspacing='0' style='background:#fff;border-radius:12px;"
         "border:1px solid #e0dfd8;overflow:hidden;max-width:560px;'>"
-
         "<tr><td style='background:#f9f8f4;border-bottom:1px solid #e0dfd8;padding:10px 20px;'>"
-        "<span style='font-size:12px;color:#999;'>" + project + " &middot; automated by Claude</span>"
-        "</td></tr>"
-
+        "<span style='font-size:12px;color:#999;'>" + project + " &middot; automated by Claude</span></td></tr>"
         "<tr><td style='padding:28px 28px 0;'>"
         "<h1 style='margin:0 0 6px;font-size:20px;font-weight:500;color:#1a1a18;'>"
-        + project + " &mdash; commit " + commit_num +
-        "</h1>"
-        "<p style='margin:0 0 20px;font-size:13px;color:#888;'>"
-        + agent_name + " &nbsp;&middot;&nbsp; " + now +
-        "</p>"
-
+        + project + " &mdash; commit " + commit_num + "</h1>"
+        "<p style='margin:0 0 20px;font-size:13px;color:#888;'>" + agent_name + " &nbsp;&middot;&nbsp; " + now + "</p>"
         "<div style='margin-bottom:20px;'>"
         "<span style='background:#EAF3DE;color:#3B6D11;font-size:12px;font-weight:500;"
-        "padding:4px 12px;border-radius:6px;'>awaiting your approval</span>"
-        "</div>"
-
-        "<p style='margin:0 0 20px;font-size:15px;font-weight:500;color:#1a1a18;'>"
-        + commit_name +
-        "</p>"
-
+        "padding:4px 12px;border-radius:6px;'>awaiting your approval</span></div>"
+        "<p style='margin:0 0 20px;font-size:15px;font-weight:500;color:#1a1a18;'>" + commit_name + "</p>"
         + what_why_html +
-
         "<div style='background:#f9f8f4;border-radius:8px;padding:14px 16px;margin-bottom:20px;'>"
         "<p style='margin:0 0 10px;font-size:11px;font-weight:600;color:#999;"
         "text-transform:uppercase;letter-spacing:0.05em;'>Files changed</p>"
-        + stat_line +
-        "<table cellpadding='0' cellspacing='0' style='width:100%;'>"
-        + file_rows +
-        "</table></div>"
-
+        + stat_line
+        + "<table cellpadding='0' cellspacing='0' style='width:100%;'>" + file_rows + "</table></div>"
         "<p style='font-size:13px;color:#888;line-height:1.65;margin:0 0 28px;"
         "border-left:2px solid #d3d1c7;padding-left:12px;'>"
         "Open your Cowork session to approve or reject.<br>"
-        "Claude is waiting for your explicit go&#8209;ahead."
-        "</p>"
+        "Claude is waiting for your explicit go&#8209;ahead.</p>"
         "</td></tr>"
-
         "<tr><td style='background:#f9f8f4;border-top:1px solid #e0dfd8;"
         "padding:12px 28px;font-size:11px;color:#bbb;'>"
-        "manifesto &middot; automated notification &middot; do not reply"
-        "</td></tr>"
-
+        "manifesto &middot; automated notification &middot; do not reply</td></tr>"
         "</table></td></tr></table></body></html>"
     )
 
-    what_why_plain = ""
-    if what:
-        what_why_plain += "What: " + what + "\n"
-    if why:
-        what_why_plain += "Why:  " + why + "\n"
-
+    what_why_plain = ("What: " + what + "\n" if what else "") + ("Why:  " + why + "\n" if why else "")
     plain = (
         subject + "\n\n"
         "Agent: " + agent_name + "\n"
@@ -298,7 +282,7 @@ def build_email(env: dict, info: dict, files: list, diff_stat: str):
         + "Files changed:\n"
         + "\n".join("  [" + f["status"][0] + "] " + f["path"] for f in files)
         + "\n\n" + diff_stat + "\n\n"
-        "Open your Cowork session to approve or reject the commit.\n"
+        "Open your Cowork session to approve or reject.\n"
         "Claude is waiting for your explicit go-ahead.\n"
     )
 
@@ -337,19 +321,19 @@ def main() -> int:
     env = load_env()
 
     if not smtp_configured(env):
-        print("[notify] SMTP not configured — skipping. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD in .env")
+        print("[notify] SMTP not configured — skipping.")
         return 0
 
-    info      = get_commit_info(env)
-    files     = get_staged_files()
-    diff_stat = get_staged_stat()
+    info      = get_commit_info()
+    files     = get_diff_files()
+    diff_stat = get_diff_stat()
     subject, plain, html = build_email(env, info, files, diff_stat)
 
     try:
         send_email(env, subject, plain, html)
     except Exception as e:
-        print("[notify] Failed to send email: " + str(e), file=sys.stderr)
-        return 0  # non-fatal
+        print("[notify] Failed: " + str(e), file=sys.stderr)
+        return 0
 
     return 0
 

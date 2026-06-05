@@ -60,6 +60,9 @@ The delta column is the signal — positive means over budget, negative means un
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
 | C14 | product-routes | Claude (direct) | — | 0 | ~20 (9 reads, 4 writes, 7 bash) | — | Pre-invocation check: exact files/fields/pattern known from shipments.py + Product model; no agent spawned |
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
+| C15 | stub-routes | Claude (direct) | — | 0 | ~10 (4 reads, 2 writes, 2 edits, 2 bash) | — | Pre-invocation check: stub pattern fully established; no agent spawned |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ✅ | | | verify_constraints: PASS — reads=4/10, writes=1/12, total=5/25 |
+| C15 | stub-routes (gate) | Viktor | sonnet | 22,335 | 2 | +7,335 ⚠️ | Batch wave C11–C15; 3 BLOCKs (F1 admin, F4 vendor, F5 product) + 3 WARNs; fix commits C15a/b/c inserted |
 
 ---
 
@@ -82,17 +85,23 @@ The delta column is the signal — positive means over budget, negative means un
 | C12 | 0 | none (direct write) | none | Orchestrator direct write; vendor CRUD; all test gates passed; no gate wave at C12 |
 | C13 | 0 | none (direct write) | none | Orchestrator direct write; shipment CRUD with vendor FK validation; all test gates passed; no gate wave at C13 |
 | C14 | 0 | none (direct write) | none | Orchestrator direct write; product CRUD with shipment FK validation + added_by from JWT; all test gates passed; no gate wave at C14 |
+| C15 | 22,335 | none (direct write) | Viktor 22,335 | Orchestrator direct write; stub routes (6 endpoints, 501); Viktor batch wave found 3 BLOCKs → C15a/b/c fix commits inserted |
 
 ---
 
 ## Running Analysis
 
-*Populated after 5+ commits — enough data to identify patterns.*
+*Updated at C15 (15 commits, enough data for patterns).*
 
-High-cost commits: —
-Most expensive agent: —
-Gate wave efficiency: —
-Strategy impact: —
+**High-cost commits:** C07 (Rex, 57k tokens, 81 tool uses — Docker troubleshooting); C03 (Aria, 34k tokens, 49 tool uses — exceeded cap).
+
+**Direct-write acceleration (C08, C10, C12, C13, C14, C15):** Six of the last eight commits were orchestrator direct writes — 0 agent tokens each. Pre-invocation checks are working. Pattern established in backend routes means each new route is derivable without spawning Rex.
+
+**Viktor batch wave yield:** C10 wave: 1 BLOCK (dismissed), 1 WARN. C15 wave: 3 BLOCKs (real bugs), 3 WARNs. Viktor is catching real issues — update_user ignoring fields, vendor update conflating unset vs null, product PUT allowing shipment reassignment. Wave cost: 22–36k tokens per batch.
+
+**Gate cost trend:** Reviewer (Viktor, Sage) targets are consistently exceeded (~7–21k over 15k target). Acceptable — reviewers are doing thorough work. No action needed.
+
+**Strategy impact:** Direct writes have eliminated ~60–100k tokens per commit since C12. Viktor waves add back ~22k every 5 commits = ~4.4k amortized per commit. Net win: significant.
 
 ---
 
@@ -107,3 +116,7 @@ Column definitions:
 - **Tokens**: total input + output tokens from `<usage>` block
 - **Tool uses**: number of tool calls the agent made
 - **vs. Target**: `tokens - target` (negative = under budget ✅, positive = over ⚠️)
+| C12 | vendor-routes | Claude (direct) | — | 0 | 3 writes | — | Pre-invocation check: exact content known from admin.py pattern; no agent spawned |
+| C13 | shipment-routes | Claude (direct) | — | 0 | 3 writes | — | Pre-invocation check: exact content known from vendor-routes pattern; no agent spawned |
+| C14 | product-routes | Claude (direct) | — | 0 | 3 writes | — | Pre-invocation check: exact content known from shipments.py pattern; no agent spawned |
+| C15 | stub-routes | Claude (direct) | — | 0 | 3 writes | — | Pre-invocation check: exact content known; no agent spawned |
