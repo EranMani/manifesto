@@ -1,14 +1,14 @@
 {
   "project": "manifesto",
   "phase": 1,
-  "last_completed_commit": "05",
-  "next_commit": "06",
-  "next_commit_name": "sqlalchemy-models",
+  "last_completed_commit": "06",
+  "next_commit": "07",
+  "next_commit_name": "alembic-migration",
   "next_commit_assignee": "rex",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C05 committed 2026-06-05 (984cca5). Viktor batch wave C01-C05: PASS. Next: C06 sqlalchemy-models (Rex)."
+  "notes": "C06 committed 2026-06-05 (f712343). No gate wave. Next: C07 alembic-migration (Rex)."
 }

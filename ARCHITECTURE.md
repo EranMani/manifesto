@@ -302,4 +302,43 @@ All finite-value string fields use `CheckConstraint` for DB-level enforcement:
 
 ---
 
+## C07 — Alembic Migration
+
+**Introduced by:** Rex (Backend), Commit 07
+
+### Migration Infrastructure
+
+```
+backend/
+├── alembic.ini                         ← Alembic config; sqlalchemy.url overridden at runtime by DATABASE_URL env var
+└── alembic/
+    ├── env.py                          ← async runner: imports Base + engine from app.core.database; uses connection.run_sync
+    ├── script.py.mako                  ← standard migration template
+    └── versions/
+        └── 0001_initial.py             ← initial schema: all 9 tables + indexes + CHECK constraints
+```
+
+### env.py Pattern
+
+Imports `Base` and `engine` directly from `app.core.database` (not `async_engine_from_config`). All model imports happen via `from app.models import *` which populates `Base.metadata` as a side effect. Migration runs inside an async context using `connection.run_sync(do_run_migrations)`.
+
+### Initial Migration (0001_initial)
+
+Order of operations:
+1. `CREATE EXTENSION IF NOT EXISTS vector` — pgvector
+2. `CREATE EXTENSION IF NOT EXISTS pgcrypto` — supports `gen_random_uuid()` server defaults
+3. Tables in FK dependency order: `users → vendors → categories → shipments → products → conversations → messages → policy_documents → policy_chunks`
+4. `ALTER TABLE policy_chunks ALTER COLUMN embedding TYPE vector(1536)` — pgvector DDL requires ALTER after table creation
+5. `CREATE INDEX ... USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)` — D17 deferred index
+
+### Operational Constraint
+
+All Alembic (and any other asyncpg) commands must run inside the Docker container — not from the Windows host. A native Windows Postgres instance occupies `localhost:5432` and intercepts connections before Docker's port mapping. Run as:
+```
+docker-compose run --rm --no-deps backend sh -c "cd /app && uv run alembic upgrade head"
+```
+See D18.
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*

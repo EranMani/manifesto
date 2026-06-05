@@ -5,14 +5,14 @@
 ---
 
 ## Current State
-*Last updated: Commit 06 · 2026-06-05*
+*Last updated: Commit 07 · 2026-06-05*
 
-**Last completed:** Commit 06 `sqlalchemy-models` ✅
+**Last completed:** Commit 07 `alembic-migration` ✅
 **Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
-- → Rex (C07): `models/__init__.py` imports all models — Alembic `env.py` will import `Base.metadata` from `app.core.database` and models from `app.models` to populate it
+- → Rex (C08): Database schema is live. `seed.py` can now INSERT into the `users` table.
 - → Rex (C08): `create_access_token` accepts `data: dict` — caller must pass `{"sub": str(user.id), "role": user.role}`
 - → Rex (C09): `decode_token` raises HTTPException 401 — `get_current_user` dependency catches this naturally
 
@@ -37,6 +37,7 @@ No archived sessions yet.
 | 01 | C02: python-skeleton | ✅ Done | Used exact pyproject.toml from spec; no deviations |
 | 02 | C04: config-and-security | ✅ Done | Replaced passlib CryptContext with direct bcrypt calls due to version incompatibility |
 | 03 | C06: sqlalchemy-models | ✅ Done | PolicyChunk IVFFlat index deferred to migration; `__table_args__` left as empty dict tuple |
+| 04 | C07: alembic-migration | ✅ Done | Ran migration inside Docker container — native Windows Postgres on port 5432 blocked host-based asyncpg connections |
 
 ---
 
@@ -125,3 +126,30 @@ No archived sessions yet.
 
 **Handoffs out:**
 - → Rex (C07): `models/__init__.py` imports all models — Alembic `env.py` will import `Base.metadata` from `app.core.database` and models from `app.models` to populate it
+
+---
+
+## Session 04 — Commit 07: `alembic-migration`
+*2026-06-05*
+
+**Approach:** Phase 1 reads — confirmed all 9 model files and `models/__init__.py`, read `database.py` for engine/Base exports, read `.env` and `docker-compose.yml` for DB credentials and port mapping. Phase 2 writes — created 4 alembic files, then ran migration inside Docker container.
+
+**Files created:**
+- `backend/alembic.ini` — Alembic config, `sqlalchemy.url` set to localhost (overridden at runtime by env var)
+- `backend/alembic/env.py` — async migration runner importing `Base` and `engine` from `app.core.database`; uses `connection.run_sync` pattern
+- `backend/alembic/script.py.mako` — standard migration template
+- `backend/alembic/versions/0001_initial.py` — hand-written migration: vector extension, pgcrypto, all 9 tables in dependency order, IVFFlat index on `policy_chunks.embedding`, composite index on `messages(conversation_id, created_at)`, CHECK constraints
+
+**Test gate results:**
+- `alembic upgrade head` (via `docker-compose run --rm --no-deps backend`): PASS — all 9 tables created
+- `alembic current`: PASS — shows `0001_initial (head)`
+- `alembic downgrade -1`: PASS — all 9 tables dropped cleanly
+- `alembic upgrade head` (re-applied for C08): PASS — schema restored at head
+
+**Decisions made:**
+- Migration runs via `docker-compose run --rm --no-deps backend sh -c "cd /app && uv run alembic upgrade head"` rather than from the host. A native Windows Postgres instance (unrelated to this project) was already bound to `localhost:5432`, intercepting asyncpg connections with auth failures. Running inside the container uses the `db` hostname and bypasses the port conflict entirely.
+- `policy_chunks.embedding` column created as `Text` then `ALTER TABLE ... TYPE vector(1536) USING embedding::vector(1536)` — pgvector DDL in alembic op.create_table does not accept the Vector type natively; the ALTER handles type conversion after table creation.
+- `pgcrypto` extension added alongside `vector` to support `gen_random_uuid()` calls in server defaults.
+
+**Handoffs out:**
+- → Rex (C08): Database schema is live. `seed.py` can now INSERT into the `users` table. Run migrations via `docker-compose run --rm --no-deps backend sh -c "cd /app && uv run alembic upgrade head"`.

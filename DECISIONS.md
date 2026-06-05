@@ -789,4 +789,28 @@ SQLAlchemy's `Index` constructor does not support pgvector-specific index method
 
 ---
 
+## D18 — Alembic Must Run Inside Docker Container (Windows Postgres Conflict)
+
+- **Date:** 2026-06-05
+- **Decided by:** Rex (C07 execution)
+- **Context:** A native Windows Postgres instance unrelated to this project is bound to `localhost:5432`. When `uv run alembic upgrade head` runs from the host, asyncpg connects to the native Windows instance and receives auth failures.
+
+### Decision
+
+All Alembic commands (and any asyncpg operations) must run inside the Docker backend container, which connects to the `db` service by hostname rather than localhost:
+
+```
+docker-compose run --rm --no-deps backend sh -c "cd /app && uv run alembic upgrade head"
+```
+
+This bypasses the port conflict entirely.
+
+### Consequences
+
+- C08 seed script and all future migration commands must use this invocation pattern
+- `alembic.ini` `sqlalchemy.url` placeholder is irrelevant — `DATABASE_URL` env var injected by Docker overrides it
+- CI/CD must also run Alembic inside the container, not the host
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
