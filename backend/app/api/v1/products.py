@@ -7,7 +7,7 @@ from app.dependencies import require_role
 from app.models.product import Product
 from app.models.shipment import Shipment
 from app.models.user import User
-from app.schemas.product import ProductCreate, ProductRead
+from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 
 router = APIRouter()
 
@@ -53,7 +53,7 @@ async def create_product(
 @router.put("/{product_id}", response_model=ProductRead)
 async def update_product(
     product_id: str,
-    payload: ProductCreate,
+    payload: ProductUpdate,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin", "manager")),
 ):
@@ -61,7 +61,7 @@ async def update_product(
     product = result.scalars().first()
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
-    for field, value in payload.model_dump().items():
+    for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(product, field, value)
     await db.commit()
     await db.refresh(product)

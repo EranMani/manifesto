@@ -22,3 +22,11 @@ class ProductRead(ProductBase):
     created_at: datetime.datetime
 
     model_config = {"from_attributes": True}
+
+
+class ProductUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    quantity: int | None = None
+    unit: str | None = None
+    category_id: str | None = None
