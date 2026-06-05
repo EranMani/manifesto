@@ -1,14 +1,14 @@
 {
   "project": "manifesto",
   "phase": 1,
-  "last_completed_commit": "04",
-  "next_commit": "04b",
-  "next_commit_name": "config-security-hardening",
+  "last_completed_commit": "04b",
+  "next_commit": "05",
+  "next_commit_name": "database-session",
   "next_commit_assignee": "rex",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C04 committed 2026-06-04 (518e50e). C04b work complete -- SECRET_KEY validator + decode_token warning added. Changes staged/unstaged in working tree. Awaiting Sage gate + Eran approval before commit."
+  "notes": "C04b committed 2026-06-05 (fb765e5). Sage gate: PASS (17,212 tokens). Next: C05 database-session (Rex). Viktor wave runs on C05."
 }
