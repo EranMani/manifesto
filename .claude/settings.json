@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python hooks/tool_cap_enforce.py"
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\tool_cap_enforce.py\""
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python hooks/block_agent_commit.py"
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\block_agent_commit.py\""
           }
         ]
       }
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python hooks/tool_cap_end.py"
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\tool_cap_end.py\""
           }
         ]
       }
@@ -36,11 +36,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python hooks/post_commit_next_step.py"
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\post_commit_next_step.py\""
           },
           {
             "type": "command",
-            "command": "python hooks/generate_domain_map.py"
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\generate_domain_map.py\""
           }
         ]
       }

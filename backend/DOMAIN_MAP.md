@@ -11,6 +11,7 @@
 
 ## Entry Points (import others, not imported themselves)
 
+- `core\database.py`
 - `core\security.py`
 
 ## Full Import Graph
@@ -22,6 +23,7 @@
 | `api\v1\__init__.py` | — |
 | `core\__init__.py` | — |
 | `core\config.py` | — |
+| `core\database.py` | `app.core.config` |
 | `core\security.py` | `app.core.config` |
 | `dependencies.py` | — |
 | `main.py` | — |
