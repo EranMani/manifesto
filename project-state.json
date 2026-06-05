@@ -1,14 +1,14 @@
 {
   "project": "manifesto",
   "phase": 1,
-  "last_completed_commit": "04b",
-  "next_commit": "05",
-  "next_commit_name": "database-session",
+  "last_completed_commit": "05",
+  "next_commit": "06",
+  "next_commit_name": "sqlalchemy-models",
   "next_commit_assignee": "rex",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C04b committed 2026-06-05 (fb765e5). Sage gate: PASS (17,212 tokens). Next: C05 database-session (Rex). Viktor wave runs on C05."
+  "notes": "C05 committed 2026-06-05 (984cca5). Viktor batch wave C01-C05: PASS. Next: C06 sqlalchemy-models (Rex)."
 }

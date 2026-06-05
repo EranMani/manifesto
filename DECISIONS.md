@@ -358,6 +358,38 @@ In `get_commit_message()`, check `GIT_MESSAGE` env var **first**, fall back to `
 
 ---
 
+## D13 — Commit Protocol: Claude Commits on Eran's Behalf After Approval
+
+- **Date:** 2026-06-05
+- **Decided by:** Eran
+- **Context:** Every commit required Eran to manually run `ERAN_COMMIT=1 git commit -m "..."`. Agents were not appearing as GitHub contributors because no `Co-Authored-By` trailers were being added.
+
+### Decision
+
+After Eran approves a commit, Claude commits on his behalf using:
+```
+GIT_MESSAGE="<msg>" CLAUDE_COMMIT=1 git commit -m "<msg>"
+```
+with `Co-Authored-By` trailers for the agent who did the work.
+
+`CLAUDE_COMMIT=1` is a new bypass added to `block_agent_commit.py` — distinct from `ERAN_COMMIT=1` so the two paths remain distinguishable in the hook.
+
+### Co-Authored-By convention
+
+- Names must be single-word (D10 constraint: pre-commit hook regex `\S+\s+<email>`)
+- Emails from `hooks/agent-config.json`
+- Agent work: `Co-Authored-By: Rex <rex.stockagent@gmail.com>` etc.
+- Claude direct writes: `Co-Authored-By: Claude <claude@anthropic.com>`
+- Always add Claude as co-author on all commits (orchestrator)
+
+### Consequences
+
+- Agents appear as GitHub contributors on every commit they own
+- Eran no longer needs to run any git command after approval
+- Implementor agents (Rex, Adam, Aria) still cannot commit — their constraint is unchanged
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
 it Preview Format: "Summary" replaces "What"
 

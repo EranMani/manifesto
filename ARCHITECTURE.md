@@ -242,4 +242,26 @@ No new files. No interface changes.
 
 ---
 
+## C05 — Database Session
+
+**Introduced by:** Claude (direct write — spec fully prescriptive), Commit 05
+
+### Async Database Layer (database.py)
+
+```
+app.core.database
+├── engine              ← AsyncEngine (create_async_engine, echo=False)
+├── AsyncSessionLocal   ← async_sessionmaker(engine, expire_on_commit=False)
+├── Base                ← DeclarativeBase — all models inherit from this
+└── get_db()            ← FastAPI async generator dependency → yields AsyncSession
+```
+
+**Downstream contracts:**
+- C06 (models): all ORM models must do `class MyModel(Base)`
+- C07 (Alembic): `env.py` imports `engine` and `Base.metadata` for async migrations
+
+**Viktor batch wave verdict (C01–C05): PASS** — no findings.
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*

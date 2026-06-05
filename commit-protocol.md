@@ -15,7 +15,7 @@
 | 03 | frontend-scaffold | aria | ✅ done · 2026-06-04 |
 | 04 | config-and-security | rex | ✅ done · 2026-06-04 |
 | 04b | config-security-hardening | rex | ✅ done · 2026-06-05 |
-| 05 | database-session | rex | pending |
+| 05 | database-session | rex | ✅ done · 2026-06-05 |
 | 06 | sqlalchemy-models | rex | pending |
 | 07 | alembic-migration | rex | pending |
 | 08 | seed-script | rex | pending |

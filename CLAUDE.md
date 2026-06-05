@@ -15,10 +15,12 @@ These rules are here because they were violated in real sessions. They are non-n
    Every response, every surface, every approval prompt. No exceptions.
 
 2. NEVER COMMIT WITHOUT ERAN'S EXPLICIT APPROVAL — not you, not any agent.
-   No agent calls `git commit` under any circumstances.
-   Present the diff summary, wait for "approve" or "go ahead", then Eran commits manually.
-   A block_agent_commit.py hook enforces this mechanically — do not try to work around it.
-   Eran commits with: ERAN_COMMIT=1 git commit -m "..."
+   No implementor agent (Rex, Adam, Aria) calls `git commit` under any circumstances.
+   After Eran approves, Claude commits on his behalf using:
+     GIT_MESSAGE="<msg>" CLAUDE_COMMIT=1 git commit -m "<msg>"
+   Always include Co-Authored-By trailers for the agent who did the work.
+   Co-Authored-By names must be single-word (D10). Emails from agent-config.json.
+   A block_agent_commit.py hook enforces this — CLAUDE_COMMIT=1 is the orchestrator bypass.
 
 3. WHEN UPDATING ANY GOVERNANCE FILE, UPDATE ALL OF THEM IN THE SAME PASS.
    Changing a rule? It may need to land in: CLAUDE.md, team-preferences.md, AGENTS.md,
@@ -135,7 +137,7 @@ You do **not** load files from other agents' domains unless this step explicitly
 9. Apply blocking rules. Any blocker returns to the owning agent as its own next commit — no gate-fix passes
 10. Run pre-commit documentation checklist
 11. Surface to Eran for approval
-12. After approval: agent commits; hooks update protocol and state
+12. After approval: Claude commits using CLAUDE_COMMIT=1 with Co-Authored-By for the owning agent; hooks update protocol and state
 13. Brief Eran on next step with Commit Preview; ask to proceed
 
 **Quality gate rule:** Tests must pass before the gate wave runs.

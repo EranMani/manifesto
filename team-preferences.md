@@ -318,3 +318,4 @@ Add commit-specific items where the spec has known sharp edges.
 | 2026-06-04 | Agent context tier rules made explicit | Warm/cold agent distinction — no full worklog by default (D05) |
 | 2026-06-04 | Added "DO NOT git commit" to Implementors constraints | Aria (C03) committed without gate/approval — rule now written in both CLAUDE.md and team-preferences.md |
 | 2026-06-04 | Added Post-Commit File Checklist section | project-state.json and team-preferences.md were not being updated consistently — checklist now covers all required files |
+| 2026-06-05 | Claude now commits after approval (D13) | Agents were invisible as GitHub contributors; Eran no longer runs git commands manually. Claude uses CLAUDE_COMMIT=1 + Co-Authored-By trailers. |
