@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C10 complete. C11 pending (Rex, admin-routes). No blockers. No open handoffs.",
+  "tldr": "C11 complete. C12 pending (Rex, vendor-routes). No blockers. No open handoffs.",
   "phase": 1,
-  "last_completed_commit": "10",
-  "next_commit": "11",
-  "next_commit_name": "admin-routes",
+  "last_completed_commit": "11",
+  "next_commit": "12",
+  "next_commit_name": "vendor-routes",
   "next_commit_assignee": "rex",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C10 committed 2026-06-05. POST /auth/login route. Written directly by orchestrator (spec fully prescriptive). Viktor BLOCK dismissed — superseded by Sage WARN (D20); timing trade-off accepted. Sage C09 Finding #1 CLOSED. docker-compose.yml fix: uvicorn → uv run uvicorn. Next: C11 admin-routes (Rex). No gate wave at C11."
+  "notes": "C11 committed 2026-06-05. GET/POST/PUT /api/v1/admin/users routes. UserRead/UserCreate/UserUpdate schemas. D21: user_id path param typed as str (UUID(as_uuid=False)). No gate wave at C11. Next: C12 vendor-routes (Rex). No gate wave at C12."
 }
