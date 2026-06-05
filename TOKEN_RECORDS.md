@@ -3,7 +3,7 @@
 > Maintained by Claude. Updated before every Team Lead approval prompt — no exceptions.
 > Token counts come from the `<usage>` block returned by each Agent tool call.
 > Exact numbers only. Estimated entries are worse than no entry.
-> Last updated: 2026-06-05 (C13)
+> Last updated: 2026-06-05 (C14)
 
 ---
 
@@ -58,6 +58,8 @@ The delta column is the signal — positive means over budget, negative means un
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
 | C13 | shipment-routes | Claude (direct) | — | 0 | ~15 (5 reads, 2 writes, 2 edits, 5 bash) | — | Pre-invocation check: exact files/fields/pattern known from vendor-routes + Shipment model; no agent spawned |
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
+| C14 | product-routes | Claude (direct) | — | 0 | ~20 (9 reads, 4 writes, 7 bash) | — | Pre-invocation check: exact files/fields/pattern known from shipments.py + Product model; no agent spawned |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
 
 ---
 
@@ -79,6 +81,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C11 | 32,525 | 1 (Rex) | none | Rex 46% under target; no gate wave at C11 |
 | C12 | 0 | none (direct write) | none | Orchestrator direct write; vendor CRUD; all test gates passed; no gate wave at C12 |
 | C13 | 0 | none (direct write) | none | Orchestrator direct write; shipment CRUD with vendor FK validation; all test gates passed; no gate wave at C13 |
+| C14 | 0 | none (direct write) | none | Orchestrator direct write; product CRUD with shipment FK validation + added_by from JWT; all test gates passed; no gate wave at C14 |
 
 ---
 

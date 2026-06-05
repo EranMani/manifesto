@@ -5,16 +5,17 @@
 ---
 
 ## Current State
-*Last updated: Commit 13 · 2026-06-05*
+*Last updated: Commit 14 · 2026-06-05*
 
-**Last completed:** Commit 13 `shipment-routes` ✅
+**Last completed:** Commit 14 `product-routes` ✅
 **Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
 - → Aria (C19): Admin page at `/admin` renders a user list. Backend returns `UserRead` schema — fields: id, name, email, role, is_active, created_at. Routes: `GET /api/v1/admin/users`, `POST /api/v1/admin/users`, `PUT /api/v1/admin/users/{id}`. All require admin JWT.
-- → Rex (C12–C14): `require_role("admin", "manager")` guards all inventory routes.
+- → Rex (C12–C14): `require_role("admin", "manager")` guards all inventory routes. ✅ FULFILLED
 - → Aria (C17): Token format is `{access_token: string, token_type: "bearer"}`. Store `access_token` in Zustand, attach as `Authorization: Bearer <token>` header.
+- → Aria (C19 — products): Dashboard table shows products. Fields available: name, description, quantity, unit, category_id, shipment_id, added_by, created_at. Routes: GET /api/v1/products, GET /api/v1/products/{id}, POST, PUT, DELETE. All require admin/manager JWT.
 - → Aria (C20): Login credentials for frontend testing: `admin@manifesto.local` / `admin123`.
 
 **Note on C10:** Written directly by Claude (orchestrator) — pre-invocation check confirmed exact file/line/content known. No Rex agent spawned. All test gates passed via live server.
@@ -47,6 +48,7 @@ No archived sessions yet.
 | 08 | C11: admin-routes | ✅ Done | list/create/update user routes; email-conflict check on POST; UserRead/UserCreate/UserUpdate schemas |
 | 09 | C12: vendor-routes | ✅ Done | Written directly by Claude (exact content known from admin.py pattern); all test gates passed |
 | 10 | C13: shipment-routes | ✅ Done | Written directly by Claude (exact content known from vendor-routes pattern + Shipment model); vendor_id FK validated before insert; all test gates passed |
+| 11 | C14: product-routes | ✅ Done | Written directly by Claude; shipment_id FK validated on POST; added_by set from current_user.id; full CRUD (GET list, GET by id, POST, PUT, DELETE); all test gates passed |
 
 ---
 
@@ -69,6 +71,30 @@ No archived sessions yet.
 - ✅ Routes appear in /docs (/api/v1/shipments, /api/v1/shipments/{shipment_id})
 
 Tool usage: reads=5, writes=2, total=~15 (orchestrator direct write)
+
+---
+
+## Session 11 — Commit 14: `product-routes`
+*2026-06-05*
+
+**Approach:** Written directly by Claude (orchestrator). Pre-invocation check confirmed exact file paths, Product model fields, and CRUD pattern all known from shipments.py + dependencies.py context. No Rex agent spawned.
+
+**Files created:**
+- `backend/app/schemas/product.py` — ProductBase, ProductCreate, ProductRead (from_attributes=True)
+- `backend/app/api/v1/products.py` — GET (list), GET (by id), POST (shipment_id FK validated, added_by from current_user), PUT (full update), DELETE; all `require_role("admin", "manager")`
+
+**Files modified:**
+- `backend/app/main.py` — added product router import + `include_router` at `/api/v1/products`
+
+**Test gates:**
+- ✅ POST with valid shipment_id → 201 + ProductRead response with added_by set to user id
+- ✅ GET /api/v1/products → returns list
+- ✅ GET /api/v1/products/{id} → returns product
+- ✅ PUT /api/v1/products/{id} → updates and returns product
+- ✅ DELETE /api/v1/products/{id} → 204
+- ✅ Routes appear in /docs (/api/v1/products, /api/v1/products/{product_id})
+
+Tool usage: reads=9, writes=4, total=~20 (orchestrator direct write)
 
 ---
 

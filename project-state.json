@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C13 complete. C14 pending (Rex, product-routes). No blockers. No open handoffs.",
+  "tldr": "C14 complete. C15 pending (Rex, stub-routes). No blockers. No open handoffs.",
   "phase": 1,
-  "last_completed_commit": "13",
-  "next_commit": "14",
-  "next_commit_name": "product-routes",
+  "last_completed_commit": "14",
+  "next_commit": "15",
+  "next_commit_name": "stub-routes",
   "next_commit_assignee": "rex",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C13 committed 2026-06-05. GET/GET-by-id/POST/DELETE /api/v1/shipments. ShipmentRead/ShipmentCreate schemas. Vendor FK validated on POST. Written directly by Claude (exact pattern known from vendor-routes). No gate wave at C13. Next: C14 product-routes (Rex). No gate wave at C14."
+  "notes": "C14 committed 2026-06-05. GET/GET-by-id/POST/PUT/DELETE /api/v1/products. ProductRead/ProductCreate schemas. Shipment FK validated on POST. added_by set from JWT current_user. Written directly by Claude (exact pattern known from shipment-routes). No gate wave at C14. Next: C15 stub-routes (Rex). Viktor batch wave at C15."
 }
