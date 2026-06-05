@@ -5,16 +5,16 @@
 ---
 
 ## Current State
-*Last updated: Commit 07 · 2026-06-05*
+*Last updated: Commit 08 · 2026-06-05*
 
-**Last completed:** Commit 07 `alembic-migration` ✅
+**Last completed:** Commit 08 `seed-script` ✅
 **Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
-- → Rex (C08): Database schema is live. `seed.py` can now INSERT into the `users` table.
-- → Rex (C08): `create_access_token` accepts `data: dict` — caller must pass `{"sub": str(user.id), "role": user.role}`
 - → Rex (C09): `decode_token` raises HTTPException 401 — `get_current_user` dependency catches this naturally
+- → Rex (C09): Admin user exists with `role='admin'`. `get_current_user` dependency can be tested with real credentials from this point.
+- → Aria (C20): Login credentials for frontend testing: `admin@manifesto.local` / `admin123`.
 
 **Open Handoffs — Inbound:**
 - (none)
@@ -38,6 +38,7 @@ No archived sessions yet.
 | 02 | C04: config-and-security | ✅ Done | Replaced passlib CryptContext with direct bcrypt calls due to version incompatibility |
 | 03 | C06: sqlalchemy-models | ✅ Done | PolicyChunk IVFFlat index deferred to migration; `__table_args__` left as empty dict tuple |
 | 04 | C07: alembic-migration | ✅ Done | Ran migration inside Docker container — native Windows Postgres on port 5432 blocked host-based asyncpg connections |
+| 05 | C08: seed-script | ✅ Done | Written directly by orchestrator (exact file/content known; no agent spawn) |
 
 ---
 
@@ -153,3 +154,28 @@ No archived sessions yet.
 
 **Handoffs out:**
 - → Rex (C08): Database schema is live. `seed.py` can now INSERT into the `users` table. Run migrations via `docker-compose run --rm --no-deps backend sh -c "cd /app && uv run alembic upgrade head"`.
+
+---
+
+## Session 05 — Commit 08: `seed-script`
+*2026-06-05*
+
+**Approach:** Written directly by orchestrator — exact file path, import paths, and content were derivable from tier1 reads without spawning an agent. One new file created.
+
+**Files created:**
+- `backend/seed.py` — async seed script; idempotent insert of admin@manifesto.local
+
+**Test gate results:**
+- First run `python seed.py` (via docker-compose): PASS — printed "Seed complete — admin@manifesto.local created"
+- Second run `python seed.py` (idempotency): PASS — printed "Seed skipped — user already exists"
+- DB row confirmed: email=admin@manifesto.local, role=admin, is_active=true, hash_prefix=$2b$12$ (valid bcrypt)
+
+**Decisions made:**
+- Script written by orchestrator directly (pre-invocation check: exact content known from tier1 reads; agent spawn not warranted)
+- Run command follows D18 Docker pattern: `docker-compose run --rm --no-deps backend sh -c "cd /app && uv run python seed.py"`
+
+**Handoffs out:**
+- → Rex (C09): Admin user exists with `role='admin'`. `get_current_user` dependency can be tested with real credentials.
+- → Aria (C20): Login credentials for frontend testing: `admin@manifesto.local` / `admin123`.
+
+Tool usage: reads=3, writes=1, total=4

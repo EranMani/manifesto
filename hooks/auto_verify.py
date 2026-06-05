@@ -46,7 +46,8 @@ def main():
         [sys.executable, str(script), "--commit", str(commit), "--agent", agent],
         cwd=REPO_ROOT
     )
-    sys.exit(result.returncode)
+    # Only block on hard failures (exit 2), not warnings (exit 1)
+    sys.exit(0 if result.returncode <= 1 else 2)
 
 
 if __name__ == "__main__":

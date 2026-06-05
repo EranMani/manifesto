@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C07 complete. C08 pending (Rex, seed-script). No blockers. No open handoffs.",
+  "tldr": "C08 complete. C09 pending (Rex, auth-dependencies). No blockers. No open handoffs.",
   "phase": 1,
-  "last_completed_commit": "07",
-  "next_commit": "08",
-  "next_commit_name": "seed-script",
+  "last_completed_commit": "08",
+  "next_commit": "09",
+  "next_commit_name": "auth-dependencies",
   "next_commit_assignee": "rex",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C07 committed 2026-06-05 (13ea10b). No gate wave. D18: Alembic must run inside Docker container. Next: C08 seed-script (Rex)."
+  "notes": "C08 committed 2026-06-05 (b7743e9). Written directly by orchestrator — pre-invocation check applied. Admin user seeded: admin@manifesto.local / admin123 / role=admin. Next: C09 auth-dependencies (Rex)."
 }

@@ -18,7 +18,7 @@
 | 05 | database-session | rex | ✅ done · 2026-06-05 |
 | 06 | sqlalchemy-models | rex | ✅ done · 2026-06-05 |
 | 07 | alembic-migration | rex | ✅ done · 2026-06-05 |
-| 08 | seed-script | rex | pending |
+| 08 | seed-script | rex | ✅ done · 2026-06-05 |
 | 09 | auth-dependencies | rex | pending |
 | 10 | auth-route | rex | pending |
 | 11 | admin-routes | rex | pending |
