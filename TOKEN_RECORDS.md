@@ -63,6 +63,9 @@ The delta column is the signal — positive means over budget, negative means un
 | C15 | stub-routes | Claude (direct) | — | 0 | ~10 (4 reads, 2 writes, 2 edits, 2 bash) | — | Pre-invocation check: stub pattern fully established; no agent spawned |
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ✅ | | | verify_constraints: PASS — reads=4/10, writes=1/12, total=5/25 |
 | C15 | stub-routes (gate) | Viktor | sonnet | 22,335 | 2 | +7,335 ⚠️ | Batch wave C11–C15; 3 BLOCKs (F1 admin, F4 vendor, F5 product) + 3 WARNs; fix commits C15a/b/c inserted |
+| C15a | fix-admin-update | Claude (direct) | — | 0 | ~6 (4 reads, 2 edits) | — | Pre-invocation check: exact content in spec; no agent spawned; UserUpdate extended + self-demotion guard |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
+| C15a | fix-admin-update (gate) | Sage | haiku | 20,531 | 4 | +5,531 ⚠️ | No BLOCKs; 2 LOW notes (email 500 vs 409, no audit log) — both deferred, non-blocking |
 
 ---
 
@@ -86,6 +89,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C13 | 0 | none (direct write) | none | Orchestrator direct write; shipment CRUD with vendor FK validation; all test gates passed; no gate wave at C13 |
 | C14 | 0 | none (direct write) | none | Orchestrator direct write; product CRUD with shipment FK validation + added_by from JWT; all test gates passed; no gate wave at C14 |
 | C15 | 22,335 | none (direct write) | Viktor 22,335 | Orchestrator direct write; stub routes (6 endpoints, 501); Viktor batch wave found 3 BLOCKs → C15a/b/c fix commits inserted |
+| C15a | 20,531 | none (direct write) | Sage 20,531 | Orchestrator direct write; UserUpdate + self-demotion guard; Sage conditional gate: no BLOCKs |
 
 ---
 

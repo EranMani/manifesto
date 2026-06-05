@@ -52,6 +52,14 @@ async def update_user(
     user = result.scalars().first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if payload.role is not None and str(current_user.id) == user_id and payload.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot demote yourself")
+    if payload.name is not None:
+        user.name = payload.name
+    if payload.email is not None:
+        user.email = payload.email
+    if payload.password is not None:
+        user.password_hash = hash_password(payload.password)
     if payload.role is not None:
         user.role = payload.role
     if payload.is_active is not None:
