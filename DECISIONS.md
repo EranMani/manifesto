@@ -621,6 +621,28 @@ If a fix fails once, stop patching symptoms. State the root-cause hypothesis exp
 
 ---
 
+## D21 — Admin Route PUT: user_id Typed as str, Not UUID
+
+- **Date:** 2026-06-05
+- **Decided by:** Rex (C11 execution)
+- **Context:** `PUT /api/v1/admin/users/{user_id}` path parameter. The `User.id` column is declared `UUID(as_uuid=False)` — SQLAlchemy stores it as a plain Python string, not a `uuid.UUID` object. FastAPI path-param coercion to `uuid.UUID` would cause a silent type mismatch in the `WHERE User.id == user_id` query.
+
+### Decision
+
+Type `user_id` as `str` in the route signature, not `UUID`.
+
+### Rationale
+
+Matching the path param type to the storage representation avoids a silent comparison failure. Casting to `UUID` and back adds noise with no practical benefit.
+
+### Consequences
+
+- All routes querying by ID on `UUID(as_uuid=False)` columns must use `str` path params
+- C12–C14 routes should follow the same convention for their respective ID columns
+- If `User.id` is ever migrated to `UUID(as_uuid=True)`, all affected path params need revisiting
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
 
 ---

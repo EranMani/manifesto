@@ -7,11 +7,14 @@
 
 ## Key Hubs (imported by 3+ modules)
 
-- `app.core.database` — imported by 9 modules
+- `app.core.database` — imported by 11 modules
+- `app.models.user` — imported by 4 modules
+- `app.core.security` — imported by 3 modules
 
 ## Entry Points (import others, not imported themselves)
 
 - `dependencies.py`
+- `main.py`
 - `core\database.py`
 - `core\security.py`
 - `models\category.py`
@@ -23,6 +26,8 @@
 - `models\user.py`
 - `models\vendor.py`
 - `models\__init__.py`
+- `api\v1\admin.py`
+- `api\v1\auth.py`
 
 ## Full Import Graph
 
@@ -31,12 +36,14 @@
 | `__init__.py` | — |
 | `api\__init__.py` | — |
 | `api\v1\__init__.py` | — |
+| `api\v1\admin.py` | `app.core.database`, `app.core.security`, `app.dependencies`, `app.models.user`, `app.schemas.user` |
+| `api\v1\auth.py` | `app.core.database`, `app.core.security`, `app.models.user`, `app.schemas.auth` |
 | `core\__init__.py` | — |
 | `core\config.py` | — |
 | `core\database.py` | `app.core.config` |
 | `core\security.py` | `app.core.config` |
 | `dependencies.py` | `app.core.database`, `app.core.security`, `app.models.user` |
-| `main.py` | — |
+| `main.py` | `app.api.v1.admin`, `app.api.v1.auth` |
 | `models\__init__.py` | `app.models.user`, `app.models.vendor`, `app.models.shipment`, `app.models.category`, `app.models.product` (+3 more) |
 | `models\category.py` | `app.core.database` |
 | `models\conversation.py` | `app.core.database` |
@@ -47,4 +54,6 @@
 | `models\user.py` | `app.core.database` |
 | `models\vendor.py` | `app.core.database` |
 | `schemas\__init__.py` | — |
+| `schemas\auth.py` | — |
+| `schemas\user.py` | — |
 | `services\__init__.py` | — |

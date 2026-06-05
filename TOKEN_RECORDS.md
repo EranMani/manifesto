@@ -52,6 +52,8 @@ The delta column is the signal — positive means over budget, negative means un
 | C10 | auth-route (gate) | Viktor | haiku | 24,577 | 12 | +9,577 ⚠️ | 1 BLOCK + 1 WARN + 2 INFO; BLOCK dismissed — superseded by Sage WARN (D20) |
 | C10 | auth-route (gate) | Sage | haiku | 18,543 | 0 | +3,543 ⚠️ | 0 BLOCKs; 2 WARNs (timing + input validation); C09 Finding #1 CLOSED |
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
+| C11 | admin-routes | Rex | sonnet | 32,525 | 34 (9 self-reported) | -27,475 ✅ | 2 new files + main.py update; AST syntax checks passed; email 409 guard; str UUID decision |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ✅ | | | budget ✅ = tool-usage line confirmed at worklog:245; framework count (34) vs self-report (9) gap noted |
 
 ---
 
@@ -70,6 +72,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C08 | 0 | none (direct write) | none | Orchestrator direct write; 1 tool use; no gate |
 | C09 | 55,417 | 1 (Rex) | Sage 20,855 | Rex 42% under target; Sage 39% over reviewer target; Sage BLOCK dismissed |
 | C10 | 43,120 | none (direct write) | Viktor 24,577 + Sage 18,543 | Claude direct write; gate wave: Viktor BLOCK dismissed (D20); Sage C09 Finding #1 closed |
+| C11 | 32,525 | 1 (Rex) | none | Rex 46% under target; no gate wave at C11 |
 
 ---
 

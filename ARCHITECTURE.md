@@ -461,4 +461,47 @@ Error messages are identical for all failure cases — no field-level disclosure
 
 ---
 
+## C11 — Admin Routes
+
+**Introduced by:** Rex (Backend), Commit 11
+
+### User Management API
+
+```
+backend/app/
+├── api/v1/admin.py     ← admin router (GET/POST/PUT user management)
+└── schemas/user.py     ← UserRead, UserCreate, UserUpdate schemas
+```
+
+`main.py` updated: `app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])`
+
+### Routes
+
+| Method | Path | Auth | Response | Notes |
+|---|---|---|---|---|
+| GET | `/api/v1/admin/users` | `require_role("admin")` | `list[UserRead]` | Returns all users, no pagination |
+| POST | `/api/v1/admin/users` | `require_role("admin")` | `UserRead` (201) | 409 on duplicate email |
+| PUT | `/api/v1/admin/users/{user_id}` | `require_role("admin")` | `UserRead` | 404 if not found; skips None fields |
+
+### Schemas (backend/app/schemas/user.py)
+
+```python
+UserRead    — id, name, email, role, is_active, created_at  (model_config from_attributes=True)
+UserCreate  — name, email, password, role: Literal["admin","manager","employee"]
+UserUpdate  — role: Literal[...] | None, is_active: bool | None
+```
+
+### Patterns established for C12–C14
+
+- `Depends(require_role("admin"))` pattern for all admin-only routes
+- `model_config = {"from_attributes": True}` on all response schemas that wrap ORM objects
+- Path params for UUID columns typed as `str`, not `uuid.UUID` — see D21
+- Duplicate-check guard on POST before insert (409 > opaque DB IntegrityError to client)
+
+### Downstream contracts
+
+- Aria (C19): `GET /api/v1/admin/users` returns `UserRead` list — fields: id, name, email, role, is_active, created_at. Requires `Authorization: Bearer <admin-token>`.
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*

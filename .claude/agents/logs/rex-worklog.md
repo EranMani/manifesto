@@ -7,12 +7,12 @@
 ## Current State
 *Last updated: Commit 10 · 2026-06-05*
 
-**Last completed:** Commit 10 `auth-route` ✅
+**Last completed:** Commit 11 `admin-routes` ✅
 **Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
-- → Rex (C11): `require_role("admin")` is the guard for all admin routes.
+- → Aria (C19): Admin page at `/admin` renders a user list. Backend returns `UserRead` schema — fields: id, name, email, role, is_active, created_at. Routes: `GET /api/v1/admin/users`, `POST /api/v1/admin/users`, `PUT /api/v1/admin/users/{id}`. All require admin JWT.
 - → Rex (C12–C14): `require_role("admin", "manager")` guards all inventory routes.
 - → Aria (C17): Token format is `{access_token: string, token_type: "bearer"}`. Store `access_token` in Zustand, attach as `Authorization: Bearer <token>` header.
 - → Aria (C20): Login credentials for frontend testing: `admin@manifesto.local` / `admin123`.
@@ -44,6 +44,7 @@ No archived sessions yet.
 | 05 | C08: seed-script | ✅ Done | Written directly by orchestrator (exact file/content known; no agent spawn) |
 | 06 | C09: auth-dependencies | ✅ Done | `require_role` returns async inner function; `decode_token` already raises 401 — no extra try/except needed |
 | 07 | C10: auth-route | ✅ Done | Written by orchestrator (direct write); all test gates passed; Viktor BLOCK dismissed (D20); Sage C09 Finding #1 closed |
+| 08 | C11: admin-routes | ✅ Done | list/create/update user routes; email-conflict check on POST; UserRead/UserCreate/UserUpdate schemas |
 
 ---
 
@@ -214,3 +215,31 @@ Tool usage: reads=4, writes=1, total=5
 - → Aria (C20): Login credentials for frontend testing: `admin@manifesto.local` / `admin123`.
 
 Tool usage: reads=3, writes=1, total=4
+
+---
+
+## Session 08 — Commit 11: `admin-routes`
+*2026-06-05*
+
+**Approach:** Phase 1 reads — read `main.py` (router registration pattern, `# routers registered below` anchor), `dependencies.py` (`require_role` signature and import path), `models/user.py` (all User fields + UUID-as-string id), `security.py` (`hash_password(plain: str) -> str`). Phase 2 — created `schemas/user.py` and `api/v1/admin.py`, updated `main.py`. Syntax-verified all three files via `ast.parse`. No test suite exists yet; no pytest installed in host Python. Import test blocked by structlog unavailability in host environment (venv Python at Windows-only path). AST checks confirmed correct syntax.
+
+**Files created:**
+- `backend/app/schemas/user.py` — UserRead, UserCreate, UserUpdate Pydantic schemas
+- `backend/app/api/v1/admin.py` — GET/POST/PUT user routes, all behind `require_role("admin")`
+
+**Files updated:**
+- `backend/app/main.py` — registered admin router at `/api/v1/admin` with tag `admin`
+
+**Test gate results:**
+- `ast.parse` on all 3 files: PASS — no syntax errors
+- Import verification: blocked (structlog not available in host Python; venv Python inaccessible from bash layer). Syntax clean.
+
+**Decisions made:**
+- POST `/users` adds a 409 conflict check on duplicate email before inserting — prevents opaque DB constraint violations reaching the client.
+- `user_id` path param typed as `str` (not UUID) consistent with User model `id: Mapped[str]` (UUID stored as string via `UUID(as_uuid=False)`).
+- `model_config = {"from_attributes": True}` on UserRead enables ORM-to-schema conversion without `.model_validate()` boilerplate.
+
+**Handoffs out:**
+- → Aria (C19): Admin page at `/admin` renders a user list. Backend returns `UserRead` schema — fields: id, name, email, role, is_active, created_at. Routes: `GET /api/v1/admin/users`, `POST /api/v1/admin/users`, `PUT /api/v1/admin/users/{id}`. All require `Authorization: Bearer <admin-token>` header.
+
+Tool usage: reads=6, writes=3, total=9
