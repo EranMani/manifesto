@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.chat import router as chat_router
+from app.api.v1.documents import router as documents_router
 from app.api.v1.products import router as product_router
 from app.api.v1.shipments import router as shipment_router
 from app.api.v1.vendors import router as vendor_router
@@ -29,3 +31,5 @@ app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(vendor_router, prefix="/api/v1/vendors", tags=["vendors"])
 app.include_router(shipment_router, prefix="/api/v1/shipments", tags=["shipments"])
 app.include_router(product_router, prefix="/api/v1/products", tags=["products"])
+app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
+app.include_router(documents_router, prefix="/api/v1/documents", tags=["documents"])
