@@ -18,3 +18,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-05 | C11 | rex | 32,525 | PASS | PASS | PASS | PASS |
 | 2026-06-05 | C12 | rex | - | PASS | PASS | PASS | PASS |
 | 2026-06-05 | C13 | rex | - | PASS | FAIL | PASS | FAIL |
+| 2026-06-05 | C14 | rex | - | PASS | PASS | PASS | PASS |

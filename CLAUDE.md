@@ -154,6 +154,14 @@ You do **not** load files from other agents' domains unless this step explicitly
     ```
     The What/Why block is mandatory. The email notification hook reads it verbatim.
     No What/Why = Eran gets a content-free email and cannot approve remotely.
+
+    Commit command format — required every time:
+    ```
+    NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py && CLAUDE_COMMIT=1 git commit -m "..."
+    ```
+    The notify script runs first (sends email), then git commit follows.
+    Pass NOTIFY_WHAT and NOTIFY_WHY as env vars — they match the What/Why lines in the commit message.
+    If SMTP is not configured the script exits 0 silently and the commit proceeds normally.
 13. Brief Eran on next step with Commit Preview; ask to proceed
 
 **Quality gate rule:** Tests must pass before the gate wave runs.
