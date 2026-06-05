@@ -57,11 +57,17 @@ def load_worklog(agent: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def git_files_changed(commit_ref: str = "HEAD") -> list:
-    result = subprocess.run(
-        ["git", "diff-tree", "--no-commit-id", "-r", "--name-only", commit_ref],
-        capture_output=True, text=True, cwd=REPO_ROOT
-    )
+def git_files_changed(commit_ref: str = "HEAD", worktree: bool = False) -> list:
+    if worktree:
+        result = subprocess.run(
+            ["git", "diff", "HEAD", "--name-only"],
+            capture_output=True, text=True, cwd=REPO_ROOT
+        )
+    else:
+        result = subprocess.run(
+            ["git", "diff-tree", "--no-commit-id", "-r", "--name-only", commit_ref],
+            capture_output=True, text=True, cwd=REPO_ROOT
+        )
     return [f.strip() for f in result.stdout.splitlines() if f.strip()]
 
 
@@ -128,8 +134,11 @@ def check_phase_budget(worklog_text: str, commit_num: str):
     if not worklog_text:
         return True, None, "WARN: no worklog found - cannot verify phase budget"
 
+    _num_match = re.match(r"(\d+)", commit_num)
+    _base = int(_num_match.group(1)) if _num_match else None
+    _int_alts = rf"Commit {_base}|C{_base:02d}|" if _base is not None else ""
     commit_section = re.search(
-        rf"(?:Commit {int(commit_num)}|C{int(commit_num):02d}|C{commit_num}).*?(?=\n## |\Z)",
+        rf"(?:{_int_alts}C{commit_num}).*?(?=\n## |\Z)",
         worklog_text, re.DOTALL | re.IGNORECASE
     )
     section = commit_section.group(0) if commit_section else worklog_text
@@ -162,13 +171,14 @@ def main():
     parser.add_argument("--commit",  required=True, help="Commit number, e.g. 08")
     parser.add_argument("--agent",   required=True, help="Agent name, e.g. rex, aria, adam")
     parser.add_argument("--tokens",  type=int, default=None, help="Token count for this commit (optional)")
-    parser.add_argument("--ref",     default="HEAD", help="Git ref to check (default: HEAD)")
-    parser.add_argument("--json",    action="store_true", help="Output as JSON")
+    parser.add_argument("--ref",      default="HEAD", help="Git ref to check (default: HEAD)")
+    parser.add_argument("--worktree", action="store_true", help="Check working-tree changes vs HEAD instead of a committed ref")
+    parser.add_argument("--json",     action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
     spec_text    = load_spec(args.commit)
     worklog_text = load_worklog(args.agent)
-    changed      = git_files_changed(args.ref)
+    changed      = git_files_changed(args.ref, worktree=args.worktree)
 
     ok1, msg1          = check_context_block(spec_text, args.commit)
     ok2, msg2          = check_forbidden_paths(spec_text, changed)

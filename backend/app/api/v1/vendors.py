@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.dependencies import require_role
 from app.models.user import User
+from app.models.shipment import Shipment
 from app.models.vendor import Vendor
 from app.schemas.vendor import VendorCreate, VendorRead, VendorUpdate
 
@@ -62,14 +63,8 @@ async def update_vendor(
     vendor = result.scalars().first()
     if vendor is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vendor not found")
-    if payload.name is not None:
-        vendor.name = payload.name
-    if payload.contact is not None:
-        vendor.contact = payload.contact
-    if payload.email is not None:
-        vendor.email = payload.email
-    if payload.country is not None:
-        vendor.country = payload.country
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(vendor, field, value)
     await db.commit()
     await db.refresh(vendor)
     return vendor
@@ -85,5 +80,8 @@ async def delete_vendor(
     vendor = result.scalars().first()
     if vendor is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vendor not found")
+    child = await db.execute(select(Shipment).where(Shipment.vendor_id == vendor_id))
+    if child.scalars().first() is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Vendor has existing shipments")
     await db.delete(vendor)
     await db.commit()
