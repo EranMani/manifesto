@@ -399,4 +399,66 @@ User state (`is_active`, `role`) is fetched once per request from the DB. JWT to
 
 ---
 
+---
+
+## C10 — Auth Route
+
+**Introduced by:** Claude (direct write — spec fully prescriptive), Commit 10
+
+### Login Endpoint
+
+`POST /auth/login` registered via `app.include_router(auth_router, prefix="/auth", tags=["auth"])`.
+
+#### New files
+
+| File | Purpose |
+|---|---|
+| `backend/app/schemas/auth.py` | `LoginRequest` (email, password) + `TokenResponse` (access_token, token_type="bearer") |
+| `backend/app/api/v1/auth.py` | `POST /auth/login` route handler |
+
+#### Login flow
+
+```
+POST /auth/login {email, password}
+        │
+        ▼
+SELECT * FROM users WHERE email = request.email
+        │
+  not found / inactive ──► HTTP 401 "Invalid credentials"
+        │
+        ▼
+verify_password(request.password, user.password_hash)
+        │
+  fails ──────────────────► HTTP 401 "Invalid credentials"
+        │
+        ▼
+create_access_token({"sub": str(user.id), "role": user.role})
+        │
+        ▼
+{"access_token": "...", "token_type": "bearer"}
+```
+
+Error messages are identical for all failure cases — no field-level disclosure.
+
+#### Infrastructure fix (D14 follow-on)
+
+`docker-compose.yml` backend command corrected from `uvicorn ...` to `uv run uvicorn ...`. The volume mount `./backend:/app` replaces the container `/app` with local Windows `.venv/`, hiding Linux uvicorn binaries. `uv run` handles binary resolution regardless of platform.
+
+#### Downstream contracts
+
+- Aria (C17): Token format is `{access_token: string, token_type: "bearer"}`. Store `access_token` in Zustand, attach as `Authorization: Bearer <token>` header.
+- C11–C14: protected routes use `Depends(require_role(...))` per C09.
+
+#### Gate wave verdict (C10 — commit #10 + auth trigger)
+
+| Reviewer | Finding | Verdict |
+|---|---|---|
+| Viktor | BLOCK: timing on inactive-user check | Dismissed — superseded by Sage WARN (D20) |
+| Viktor | WARN: no EmailStr/Field validation | Noted — future hardening |
+| Sage | WARN: timing side-channel (email enumeration) | Accepted trade-off (D20) |
+| Sage | WARN: no max_length on LoginRequest fields | Noted — future hardening |
+| Sage | C09 Finding #1 re-evaluation | CLOSED — token issued only after verify_password passes |
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*

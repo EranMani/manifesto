@@ -16,7 +16,7 @@
 - → Aria (self, C17): Vite proxy `/api` + `/auth` → :8000 configured
 
 **Open Handoffs — Inbound:**
-- (none)
+- ← Rex/C10: Token format is `{access_token: string, token_type: "bearer"}`. Store `access_token` in Zustand, attach as `Authorization: Bearer <token>` header on all protected API requests. (Needed for C17 auth-store-and-client)
 
 **Key Interfaces I Own:**
 - `frontend/vite.config.ts` — proxy to backend :8000

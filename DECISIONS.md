@@ -835,4 +835,27 @@ Re-fetching user state per operation (serializable transactions, re-verify after
 
 ---
 
+## D20 — Viktor BLOCK Dismissed: Timing Trade-off on Inactive User Check (C10)
+
+- **Date:** 2026-06-05
+- **Decided by:** Eran (Option A approval), Claude (gate triage)
+- **Context:** Viktor's C10 gate raised a BLOCK on `auth.py:18` — combining `not user or not user.is_active` in one condition means an inactive user exits before bcrypt runs, creating a timing difference versus "wrong password" (which runs bcrypt). Sage reviewed the same class of issue and rated it WARN, not BLOCK.
+
+### Decision
+
+Dismiss Viktor's BLOCK. Sage (dedicated security reviewer) supersedes Viktor on security severity classification. Accept the timing trade-off and queue for future hardening.
+
+### Why
+
+Viktor's proposed fix rearranges the inactive-user check to after `verify_password`, closing the "inactive vs. wrong-password" timing gap. But it does not address the broader "user not found vs. wrong password" timing gap (Sage Finding #1, also WARN). Neither Viktor's fix nor the current code is fully constant-time. Sage's explicit WARN classification — "timing enumeration is a known trade-off in most auth implementations, addressable in a future hardening pass" — makes the BLOCK an over-escalation.
+
+### Consequences
+
+- Current `auth.py` logic remains: `not user or not user.is_active` → early 401, then `verify_password` → 401
+- Timing side-channel acknowledged: email-not-found and inactive paths skip bcrypt; wrong-password path runs it
+- Future hardening (post-Phase 1): add constant-time dummy verify for all failure paths
+- Sage C09 Finding #1 CLOSED — login route issues tokens only from verified, active users
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

@@ -5,17 +5,19 @@
 ---
 
 ## Current State
-*Last updated: Commit 09 · 2026-06-05*
+*Last updated: Commit 10 · 2026-06-05*
 
-**Last completed:** Commit 09 `auth-dependencies` ✅
+**Last completed:** Commit 10 `auth-route` ✅
 **Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
-- → Rex (C10): `get_current_user` returns `User` ORM model. Auth route uses `verify_password` directly — does not use this dependency (login is unauthenticated by definition).
 - → Rex (C11): `require_role("admin")` is the guard for all admin routes.
 - → Rex (C12–C14): `require_role("admin", "manager")` guards all inventory routes.
+- → Aria (C17): Token format is `{access_token: string, token_type: "bearer"}`. Store `access_token` in Zustand, attach as `Authorization: Bearer <token>` header.
 - → Aria (C20): Login credentials for frontend testing: `admin@manifesto.local` / `admin123`.
+
+**Note on C10:** Written directly by Claude (orchestrator) — pre-invocation check confirmed exact file/line/content known. No Rex agent spawned. All test gates passed via live server.
 
 **Open Handoffs — Inbound:**
 - (none)
@@ -41,6 +43,7 @@ No archived sessions yet.
 | 04 | C07: alembic-migration | ✅ Done | Ran migration inside Docker container — native Windows Postgres on port 5432 blocked host-based asyncpg connections |
 | 05 | C08: seed-script | ✅ Done | Written directly by orchestrator (exact file/content known; no agent spawn) |
 | 06 | C09: auth-dependencies | ✅ Done | `require_role` returns async inner function; `decode_token` already raises 401 — no extra try/except needed |
+| 07 | C10: auth-route | ✅ Done | Written by orchestrator (direct write); all test gates passed; Viktor BLOCK dismissed (D20); Sage C09 Finding #1 closed |
 
 ---
 

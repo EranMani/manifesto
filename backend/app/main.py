@@ -2,6 +2,8 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.v1.auth import router as auth_router
+
 logger = structlog.get_logger()
 
 app = FastAPI(title="Manifesto", version="0.1.0")
@@ -18,3 +20,4 @@ async def health():
     return {"status": "ok"}
 
 # routers registered below
+app.include_router(auth_router, prefix="/auth", tags=["auth"])

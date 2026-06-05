@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C09 complete. C10 pending (Rex, auth-route). No blockers. No open handoffs.",
+  "tldr": "C10 complete. C11 pending (Rex, admin-routes). No blockers. No open handoffs.",
   "phase": 1,
-  "last_completed_commit": "09",
-  "next_commit": "10",
-  "next_commit_name": "auth-route",
+  "last_completed_commit": "10",
+  "next_commit": "11",
+  "next_commit_name": "admin-routes",
   "next_commit_assignee": "rex",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C09 committed 2026-06-05. get_current_user + require_role in dependencies.py. Sage BLOCK dismissed (Finding #1 premature — C10 not yet built; JWT TOCTOU trade-off accepted D19). Next: C10 auth-route (Rex). Viktor + Sage wave runs on C10."
+  "notes": "C10 committed 2026-06-05. POST /auth/login route. Written directly by orchestrator (spec fully prescriptive). Viktor BLOCK dismissed — superseded by Sage WARN (D20); timing trade-off accepted. Sage C09 Finding #1 CLOSED. docker-compose.yml fix: uvicorn → uv run uvicorn. Next: C11 admin-routes (Rex). No gate wave at C11."
 }
