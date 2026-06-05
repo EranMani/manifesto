@@ -8,6 +8,32 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/rex.md (Current State header only — first 50 lines)
+
+tier1:
+  - backend/app/main.py            # to register the router
+  - backend/app/core/database.py   # need get_db
+  - backend/app/core/security.py   # need verify_password, create_access_token
+  - backend/app/models/user.py     # need User model
+
+tier2: []
+
+forbidden:
+  - frontend/
+  - backend/alembic/
+  - backend/app/dependencies.py    # already done in C09, read-only if needed
+
+estimated_reads: 4
+estimated_edits: 3   # auth.py (new), schemas/auth.py (new), main.py (update)
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Implement the login route. One endpoint: `POST /auth/login`.

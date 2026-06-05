@@ -6,6 +6,30 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/aria.md (Current State header only — first 50 lines)
+
+tier1:
+  - frontend/src/store/auth.ts    # need useAuthStore shape (from C17)
+  - frontend/src/App.tsx          # existing file to update
+
+tier2: []
+
+forbidden:
+  - backend/
+  - frontend/src/pages/           # stub pages don't exist yet — use inline stubs
+  - frontend/src/api/             # API layer done in C17, do not touch
+
+estimated_reads: 2
+estimated_edits: 2   # ProtectedRoute.tsx (new), App.tsx (update)
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Implement role-based route guard and wire up React Router with all routes defined.

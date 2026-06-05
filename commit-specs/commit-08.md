@@ -6,6 +6,32 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/rex.md (Current State header only — first 50 lines)
+
+tier1:
+  - backend/app/core/database.py   # need AsyncSessionLocal import path
+  - backend/app/core/security.py   # need hash_password import path
+  - backend/app/models/user.py     # need User model field names
+
+tier2: []  # no additional files needed — seed.py is a standalone new file
+
+forbidden:
+  - frontend/                      # Aria's domain
+  - backend/alembic/               # migrations already done, do not touch
+  - backend/app/routes/            # no route changes this commit
+  - docker-compose.yml             # Adam's domain
+
+estimated_reads: 4
+estimated_edits: 1
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Create the seed script that inserts a default admin user for local development.

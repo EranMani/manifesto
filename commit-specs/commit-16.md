@@ -6,6 +6,29 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/rex.md (Current State header only — first 50 lines)
+
+tier1: []   # all 4 files are new — no existing code to read
+
+tier2: []
+
+forbidden:
+  - frontend/
+  - backend/alembic/
+  - backend/app/api/    # routes not touched this commit
+  - backend/app/models/ # models not touched this commit
+
+estimated_reads: 1   # only rex.md header
+estimated_edits: 4   # llm.py, rag_policy.py, rag_logistics.py, ingestion.py
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Define the LLMService interface and service stubs for Phase 2/3.

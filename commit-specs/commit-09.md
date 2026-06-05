@@ -6,6 +6,32 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/rex.md (Current State header only — first 50 lines)
+
+tier1:
+  - backend/app/core/database.py   # need get_db signature
+  - backend/app/core/security.py   # need decode_token signature
+  - backend/app/models/user.py     # need User model fields (role, is_active)
+  - backend/app/dependencies.py    # existing file to update
+
+tier2: []
+
+forbidden:
+  - frontend/
+  - backend/alembic/
+  - backend/app/api/
+
+estimated_reads: 4
+estimated_edits: 1
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Implement FastAPI dependency functions for authentication and authorization.

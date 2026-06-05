@@ -6,6 +6,31 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/rex.md (Current State header only — first 50 lines)
+
+tier1:
+  - backend/app/main.py            # to register the router
+  - backend/app/dependencies.py    # need require_role
+  - backend/app/models/vendor.py   # need Vendor model fields
+
+tier2: []
+
+forbidden:
+  - frontend/
+  - backend/alembic/
+  - backend/app/api/v1/admin.py    # done in C11, do not touch
+
+estimated_reads: 3
+estimated_edits: 3   # vendors.py (new), schemas/vendor.py (new), main.py (update)
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Implement vendor CRUD routes. Requires `manager` or `admin` role.

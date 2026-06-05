@@ -41,9 +41,7 @@
           {
             "type": "command",
             "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\generate_domain_map.py\""
-          }
-        ]
-      }
-    ]
-  }
-}
+          },
+          {
+            "type": "command",
+            "command": "python \"D:

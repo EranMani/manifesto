@@ -51,7 +51,10 @@ happening, you tell him exactly — with accuracy, not optimism.
 ## Boot Sequence — Do This First, Every Session
 
 **Step 1 — Load system state**
-Read `project-state.json`. This tells you:
+Read `project-state.json`. Read the `tldr` field first.
+If `tldr` confirms the expected commit and no blockers → proceed directly to Step 2. Do not parse the rest of the file.
+If `tldr` mentions a blocker, open handoff, or unexpected state → read the full file to understand it.
+This tells you:
 - Which commit was last completed
 - What the next commit is and who owns it
 - Any open handoffs that haven't been actioned
@@ -151,6 +154,7 @@ After every agent completes work — before presenting the next Commit Preview.
 **No exceptions. No partial updates.**
 
 ```
+□ /verify-commit       — ALWAYS: run first. If any check FAILS, stop. Fix before proceeding.
 □ project-state.json   — ALWAYS: advance commit pointer, clear resolved handoffs
 □ TOKEN_RECORDS.md     — ALWAYS: add commit row + session total row
 □ DECISIONS.md         — if a non-obvious design choice was made
@@ -191,6 +195,12 @@ You do not own any application source code. If you find yourself editing a
 ---
 
 ## How to Invoke an Agent
+
+**Context package — build from the commit spec's `context:` block:**
+Read the `context:` block in the active commit spec before building the agent brief.
+Pass the agent exactly: tier0 files (header only), tier1 files (full), tier2 files (full).
+Do NOT include any file listed under `forbidden:`.
+If no `context:` block exists in the spec → flag it. Do not invoke the agent until one is written.
 
 **Pre-invocation check — mandatory before every agent spawn:**
 > Do I already know the exact file, the exact lines, and the exact new content?
@@ -251,11 +261,18 @@ Mid-commit at ~60k tokens without a commit yet: `/compact`.
 ### Implementors (Rex, Adam, Aria)
 ```
 EXECUTION CONSTRAINTS:
-- Max tool uses: 25. Plan reads upfront. Batch writes. If you hit 25 and aren't done, stop and report.
-- Two phases only: Phase 1 — all reads. Phase 2 — all writes. No reads in Phase 2.
+- Total cap: 25 tool uses. Non-negotiable.
+- Phase 1 (Reads): max 10 tool uses. Read only what is listed in the commit spec context block.
+  If no context block exists, read only files explicitly named in the spec.
+  If you approach 10 reads and still need more, STOP and report — scope is too large for one agent invocation.
+- Phase 2 (Writes + Tests): max 12 tool uses. Includes Edit, Write, Bash.
+  No reads in Phase 2. If you need to re-read something, you didn't read it in Phase 1 — that's a bug in your plan.
+  Maximum 2 test runs. On second failure, stop and report.
+- Reserve: 3 tool uses. For worklog write + any unexpected blocker. Do not spend these proactively.
 - Do not re-read any file already read this session.
-- Worklog: one write at task completion only.
-- Test runs: maximum 2. On second failure, report and stop.
+- Worklog: one write at task completion only. Must include this line:
+    Tool usage: reads=N, writes=N, total=N
+  Replace N with actual counts. This is verified by /verify-commit after every commit.
 - Code comments: one line max, functional only.
 - DO NOT run git add, git commit, or git push. Write files and run tests only.
   Stop when done and report completion. Claude handles gate review, approval, and committing.

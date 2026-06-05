@@ -6,6 +6,30 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/aria.md (Current State header only — first 50 lines)
+
+tier1:
+  - frontend/src/main.tsx         # entry point — verify Zustand/Axios are in the dep tree
+  - frontend/package.json         # confirm zustand and axios are installed
+
+tier2: []   # all 3 output files are new
+
+forbidden:
+  - backend/
+  - frontend/src/pages/           # no pages this commit
+  - frontend/src/components/      # no components this commit
+
+estimated_reads: 2
+estimated_edits: 3   # store/auth.ts (new), api/client.ts (new), api/auth.ts (new)
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Implement the Zustand auth store, Axios client with JWT interceptor, and login API call.

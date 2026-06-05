@@ -6,6 +6,32 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/rex.md (Current State header only — first 50 lines)
+
+tier1:
+  - backend/app/main.py              # to register the router
+  - backend/app/dependencies.py      # need require_role, get_current_user
+  - backend/app/models/product.py    # need Product model fields
+  - backend/app/models/shipment.py   # need Shipment FK reference
+
+tier2: []
+
+forbidden:
+  - frontend/
+  - backend/alembic/
+  - backend/app/api/v1/shipments.py  # done in C13, do not touch
+
+estimated_reads: 4
+estimated_edits: 3   # products.py (new), schemas/product.py (new), main.py (update)
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Implement product CRUD routes. Products belong to a shipment and optionally a category.

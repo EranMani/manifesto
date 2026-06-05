@@ -1,14 +1,15 @@
 {
   "project": "manifesto",
+  "tldr": "C07 complete. C08 pending (Rex, seed-script). No blockers. No open handoffs.",
   "phase": 1,
-  "last_completed_commit": "06",
-  "next_commit": "07",
-  "next_commit_name": "alembic-migration",
+  "last_completed_commit": "07",
+  "next_commit": "08",
+  "next_commit_name": "seed-script",
   "next_commit_assignee": "rex",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C06 committed 2026-06-05 (f712343). No gate wave. Next: C07 alembic-migration (Rex)."
+  "notes": "C07 committed 2026-06-05 (13ea10b). No gate wave. D18: Alembic must run inside Docker container. Next: C08 seed-script (Rex)."
 }

@@ -8,6 +8,31 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/aria.md (Current State header only — first 50 lines)
+
+tier1:
+  - frontend/src/store/auth.ts    # need login() signature
+  - frontend/src/api/auth.ts      # need loginApi() signature
+  - frontend/src/App.tsx          # confirm /login route is defined
+
+tier2: []   # Login.tsx is a new file
+
+forbidden:
+  - backend/
+  - frontend/src/pages/           # other pages already done in C19, do not touch
+  - frontend/src/components/
+
+estimated_reads: 3
+estimated_edits: 1   # Login.tsx (new)
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Implement the Login page with real form logic: POST to `/auth/login`, store token, redirect to dashboard.

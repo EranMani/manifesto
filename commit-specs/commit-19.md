@@ -6,6 +6,30 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/aria.md (Current State header only — first 50 lines)
+
+tier1:
+  - frontend/src/App.tsx    # to update imports from inline stubs to real page files
+
+tier2: []   # all 6 page files are new
+
+forbidden:
+  - backend/
+  - frontend/src/store/     # do not touch state layer
+  - frontend/src/api/       # do not touch API layer
+  - frontend/src/components/
+
+estimated_reads: 1
+estimated_edits: 7   # 6 page files (new) + App.tsx (update imports)
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Create all placeholder pages. Each renders the page title and "Coming soon" text.

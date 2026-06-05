@@ -8,6 +8,29 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/rex.md (Current State header only — first 50 lines)
+
+tier1:
+  - backend/app/main.py    # to register the two new routers
+
+tier2: []
+
+forbidden:
+  - frontend/
+  - backend/alembic/
+  - backend/app/api/v1/   # existing routes — do not touch, just add new ones
+
+estimated_reads: 1
+estimated_edits: 3   # chat.py (new), documents.py (new), main.py (update)
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Register chat and document routes as stubs. They return 501 Not Implemented.

@@ -6,6 +6,30 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/adam.md (Current State header only — first 50 lines)
+
+tier1:
+  - docker-compose.yml     # to know service names and ports for curl commands
+  - backend/seed.py        # to know the correct run command
+
+tier2: []   # SMOKE_TEST_RESULTS.md is a new file
+
+forbidden:
+  - backend/app/           # verification only — do not edit application code
+  - frontend/src/          # verification only — do not edit frontend code
+  - backend/alembic/       # do not run migrations; they should already be applied
+
+estimated_reads: 2
+estimated_edits: 1   # SMOKE_TEST_RESULTS.md (new)
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Verify the assembled Phase 1 stack works end-to-end. This is a verification commit, not a coding commit.

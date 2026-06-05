@@ -6,6 +6,32 @@
 
 ---
 
+## context
+
+```
+tier0:
+  - .claude/agents/rex.md (Current State header only — first 50 lines)
+
+tier1:
+  - backend/app/main.py            # to register the router
+  - backend/app/dependencies.py    # need require_role import path
+  - backend/app/models/user.py     # need User model fields
+  - backend/app/core/security.py   # need hash_password
+
+tier2: []
+
+forbidden:
+  - frontend/
+  - backend/alembic/
+  - backend/app/api/v1/auth.py     # done in C10, do not touch
+
+estimated_reads: 4
+estimated_edits: 3   # admin.py (new), schemas/user.py (new), main.py (update)
+fits_single_agent: true
+```
+
+---
+
 ## What
 
 Implement user management routes for the admin panel. All routes require `admin` role.
