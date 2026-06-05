@@ -3,7 +3,7 @@
 > Maintained by Claude. Updated before every Team Lead approval prompt — no exceptions.
 > Token counts come from the `<usage>` block returned by each Agent tool call.
 > Exact numbers only. Estimated entries are worse than no entry.
-> Last updated: 2026-06-05 (C08)
+> Last updated: 2026-06-05 (C13)
 
 ---
 
@@ -54,6 +54,10 @@ The delta column is the signal — positive means over budget, negative means un
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
 | C11 | admin-routes | Rex | sonnet | 32,525 | 34 (9 self-reported) | -27,475 ✅ | 2 new files + main.py update; AST syntax checks passed; email 409 guard; str UUID decision |
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ✅ | | | budget ✅ = tool-usage line confirmed at worklog:245; framework count (34) vs self-report (9) gap noted |
+| C12 | vendor-routes | Claude (direct) | — | 0 | 3 writes + 1 edit | — | Pre-invocation check: exact files/fields/pattern known from admin.py; no agent spawned |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
+| C13 | shipment-routes | Claude (direct) | — | 0 | ~15 (5 reads, 2 writes, 2 edits, 5 bash) | — | Pre-invocation check: exact files/fields/pattern known from vendor-routes + Shipment model; no agent spawned |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
 
 ---
 
@@ -73,6 +77,8 @@ The delta column is the signal — positive means over budget, negative means un
 | C09 | 55,417 | 1 (Rex) | Sage 20,855 | Rex 42% under target; Sage 39% over reviewer target; Sage BLOCK dismissed |
 | C10 | 43,120 | none (direct write) | Viktor 24,577 + Sage 18,543 | Claude direct write; gate wave: Viktor BLOCK dismissed (D20); Sage C09 Finding #1 closed |
 | C11 | 32,525 | 1 (Rex) | none | Rex 46% under target; no gate wave at C11 |
+| C12 | 0 | none (direct write) | none | Orchestrator direct write; vendor CRUD; all test gates passed; no gate wave at C12 |
+| C13 | 0 | none (direct write) | none | Orchestrator direct write; shipment CRUD with vendor FK validation; all test gates passed; no gate wave at C13 |
 
 ---
 

@@ -5,9 +5,9 @@
 ---
 
 ## Current State
-*Last updated: Commit 10 · 2026-06-05*
+*Last updated: Commit 13 · 2026-06-05*
 
-**Last completed:** Commit 11 `admin-routes` ✅
+**Last completed:** Commit 13 `shipment-routes` ✅
 **Currently active:** none
 **Blocked by:** none
 
@@ -45,6 +45,30 @@ No archived sessions yet.
 | 06 | C09: auth-dependencies | ✅ Done | `require_role` returns async inner function; `decode_token` already raises 401 — no extra try/except needed |
 | 07 | C10: auth-route | ✅ Done | Written by orchestrator (direct write); all test gates passed; Viktor BLOCK dismissed (D20); Sage C09 Finding #1 closed |
 | 08 | C11: admin-routes | ✅ Done | list/create/update user routes; email-conflict check on POST; UserRead/UserCreate/UserUpdate schemas |
+| 09 | C12: vendor-routes | ✅ Done | Written directly by Claude (exact content known from admin.py pattern); all test gates passed |
+| 10 | C13: shipment-routes | ✅ Done | Written directly by Claude (exact content known from vendor-routes pattern + Shipment model); vendor_id FK validated before insert; all test gates passed |
+
+---
+
+## Session 10 — Commit 13: `shipment-routes`
+*2026-06-05*
+
+**Approach:** Written directly by Claude (orchestrator). Pre-invocation check confirmed exact file paths, field names from Shipment model, and vendor FK validation pattern all known from prior context. No Rex agent spawned.
+
+**Files created:**
+- `backend/app/schemas/shipment.py` — ShipmentBase, ShipmentCreate, ShipmentRead (from_attributes=True)
+- `backend/app/api/v1/shipments.py` — GET (list), GET (by id), POST (vendor_id FK validated), DELETE; all `require_role("admin", "manager")`
+
+**Files modified:**
+- `backend/app/main.py` — added shipment router import + `include_router` at `/api/v1/shipments`
+
+**Test gates:**
+- ✅ POST with valid vendor_id → 201 + ShipmentRead response
+- ✅ POST with invalid vendor_id → 404 "Vendor not found"
+- ✅ GET /api/v1/shipments → returns list
+- ✅ Routes appear in /docs (/api/v1/shipments, /api/v1/shipments/{shipment_id})
+
+Tool usage: reads=5, writes=2, total=~15 (orchestrator direct write)
 
 ---
 

@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.shipments import router as shipment_router
 from app.api.v1.vendors import router as vendor_router
 
 logger = structlog.get_logger()
@@ -25,3 +26,4 @@ async def health():
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(vendor_router, prefix="/api/v1/vendors", tags=["vendors"])
+app.include_router(shipment_router, prefix="/api/v1/shipments", tags=["shipments"])
