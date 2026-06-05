@@ -374,6 +374,21 @@ with `Co-Authored-By` trailers for the agent who did the work.
 
 `CLAUDE_COMMIT=1` is a new bypass added to `block_agent_commit.py` — distinct from `ERAN_COMMIT=1` so the two paths remain distinguishable in the hook.
 
+### Commit message format
+
+```
+type(scope): imperative subject line (max 72 chars)
+
+2-3 sentences, plain English: what changed and why it matters.
+No internal jargon (no "D13", "C05 governance sync", etc.).
+
+Co-Authored-By: AgentName <agent@email>
+Co-Authored-By: Claude <claude@anthropic.com>
+```
+
+Types: `feat / fix / chore / refactor / test / docs`
+Scopes: `backend / frontend / devops / config / governance`
+
 ### Co-Authored-By convention
 
 - Names must be single-word (D10 constraint: pre-commit hook regex `\S+\s+<email>`)
@@ -381,6 +396,7 @@ with `Co-Authored-By` trailers for the agent who did the work.
 - Agent work: `Co-Authored-By: Rex <rex.stockagent@gmail.com>` etc.
 - Claude direct writes: `Co-Authored-By: Claude <claude@anthropic.com>`
 - Always add Claude as co-author on all commits (orchestrator)
+- `GIT_MESSAGE` env var must contain the full message including trailers (hook validates from it)
 
 ### Consequences
 
