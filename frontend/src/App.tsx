@@ -1,15 +1,15 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { useAuthStore } from './store/auth'
+import Dashboard from './pages/Dashboard'
+import VendorList from './pages/VendorList'
+import VendorDetail from './pages/VendorDetail'
+import ChatPolicy from './pages/ChatPolicy'
+import ChatLogistics from './pages/ChatLogistics'
+import Admin from './pages/Admin'
 
-// Inline stub pages — real pages land in a later commit
+// Inline stub — real Login page built in C20
 const Login = () => <div>Login</div>
-const Dashboard = () => <div>Coming soon</div>
-const Vendors = () => <div>Coming soon</div>
-const VendorDetail = () => <div>Coming soon</div>
-const ChatPolicy = () => <div>Coming soon</div>
-const ChatLogistics = () => <div>Coming soon</div>
-const Admin = () => <div>Coming soon</div>
 
 function RootRedirect() {
   const token = useAuthStore((state) => state.token)
@@ -29,7 +29,7 @@ function App() {
         {/* manager + admin */}
         <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/vendors" element={<Vendors />} />
+          <Route path="/vendors" element={<VendorList />} />
           <Route path="/vendors/:id" element={<VendorDetail />} />
           <Route path="/chat/logistics" element={<ChatLogistics />} />
         </Route>
