@@ -216,28 +216,41 @@ def get_diff_files() -> list:
             {"status": "Modified", "path": ".env.example"},
         ]
     if PRE_COMMIT:
-        # Read file list from commit spec — only the files the agent was assigned
+        # Primary: commit spec — the exact files the agent was assigned.
+        # This is authoritative and must not be mixed with staged index files.
         files = get_files_from_commit_spec()
-        if not files:
-            # Fallback: staged + untracked vs HEAD, filtered to non-protocol paths
-            result = subprocess.run(
-                ["git", "diff", "--cached", "--name-status"],
-                capture_output=True, text=True, cwd=ROOT
-            )
-            status_map = {"A": "Added", "M": "Modified", "D": "Deleted", "R": "Renamed"}
-            files = []
-            for line in result.stdout.strip().splitlines():
-                parts = line.split("\t")
-                if len(parts) >= 2:
-                    files.append({"status": status_map.get(parts[0][0], parts[0][0]), "path": parts[-1]})
-            untracked = subprocess.run(
-                ["git", "ls-files", "--others", "--exclude-standard"],
-                capture_output=True, text=True, cwd=ROOT
-            )
-            for uline in untracked.stdout.strip().splitlines():
-                uline = uline.strip()
-                if uline:
-                    files.append({"status": "Added", "path": uline})
+        if files:
+            return files
+        # Fallback (no spec found): read the *actual* staged diff from git.
+        # Filter out protocol-managed paths that would pollute the list when
+        # chore/state commits are staged alongside agent work.
+        PROTOCOL_PREFIXES = (
+            "commit-specs/",
+            "commit-protocol.md",
+            "project-state.json",
+            "TOKEN_RECORDS.md",
+            "CONSTRAINT_LOG.md",
+            "DECISIONS.md",
+            "ARCHITECTURE.md",
+            "GLOSSARY.md",
+            "team-preferences.md",
+            ".claude/agents/logs/",
+            "backend/DOMAIN_MAP.md",
+            "frontend/DOMAIN_MAP.md",
+            "hooks/.pending_notify.json",
+        )
+        result = subprocess.run(
+            ["git", "diff", "--cached", "--name-status"],
+            capture_output=True, text=True, cwd=ROOT
+        )
+        status_map = {"A": "Added", "M": "Modified", "D": "Deleted", "R": "Renamed"}
+        files = []
+        for line in result.stdout.strip().splitlines():
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                path = parts[-1]
+                if not any(path.startswith(p) for p in PROTOCOL_PREFIXES):
+                    files.append({"status": status_map.get(parts[0][0], parts[0][0]), "path": path})
         return files
     result = subprocess.run(
         ["git", "diff-tree", "--no-commit-id", "-r", "--name-status", "HEAD"],
@@ -256,6 +269,22 @@ def get_diff_stat() -> str:
     if TEST_MODE:
         return "3 files changed, 42 insertions(+), 7 deletions(-)"
     if PRE_COMMIT:
+        # If the spec gave us a file list, build a stat line from spec files only
+        # so we don't count chore/protocol files that may be co-staged.
+        spec_files = get_files_from_commit_spec()
+        if spec_files:
+            # Run git diff --cached --stat filtered to spec file paths only
+            paths = [f["path"] for f in spec_files]
+            result = subprocess.run(
+                ["git", "diff", "--cached", "--stat", "--"] + paths,
+                capture_output=True, text=True, cwd=ROOT
+            )
+            if result.stdout.strip():
+                lines = [l for l in result.stdout.strip().splitlines() if l.strip()]
+                return lines[-1].strip()
+            # Spec files may not all be staged yet; just report the count
+            return f"{len(spec_files)} file(s) changed"
+        # No spec — fall back to full staged stat
         result = subprocess.run(
             ["git", "diff", "--cached", "--stat"],
             capture_output=True, text=True, cwd=ROOT
