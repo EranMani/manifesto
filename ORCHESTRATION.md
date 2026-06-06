@@ -3,7 +3,7 @@
 > The master rules for running this project through the multi-agent workflow.
 > CLAUDE.md is the boot sequence. This file is the full ruleset.
 > When CLAUDE.md is ambiguous — this file is authoritative.
-> Last updated: 2026-06-04
+> Last updated: 2026-06-06
 
 ---
 
@@ -90,15 +90,26 @@ STEP 9 — Pre-commit documentation checklist (Claude)
 STEP 10 — Eran's approval
 └── Approval prompt: what was built, test results, gate findings, "Approve to commit?"
 
-STEP 11 — Agent commits
-└── pre_commit_check.py runs (domain boundary, message format)
+STEP 11 — Claude commits on Eran's behalf
+└── export ERAN_COMMIT=1 && git commit -F <msg_file>
+    pre_commit_check.py runs (domain boundary, message format)
     Commit message must include "Commit #NN" on its own line.
 
-STEP 12 — Post-commit hook
-└── post_commit_next_step.py:
-    Marks commit ✅ done in commit-protocol.md
-    Prints next pending commit
-    Prints /clear reminder
+STEP 12 — verify_constraints + post-commit doc sweep (mandatory)
+└── python hooks/verify_constraints.py --commit NN --agent NAME --tokens N
+    Writes CONSTRAINT_LOG.md and constraint-dashboard.html.
+
+    Then immediately: stage and commit ALL protocol files as a chore:
+      project-state.json, commit-protocol.md, TOKEN_RECORDS.md,
+      CONSTRAINT_LOG.md, constraint-dashboard.html,
+      .claude/agents/logs/<agent>-worklog.md,
+      backend/DOMAIN_MAP.md, frontend/DOMAIN_MAP.md,
+      ARCHITECTURE.md and GLOSSARY.md (if updated this commit)
+    Commit: chore(state): advance state after C-NN
+
+    Final check: git status must show no modified or untracked files
+    in protocol-managed paths. If any remain — commit them before Step 13.
+    BLOCKED: Do not proceed to Step 13 until git status is clean.
 
 STEP 13 — Claude presents next Commit Preview
 └── Eran approves → loop restarts at Step 1

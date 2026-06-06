@@ -171,11 +171,22 @@ You do **not** load files from other agents' domains unless this step explicitly
     ```
     CLAUDE_COMMIT=1 git commit -m "..." && python hooks/verify_constraints.py --commit NN --agent NAME --tokens N
     ```
-    Two steps after approval, always in this order:
-    1. git commit — lands the commit with CLAUDE_COMMIT=1 bypass
+    Three steps after approval, always in this order:
+    1. git commit ��� lands the commit with ERAN_COMMIT=1 bypass
     2. verify_constraints.py — updates CONSTRAINT_LOG.md and constraint-dashboard.html
     Pass --tokens 0 for Claude direct writes. Pass actual token count for agent invocations.
     Never skip step 2 — this is what keeps the dashboard accurate.
+    3. Immediate doc sweep (mandatory — no exceptions):
+       Stage and commit ALL post-commit protocol files as a chore commit:
+         project-state.json, commit-protocol.md, TOKEN_RECORDS.md,
+         CONSTRAINT_LOG.md, constraint-dashboard.html,
+         .claude/agents/logs/<agent>-worklog.md,
+         backend/DOMAIN_MAP.md, frontend/DOMAIN_MAP.md,
+         ARCHITECTURE.md and GLOSSARY.md (if date headers were updated)
+       Commit message: chore(state): advance state after C-NN
+       Then run: git status
+       If ANY modified or untracked files remain in protocol-managed paths — commit them.
+       Do NOT present the next Commit Preview until git status is clean.
 13. Brief Eran on next step with Commit Preview; ask to proceed
 
 **Quality gate rule:** Tests must pass before the gate wave runs.
@@ -198,6 +209,10 @@ After every agent completes work — before presenting the next Commit Preview.
 □ team-preferences.md  — if execution constraints, protocol rules, or agent
                           calibration changed this commit
 □ Agent identity files — if an agent's domain, standards, or interfaces changed
+□ git status clean     — ALWAYS LAST: stage and commit ALL updated files in a
+                          chore(state) commit. git status must show no modified or
+                          untracked files in protocol paths before the next Commit
+                          Preview is presented. No exceptions.
 ```
 
 These are your job — no agent needed.

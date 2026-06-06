@@ -188,11 +188,22 @@ Claude must verify and update ALL of the following files as applicable:
                           or agent calibration changed this commit.
 
 □ Agent identity files — if an agent's domain, standards, or interfaces changed.
+
+□ git status clean     — ALWAYS LAST: after all files above are updated, stage and
+                          commit them immediately in a chore(state): advance state
+                          after C-NN commit. Run git status and confirm no modified
+                          or untracked files remain in protocol-managed paths.
+                          Do NOT present the next Commit Preview until this is clean.
+                          This is non-negotiable — files left behind accumulate
+                          across sessions and become impossible to attribute.
 ```
 
 **The first two are unconditional.** Missing project-state.json means the next
 session boots with stale state. Missing TOKEN_RECORDS.md means cost data is lost.
 Neither is acceptable.
+
+**The last one closes the loop.** Every updated file must be committed in the same
+session it was updated. No exceptions, no deferrals.
 
 ---
 
@@ -319,3 +330,4 @@ Add commit-specific items where the spec has known sharp edges.
 | 2026-06-04 | Added "DO NOT git commit" to Implementors constraints | Aria (C03) committed without gate/approval — rule now written in both CLAUDE.md and team-preferences.md |
 | 2026-06-04 | Added Post-Commit File Checklist section | project-state.json and team-preferences.md were not being updated consistently — checklist now covers all required files |
 | 2026-06-05 | Claude now commits after approval (D13) | Agents were invisible as GitHub contributors; Eran no longer runs git commands manually. Claude uses CLAUDE_COMMIT=1 + Co-Authored-By trailers. |
+| 2026-06-06 | Added mandatory git status clean step to Post-Commit Checklist | Files were accumulating as unstaged/untracked across sessions — chore commit is now a required final step of every commit loop. |
