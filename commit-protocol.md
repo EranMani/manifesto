@@ -30,7 +30,7 @@
 | 15b | fix-vendor-update | rex | ✅ done · 2026-06-06 |
 | 15c | fix-product-update | rex | ✅ done · 2026-06-06 |
 | 16 | llm-service-stub | rex | ✅ done · 2026-06-06 |
-| 17 | auth-store-and-client | aria | pending |
+| 17 | auth-store-and-client | aria | ✅ done · 2026-06-06 |
 | 18 | protected-route | aria | pending |
 | 19 | placeholder-pages | aria | pending |
 | 20 | login-page | aria | pending |

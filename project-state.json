@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C16 complete. C17 pending (Aria, auth-store-and-client). No open handoffs. No blockers.",
+  "tldr": "C17 complete. C18 pending (Aria, protected-route). No open handoffs. No blockers.",
   "phase": 1,
-  "last_completed_commit": "16",
-  "next_commit": "17",
-  "next_commit_name": "auth-store-and-client",
+  "last_completed_commit": "17",
+  "next_commit": "18",
+  "next_commit_name": "protected-route",
   "next_commit_assignee": "aria",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C16 committed 2026-06-06. Created LLMService interface (chat+embed, both NotImplementedError) + RAGPolicy, RAGLogistics, IngestionService stubs. Direct Claude write. All 4 Done When gates pass. Fixed block_agent_commit.py to recognize CLAUDE_COMMIT=1 in command string. C17 (auth-store-and-client) is next — Aria invocation."
+  "notes": "C17 committed 2026-06-06. Aria created store/auth.ts (Zustand auth slice), api/client.ts (Axios + JWT interceptor), api/auth.ts (loginApi OAuth2 form). 23,705 tokens, 8 tool uses. C18 (protected-route) is next — Aria invocation."
 }
