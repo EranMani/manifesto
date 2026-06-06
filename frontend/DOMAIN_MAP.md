@@ -13,14 +13,17 @@
 
 - `api\auth.ts`
 - `api\client.ts`
+- `App.tsx`
 - `main.tsx`
+- `components\ProtectedRoute.tsx`
 
 ## Full Import Graph
 
 | Module | Imports (within-domain) |
 |---|---|
-| `App.tsx` | — |
+| `App.tsx` | `./components/ProtectedRoute`, `./store/auth` |
 | `api\auth.ts` | `./client` |
 | `api\client.ts` | `../store/auth` |
+| `components\ProtectedRoute.tsx` | `../store/auth` |
 | `main.tsx` | `./App` |
 | `store\auth.ts` | — |

@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C17 complete. C18 pending (Aria, protected-route). No open handoffs. No blockers.",
+  "tldr": "C18 complete. C19 pending (Aria, placeholder-pages). No open handoffs. No blockers.",
   "phase": 1,
-  "last_completed_commit": "17",
-  "next_commit": "18",
-  "next_commit_name": "protected-route",
+  "last_completed_commit": "18",
+  "next_commit": "19",
+  "next_commit_name": "placeholder-pages",
   "next_commit_assignee": "aria",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C17 committed 2026-06-06. Aria created store/auth.ts (Zustand auth slice), api/client.ts (Axios + JWT interceptor), api/auth.ts (loginApi OAuth2 form). 23,705 tokens, 8 tool uses. C18 (protected-route) is next — Aria invocation."
+  "notes": "C18 committed 2026-06-06. Aria created ProtectedRoute.tsx (role guard) and rewired App.tsx with full BrowserRouter + 7 routes. tsconfig vite/client fix included. 27,747 tokens, 20 tool uses. C19 (placeholder-pages) is next — Aria invocation."
 }

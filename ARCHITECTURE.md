@@ -604,4 +604,61 @@ Returns `TokenResponse { access_token: string; token_type: string }`.
 
 ---
 
+---
+
+## C18 — Protected Route
+
+**Introduced by:** Aria (Frontend), Commit 18
+
+### Frontend Routing Layer
+
+```
+frontend/src/
+├── components/
+│   └── ProtectedRoute.tsx  ← role-based route guard using React Router v6 <Outlet />
+└── App.tsx                 ← full BrowserRouter + Routes setup (updated from stub)
+```
+
+### ProtectedRoute Component
+
+```typescript
+// Props: allowedRoles: string[]
+// Reads token + user from useAuthStore
+// No token            → <Navigate to="/login" replace />
+// Role not in allowed → <Navigate to="/login" replace />
+// Authorized          → <Outlet />
+```
+
+Wraps all protected route groups as a layout route (React Router v6 nested route pattern). No ad-hoc auth checks exist in pages — all access control is centralized here.
+
+### Route Table (App.tsx)
+
+| Path | Guard | Roles |
+|---|---|---|
+| `/login` | public | — |
+| `/` | `RootRedirect` | → /dashboard if token, else /login |
+| `/dashboard` | ProtectedRoute | manager, admin |
+| `/vendors` | ProtectedRoute | manager, admin |
+| `/vendors/:id` | ProtectedRoute | manager, admin |
+| `/chat/logistics` | ProtectedRoute | manager, admin |
+| `/chat/policy` | ProtectedRoute | manager, admin, employee |
+| `/admin` | ProtectedRoute | admin only |
+
+**`RootRedirect`** is an inline component that reads `token` from the store and issues a `<Navigate>` — no unauthenticated user ever lands at `/`.
+
+### Page stubs
+
+Real page components do not yet exist. All routes render inline stubs (`const Dashboard = () => <div>Coming soon</div>`) defined at the top of `App.tsx`. C19 (placeholder-pages) replaces these with named imports.
+
+### tsconfig fix (C18 side-effect)
+
+`frontend/tsconfig.json` — added `"types": ["vite/client"]`. This was a pre-existing gap from C17 where `import.meta.env` in `api/client.ts` was not resolved by TypeScript. The type reference was missing but the build did not surface the error until `npx tsc --noEmit` was run without Vite's own resolver.
+
+### Downstream contracts
+
+- C19 (placeholder-pages): import real page components from `src/pages/` and replace inline stubs in `App.tsx`. No changes to `ProtectedRoute` or route structure required.
+- C20 (login-page): the real Login page replaces the `Login` stub in `App.tsx`.
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*
