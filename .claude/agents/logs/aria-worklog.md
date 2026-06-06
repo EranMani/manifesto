@@ -5,18 +5,18 @@
 ---
 
 ## Current State
-*Last updated: Commit 03 · 2026-06-04*
+*Last updated: Commit 17 · 2026-06-06*
 
-**Last completed:** C03 `frontend-scaffold` ✅
+**Last completed:** C17 `auth-store-and-client` ✅
 **Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
-- → Aria (self, C17): `src/` folder exists; add store/api/pages/components in C17
-- → Aria (self, C17): Vite proxy `/api` + `/auth` → :8000 configured
+- → Aria (self, C18): `useAuthStore` is the auth source of truth for `ProtectedRoute`. Check `user.role` from the store.
+- → Aria (self, C20): `loginApi` is the function Login page calls. On success, call `store.login(token, decodedUser)` then navigate to `/dashboard`.
 
 **Open Handoffs — Inbound:**
-- ← Rex/C10: Token format is `{access_token: string, token_type: "bearer"}`. Store `access_token` in Zustand, attach as `Authorization: Bearer <token>` header on all protected API requests. (Needed for C17 auth-store-and-client)
+- ← Rex/C10: Token format is `{access_token: string, token_type: "bearer"}`. ✅ Consumed — auth store and Axios interceptor implemented.
 
 **Key Interfaces I Own:**
 - `frontend/vite.config.ts` — proxy to backend :8000
@@ -38,6 +38,7 @@ No archived sessions yet.
 | # | Commit | Status | Key Decision |
 |---|--------|--------|--------------|
 | 01 | C03 frontend-scaffold | ✅ Done | Added postcss.config.js — required by Tailwind v3; omitting it breaks build |
+| 02 | C17 auth-store-and-client | ✅ Done | `useAuthStore.getState()` used in Axios interceptors (not hooks) — correct pattern for non-React context |
 
 ---
 
@@ -76,3 +77,53 @@ No scope overflow. `postcss.config.js` is a mandatory config file for the declar
 
 **DECISIONS.md:**
 - postcss.config.js added to frontend/ — required by Tailwind CSS v3 for Vite to process @tailwind directives at build time; absent from spec but zero-risk mandatory config for the declared stack
+
+---
+
+## Session 02 — Commit 17: `auth-store-and-client`
+
+**Date:** 2026-06-06
+**Status:** ✅ Done
+
+### Task Brief
+Create three pure state/API layer files — no UI, no pages, no components:
+- `frontend/src/store/auth.ts` — Zustand auth slice
+- `frontend/src/api/client.ts` — Axios instance with JWT interceptor and 401 handler
+- `frontend/src/api/auth.ts` — `loginApi` function
+
+### Approach
+Phase 1 (reads): verified `frontend/src/` directory structure via Glob — confirmed scaffold files exist, `store/` and `api/` subdirectories absent (need to create).
+Phase 2 (writes): created all 3 files per spec; updated worklog.
+
+### Decisions Made
+- Used `useAuthStore.getState()` inside Axios interceptors (not `useAuthStore()` hook) — interceptors run outside React component trees, so the hook form would throw. `.getState()` is the correct Zustand pattern for non-React contexts such as network interceptors.
+- `loginApi` uses `URLSearchParams` for the form body — FastAPI's `OAuth2PasswordRequestForm` expects `application/x-www-form-urlencoded` with field `username` (not `email`). This is consistent with the spec note.
+- `user.name` defaults to `""` if the JWT payload `name` field is absent — per spec instruction.
+
+### Issues Found Mid-Task
+- None. Spec was complete and unambiguous.
+
+### Self-Review Checklist
+- [x] No `any` types — all types explicit (`string`, `User`, `AuthState`, `TokenResponse`)
+- [x] No secrets in staged files
+- [x] TypeScript strict mode compatible — no implicit `any`, no untyped props
+- [x] No localStorage usage — Zustand in-memory only
+- [x] No jwt library — `atob()` decode used per standards
+- [x] `useAuthStore` returns `{ token, user, login, logout }` ✅
+- [x] `loginApi` function exists and is typed ✅
+- [x] Axios interceptor attaches token header when token is set ✅
+- [x] Axios interceptor calls logout and redirects on 401 ✅
+
+### Scope Overflow Check
+No scope overflow. Exactly 3 files created, no existing files modified.
+
+### Handoffs Out
+- → Aria (self, C18): `useAuthStore` is the auth source of truth for `ProtectedRoute`. Check `user.role` from the store.
+- → Aria (self, C20): `loginApi` is the function Login page calls. On success, call `store.login(token, decodedUser)` then navigate to `/dashboard`.
+
+### Documentation Flags for Claude
+**ARCHITECTURE.md:**
+- Auth layer added — Zustand in-memory auth store (`store/auth.ts`); Axios instance with Bearer token interceptor and 401→logout redirect (`api/client.ts`); typed `loginApi` function posting OAuth2 form to `/auth/login` (`api/auth.ts`)
+
+**DECISIONS.md:**
+- `useAuthStore.getState()` used inside Axios interceptors — correct Zustand pattern for non-React contexts; hook form (`useAuthStore()`) is React-only and would throw outside component trees

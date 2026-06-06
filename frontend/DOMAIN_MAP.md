@@ -11,6 +11,8 @@
 
 ## Entry Points (import others, not imported themselves)
 
+- `api\auth.ts`
+- `api\client.ts`
 - `main.tsx`
 
 ## Full Import Graph
@@ -18,4 +20,7 @@
 | Module | Imports (within-domain) |
 |---|---|
 | `App.tsx` | — |
+| `api\auth.ts` | `./client` |
+| `api\client.ts` | `../store/auth` |
 | `main.tsx` | `./App` |
+| `store\auth.ts` | — |

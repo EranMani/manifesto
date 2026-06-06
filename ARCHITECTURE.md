@@ -2,7 +2,7 @@
 
 > Maintained by Claude. Every new component, data flow, or structural pattern introduced
 > during this project is documented here as it is built.
-> Last updated: 2026-06-06 (C16)
+> Last updated: 2026-06-06 (C17)
 
 ---
 
@@ -542,6 +542,65 @@ Each stub exposes one placeholder async method raising `NotImplementedError`. Ph
 ### Downstream contract
 
 → Nova (Phase 2): implement `LLMService.chat()` and `LLMService.embed()` without changing signatures. RAG and ingestion stub interfaces are open for Phase 2/3 design — method signatures are provisional.
+
+---
+
+---
+
+## C17 — Auth Store and Client
+
+**Introduced by:** Aria (Frontend), Commit 17
+
+### Frontend Auth Layer
+
+Three new files — pure state and transport, no UI.
+
+```
+frontend/src/
+├── store/
+│   └── auth.ts         ← Zustand slice: token + user state + login/logout
+└── api/
+    ├── client.ts       ← Axios instance with JWT interceptor + 401 handler
+    └── auth.ts         ← loginApi function: POST /auth/login
+```
+
+### Auth Store (store/auth.ts)
+
+```typescript
+interface AuthState {
+  token: string | null
+  user: { id: string; role: string; name: string } | null
+  login: (token: string, user: User) => void
+  logout: () => void
+}
+export const useAuthStore = create<AuthState>(...)
+```
+
+- Token stored in Zustand memory only — no `localStorage`
+- `login()` caller is responsible for JWT decoding: `JSON.parse(atob(token.split('.')[1]))` → `{sub, role}`; pass decoded `{id: sub, role, name}` as the `user` argument
+- C20 (login page) calls `store.login(token, decodedUser)` after `loginApi` succeeds
+
+### Axios Client (api/client.ts)
+
+```
+request interceptor:  useAuthStore.getState().token → Authorization: Bearer <token>
+response interceptor: error.response.status === 401 → logout() + window.location.href = '/login'
+```
+
+**Key pattern:** `useAuthStore.getState()` — not the React hook — is used inside interceptors. Interceptors execute outside the React component tree; `.getState()` is the correct Zustand API for non-React contexts.
+
+`baseURL`: `import.meta.env.VITE_API_BASE_URL || ''` — falls back to empty string so Vite's `/api` proxy handles routing in dev.
+
+### Login API (api/auth.ts)
+
+`loginApi(email, password)` posts `application/x-www-form-urlencoded` with fields `username` (= email) and `password` to `/auth/login`. FastAPI's `OAuth2PasswordRequestForm` requires the `username` field name and form encoding — not JSON.
+
+Returns `TokenResponse { access_token: string; token_type: string }`.
+
+### Downstream contracts
+
+- C18 (protected-route): read `useAuthStore()` → `user.role` to enforce role-based access
+- C20 (login-page): call `loginApi(email, password)`, decode JWT payload, call `store.login(token, decodedUser)`, navigate to `/dashboard`
 
 ---
 

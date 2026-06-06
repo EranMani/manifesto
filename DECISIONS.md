@@ -896,7 +896,29 @@ Not addressed in C15a (which fixes the field-discard and self-demotion bugs). Wh
 - **Option A (accept):** This is an internal tool. The admin user set is small and controlled. Document it and move on.
 - **Option B (restrict):** Require a separate permission level or emit an audit log entry when an admin-role user is created.
 
-Eran to decide before C17 frontend work touches the admin page.
+Eran to decide before C19 (placeholder pages) when admin UI is first rendered.
+
+---
+
+## D23 — Axios Interceptors: useAuthStore.getState() Instead of Hook
+
+- **Date:** 2026-06-06
+- **Decided by:** Aria (C17 execution)
+- **Context:** `api/client.ts` Axios interceptors need to read the auth token and call `logout()`. Interceptors are registered once at module initialization and execute outside the React component tree.
+
+### Decision
+
+Use `useAuthStore.getState()` inside the Axios request and response interceptors, not `useAuthStore()` (the React hook).
+
+### Rationale
+
+React hooks (`useAuthStore()`) can only be called inside React components or custom hooks — using them in module-level code throws an invariant violation. Zustand's `.getState()` is the correct API for accessing store state outside of React's rendering lifecycle. The interceptor always reads the current token at request time (not at module load time), so no stale-closure issue exists.
+
+### Consequences
+
+- Any non-React code that needs Zustand state must use `.getState()`, not the hook
+- The interceptor pattern is idiomatic Zustand — safe and documented
+- C20 login page uses the hook normally (`useAuthStore()`) since it runs inside a component
 
 ---
 

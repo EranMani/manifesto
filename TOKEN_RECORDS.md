@@ -3,7 +3,7 @@
 > Maintained by Claude. Updated before every Team Lead approval prompt — no exceptions.
 > Token counts come from the `<usage>` block returned by each Agent tool call.
 > Exact numbers only. Estimated entries are worse than no entry.
-> Last updated: 2026-06-06 (C16)
+> Last updated: 2026-06-06 (C17)
 
 ---
 
@@ -72,6 +72,8 @@ The delta column is the signal — positive means over budget, negative means un
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
 | C16 | llm-service-stub | Claude (direct) | — | 0 | 4 writes + bash gates | — | Pre-invocation check: llm.py fully spec'd verbatim; 3 stubs derivable; no agent spawned |
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected. verify_constraints: PASS |
+| C17 | auth-store-and-client | Aria | sonnet | 23,705 | 8 | -36,295 ✅ | 3 new files; clean implementation; useAuthStore.getState() in interceptors (not hooks) |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = no tool-usage self-report line in worklog; verify_constraints PASS |
 
 ---
 
@@ -99,7 +101,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C15b | 0 | none (direct write) | none | Orchestrator direct write; vendor exclude_unset + 409 delete guard + verify_constraints.py fixes; all 4 test gates passed |
 | C15c | 0 | none (direct write) | none | Orchestrator direct write; ProductUpdate schema + exclude_unset + conversation_id str; closes Viktor BLOCK F5 |
 | C16 | 0 | none (direct write) | none | Orchestrator direct write; LLMService interface + 3 service stubs; all 4 Done When gates pass |
-| C16 | 0 | none (direct write) | none | Orchestrator direct write; LLMService interface + 3 service stubs; all 4 Done When gates pass |
+| C17 | 23,705 | 1 (Aria) | none | Aria 61% under target; 8 tool uses; 3 new files |
 
 ---
 
