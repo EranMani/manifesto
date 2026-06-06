@@ -504,4 +504,45 @@ UserUpdate  — role: Literal[...] | None, is_active: bool | None
 
 ---
 
+## C16 — LLM Service Stub
+
+**Introduced by:** Claude (direct write — spec fully prescriptive), Commit 16
+
+### Service Layer Interface
+
+```
+backend/app/services/
+├── llm.py              ← LLMService — provider interface (Phase 2 implements)
+├── rag_policy.py       ← RAGPolicy stub (Phase 2/3)
+├── rag_logistics.py    ← RAGLogistics stub (Phase 2/3)
+└── ingestion.py        ← IngestionService stub (Phase 2/3)
+```
+
+### LLMService Interface (llm.py)
+
+```python
+class LLMService:
+    def __init__(self, provider: Literal["ollama", "openai"]) -> None
+    async def chat(messages: list[dict[str, str]], stream: bool = True) -> AsyncIterator[str]
+    async def embed(text: str) -> list[float]
+```
+
+Both methods raise `NotImplementedError` in Phase 1. Phase 2 (Nova) implements both without changing the signature. Provider is injected at construction time — routes call the same interface regardless of `ollama` or `openai`.
+
+### Stub Classes
+
+| Class | File | Phase 2/3 role |
+|---|---|---|
+| `RAGPolicy` | `rag_policy.py` | Query policy document embeddings via pgvector |
+| `RAGLogistics` | `rag_logistics.py` | Query logistics/shipment data for RAG chat |
+| `IngestionService` | `ingestion.py` | Ingest and embed documents into the vector store |
+
+Each stub exposes one placeholder async method raising `NotImplementedError`. Phase 2/3 will extend these without changing the class names or file locations.
+
+### Downstream contract
+
+→ Nova (Phase 2): implement `LLMService.chat()` and `LLMService.embed()` without changing signatures. RAG and ingestion stub interfaces are open for Phase 2/3 design — method signatures are provisional.
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*

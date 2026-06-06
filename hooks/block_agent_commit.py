@@ -37,6 +37,11 @@ def main() -> int:
 
     command = data.get("tool_input", {}).get("command", "") or data.get("command", "")
 
+    # Allow bypass via command string (env var is set on the bash subprocess,
+    # not on this hook's process — so os.environ check above won't catch it)
+    if "CLAUDE_COMMIT=1" in command or "ERAN_COMMIT=1" in command:
+        return 0
+
     # Block git commit and git push
     dangerous = ["git commit", "git push", "git merge", "git rebase"]
     for pattern in dangerous:

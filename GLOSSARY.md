@@ -37,6 +37,15 @@ The batch of reviewer agents (Viktor, Sage, Mira) that runs after every 5th comm
 ### handoff
 A structured note passed between agents at commit boundaries. Written by the outgoing agent in their worklog; received by the next agent before they begin. Handoffs carry decisions, interface contracts, or constraints that aren't visible from the code alone.
 
+### LLMService
+The project's LLM provider interface, defined in `backend/app/services/llm.py`. Wraps either `ollama` or `openai` as the provider (injected at construction). Exposes two async methods: `chat()` for streaming text generation and `embed()` for vector embeddings. Phase 1: both methods raise `NotImplementedError`. Phase 2 (Nova): implements both without changing the signature. Routes always call this interface, never the provider SDK directly.
+
+### RAGPolicy / RAGLogistics
+Service stubs for retrieval-augmented generation. `RAGPolicy` (`rag_policy.py`) queries policy document embeddings stored in pgvector. `RAGLogistics` (`rag_logistics.py`) queries logistics and shipment data for the logistics chat flow. Both raise `NotImplementedError` in Phase 1; Phase 2/3 implements `query()`.
+
+### IngestionService
+Service stub for document ingestion into the pgvector store, defined in `backend/app/services/ingestion.py`. Phase 2/3 will implement `ingest()` to parse, chunk, embed, and persist documents. Raises `NotImplementedError` in Phase 1.
+
 ---
 
 *This document is updated by Claude when a new term is introduced that would be ambiguous or non-obvious to a reader unfamiliar with this project's conventions.*

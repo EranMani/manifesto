@@ -66,6 +66,12 @@ The delta column is the signal — positive means over budget, negative means un
 | C15a | fix-admin-update | Claude (direct) | — | 0 | ~6 (4 reads, 2 edits) | — | Pre-invocation check: exact content in spec; no agent spawned; UserUpdate extended + self-demotion guard |
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
 | C15a | fix-admin-update (gate) | Sage | haiku | 20,531 | 4 | +5,531 ⚠️ | No BLOCKs; 2 LOW notes (email 500 vs 409, no audit log) — both deferred, non-blocking |
+| C15b | fix-vendor-update | Claude (direct) | — | 0 | ~8 (3 reads, 3 edits, 2 bash test gates) | — | Pre-invocation check: exact changes in spec; no agent spawned; also fixed verify_constraints.py script bugs |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
+| C15c | fix-product-update | Claude (direct) | — | 0 | ~8 (3 reads, 4 edits, 1 bash stage) | — | Pre-invocation check: exact content in spec; no agent spawned; ProductUpdate schema + update_product fix + conversation_id str |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
+| C16 | llm-service-stub | Claude (direct) | — | 0 | 4 writes + bash gates | — | Pre-invocation check: llm.py fully spec'd verbatim; 3 stubs derivable; no agent spawned |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
 
 ---
 
@@ -90,6 +96,9 @@ The delta column is the signal — positive means over budget, negative means un
 | C14 | 0 | none (direct write) | none | Orchestrator direct write; product CRUD with shipment FK validation + added_by from JWT; all test gates passed; no gate wave at C14 |
 | C15 | 22,335 | none (direct write) | Viktor 22,335 | Orchestrator direct write; stub routes (6 endpoints, 501); Viktor batch wave found 3 BLOCKs → C15a/b/c fix commits inserted |
 | C15a | 20,531 | none (direct write) | Sage 20,531 | Orchestrator direct write; UserUpdate + self-demotion guard; Sage conditional gate: no BLOCKs |
+| C15b | 0 | none (direct write) | none | Orchestrator direct write; vendor exclude_unset + 409 delete guard + verify_constraints.py fixes; all 4 test gates passed |
+| C15c | 0 | none (direct write) | none | Orchestrator direct write; ProductUpdate schema + exclude_unset + conversation_id str; closes Viktor BLOCK F5 |
+| C16 | 0 | none (direct write) | none | Orchestrator direct write; LLMService interface + 3 service stubs; all 4 Done When gates pass |
 
 ---
 
