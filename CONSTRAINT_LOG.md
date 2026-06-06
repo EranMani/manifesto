@@ -29,3 +29,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-06 | C16 | Rex | - | PASS | PASS | PASS r=4 w=1 t=5 | PASS |
 | 2026-06-06 | C17 | aria | - | PASS | PASS | PASS | PASS |
 | 2026-06-06 | C18 | aria | 27,747 | PASS | PASS | PASS | PASS |
+| 2026-06-06 | C19 | aria | - | PASS | PASS | PASS | PASS |

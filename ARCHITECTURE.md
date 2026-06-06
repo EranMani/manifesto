@@ -2,7 +2,7 @@
 
 > Maintained by Claude. Every new component, data flow, or structural pattern introduced
 > during this project is documented here as it is built.
-> Last updated: 2026-06-06 (C17)
+> Last updated: 2026-06-06 (C19)
 
 ---
 
@@ -658,6 +658,46 @@ Real page components do not yet exist. All routes render inline stubs (`const Da
 
 - C19 (placeholder-pages): import real page components from `src/pages/` and replace inline stubs in `App.tsx`. No changes to `ProtectedRoute` or route structure required.
 - C20 (login-page): the real Login page replaces the `Login` stub in `App.tsx`.
+
+---
+
+## C19 — Placeholder Pages
+
+**Introduced by:** Claude (direct write — spec fully prescriptive), Commit 19
+
+### Frontend Page Layer
+
+```
+frontend/src/
+└── pages/
+    ├── Dashboard.tsx       ← "Dashboard — Coming soon"
+    ├── VendorList.tsx      ← "Vendors — Coming soon"
+    ├── VendorDetail.tsx    ← "Vendor Detail — Coming soon"
+    ├── ChatPolicy.tsx      ← "Policy Chat — Coming soon"
+    ├── ChatLogistics.tsx   ← "Logistics Chat — Coming soon"
+    └── Admin.tsx           ← "Admin — Coming soon"
+```
+
+Each page is a minimal functional component rendering a `<h1>` title and "Coming soon" paragraph with Tailwind classes (`p-8`, `text-2xl font-bold`, `text-gray-500 mt-2`).
+
+### App.tsx update
+
+Inline stub constants for all 6 non-Login pages removed. Real imports added:
+
+```tsx
+import Dashboard from './pages/Dashboard'
+import VendorList from './pages/VendorList'
+import VendorDetail from './pages/VendorDetail'
+import ChatPolicy from './pages/ChatPolicy'
+import ChatLogistics from './pages/ChatLogistics'
+import Admin from './pages/Admin'
+```
+
+The `Vendors` inline stub was renamed to the canonical `VendorList` component name at import. The `Login` stub remains inline — replaced in C20.
+
+### Downstream contracts
+
+- C20 (login-page): replace `const Login = () => <div>Login</div>` with a real `Login` component imported from `pages/Login.tsx`.
 
 ---
 

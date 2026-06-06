@@ -5,14 +5,13 @@
 ---
 
 ## Current State
-*Last updated: Commit 18 · 2026-06-06*
+*Last updated: Commit 19 · 2026-06-06*
 
-**Last completed:** C18 `protected-route` ✅
+**Last completed:** C19 `placeholder-pages` ✅
 **Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
-- → Aria (self, C19 placeholder-pages): `ProtectedRoute` wraps all authenticated routes. Page stubs are currently inline in `App.tsx` — replace with real page components when pages are built.
 - → Aria (self, C20): `loginApi` is the function Login page calls. On success, call `store.login(token, decodedUser)` then navigate to `/dashboard`.
 
 **Open Handoffs — Inbound:**
@@ -40,6 +39,7 @@ No archived sessions yet.
 | 01 | C03 frontend-scaffold | ✅ Done | Added postcss.config.js — required by Tailwind v3; omitting it breaks build |
 | 02 | C17 auth-store-and-client | ✅ Done | `useAuthStore.getState()` used in Axios interceptors (not hooks) — correct pattern for non-React context |
 | 03 | C18 protected-route | ✅ Done | `ProtectedRoute` uses `<Outlet />` pattern; role check + token check both redirect to /login; fixed pre-existing tsconfig missing vite/client types |
+| 04 | C19 placeholder-pages | ✅ Done (Claude direct write — spec fully prescriptive) | VendorList.tsx used as component name; imported as `VendorList` in App.tsx replacing `Vendors` stub |
 
 ---
 

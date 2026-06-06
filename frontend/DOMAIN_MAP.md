@@ -21,9 +21,15 @@
 
 | Module | Imports (within-domain) |
 |---|---|
-| `App.tsx` | `./components/ProtectedRoute`, `./store/auth` |
+| `App.tsx` | `./components/ProtectedRoute`, `./store/auth`, `./pages/Dashboard`, `./pages/VendorList`, `./pages/VendorDetail` (+3 more) |
 | `api\auth.ts` | `./client` |
 | `api\client.ts` | `../store/auth` |
 | `components\ProtectedRoute.tsx` | `../store/auth` |
 | `main.tsx` | `./App` |
+| `pages\Admin.tsx` | — |
+| `pages\ChatLogistics.tsx` | — |
+| `pages\ChatPolicy.tsx` | — |
+| `pages\Dashboard.tsx` | — |
+| `pages\VendorDetail.tsx` | — |
+| `pages\VendorList.tsx` | — |
 | `store\auth.ts` | — |

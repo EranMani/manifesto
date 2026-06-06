@@ -3,7 +3,7 @@
 > Maintained by Claude. Updated before every Team Lead approval prompt — no exceptions.
 > Token counts come from the `<usage>` block returned by each Agent tool call.
 > Exact numbers only. Estimated entries are worse than no entry.
-> Last updated: 2026-06-06 (C18)
+> Last updated: 2026-06-06 (C19)
 
 ---
 
@@ -76,6 +76,8 @@ The delta column is the signal — positive means over budget, negative means un
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = no tool-usage self-report line in worklog; verify_constraints PASS |
 | C18 | protected-route | Aria | sonnet | 27,747 | 20 | -32,253 ✅ | 2 files (ProtectedRoute new + App.tsx rewrite); tsconfig vite/client fix; tsc --noEmit passes |
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = no tool-usage self-report line in worklog; verify_constraints PASS |
+| C19 | placeholder-pages | Claude (direct) | — | 0 | 7 writes + 1 read + 2 edits | — | Pre-invocation check: exact content known from spec template; no agent spawned; 6 page files + App.tsx updated |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
 
 ---
 
@@ -105,6 +107,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C16 | 0 | none (direct write) | none | Orchestrator direct write; LLMService interface + 3 service stubs; all 4 Done When gates pass |
 | C17 | 23,705 | 1 (Aria) | none | Aria 61% under target; 8 tool uses; 3 new files |
 | C18 | 27,747 | 1 (Aria) | none | Aria 54% under target; 20 tool uses; ProtectedRoute + full App.tsx router |
+| C19 | 0 | none (direct write) | none | Orchestrator direct write; 6 placeholder pages + App.tsx import update; no gate wave |
 
 ---
 

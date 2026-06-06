@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C18 complete. C19 pending (Aria, placeholder-pages). No open handoffs. No blockers.",
+  "tldr": "C19 complete. C20 pending (Aria, login-page). No open handoffs. No blockers.",
   "phase": 1,
-  "last_completed_commit": "18",
-  "next_commit": "19",
-  "next_commit_name": "placeholder-pages",
+  "last_completed_commit": "19",
+  "next_commit": "20",
+  "next_commit_name": "login-page",
   "next_commit_assignee": "aria",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C18 committed 2026-06-06. Aria created ProtectedRoute.tsx (role guard) and rewired App.tsx with full BrowserRouter + 7 routes. tsconfig vite/client fix included. 27,747 tokens, 20 tool uses. C19 (placeholder-pages) is next — Aria invocation."
+  "notes": "C19 committed 2026-06-06. Claude direct write: 6 placeholder pages under frontend/src/pages/ + App.tsx import update. tsc && vite build passes. 0 tokens, 10 tool uses. C20 (login-page) is next — Aria invocation. Viktor batch wave runs at C20."
 }
