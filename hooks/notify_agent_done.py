@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-notify_agent_done.py — Email notification after a commit lands.
+notify_agent_done.py — Email notification when Claude is waiting for commit approval.
 
-Triggered automatically via PostToolUse hook on Bash(CLAUDE_COMMIT=1*).
-Reads git diff-tree HEAD for files, commit-protocol.md + git log for info.
+Called directly by Claude BEFORE git commit, using Windows Python (not the sandbox).
+Reads staged diff for file list; commit detail comes from NOTIFY_* env vars.
 
 Usage:
-  python hooks/notify_agent_done.py           # normal (called by hook)
+  NOTIFY_NUM="05" NOTIFY_NAME="add auth" NOTIFY_AGENT="Rex" \
+  NOTIFY_WHAT="..." NOTIFY_WHY="..." \
+  python hooks/notify_agent_done.py --pre-commit
+
   python hooks/notify_agent_done.py --test    # send test email immediately
 
 Required env vars (in .env):
@@ -32,7 +36,8 @@ ROOT = Path(subprocess.check_output(
     ["git", "rev-parse", "--show-toplevel"], text=True
 ).strip())
 
-TEST_MODE = "--test" in sys.argv
+TEST_MODE    = "--test" in sys.argv
+PRE_COMMIT   = "--pre-commit" in sys.argv  # called before git commit; reads NOTIFY_* env vars
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -66,12 +71,24 @@ def git(*args) -> str:
 def get_commit_info() -> dict:
     if TEST_MODE:
         return {
-            "number": "XX",
-            "name":   "test commit — email system check",
-            "agent":  "Claude",
+            "number":  "XX",
+            "name":    "test commit — email system check",
+            "agent":   "Claude",
             "project": load_state().get("project", ROOT.name),
-            "what":   "This is a test email to verify the notification system is working.",
-            "why":    "Triggered manually via --test flag.",
+            "what":    "This is a test email to verify the notification system is working.",
+            "why":     "Triggered manually via --test flag.",
+        }
+
+    # Pre-commit mode: commit hasn't happened yet — read from env vars passed by Claude
+    if PRE_COMMIT:
+        state = load_state()
+        return {
+            "number":  os.environ.get("NOTIFY_NUM", "??"),
+            "name":    os.environ.get("NOTIFY_NAME", "(pending)"),
+            "agent":   os.environ.get("NOTIFY_AGENT", "Claude"),
+            "project": state.get("project", ROOT.name),
+            "what":    os.environ.get("NOTIFY_WHAT", ""),
+            "why":     os.environ.get("NOTIFY_WHY", ""),
         }
 
     message = git("git", "log", "-1", "--pretty=%B")
@@ -88,7 +105,7 @@ def get_commit_info() -> dict:
 
     # Commit number: message → last done in protocol → state
     number = None
-    for pat in [r"(?:^|\n)\s*[Cc]ommit\s+#0*(\d{1,2})\b", r"(?:^|\n)\s*[Ss]tep\s+#0*(\d{1,2})\b"]:
+    for pat in [r"(?:^|\n)\s*[Cc]ommit\s+#0*(\d{1,2}[a-zA-Z]?)", r"(?:^|\n)\s*[Ss]tep\s+#0*(\d{1,2}[a-zA-Z]?)"]:
         m2 = re.search(pat, message)
         if m2:
             number = m2.group(1).zfill(2)
@@ -129,6 +146,23 @@ def get_commit_number_from_protocol() -> str | None:
     return last_done
 
 
+def get_next_commit_from_protocol() -> tuple[str, str, str]:
+    """Return (number, name, agent) of the first pending row in commit-protocol.md."""
+    protocol = ROOT / "commit-protocol.md"
+    if not protocol.exists():
+        return "??", "(unknown)", "Claude"
+    for line in protocol.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.split("|") if c.strip()]
+        if len(cells) < 4:
+            continue
+        num, name, agent, status = cells[0], cells[1], cells[2], cells[3]
+        if "pending" in status.lower():
+            return num, name, agent
+    return "??", "(unknown)", "Claude"
+
+
 def load_state() -> dict:
     f = ROOT / "project-state.json"
     if f.exists():
@@ -144,6 +178,28 @@ def get_diff_files() -> list:
             {"status": "Modified", "path": "CLAUDE.md"},
             {"status": "Modified", "path": ".env.example"},
         ]
+    if PRE_COMMIT:
+        # Staged files — what's about to be committed
+        result = subprocess.run(
+            ["git", "diff", "--cached", "--name-status"],
+            capture_output=True, text=True, cwd=ROOT
+        )
+        files = []
+        status_map = {"A": "Added", "M": "Modified", "D": "Deleted", "R": "Renamed"}
+        for line in result.stdout.strip().splitlines():
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                files.append({"status": status_map.get(parts[0][0], parts[0][0]), "path": parts[-1]})
+        # Also include untracked new files (agent created but not yet staged)
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            capture_output=True, text=True, cwd=ROOT
+        )
+        for uline in untracked.stdout.strip().splitlines():
+            uline = uline.strip()
+            if uline:
+                files.append({"status": "Added", "path": uline})
+        return files
     result = subprocess.run(
         ["git", "diff-tree", "--no-commit-id", "-r", "--name-status", "HEAD"],
         capture_output=True, text=True, cwd=ROOT
@@ -160,6 +216,15 @@ def get_diff_files() -> list:
 def get_diff_stat() -> str:
     if TEST_MODE:
         return "3 files changed, 42 insertions(+), 7 deletions(-)"
+    if PRE_COMMIT:
+        result = subprocess.run(
+            ["git", "diff", "--cached", "--stat"],
+            capture_output=True, text=True, cwd=ROOT
+        )
+        if result.stdout.strip():
+            lines = [l for l in result.stdout.strip().splitlines() if l.strip()]
+            return lines[-1].strip()
+        return ""
     result = subprocess.run(
         ["git", "show", "--stat", "--format=", "HEAD"],
         capture_output=True, text=True, cwd=ROOT
@@ -289,7 +354,7 @@ def build_email(env: dict, info: dict, files: list, diff_stat: str):
     return subject, plain, html
 
 
-# ── Send ──────────────────────────────────────────────────────────────────────
+# ── Send ───────────────────────────────────────────────────────────────────────────────────
 
 def send_email(env: dict, subject: str, plain: str, html: str) -> None:
     host      = env["SMTP_HOST"]
@@ -312,16 +377,56 @@ def send_email(env: dict, subject: str, plain: str, html: str) -> None:
         server.login(user, password)
         server.sendmail(user, [recipient], msg.as_string())
 
-    print("[notify] Email sent to " + recipient + " — " + subject)
+    print("[notify] Email sent to " + recipient + " \u2014 " + subject)
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# ── Flag-file writer (for Stop-hook pattern) ───────────────────────────────
+
+def write_pending_notify(what: str, why: str, num: str = "", name: str = "", agent: str = "") -> None:
+    """Write a flag file that the Stop hook picks up to send the email on Windows.
+    Captures staged file list NOW (before git commit clears the index).
+    num/name/agent are auto-detected from commit-protocol.md if not provided."""
+    import json as _json
+    # Auto-detect from protocol — don't trust Claude to pass these correctly
+    auto_num, auto_name, auto_agent = get_next_commit_from_protocol()
+    num   = num   or auto_num
+    name  = name  or auto_name
+    agent = agent or auto_agent
+    flag = ROOT / "hooks" / ".pending_notify.json"
+    # Snapshot staged files while index is still populated
+    files = get_diff_files()   # PRE_COMMIT is True at this point
+    diff_stat = get_diff_stat()
+    flag.write_text(_json.dumps({
+        "NOTIFY_NUM":   num,
+        "NOTIFY_NAME":  name,
+        "NOTIFY_AGENT": agent,
+        "NOTIFY_WHAT":  what,
+        "NOTIFY_WHY":   why,
+        "files":        files,
+        "diff_stat":    diff_stat,
+    }, ensure_ascii=False), encoding="utf-8")
+    print("[notify] Pending notify flag written (" + num + " — " + name + ") — Stop hook will send email.")
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────────────
 
 def main() -> int:
     env = load_env()
 
     if not smtp_configured(env):
-        print("[notify] SMTP not configured — skipping.")
+        print("[notify] SMTP not configured \u2014 skipping.")
+        return 0
+
+    # --write-flag: Claude writes flag file from sandbox; Stop hook on Windows sends the email
+    if "--write-flag" in sys.argv:
+        write_pending_notify(
+            what  = os.environ.get("NOTIFY_WHAT", ""),
+            why   = os.environ.get("NOTIFY_WHY", ""),
+            # num/name/agent are auto-detected from commit-protocol.md
+            num   = os.environ.get("NOTIFY_NUM", ""),
+            name  = os.environ.get("NOTIFY_NAME", ""),
+            agent = os.environ.get("NOTIFY_AGENT", ""),
+        )
         return 0
 
     info      = get_commit_info()

@@ -29,20 +29,15 @@
             "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\tool_cap_end.py\""
           }
         ]
-      },
-      {
-        "matcher": "Bash(CLAUDE_COMMIT=1*)",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\notify_agent_done.py\""
-          }
-        ]
       }
     ],
     "Stop": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\notify_on_stop.py\""
+          },
           {
             "type": "command",
             "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\post_commit_next_step.py\""

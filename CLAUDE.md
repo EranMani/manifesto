@@ -139,7 +139,11 @@ You do **not** load files from other agents' domains unless this step explicitly
 8. Spawn Viktor (every 5 commits), Sage (conditional), Mira (conditional) — Haiku model, parallel
 9. Apply blocking rules. Any blocker returns to the owning agent as its own next commit — no gate-fix passes
 10. Run pre-commit documentation checklist
-11. Surface to Eran for approval
+11. Run --write-flag to notify Eran, then surface to Eran for approval
+    ```
+    NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py --write-flag
+    ```
+    This triggers the email immediately when Claude stops. Eran reviews in his inbox.
 12. After approval: Claude commits using CLAUDE_COMMIT=1 with Co-Authored-By for the owning agent; hooks update protocol and state
     Commit message format — required every time:
     ```
@@ -155,16 +159,23 @@ You do **not** load files from other agents' domains unless this step explicitly
     The What/Why block is mandatory. The email notification hook reads it verbatim.
     No What/Why = Eran gets a content-free email and cannot approve remotely.
 
-    Commit command format — required every time:
+    Pre-approval notification — run THIS FIRST, before presenting the commit proposal:
     ```
-    NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py && CLAUDE_COMMIT=1 git commit -m "..." && python hooks/verify_constraints.py --commit NN --agent NAME --tokens N
+    NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py --write-flag
     ```
-    Three steps, always in this order:
-    1. notify_agent_done.py — sends email (exits 0 silently if SMTP not configured)
-    2. git commit — lands the commit with CLAUDE_COMMIT=1 bypass
-    3. verify_constraints.py — updates CONSTRAINT_LOG.md and constraint-dashboard.html
+    This writes hooks/.pending_notify.json. The Stop hook (notify_on_stop.py) fires the moment
+    Claude stops and waits — Eran gets the email while reviewing the commit proposal.
+    Commit number, name, and agent are auto-detected from commit-protocol.md — do NOT pass them.
+
+    Commit command format — run AFTER Eran approves:
+    ```
+    CLAUDE_COMMIT=1 git commit -m "..." && python hooks/verify_constraints.py --commit NN --agent NAME --tokens N
+    ```
+    Two steps after approval, always in this order:
+    1. git commit — lands the commit with CLAUDE_COMMIT=1 bypass
+    2. verify_constraints.py — updates CONSTRAINT_LOG.md and constraint-dashboard.html
     Pass --tokens 0 for Claude direct writes. Pass actual token count for agent invocations.
-    Never skip step 3 — this is what keeps the dashboard accurate.
+    Never skip step 2 — this is what keeps the dashboard accurate.
 13. Brief Eran on next step with Commit Preview; ask to proceed
 
 **Quality gate rule:** Tests must pass before the gate wave runs.
@@ -289,30 +300,4 @@ EXECUTION CONSTRAINTS:
 - Phase 1 (Reads): max 10 tool uses. Read only what is listed in the commit spec context block.
   If no context block exists, read only files explicitly named in the spec.
   If you approach 10 reads and still need more, STOP and report — scope is too large for one agent invocation.
-- Phase 2 (Writes + Tests): max 12 tool uses. Includes Edit, Write, Bash.
-  No reads in Phase 2. If you need to re-read something, you didn't read it in Phase 1 — that's a bug in your plan.
-  Maximum 2 test runs. On second failure, stop and report.
-- Reserve: 3 tool uses. For worklog write + any unexpected blocker. Do not spend these proactively.
-- Do not re-read any file already read this session.
-- Worklog: one write at task completion only. Must include this line:
-    Tool usage: reads=N, writes=N, total=N
-  Replace N with actual counts. This is verified by /verify-commit after every commit.
-- Code comments: one line max, functional only.
-- DO NOT run git add, git commit, or git push. Write files and run tests only.
-  Stop when done and report completion. Claude handles gate review, approval, and committing.
-```
-
-### Reviewers (Viktor, Sage)
-```
-EXECUTION CONSTRAINTS:
-- Max tool uses: 25. Work from the diff provided. Do NOT read files speculatively.
-- Only Read a file if a specific line in the diff is ambiguous — max 15 lines per targeted read.
-```
-
-### Mira
-```
-EXECUTION CONSTRAINTS:
-- Max tool uses: 5. Do not read any files — assess only from the brief Claude provides.
-```
-
-*Full system rules: ORCHESTRATION.md*
+- Phase 2 (Writes + Tests): max
