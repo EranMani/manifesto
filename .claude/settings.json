@@ -55,6 +55,15 @@
     ]
   },
   "permissions": {
-    "allow": ["*"]
+    "allow": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "WebFetch",
+      "WebSearch",
+      "mcp__"
+    ],
+    "deny": []
   }
 }

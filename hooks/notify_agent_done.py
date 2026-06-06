@@ -171,6 +171,43 @@ def load_state() -> dict:
     return {}
 
 
+def get_files_from_commit_spec() -> list:
+    """Parse the active commit spec's Changes table for the authoritative file list."""
+    num, _, _ = get_next_commit_from_protocol()
+    if num == "??":
+        return []
+    spec = ROOT / "commit-specs" / f"commit-{num}.md"
+    if not spec.exists():
+        return []
+    files = []
+    in_table = False
+    for line in spec.read_text(encoding="utf-8").splitlines():
+        # Detect markdown table rows with file paths: | `path/to/file` | ...
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.split("|") if c.strip()]
+        if not cells:
+            continue
+        # Skip header/separator rows
+        if cells[0].startswith("-") or cells[0].lower() in ("file", "path"):
+            continue
+        # Extract path from backtick-quoted first cell
+        m = re.match(r"`([^`]+)`", cells[0])
+        if not m:
+            continue
+        path_val = m.group(1)
+        # Determine status from second cell keyword
+        status_raw = cells[1].lower() if len(cells) > 1 else ""
+        if "new" in status_raw or "add" in status_raw or "creat" in status_raw:
+            status = "Added"
+        elif "delet" in status_raw or "remov" in status_raw:
+            status = "Deleted"
+        else:
+            status = "Modified"
+        files.append({"status": status, "path": path_val})
+    return files
+
+
 def get_diff_files() -> list:
     if TEST_MODE:
         return [
@@ -179,26 +216,28 @@ def get_diff_files() -> list:
             {"status": "Modified", "path": ".env.example"},
         ]
     if PRE_COMMIT:
-        # Staged files — what's about to be committed
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--name-status"],
-            capture_output=True, text=True, cwd=ROOT
-        )
-        files = []
-        status_map = {"A": "Added", "M": "Modified", "D": "Deleted", "R": "Renamed"}
-        for line in result.stdout.strip().splitlines():
-            parts = line.split("\t")
-            if len(parts) >= 2:
-                files.append({"status": status_map.get(parts[0][0], parts[0][0]), "path": parts[-1]})
-        # Also include untracked new files (agent created but not yet staged)
-        untracked = subprocess.run(
-            ["git", "ls-files", "--others", "--exclude-standard"],
-            capture_output=True, text=True, cwd=ROOT
-        )
-        for uline in untracked.stdout.strip().splitlines():
-            uline = uline.strip()
-            if uline:
-                files.append({"status": "Added", "path": uline})
+        # Read file list from commit spec — only the files the agent was assigned
+        files = get_files_from_commit_spec()
+        if not files:
+            # Fallback: staged + untracked vs HEAD, filtered to non-protocol paths
+            result = subprocess.run(
+                ["git", "diff", "--cached", "--name-status"],
+                capture_output=True, text=True, cwd=ROOT
+            )
+            status_map = {"A": "Added", "M": "Modified", "D": "Deleted", "R": "Renamed"}
+            files = []
+            for line in result.stdout.strip().splitlines():
+                parts = line.split("\t")
+                if len(parts) >= 2:
+                    files.append({"status": status_map.get(parts[0][0], parts[0][0]), "path": parts[-1]})
+            untracked = subprocess.run(
+                ["git", "ls-files", "--others", "--exclude-standard"],
+                capture_output=True, text=True, cwd=ROOT
+            )
+            for uline in untracked.stdout.strip().splitlines():
+                uline = uline.strip()
+                if uline:
+                    files.append({"status": "Added", "path": uline})
         return files
     result = subprocess.run(
         ["git", "diff-tree", "--no-commit-id", "-r", "--name-status", "HEAD"],
