@@ -5,14 +5,14 @@
 ---
 
 ## Current State
-*Last updated: Commit 17 · 2026-06-06*
+*Last updated: Commit 18 · 2026-06-06*
 
-**Last completed:** C17 `auth-store-and-client` ✅
+**Last completed:** C18 `protected-route` ✅
 **Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
-- → Aria (self, C18): `useAuthStore` is the auth source of truth for `ProtectedRoute`. Check `user.role` from the store.
+- → Aria (self, C19 placeholder-pages): `ProtectedRoute` wraps all authenticated routes. Page stubs are currently inline in `App.tsx` — replace with real page components when pages are built.
 - → Aria (self, C20): `loginApi` is the function Login page calls. On success, call `store.login(token, decodedUser)` then navigate to `/dashboard`.
 
 **Open Handoffs — Inbound:**
@@ -39,6 +39,7 @@ No archived sessions yet.
 |---|--------|--------|--------------|
 | 01 | C03 frontend-scaffold | ✅ Done | Added postcss.config.js — required by Tailwind v3; omitting it breaks build |
 | 02 | C17 auth-store-and-client | ✅ Done | `useAuthStore.getState()` used in Axios interceptors (not hooks) — correct pattern for non-React context |
+| 03 | C18 protected-route | ✅ Done | `ProtectedRoute` uses `<Outlet />` pattern; role check + token check both redirect to /login; fixed pre-existing tsconfig missing vite/client types |
 
 ---
 
@@ -127,3 +128,52 @@ No scope overflow. Exactly 3 files created, no existing files modified.
 
 **DECISIONS.md:**
 - `useAuthStore.getState()` used inside Axios interceptors — correct Zustand pattern for non-React contexts; hook form (`useAuthStore()`) is React-only and would throw outside component trees
+
+---
+
+## Session 03 — Commit 18: `protected-route`
+
+**Date:** 2026-06-06
+**Status:** ✅ Done
+
+### Task Brief
+Build role-based route guard and wire up full React Router v6 routing:
+- `frontend/src/components/ProtectedRoute.tsx` — role-based guard using `<Outlet />`
+- `frontend/src/App.tsx` — full router with all 8 route paths, inline page stubs
+
+### Approach
+Phase 1 (reads): confirmed `frontend/src/` structure; verified `react-router-dom ^6.23.0` in package.json — no install needed.
+Phase 2 (writes): created `ProtectedRoute.tsx`; rewrote `App.tsx` with full route table; added `"types": ["vite/client"]` to `tsconfig.json` to fix pre-existing `import.meta.env` error from C17; confirmed `npx tsc --noEmit` exits clean (0 errors).
+
+### Decisions Made
+- `ProtectedRoute` redirects to `/login` for both missing token and unauthorized role — not a separate `/unauthorized` route. Spec says "redirect to /login (or /unauthorized)"; keeping a single error destination avoids leaking route existence to unauthorized users and simplifies the Login page implementation.
+- `RootRedirect` is a small standalone component (not inline JSX) so it can call the `useAuthStore` hook — hooks cannot be called in the render body of `App` directly without `RootRedirect` being its own component.
+- `tsconfig.json` `"types": ["vite/client"]` added — fixes pre-existing `import.meta.env` error in `api/client.ts` (C17 gap). This is the standard Vite TypeScript fix; no functional change.
+- Grouped routes by role set (manager+admin vs manager+admin+employee vs admin-only) rather than repeating `allowedRoles` on each child route — cleaner and avoids drift if roles change.
+
+### Issues Found Mid-Task
+- Pre-existing TypeScript error in `api/client.ts`: `Property 'env' does not exist on type 'ImportMeta'` — caused by missing Vite client types in `tsconfig.json`. Fixed by adding `"types": ["vite/client"]`. Not a C18 regression — present since C17.
+
+### Self-Review Checklist
+- [x] No `any` types — `ProtectedRouteProps` typed, all store selectors typed
+- [x] No secrets in staged files
+- [x] TypeScript strict mode — `npx tsc --noEmit` exits 0
+- [x] `ProtectedRoute` uses `<Outlet />` (not `{children}`) — correct React Router v6 pattern
+- [x] All 8 route paths from spec table present in App.tsx
+- [x] No imports from `frontend/src/pages/` — inline stubs only
+- [x] No `backend/` files touched
+
+### Scope Overflow Check
+- `tsconfig.json` modification: strictly necessary to fix a TypeScript compile error that would block the build gate. Not a feature addition.
+
+### Handoffs Out
+- → Aria (self, C19 placeholder-pages): Page stubs are currently inline in `App.tsx` as anonymous arrow functions. When real page components are created in `src/pages/`, replace the inline stubs with named imports.
+- → Aria (self, C20 login-page): `loginApi` is the function the Login page calls. On success: decode JWT with `atob()`, call `store.login(token, decodedUser)`, then navigate to `/dashboard`.
+
+### Documentation Flags for Claude
+**ARCHITECTURE.md:**
+- React Router v6 wiring complete — `BrowserRouter` + `Routes` in `App.tsx`; `ProtectedRoute` wraps all authenticated routes with role-based access; root `/` redirects based on auth state; 8 route paths defined matching spec
+
+**DECISIONS.md:**
+- `ProtectedRoute` redirects unauthorized roles to `/login` (not `/unauthorized`) — avoids leaking route existence to unauthorized users; simplifies Login page implementation
+- `"types": ["vite/client"]` added to `tsconfig.json` — standard fix for `import.meta.env` type resolution in Vite projects; was missing since C17
