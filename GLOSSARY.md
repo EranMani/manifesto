@@ -1,7 +1,7 @@
 # GLOSSARY.md — Manifesto
 
 > Maintained by Claude. New terms are added when first introduced — not retroactively.
-> Last updated: 2026-06-04 (C02)
+> Last updated: 2026-06-06 (C16)
 
 ---
 

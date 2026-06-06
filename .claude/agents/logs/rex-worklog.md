@@ -5,12 +5,12 @@
 ---
 
 ## Current State
-*Last updated: Commit 15 · 2026-06-05*
+*Last updated: Commit 16 · 2026-06-06*
 
-**Last completed:** Commit 15 `stub-routes` ✅ (written directly by Claude)
+**Last completed:** Commit 16 `llm-service-stub` ✅ (written directly by Claude)
 **Currently active:** none
 **Blocked by:** none
-**Incoming fix commits:** C15a (fix-admin-update), C15b (fix-vendor-update), C15c (fix-product-update) — Viktor batch wave BLOCKs
+**Incoming fix commits:** none
 
 **Open Handoffs — Outbound:**
 - → Aria (C19): Admin page at `/admin` renders a user list. Backend returns `UserRead` schema — fields: id, name, email, role, is_active, created_at. Routes: `GET /api/v1/admin/users`, `POST /api/v1/admin/users`, `PUT /api/v1/admin/users/{id}`. All require admin JWT.

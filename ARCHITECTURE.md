@@ -2,7 +2,7 @@
 
 > Maintained by Claude. Every new component, data flow, or structural pattern introduced
 > during this project is documented here as it is built.
-> Last updated: 2026-06-04 (C02)
+> Last updated: 2026-06-06 (C16)
 
 ---
 

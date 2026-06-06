@@ -3,7 +3,7 @@
 > Maintained by Claude. Updated before every Team Lead approval prompt — no exceptions.
 > Token counts come from the `<usage>` block returned by each Agent tool call.
 > Exact numbers only. Estimated entries are worse than no entry.
-> Last updated: 2026-06-05 (C14)
+> Last updated: 2026-06-06 (C16)
 
 ---
 
@@ -71,7 +71,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C15c | fix-product-update | Claude (direct) | — | 0 | ~8 (3 reads, 4 edits, 1 bash stage) | — | Pre-invocation check: exact content in spec; no agent spawned; ProductUpdate schema + update_product fix + conversation_id str |
 | | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
 | C16 | llm-service-stub | Claude (direct) | — | 0 | 4 writes + bash gates | — | Pre-invocation check: llm.py fully spec'd verbatim; 3 stubs derivable; no agent spawned |
-| | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected |
+| | | | | Constraints: context ✅ · forbidden ✅ · budget ⚠️ | | | Budget ⚠️ = Claude direct write; no agent worklog tool-usage line; expected. verify_constraints: PASS |
 
 ---
 
@@ -98,6 +98,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C15a | 20,531 | none (direct write) | Sage 20,531 | Orchestrator direct write; UserUpdate + self-demotion guard; Sage conditional gate: no BLOCKs |
 | C15b | 0 | none (direct write) | none | Orchestrator direct write; vendor exclude_unset + 409 delete guard + verify_constraints.py fixes; all 4 test gates passed |
 | C15c | 0 | none (direct write) | none | Orchestrator direct write; ProductUpdate schema + exclude_unset + conversation_id str; closes Viktor BLOCK F5 |
+| C16 | 0 | none (direct write) | none | Orchestrator direct write; LLMService interface + 3 service stubs; all 4 Done When gates pass |
 | C16 | 0 | none (direct write) | none | Orchestrator direct write; LLMService interface + 3 service stubs; all 4 Done When gates pass |
 
 ---

@@ -6,6 +6,8 @@
     "GLOSSARY.md",
     "AGENTS.md",
     "TOKEN_RECORDS.md",
+    "CONSTRAINT_LOG.md",
+    "constraint-dashboard.html",
     "commit-protocol.md",
     "project-state.json",
     ".gitignore",
