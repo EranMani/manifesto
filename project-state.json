@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C21 complete (integration-smoke, Adam) — found 1 FAIL (login request-format contract mismatch). C22 pending (Aria, fix-login-request-format). No open handoffs. No blockers.",
+  "tldr": "C22 complete (fix-login-request-format, Aria) — login contract bug from C21 fixed and verified at the network level. Awaiting Eran's manual browser click-through of the 4 deferred DOM checks to formally close Phase 1, then a replan for Phase 2 (Nova/LLM wiring). No open handoffs. No blockers.",
   "phase": 1,
-  "last_completed_commit": "21",
-  "next_commit": "22",
-  "next_commit_name": "fix-login-request-format",
-  "next_commit_assignee": "aria",
-  "status": "ready",
+  "last_completed_commit": "22",
+  "next_commit": null,
+  "next_commit_name": "phase-1-closeout (pending Eran's manual verification, then /replan for Phase 2)",
+  "next_commit_assignee": "eran",
+  "status": "awaiting-manual-verification",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C21 committed 2026-06-07 (69b7544). Adam ran full-stack smoke test: 15 PASS, 1 PASS-with-deviation (stale vendor data in dev DB, not a bug), 1 FAIL, 2 blocked + 1 not-verified (all downstream of the failure). FAIL: `loginApi` (frontend/src/api/auth.ts, built C17) POSTs form-urlencoded `username`/`password`; backend `LoginRequest` (backend/app/schemas/auth.py, built C10, correct per spec) expects JSON `{email, password}` — mismatch returns HTTP 422, surfaced as generic error. Backend is correct and must not change; fix is entirely in loginApi. Per C21's 'If Checks Fail' rule, this becomes its own fix-commit: C22 `fix-login-request-format` (Aria), spec written (commit-specs/commit-22.md) — single-file edit to frontend/src/api/auth.ts, switch to JSON body. Once C22 lands, re-run the four blocked/failed/not-verified C21 browser checks to close out Phase 1 verification. Adam also created a throwaway manager user (manager.smoke@manifesto.local/manager123) for role-check testing — decide whether to keep as a fixture or remove."
+  "notes": "C22 committed 2026-06-07 (47bca18). Aria changed loginApi (frontend/src/api/auth.ts) from form-urlencoded `username`/`password` to JSON `{email, password}`, matching the backend LoginRequest schema (C10, unchanged). tsc --noEmit clean (verified independently by Aria and Claude). Claude additionally verified the fix at the network/contract level: the exact JSON request the new loginApi sends now returns 200 + valid token for both admin and manager-role accounts; the old form-urlencoded shape still 422s, confirming the root cause and the fix. The 3 remaining DOM/redirect checks (login form render, /dashboard redirect+placeholder, /admin role-redirect) require browser-driving capability not available to Claude (no Playwright/chrome-devtools MCP in this environment — same gap Adam hit in C21); Eran agreed to do a quick manual click-through himself rather than block the commit, since C22 did not touch Login.tsx/ProtectedRoute/dashboard (only the API wire format). Once Eran confirms those 3 (+ the still-open C21 'not verified' /login render check), Phase 1 can be formally declared complete and a /replan should define the Phase 2 commit sequence (Nova activates Phase 2 per DECISIONS.md — LLMService wiring). Adam's throwaway manager user (manager.smoke@manifesto.local/manager123) remains in the dev DB — still undecided whether to keep as a fixture or remove."
 }

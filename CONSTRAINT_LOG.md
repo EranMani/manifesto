@@ -32,3 +32,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-06 | C19 | aria | - | PASS | PASS | PASS | PASS |
 | 2026-06-07 | C20 | aria | - | PASS | PASS | PASS | PASS |
 | 2026-06-07 | C21 | Adam | - | PASS | PASS | PASS | PASS |
+| 2026-06-07 | C22 | Aria | 34,661 | PASS | PASS | PASS | PASS |
