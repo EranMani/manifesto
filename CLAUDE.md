@@ -143,6 +143,9 @@ You do **not** load files from other agents' domains unless this step explicitly
     ```
     NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py --write-flag
     ```
+    Token count is read automatically from TOKEN_RECORDS.md (keyed by commit number) —
+    do NOT pass NOTIFY_TOKENS. This works because TOKEN_RECORDS.md must already be
+    updated before this point (see rule below and step 12's "no exceptions" note).
     This triggers the email immediately when Claude stops. Eran reviews in his inbox.
 12. After approval: Claude commits using CLAUDE_COMMIT=1 with Co-Authored-By for the owning agent; hooks update protocol and state
     Commit message format — required every time:
@@ -165,7 +168,8 @@ You do **not** load files from other agents' domains unless this step explicitly
     ```
     This writes hooks/.pending_notify.json. The Stop hook (notify_on_stop.py) fires the moment
     Claude stops and waits — Eran gets the email while reviewing the commit proposal.
-    Commit number, name, and agent are auto-detected from commit-protocol.md — do NOT pass them.
+    Commit number, name, agent, and token count are auto-detected (commit-protocol.md and
+    TOKEN_RECORDS.md respectively) — do NOT pass NOTIFY_NUM/NOTIFY_NAME/NOTIFY_AGENT/NOTIFY_TOKENS.
 
     Commit command format — run AFTER Eran approves:
     ```

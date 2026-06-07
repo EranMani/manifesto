@@ -82,10 +82,16 @@ def get_commit_info() -> dict:
     # Pre-commit mode: commit hasn't happened yet — read from env vars passed by Claude
     if PRE_COMMIT:
         state = load_state()
+        num = os.environ.get("NOTIFY_NUM") or get_next_commit_from_protocol()[0]
+        # Deterministic source first: TOKEN_RECORDS.md (Claude updates it before
+        # every approval prompt — see file header). Env var is a fallback only,
+        # for cases (e.g. C00 / chore commits) with no TOKEN_RECORDS.md row.
+        tokens = get_tokens_from_records(num) or os.environ.get("NOTIFY_TOKENS", "")
         return {
-            "number":  os.environ.get("NOTIFY_NUM", "??"),
+            "number":  num or "??",
             "name":    os.environ.get("NOTIFY_NAME", "(pending)"),
             "agent":   os.environ.get("NOTIFY_AGENT", "Claude"),
+            "tokens":  tokens,
             "project": state.get("project", ROOT.name),
             "what":    os.environ.get("NOTIFY_WHAT", ""),
             "why":     os.environ.get("NOTIFY_WHY", ""),
@@ -161,6 +167,34 @@ def get_next_commit_from_protocol() -> tuple[str, str, str]:
         if "pending" in status.lower():
             return num, name, agent
     return "??", "(unknown)", "Claude"
+
+
+def get_tokens_from_records(commit_num: str) -> str:
+    """Look up the token count for a commit from TOKEN_RECORDS.md — the same
+    file/format hooks/verify_constraints.py reads. This makes the token figure
+    in the notification email deterministic: it comes from a file Claude is
+    already required to update before every approval prompt, not from an
+    env var that depends on Claude remembering to pass it.
+    Returns a comma-formatted string, or "" if not found."""
+    path = ROOT / "TOKEN_RECORDS.md"
+    if not path.exists():
+        return ""
+    padded = "C" + str(commit_num).zfill(2)
+    best = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.split("|") if c.strip()]
+        if not cells or cells[0] != padded:
+            continue
+        for cell in cells[1:]:
+            clean = cell.replace(",", "")
+            if clean.isdigit():
+                val = int(clean)
+                if best is None or val > best:
+                    best = val
+                break
+    return f"{best:,}" if best is not None else ""
 
 
 def load_state() -> dict:
@@ -375,6 +409,7 @@ def build_email(env: dict, info: dict, files: list, diff_stat: str):
     commit_num  = info["number"]
     commit_name = info["name"]
     agent_name  = info["agent"]
+    tokens      = info.get("tokens", "")
     now         = datetime.now().strftime("%a %d %b %Y, %H:%M")
     what        = info.get("what", "")
     why         = info.get("why", "")
@@ -382,6 +417,12 @@ def build_email(env: dict, info: dict, files: list, diff_stat: str):
     subject = project + " — commit " + commit_num + " — " + agent_name + " finished"
     if TEST_MODE:
         subject = "[TEST] " + subject
+
+    tokens_badge = (
+        " &nbsp;&middot;&nbsp; <span style='background:#f0f9ff;color:#0369a1;"
+        "font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;'>"
+        + tokens + " tokens</span>"
+    ) if tokens else ""
 
     file_rows     = build_file_rows(files)
     what_why_html = build_what_why_html(what, why)
@@ -401,7 +442,7 @@ def build_email(env: dict, info: dict, files: list, diff_stat: str):
         "<tr><td style='padding:28px 28px 0;'>"
         "<h1 style='margin:0 0 6px;font-size:20px;font-weight:500;color:#1a1a18;'>"
         + project + " &mdash; commit " + commit_num + "</h1>"
-        "<p style='margin:0 0 20px;font-size:13px;color:#888;'>" + agent_name + " &nbsp;&middot;&nbsp; " + now + "</p>"
+        "<p style='margin:0 0 20px;font-size:13px;color:#888;'>" + agent_name + tokens_badge + " &nbsp;&middot;&nbsp; " + now + "</p>"
         "<div style='margin-bottom:20px;'>"
         "<span style='background:#EAF3DE;color:#3B6D11;font-size:12px;font-weight:500;"
         "padding:4px 12px;border-radius:6px;'>awaiting your approval</span></div>"
@@ -426,7 +467,7 @@ def build_email(env: dict, info: dict, files: list, diff_stat: str):
     what_why_plain = ("What: " + what + "\n" if what else "") + ("Why:  " + why + "\n" if why else "")
     plain = (
         subject + "\n\n"
-        "Agent: " + agent_name + "\n"
+        "Agent: " + agent_name + (" (" + tokens + " tokens)" if tokens else "") + "\n"
         "Commit: " + commit_num + " — " + commit_name + "\n"
         "Time: " + now + "\n\n"
         + (what_why_plain + "\n" if what_why_plain else "")
@@ -468,7 +509,7 @@ def send_email(env: dict, subject: str, plain: str, html: str) -> None:
 
 # ── Flag-file writer (for Stop-hook pattern) ───────────────────────────────
 
-def write_pending_notify(what: str, why: str, num: str = "", name: str = "", agent: str = "") -> None:
+def write_pending_notify(what: str, why: str, num: str = "", name: str = "", agent: str = "", tokens: str = "") -> None:
     """Write a flag file that the Stop hook picks up to send the email on Windows.
     Captures staged file list NOW (before git commit clears the index).
     num/name/agent are auto-detected from commit-protocol.md if not provided."""
@@ -478,6 +519,11 @@ def write_pending_notify(what: str, why: str, num: str = "", name: str = "", age
     num   = num   or auto_num
     name  = name  or auto_name
     agent = agent or auto_agent
+    # Deterministic source first: TOKEN_RECORDS.md, keyed by commit number.
+    # Claude updates this file before every approval prompt (see file header),
+    # so by the time --write-flag runs the row already exists — no env var
+    # dependency, no chance of Claude forgetting to pass NOTIFY_TOKENS.
+    tokens = get_tokens_from_records(num) or tokens
     flag = ROOT / "hooks" / ".pending_notify.json"
     # Snapshot staged files while index is still populated
     files = get_diff_files()   # PRE_COMMIT is True at this point
@@ -487,6 +533,7 @@ def write_pending_notify(what: str, why: str, num: str = "", name: str = "", age
         "NOTIFY_NUM":   num,
         "NOTIFY_NAME":  name,
         "NOTIFY_AGENT": agent,
+        "NOTIFY_TOKENS": tokens,
         "NOTIFY_WHAT":  what,
         "NOTIFY_WHY":   why,
         "files":        files,
@@ -524,6 +571,7 @@ def main() -> int:
             num   = os.environ.get("NOTIFY_NUM", ""),
             name  = os.environ.get("NOTIFY_NAME", ""),
             agent = os.environ.get("NOTIFY_AGENT", ""),
+            tokens = os.environ.get("NOTIFY_TOKENS", ""),
         )
         return 0
 
