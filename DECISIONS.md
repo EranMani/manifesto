@@ -922,4 +922,29 @@ React hooks (`useAuthStore()`) can only be called inside React components or cus
 
 ---
 
+## D24 — Login Page: Deriving `User.name` from Email Local Part
+
+- **Date:** 2026-06-07
+- **Decided by:** Aria (C20 execution)
+- **Context:** The JWT access token payload only carries `{sub, role}` (per the auth flow contract in `frontend.md`). The Zustand `User` shape requires a `name` field, but the backend exposes no display-name claim or profile endpoint at this stage of the project.
+
+### Decision
+
+Derive `name` deterministically from the email's local part (the text before `@`): split on `.`/`_`/`-`, title-case each segment, and join with spaces. Example: `admin@manifesto.local` → `"Admin"`.
+
+### Rationale
+
+This unblocks the login flow without inventing a backend contract that doesn't exist yet, and produces a readable display name for the common `firstname.lastname@...` convention. It is a placeholder, not a permanent contract.
+
+### Consequences
+
+- If the backend later adds a `name`/`full_name` claim to the JWT or a `/users/me` profile endpoint, this derivation should be replaced — `deriveNameFromEmail` in `Login.tsx` is the single place to update
+- Until then, all displayed user names are derived from email addresses, not stored profile data
+
+### Gate wave note (C20 batch wave, 2026-06-07)
+
+Both Mira (advisory) and Viktor (deferred) independently flagged the same edge case during the C16–C20 review wave: unusual email formats — e.g. `a.b.c.d@company.com` → `"A B C D"`, or `firstname.lastname+tag@company.com` → `"Firstname Lastname +tag"` — produce fragmented or broken display names. This is the exact trade-off already named above as a placeholder; no new action taken. Confirms the consequence note is the right place to revisit when a real name source becomes available.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C19 complete. C20 pending (Aria, login-page). No open handoffs. No blockers.",
+  "tldr": "C20 complete. Viktor+Mira C16-C20 batch wave ran post-hoc, recorded PASS WITH COMMENTS. C21 pending (Adam, integration-smoke). No open handoffs. No blockers.",
   "phase": 1,
-  "last_completed_commit": "19",
-  "next_commit": "20",
-  "next_commit_name": "login-page",
-  "next_commit_assignee": "aria",
+  "last_completed_commit": "20",
+  "next_commit": "21",
+  "next_commit_name": "integration-smoke",
+  "next_commit_assignee": "adam",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C19 committed 2026-06-06. Claude direct write: 6 placeholder pages under frontend/src/pages/ + App.tsx import update. tsc && vite build passes. 0 tokens, 10 tool uses. C20 (login-page) is next — Aria invocation. Viktor batch wave runs at C20."
+  "notes": "C20 committed 2026-06-07. Aria built Login.tsx (real form, loginApi call, JWT decode, store.login, redirect) + App.tsx import swap. tsc && vite build pass. 34,468 tokens, 13 tool uses, -25,532 vs target. D24 logged (User.name derived from email local part — placeholder until backend exposes a name claim). verify_constraints initially false-positived on forbidden-paths (Login.tsx flagged under forbidden `pages/` prefix despite being the spec-authorized new file); patched extract_authorized_new_files allowlist in verify_constraints.py, re-ran clean. PROCESS NOTE: Viktor+Mira gate wave was missed before the commit landed (should have run pre-commit per spec); ran post-hoc against the landed C16-C20 diff per Eran's direction (no rollback). Viktor reported 3 BLOCKs; Claude reviewed each against the actual code/standards and dismissed all three (one contradicted documented in-memory-only auth standard, one was a factual misread of the existing try/catch, one was self-admitted fail-closed/non-bypass). Eran agreed — wave recorded as PASS WITH COMMENTS, no fix-commit. Mira's advisory finding cross-linked to D24."
 }

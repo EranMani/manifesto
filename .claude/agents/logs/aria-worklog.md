@@ -5,14 +5,16 @@
 ---
 
 ## Current State
-*Last updated: Commit 19 · 2026-06-06*
+*Last updated: Commit 20 · 2026-06-07*
 
-**Last completed:** C19 `placeholder-pages` ✅
+**Last completed:** C20 `login-page` ✅
 **Currently active:** none
 **Blocked by:** none
 
+**Key Decision (C20):** Derived `User.name` from the email's local part (text before `@`), splitting on `.`/`_`/`-` and title-casing each segment (e.g. `admin@manifesto.local` → `"Admin"`). The JWT payload only carries `sub`/`role`, not a display name, so the email is the only client-side signal available at login time.
+
 **Open Handoffs — Outbound:**
-- → Aria (self, C20): `loginApi` is the function Login page calls. On success, call `store.login(token, decodedUser)` then navigate to `/dashboard`.
+- (none — C20 closes the loop opened in C19)
 
 **Open Handoffs — Inbound:**
 - ← Rex/C10: Token format is `{access_token: string, token_type: "bearer"}`. ✅ Consumed — auth store and Axios interceptor implemented.
@@ -40,6 +42,42 @@ No archived sessions yet.
 | 02 | C17 auth-store-and-client | ✅ Done | `useAuthStore.getState()` used in Axios interceptors (not hooks) — correct pattern for non-React context |
 | 03 | C18 protected-route | ✅ Done | `ProtectedRoute` uses `<Outlet />` pattern; role check + token check both redirect to /login; fixed pre-existing tsconfig missing vite/client types |
 | 04 | C19 placeholder-pages | ✅ Done (Claude direct write — spec fully prescriptive) | VendorList.tsx used as component name; imported as `VendorList` in App.tsx replacing `Vendors` stub |
+| 05 | C20 login-page | ✅ Done | Derived `User.name` by title-casing the email local-part (split on `.`/`_`/`-`); JWT only has `sub`/`role`, no display name |
+
+---
+
+## Session 05 — Commit 20: `login-page`
+
+**Date:** 2026-06-07
+**Status:** ✅ Done
+
+### Task Brief
+Build the real `Login` page at `frontend/src/pages/Login.tsx`, replacing the inline stub in `App.tsx`. Wire it to `loginApi`, `useAuthStore`, JWT decode, and navigation.
+
+### Approach
+Phase 1 (reads): read `App.tsx`, `store/auth.ts`, `api/auth.ts`, and `Dashboard.tsx` (for styling conventions) — interfaces were already given verbatim in the brief, so minimal reading needed.
+Phase 2 (writes): created `Login.tsx` (controlled form, Tailwind card layout, loading/error states, JWT decode via `atob`, redirect-if-authenticated via `<Navigate>`); swapped the inline stub for a real default import in `App.tsx` (2-line change: import + stub removal). Ran `npx tsc --noEmit` (clean) and `npx vite build` (clean, 110 modules, built in 2.75s).
+
+### Decisions Made
+- **`User.name` derivation:** the JWT payload (`{sub, role}`) carries no display name, so I derived it from the email's local part — split on `.`/`_`/`-`, title-case each segment, join with spaces. `admin@manifesto.local` → `"Admin"`. This is a sensible, deterministic placeholder until the backend returns a real `name` claim or profile endpoint.
+- Used `isAxiosError` from `axios` to discriminate 401 (invalid credentials) vs. no-response (network error) vs. other errors, per the spec's three error-message branches.
+- Used `<Navigate to="/dashboard" replace />` for the already-authenticated guard (declarative, consistent with `RootRedirect` in `App.tsx`) rather than an imperative `useEffect` + `navigate`.
+
+### Issues Found Mid-Task
+None — interfaces matched the brief exactly; no ambiguity required extra reads.
+
+### Self-Review Checklist
+- [x] No `any` types (JWT payload typed via `JwtPayload` interface)
+- [x] No secrets in staged files
+- [x] TypeScript strict mode — `npx tsc --noEmit` clean
+- [x] `npx vite build` exits 0 (dist/ produced, built in 2.75s)
+- [x] Tailwind-only styling, no inline styles / CSS modules
+
+### Scope Overflow Check
+No scope overflow. Only `Login.tsx` (new) and `App.tsx` (2-line import/stub swap) touched, per constraints.
+
+### Documentation Flags for Claude
+**ARCHITECTURE.md:** Login page implemented — controlled form posts via `loginApi`, decodes JWT client-side (`sub`/`role`), derives display name from email local-part, persists to `useAuthStore`, redirects to `/dashboard`. Already-authenticated users are redirected away from `/login`.
 
 ---
 

@@ -33,7 +33,7 @@
 | 17 | auth-store-and-client | aria | ✅ done · 2026-06-06 |
 | 18 | protected-route | aria | ✅ done · 2026-06-06 |
 | 19 | placeholder-pages | aria | ✅ done · 2026-06-06 |
-| 20 | login-page | aria | pending |
+| 20 | login-page | aria | ✅ done · 2026-06-07 |
 | 21 | integration-smoke | adam | pending |
 
 ---

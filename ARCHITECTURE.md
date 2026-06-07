@@ -701,4 +701,40 @@ The `Vendors` inline stub was renamed to the canonical `VendorList` component na
 
 ---
 
+## C20 — Login Page
+
+**Introduced by:** Aria, Commit 20
+
+### Login Data Flow (first real-functionality page)
+
+`Login.tsx` is the first page in Phase 1 with live backend integration — it wires together the auth store, API client, and JWT decode contract that were scaffolded (but unused) in C17:
+
+```
+User submits form
+  → loginApi(email, password)        [api/auth.ts — POST /auth/login]
+  → { access_token, token_type }
+  → decodeJwtPayload(access_token)   [JSON.parse(atob(token.split('.')[1]))]
+  → { sub, role }
+  → User = { id: sub, role, name: deriveNameFromEmail(email) }   (see D24)
+  → useAuthStore.getState().login(token, user)
+  → navigate('/dashboard')
+```
+
+### Error handling
+
+- `401` response → "Invalid email or password"
+- No response (network error) → "Unable to connect — is the server running?"
+- Other Axios errors → generic "Something went wrong. Please try again."
+- Discriminated via `isAxiosError` from `axios` (no `any`)
+
+### Already-authenticated guard
+
+If `useAuthStore` already holds a token when `Login` mounts, it renders `<Navigate to="/dashboard" replace />` instead of the form — matching the `ProtectedRoute` redirect-based pattern from C18.
+
+### App.tsx update
+
+Inline `Login` stub (`const Login = () => <div>Login</div>`) replaced with `import Login from './pages/Login'`. All 7 pages now use real imports — no inline stubs remain.
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*

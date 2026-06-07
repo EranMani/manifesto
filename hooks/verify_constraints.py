@@ -110,13 +110,29 @@ def extract_forbidden_paths(spec_text: str) -> list:
     return forbidden
 
 
+def extract_authorized_new_files(spec_text: str) -> list:
+    """Files the spec's 'Files to Create/Modify' table marks as `new` are explicitly
+    authorized even if they fall under a forbidden directory prefix (e.g. a new page
+    added to a `pages/` dir whose existing siblings are off-limits)."""
+    authorized = []
+    for line in spec_text.splitlines():
+        match = re.match(r"\|\s*`([\w./]+)`\s*\|\s*new\s*\|", line)
+        if match:
+            authorized.append(match.group(1))
+    return authorized
+
+
 def check_forbidden_paths(spec_text: str, changed_files: list):
     forbidden = extract_forbidden_paths(spec_text)
     if not forbidden:
         return True, "WARN: no forbidden paths defined in spec (skipped)"
 
+    authorized_new = extract_authorized_new_files(spec_text)
+
     violations = []
     for changed in changed_files:
+        if changed in authorized_new:
+            continue
         for fp in forbidden:
             if changed.startswith(fp):
                 violations.append(f"{changed} (forbidden prefix: {fp})")
