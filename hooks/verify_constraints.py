@@ -290,7 +290,7 @@ def append_to_log(commit_num: str, agent: str, results: dict, all_pass: bool, to
     # Skip if already logged for this commit+agent
     for line in log_path.read_text(encoding="utf-8").splitlines():
         cells = [c.strip() for c in line.split("|") if c.strip()]
-        if len(cells) >= 3 and cells[1] == commit_key and cells[2] == agent:
+        if len(cells) >= 3 and cells[1] == commit_key and cells[2].lower() == agent.lower():
             return
 
     row = "| " + date + " | " + commit_key + " | " + agent + " | " + tokens_str + " | " + context + " | " + forbidden + " | " + budget + budget_detail + " | " + result + " |\n"

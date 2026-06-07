@@ -999,4 +999,34 @@ A throwaway `TEST` commit slot was added to `commit-protocol.md` (clearly marked
 
 ---
 
+## D27 — Constraint-Log Dedup Guard: Case-Insensitive Agent Comparison
+
+- **Date:** 2026-06-07
+- **Decided by:** Eran (asked to investigate before fixing — "investigate the source first"), Claude (diagnosed + fixed)
+- **Context:** Discovered immediately after committing the Phase 2 replan (`aa13f76`): `CONSTRAINT_LOG.md` and `constraint-dashboard.html` showed an unexpected duplicate row for C22 — identical to the existing row except the agent name was lowercased (`aria` vs `Aria`).
+
+### What was wrong
+
+`hooks/auto_verify.py` (the Stop hook wrapper, gated on `CLAUDE_COMMIT=1`) re-runs `verify_constraints.py` against `project-state.json`'s `last_completed_commit` on **every** `CLAUDE_COMMIT=1` commit — including direct orchestrator writes like this replan's `docs(protocol)` commit, which don't advance `last_completed_commit` (it correctly stayed at `"22"`; only `next_commit` moved to `"23"`).
+
+`verify_constraints.py` already has a dedup guard in `append_to_log()` meant to make exactly this re-fire a no-op — it skips writing if a row for `commit_key + agent` already exists. But the comparison was **case-sensitive** (`cells[2] == agent`). The existing C22 row was logged with `Aria` (proper-cased, from whatever wrote the original row). `auto_verify.py`'s `get_agent_from_spec()` reads the assignee straight from the commit spec and **lowercases it** (`.lower()`) before passing it on — producing `aria`. `"Aria" == "aria"` is `False`, so the guard missed the existing row and a duplicate was appended.
+
+### Fix applied
+
+One-line change to the dedup comparison in `hooks/verify_constraints.py::append_to_log` (line ~293):
+```python
+# before
+if len(cells) >= 3 and cells[1] == commit_key and cells[2] == agent:
+# after
+if len(cells) >= 3 and cells[1] == commit_key and cells[2].lower() == agent.lower():
+```
+This makes the guard casing-agnostic, so any re-fire against an already-logged commit — regardless of which code path's casing differs — becomes a true no-op. The stray duplicate rows themselves were reverted via `git checkout -- CONSTRAINT_LOG.md constraint-dashboard.html` before this fix landed (they were never committed).
+
+### Consequences
+
+- `auto_verify.py` still re-runs `verify_constraints.py` on every `CLAUDE_COMMIT=1` commit (including non-advancing direct writes) — that behavior is unchanged and is arguably wasteful, but is now harmless: the dedup guard correctly absorbs the redundant call instead of producing a duplicate row.
+- General lesson: any "is this already logged?" guard that compares agent/identity strings across two different code paths must normalize casing — one path read a stored proper-cased name, the other derived and lowercased a fresh one. Mismatched normalization between read and write paths is a recurring failure shape in this hook system (cf. D26's atomic-write/loud-failure lesson).
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
