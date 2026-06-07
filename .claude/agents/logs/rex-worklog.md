@@ -5,9 +5,9 @@
 ---
 
 ## Current State
-*Last updated: Commit 16 · 2026-06-06*
+*Last updated: Commit 23 · 2026-06-08*
 
-**Last completed:** Commit 16 `llm-service-stub` ✅ (written directly by Claude)
+**Last completed:** Commit 23 `pgvector-migration` ✅ (resolved as done-by-prior-work — no file written, no commit made; see DECISIONS.md D28)
 **Currently active:** none
 **Blocked by:** none
 **Incoming fix commits:** none
@@ -64,6 +64,7 @@ Your next commit is now: Commit 23 `pgvector-migration`.
 | 09 | C12: vendor-routes | ✅ Done | Written directly by Claude (exact content known from admin.py pattern); all test gates passed |
 | 10 | C13: shipment-routes | ✅ Done | Written directly by Claude (exact content known from vendor-routes pattern + Shipment model); vendor_id FK validated before insert; all test gates passed |
 | 11 | C14: product-routes | ✅ Done | Written directly by Claude; shipment_id FK validated on POST; added_by set from current_user.id; full CRUD (GET list, GET by id, POST, PUT, DELETE); all test gates passed |
+| 12 | C23: pgvector-migration | ✅ Done | Investigated spec'd migration file — entire pgvector/policy schema already present in 0001_initial.py (lines 101-141, dated 2026-06-05); wrote nothing, no commit, recorded as done-by-prior-work per D28 |
 
 ---
 

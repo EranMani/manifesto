@@ -1029,4 +1029,29 @@ This makes the guard casing-agnostic, so any re-fire against an already-logged c
 
 ---
 
+## D28 — C23 (`pgvector-migration`) Marked Done-by-Prior-Work, No Commit Made
+
+- **Date:** 2026-06-08
+- **Decided by:** Rex (investigated), Claude (surfaced + reconciled), Eran (approved)
+- **Context:** Commit 23 was specced to create `backend/alembic/versions/XXXX_pgvector_policy_tables.py` plus `policy.py` models. Before invoking Rex, Claude found `policy.py` and its `__init__.py` registration already existed (committed in C06, `f712343`, 2026-06-05). Eran chose to invoke Rex anyway to complete the remaining migration-file work.
+
+### What Rex found
+
+The entire pgvector/policy schema — `CREATE EXTENSION IF NOT EXISTS vector`, `policy_documents`, `policy_chunks`, FKs, and the `ix_policy_chunks_embedding_ivfflat` ivfflat index — is already present inside `backend/alembic/versions/0001_initial.py` (lines 101–141), dated 2026-06-05 (the same day as C06). `0001_initial` is the sole migration and the current head. Rex verified live against the dev DB inside Docker: `alembic current` → `0001_initial (head)`, `pgvector` extension active (v0.8.2), both tables present with correct columns/FKs/types, ivfflat index confirmed with `vector_cosine_ops`, and `PolicyDocument`/`PolicyChunk` ORM models map cleanly onto the live schema.
+
+### Why no migration was written
+
+Writing a new `0002_...` migration would either fail outright (duplicate `CREATE TABLE`/`CREATE EXTENSION`/`CREATE INDEX` against existing objects) or — if made defensively idempotent — falsify the migration history by claiming new work for a schema that's already fully present. Running `alembic downgrade -1` to "test reversibility" would tear down the *entire* `0001_initial` schema (users, products, everything), not a scoped policy-only change — destructive, irreversible to a correct end-state, and not what the spec intended to test.
+
+### Resolution
+
+C23 is recorded as satisfied by prior work — no code changed, so no `git commit` was made for it. `commit-protocol.md` row C23 is marked `✅ done · pre-existing (0001_initial.py) · 2026-06-08`, and `project-state.json` advances `last_completed_commit` to `"23"` / `next_commit` to `"24"` directly, without a commit hash. The original spec's forward-looking dependency — `policy_chunks.embedding` is `VECTOR(1536)` (OpenAI dimension); if Nova's C24 settles on Ollama (`nomic-embed-text`, 768-dim) instead, a follow-up migration to `VECTOR(768)` is required before C25 can insert chunks — remains live and is now recorded as an open handoff to Nova in `project-state.json`.
+
+### Consequences
+
+- General lesson: this is the second instance (after the `policy.py` discovery moments earlier in the same session) of Phase 2 schema work having been built ahead of schedule during Phase 1's C06/C07. Before invoking any remaining Phase 2 commit whose spec describes "new" backend files, check whether the artifact already exists — `0001_initial.py` and `policy.py` both predate the Phase 2 replan (2026-06-07) by two days, suggesting Rex anticipated the RAG schema while building the initial migration and model set.
+- No process change needed beyond this awareness — the "verify before invoking" check (CLAUDE.md's pre-invocation question: "do I already know the exact file/line/content?") already caught half of this; the agent invocation caught the rest cleanly and stopped rather than forcing a false deliverable into existence.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

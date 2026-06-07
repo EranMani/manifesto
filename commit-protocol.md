@@ -36,7 +36,7 @@
 | 20 | login-page | aria | ✅ done · 2026-06-07 |
 | 21 | integration-smoke | adam | ✅ done · 2026-06-07 |
 | 22 | fix-login-request-format | aria | ✅ done · 2026-06-07 |
-| 23 | pgvector-migration | rex | pending |
+| 23 | pgvector-migration | rex | ✅ done · pre-existing (0001_initial.py) · 2026-06-08 |
 | 24 | llm-service-impl | nova | pending |
 | 25 | document-ingestion | nova | pending |
 | 26 | document-upload-routes | rex | pending |
