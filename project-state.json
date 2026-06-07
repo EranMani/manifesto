@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C20 complete. Viktor+Mira C16-C20 batch wave ran post-hoc, recorded PASS WITH COMMENTS. C21 pending (Adam, integration-smoke). No open handoffs. No blockers.",
+  "tldr": "C21 complete (integration-smoke, Adam) — found 1 FAIL (login request-format contract mismatch). C22 pending (Aria, fix-login-request-format). No open handoffs. No blockers.",
   "phase": 1,
-  "last_completed_commit": "20",
-  "next_commit": "21",
-  "next_commit_name": "integration-smoke",
-  "next_commit_assignee": "adam",
+  "last_completed_commit": "21",
+  "next_commit": "22",
+  "next_commit_name": "fix-login-request-format",
+  "next_commit_assignee": "aria",
   "status": "ready",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C20 committed 2026-06-07. Aria built Login.tsx (real form, loginApi call, JWT decode, store.login, redirect) + App.tsx import swap. tsc && vite build pass. 34,468 tokens, 13 tool uses, -25,532 vs target. D24 logged (User.name derived from email local part — placeholder until backend exposes a name claim). verify_constraints initially false-positived on forbidden-paths (Login.tsx flagged under forbidden `pages/` prefix despite being the spec-authorized new file); patched extract_authorized_new_files allowlist in verify_constraints.py, re-ran clean. PROCESS NOTE: Viktor+Mira gate wave was missed before the commit landed (should have run pre-commit per spec); ran post-hoc against the landed C16-C20 diff per Eran's direction (no rollback). Viktor reported 3 BLOCKs; Claude reviewed each against the actual code/standards and dismissed all three (one contradicted documented in-memory-only auth standard, one was a factual misread of the existing try/catch, one was self-admitted fail-closed/non-bypass). Eran agreed — wave recorded as PASS WITH COMMENTS, no fix-commit. Mira's advisory finding cross-linked to D24."
+  "notes": "C21 committed 2026-06-07 (69b7544). Adam ran full-stack smoke test: 15 PASS, 1 PASS-with-deviation (stale vendor data in dev DB, not a bug), 1 FAIL, 2 blocked + 1 not-verified (all downstream of the failure). FAIL: `loginApi` (frontend/src/api/auth.ts, built C17) POSTs form-urlencoded `username`/`password`; backend `LoginRequest` (backend/app/schemas/auth.py, built C10, correct per spec) expects JSON `{email, password}` — mismatch returns HTTP 422, surfaced as generic error. Backend is correct and must not change; fix is entirely in loginApi. Per C21's 'If Checks Fail' rule, this becomes its own fix-commit: C22 `fix-login-request-format` (Aria), spec written (commit-specs/commit-22.md) — single-file edit to frontend/src/api/auth.ts, switch to JSON body. Once C22 lands, re-run the four blocked/failed/not-verified C21 browser checks to close out Phase 1 verification. Adam also created a throwaway manager user (manager.smoke@manifesto.local/manager123) for role-check testing — decide whether to keep as a fixture or remove."
 }

@@ -72,6 +72,14 @@ If a check fails, it becomes its own fix commit before Phase 1 is declared done.
 
 ---
 
+## Changes
+
+| File | Type | Description |
+|---|---|---|
+| `SMOKE_TEST_RESULTS.md` | new | Full Phase 1 end-to-end verification results |
+
+---
+
 ## Deliverable
 
 A `SMOKE_TEST_RESULTS.md` file at project root documenting:
