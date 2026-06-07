@@ -1,3 +1,0 @@
-This is a brand-new throwaway file for commit TEST (notify-pipeline-validation).
-It exists to verify that get_diff_files() correctly reports new untracked files as "Added"
-through the real --write-flag pipeline.

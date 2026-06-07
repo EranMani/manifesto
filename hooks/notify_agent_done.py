@@ -483,7 +483,7 @@ def write_pending_notify(what: str, why: str, num: str = "", name: str = "", age
     files = get_diff_files()   # PRE_COMMIT is True at this point
     diff_stat = get_diff_stat()
 
-    flag.write_text(_json.dumps({
+    payload = _json.dumps({
         "NOTIFY_NUM":   num,
         "NOTIFY_NAME":  name,
         "NOTIFY_AGENT": agent,
@@ -491,7 +491,18 @@ def write_pending_notify(what: str, why: str, num: str = "", name: str = "", age
         "NOTIFY_WHY":   why,
         "files":        files,
         "diff_stat":    diff_stat,
-    }, ensure_ascii=False), encoding="utf-8")
+    }, ensure_ascii=False)
+
+    # Write atomically: a direct write_text() can be interrupted mid-stream
+    # (process kill, session transition, filesystem hiccup), leaving truncated
+    # JSON that notify_on_stop.py can't parse — it then silently deletes the
+    # flag and exits, producing "no email, no error, nothing." Writing to a
+    # temp file first and renaming into place guarantees the Stop hook only
+    # ever sees a complete file or no file at all.
+    tmp = flag.with_suffix(flag.suffix + ".tmp")
+    tmp.write_text(payload, encoding="utf-8")
+    os.replace(tmp, flag)
+
     print("[notify] Pending notify flag written (" + num + " — " + name + ") — Stop hook will send email.")
 
 

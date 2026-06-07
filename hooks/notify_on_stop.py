@@ -29,9 +29,36 @@ def main() -> int:
         return 0
 
     try:
-        data = json.loads(FLAG.read_text(encoding="utf-8"))
+        raw = FLAG.read_text(encoding="utf-8")
+        data = json.loads(raw)
     except Exception as e:
-        print("[notify_stop] Could not read flag file:", e, file=sys.stderr)
+        print("[notify_stop] Could not read/parse flag file:", e, file=sys.stderr)
+        # A corrupt flag previously meant total silence — no email, no visible
+        # error, "nothing happened." Send an explicit alert instead, so a
+        # truncated/corrupt write is never invisible again.
+        try:
+            import importlib.util as _ilu
+            _spec = _ilu.spec_from_file_location("notify", ROOT / "hooks" / "notify_agent_done.py")
+            _mod = _ilu.module_from_spec(_spec)
+            _spec.loader.exec_module(_mod)
+            _env = _mod.load_env()
+            if _mod.smtp_configured(_env):
+                _subject = "manifesto — ⚠ notify flag was corrupt (no commit email sent)"
+                _plain = (
+                    _subject + "\n\n"
+                    "The pending-notify flag file (hooks/.pending_notify.json) could not "
+                    "be parsed, so the usual commit-approval email was NOT generated.\n\n"
+                    "Error: " + str(e) + "\n\n"
+                    "Raw content (truncated to 2000 chars):\n"
+                    + (raw[:2000] if 'raw' in dir() else "(file unreadable)") + "\n\n"
+                    "This usually means the flag write was interrupted mid-stream. "
+                    "Check the most recent commit manually to see what actually changed.\n"
+                )
+                _html = "<pre style='white-space:pre-wrap;font-family:monospace;font-size:13px;'>" + _plain.replace("&","&amp;").replace("<","&lt;") + "</pre>"
+                _mod.send_email(_env, _subject, _plain, _html)
+                print("[notify_stop] Sent corrupt-flag alert email.")
+        except Exception as alert_err:
+            print("[notify_stop] Also failed to send corrupt-flag alert:", alert_err, file=sys.stderr)
         try: FLAG.unlink(missing_ok=True)
         except OSError: pass
         return 0
