@@ -5,11 +5,13 @@
 ---
 
 ## Current State
-*Last updated: Commit 20 · 2026-06-07*
+*Last updated: Commit 22 · 2026-06-07*
 
-**Last completed:** C20 `login-page` ✅
+**Last completed:** C22 `fix-login-request-format` ✅
 **Currently active:** none
 **Blocked by:** none
+
+**Key Decision (C22):** Replaced the `URLSearchParams` / `application/x-www-form-urlencoded` body in `loginApi` with a plain JSON object `{ email, password }`, matching the backend's `LoginRequest` schema (`{email, password}`). Axios sets `Content-Type: application/json` automatically for plain object bodies, so the explicit header was removed too.
 
 **Key Decision (C20):** Derived `User.name` from the email's local part (text before `@`), splitting on `.`/`_`/`-` and title-casing each segment (e.g. `admin@manifesto.local` → `"Admin"`). The JWT payload only carries `sub`/`role`, not a display name, so the email is the only client-side signal available at login time.
 
@@ -43,6 +45,7 @@ No archived sessions yet.
 | 03 | C18 protected-route | ✅ Done | `ProtectedRoute` uses `<Outlet />` pattern; role check + token check both redirect to /login; fixed pre-existing tsconfig missing vite/client types |
 | 04 | C19 placeholder-pages | ✅ Done (Claude direct write — spec fully prescriptive) | VendorList.tsx used as component name; imported as `VendorList` in App.tsx replacing `Vendors` stub |
 | 05 | C20 login-page | ✅ Done | Derived `User.name` by title-casing the email local-part (split on `.`/`_`/`-`); JWT only has `sub`/`role`, no display name |
+| 06 | C22 fix-login-request-format | ✅ Done | Replaced form-urlencoded `username`/`password` body with JSON `{ email, password }` to match backend's `LoginRequest` schema |
 
 ---
 
@@ -215,3 +218,49 @@ Phase 2 (writes): created `ProtectedRoute.tsx`; rewrote `App.tsx` with full rout
 **DECISIONS.md:**
 - `ProtectedRoute` redirects unauthorized roles to `/login` (not `/unauthorized`) — avoids leaking route existence to unauthorized users; simplifies Login page implementation
 - `"types": ["vite/client"]` added to `tsconfig.json` — standard fix for `import.meta.env` type resolution in Vite projects; was missing since C17
+
+---
+
+## Session 06 — Commit 22: `fix-login-request-format`
+
+**Date:** 2026-06-07
+**Status:** ✅ Done
+
+### Task Brief
+Adam's C21 integration smoke test found login broken end-to-end: `loginApi` (built in C17) sent the request as `application/x-www-form-urlencoded` with `username`/`password` fields, but the backend's `LoginRequest` schema (`backend/app/schemas/auth.py`, read-only reference) requires a JSON body `{ email, password }`. The form-encoded request returned `422`.
+
+### Approach
+Phase 1 (read): re-read `frontend/src/api/auth.ts` to confirm the current (broken) state matched the brief exactly.
+Phase 2 (write + test): replaced the `URLSearchParams` body construction and explicit `Content-Type: application/x-www-form-urlencoded` header with a single-line JSON object `{ email, password }` passed directly to `apiClient.post`. Axios infers `Content-Type: application/json` for plain object bodies, so no header override was needed. Ran `npx tsc --noEmit` — clean, no errors.
+
+### Final Function
+```typescript
+export async function loginApi(email: string, password: string): Promise<TokenResponse> {
+  const response = await apiClient.post<TokenResponse>('/auth/login', { email, password })
+  return response.data
+}
+```
+
+### Decisions Made
+- None beyond the prescribed fix — the brief fully specified the replacement code; no ambiguity.
+
+### Issues Found Mid-Task
+None.
+
+### Self-Review Checklist
+- [x] No `any` types
+- [x] No secrets in staged files
+- [x] TypeScript strict mode — `npx tsc --noEmit` exits 0, no output
+- [x] Function signature `loginApi(email, password) → TokenResponse` unchanged
+- [x] `Login.tsx` not touched (no changes required)
+- [x] `TokenResponse` interface unchanged
+- [x] No `backend/` files touched
+
+### Scope Overflow Check
+No scope overflow. Only `frontend/src/api/auth.ts` edited — single function body replaced, exactly as specified.
+
+### Handoffs Out
+- (none — this closes the loop opened by Adam's C21 smoke-test finding; login should now work end-to-end with the JSON `{ email, password }` body matching the backend's `LoginRequest` schema)
+
+### Documentation Flags for Claude
+**ARCHITECTURE.md:** No update needed — this is a bug fix that brings the existing implementation in line with the documented contract (backend `LoginRequest` schema), not a new pattern or component.
