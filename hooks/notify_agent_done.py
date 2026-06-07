@@ -216,12 +216,18 @@ def get_diff_files() -> list:
             {"status": "Modified", "path": ".env.example"},
         ]
     if PRE_COMMIT:
-        # Primary: commit spec — the exact files the agent was assigned.
-        # This is authoritative and must not be mixed with staged index files.
-        files = get_files_from_commit_spec()
-        if files:
-            return files
-        # Fallback (no spec found): read the *actual* staged diff from git.
+        # Read the *actual* working-tree state via `git status --porcelain`.
+        # Unlike `git diff --cached`, this also captures untracked files (??) —
+        # which is what new agent-created files (e.g. Login.tsx) look like
+        # before `git add` runs. This is the ground truth for "what would this
+        # commit look like right now."
+        #
+        # NOTE: we deliberately do NOT use get_files_from_commit_spec() as the
+        # source here — it keys off get_next_commit_from_protocol(), whose
+        # "first pending row" can point at a stale/wrong commit relative to
+        # what's actually in the working tree, producing the exact
+        # "shows the previous commit's files" symptom this replaces.
+        #
         # Filter out protocol-managed paths that would pollute the list when
         # chore/state commits are staged alongside agent work.
         PROTOCOL_PREFIXES = (
@@ -238,19 +244,34 @@ def get_diff_files() -> list:
             "backend/DOMAIN_MAP.md",
             "frontend/DOMAIN_MAP.md",
             "hooks/.pending_notify.json",
+            "hooks/.notify_debug.log",
         )
         result = subprocess.run(
-            ["git", "diff", "--cached", "--name-status"],
+            ["git", "status", "--porcelain"],
             capture_output=True, text=True, cwd=ROOT
         )
-        status_map = {"A": "Added", "M": "Modified", "D": "Deleted", "R": "Renamed"}
+        # Porcelain format: XY <path> (XY = 2-char status code; rename uses " -> ")
+        #   staged:   A_, M_, D_, R_   (X = index status)
+        #   unstaged: _M, _D           (Y = worktree status)
+        #   untracked: ??
+        status_map = {"A": "Added", "M": "Modified", "D": "Deleted", "R": "Renamed", "?": "Added"}
         files = []
-        for line in result.stdout.strip().splitlines():
-            parts = line.split("\t")
-            if len(parts) >= 2:
-                path = parts[-1]
-                if not any(path.startswith(p) for p in PROTOCOL_PREFIXES):
-                    files.append({"status": status_map.get(parts[0][0], parts[0][0]), "path": path})
+        seen = set()
+        for line in result.stdout.splitlines():
+            if len(line) < 4:
+                continue
+            code = line[:2]
+            path = line[3:].strip()
+            if " -> " in path:
+                path = path.split(" -> ", 1)[1]
+            if not path or path in seen:
+                continue
+            if any(path.startswith(p) for p in PROTOCOL_PREFIXES):
+                continue
+            # Prefer the index (staged) status if present, else worktree status
+            letter = code[0] if code[0] != " " else code[1]
+            files.append({"status": status_map.get(letter, "Modified"), "path": path})
+            seen.add(path)
         return files
     result = subprocess.run(
         ["git", "diff-tree", "--no-commit-id", "-r", "--name-status", "HEAD"],
@@ -271,28 +292,25 @@ def get_diff_stat() -> str:
     if PRE_COMMIT:
         # If the spec gave us a file list, build a stat line from spec files only
         # so we don't count chore/protocol files that may be co-staged.
-        spec_files = get_files_from_commit_spec()
-        if spec_files:
-            # Run git diff --cached --stat filtered to spec file paths only
-            paths = [f["path"] for f in spec_files]
-            result = subprocess.run(
-                ["git", "diff", "--cached", "--stat", "--"] + paths,
-                capture_output=True, text=True, cwd=ROOT
-            )
-            if result.stdout.strip():
-                lines = [l for l in result.stdout.strip().splitlines() if l.strip()]
-                return lines[-1].strip()
-            # Spec files may not all be staged yet; just report the count
-            return f"{len(spec_files)} file(s) changed"
-        # No spec — fall back to full staged stat
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--stat"],
-            capture_output=True, text=True, cwd=ROOT
-        )
-        if result.stdout.strip():
-            lines = [l for l in result.stdout.strip().splitlines() if l.strip()]
-            return lines[-1].strip()
-        return ""
+        # Build the stat line from the same file list get_diff_files() produces
+        # (working-tree truth, including untracked files), so the count and the
+        # listed paths always agree. `git diff --stat` alone can't show untracked
+        # files, so we just report a count derived from get_diff_files().
+        files = get_diff_files()
+        if not files:
+            return ""
+        added = sum(1 for f in files if f["status"] == "Added")
+        modified = sum(1 for f in files if f["status"] == "Modified")
+        deleted = sum(1 for f in files if f["status"] == "Deleted")
+        parts = []
+        if added:
+            parts.append(f"{added} added")
+        if modified:
+            parts.append(f"{modified} modified")
+        if deleted:
+            parts.append(f"{deleted} deleted")
+        suffix = " (" + ", ".join(parts) + ")" if parts else ""
+        return f"{len(files)} file(s) changed{suffix}"
     result = subprocess.run(
         ["git", "show", "--stat", "--format=", "HEAD"],
         capture_output=True, text=True, cwd=ROOT
@@ -464,6 +482,41 @@ def write_pending_notify(what: str, why: str, num: str = "", name: str = "", age
     # Snapshot staged files while index is still populated
     files = get_diff_files()   # PRE_COMMIT is True at this point
     diff_stat = get_diff_stat()
+
+    # ── DIAGNOSTIC (temporary) ────────────────────────────────────────────
+    # Logs both candidate file lists side-by-side so we can see exactly
+    # where get_files_from_commit_spec() and the real staged diff diverge.
+    # Safe to remove once the root cause of the "files changed" mismatch
+    # is confirmed and fixed.
+    try:
+        spec_files = get_files_from_commit_spec()
+        staged_result = subprocess.run(
+            ["git", "diff", "--cached", "--name-status"],
+            capture_output=True, text=True, cwd=ROOT
+        )
+        staged_raw = [
+            line for line in staged_result.stdout.strip().splitlines() if line.strip()
+        ]
+        proto_num, proto_name, proto_agent = get_next_commit_from_protocol()
+        debug_log = ROOT / "hooks" / ".notify_debug.log"
+        debug_entry = (
+            "=== notify diagnostic @ " + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ===\n"
+            "protocol next-pending: #" + proto_num + " — " + proto_name + " (" + proto_agent + ")\n"
+            "spec_files (get_files_from_commit_spec):\n"
+            + ("\n".join("  [" + f["status"] + "] " + f["path"] for f in spec_files) or "  (empty)") + "\n"
+            "staged_diff (git diff --cached --name-status):\n"
+            + ("\n".join("  " + l for l in staged_raw) or "  (empty)") + "\n"
+            "chosen_for_email (get_diff_files result):\n"
+            + ("\n".join("  [" + f["status"] + "] " + f["path"] for f in files) or "  (empty)") + "\n"
+            "\n"
+        )
+        with open(debug_log, "a", encoding="utf-8") as fh:
+            fh.write(debug_entry)
+        print("[notify][diag] wrote comparison to hooks/.notify_debug.log")
+    except Exception as e:
+        print("[notify][diag] failed: " + str(e), file=sys.stderr)
+    # ── END DIAGNOSTIC ────────────────────────────────────────────────────
+
     flag.write_text(_json.dumps({
         "NOTIFY_NUM":   num,
         "NOTIFY_NAME":  name,
