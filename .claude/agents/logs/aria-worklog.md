@@ -36,6 +36,20 @@ No archived sessions yet.
 
 ---
 
+## 📋 Replan Notice — 2026-06-07
+
+The commit plan has been updated. Here is what changed for you:
+
+What was removed: nothing — pure addition after C22.
+What was added: Phase 2 "Policy RAG" — 10 new commits (C23-C32) per `manifesto-spec.md` §Phase 2.
+What changed in your sequence: you own the chat frontend — C30 (`policy-chat-ui`, the chat shell
+and SSE streaming), C31 (`conversation-sidebar-ui`, history sidebar), and C32 (`citations-ui`,
+source citations). You'll be building against Rex's new SSE endpoint (`POST /api/v1/chat/policy`,
+landing in C28) and conversation history endpoints (C29) — read those handoffs when you reach C30.
+Your next commit is now: Commit 30 `policy-chat-ui` (after C23-C29 land).
+
+---
+
 ## Session Index
 
 | # | Commit | Status | Key Decision |

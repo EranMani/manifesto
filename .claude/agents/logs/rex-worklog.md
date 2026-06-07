@@ -35,6 +35,20 @@ No archived sessions yet.
 
 ---
 
+## 📋 Replan Notice — 2026-06-07
+
+The commit plan has been updated. Here is what changed for you:
+
+What was removed: nothing — pure addition after C22.
+What was added: Phase 2 "Policy RAG" — 10 new commits (C23-C32) per `manifesto-spec.md` §Phase 2.
+What changed in your sequence: you own C23 (`pgvector-migration`), C26 (`document-upload-routes`),
+C28 (`policy-chat-routes`), and C29 (`conversation-persistence`) — backend plumbing around Nova's
+new RAG/LLM core. Nova (AI/ML Engineer) has activated; their work lives in `backend/app/services/`
+(llm.py, rag_policy.py, ingestion.py) — that's now their domain, not yours, going forward.
+Your next commit is now: Commit 23 `pgvector-migration`.
+
+---
+
 ## Session Index
 
 | # | Commit | Status | Key Decision |

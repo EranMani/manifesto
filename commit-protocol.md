@@ -36,13 +36,34 @@
 | 20 | login-page | aria | ✅ done · 2026-06-07 |
 | 21 | integration-smoke | adam | ✅ done · 2026-06-07 |
 | 22 | fix-login-request-format | aria | ✅ done · 2026-06-07 |
+| 23 | pgvector-migration | rex | pending |
+| 24 | llm-service-impl | nova | pending |
+| 25 | document-ingestion | nova | pending |
+| 26 | document-upload-routes | rex | pending |
+| 27 | rag-policy-pipeline | nova | pending |
+| 28 | policy-chat-routes | rex | pending |
+| 29 | conversation-persistence | rex | pending |
+| 30 | policy-chat-ui | aria | pending |
+| 31 | conversation-sidebar-ui | aria | pending |
+| 32 | citations-ui | aria | pending |
+
+---
+
+## Phase 2 — Policy RAG (added via /replan, 2026-06-07)
+
+Added per `manifesto-spec.md` §Phase 2. See `replan_history` in `project-state.json`
+for the full trigger record. Sequence: C23 → C24 → {C25, C26} → C27 → C28 → {C29, C30} → C31 → C32.
 
 ---
 
 ## Parallel Groups
 
 ```
-Wave A: 02 ∥ 03  — python-skeleton (Rex) and frontend-scaffold (Aria) touch zero shared files
+Wave A: 02 ∥ 03   — python-skeleton (Rex) and frontend-scaffold (Aria) touch zero shared files
+Wave B: 26 ∥ 27   — document-upload-routes (Rex) and rag-policy-pipeline (Nova) both depend
+                     only on C24/C25, not on each other
+Wave C: 29 ∥ 30   — conversation-persistence (Rex) and policy-chat-ui (Aria) — Aria can build
+                     against C28's streaming contract without waiting on persistence
 ```
 
 ---

@@ -2,11 +2,11 @@
 
 > Cross-agent protocol and roster. Claude reads this at boot.
 > Updated when agents are added or domain boundaries change.
-> Last updated: 2026-06-04
+> Last updated: 2026-06-07
 
 ---
 
-## Active Roster — Phase 1
+## Active Roster — Phase 2
 
 | Role | Name | Model | Domain |
 |---|---|---|---|
@@ -14,16 +14,18 @@
 | Backend Engineer | Rex | sonnet | `backend/` — all Python application code |
 | DevOps Engineer | Adam | sonnet | `Dockerfile`, `docker-compose*.yml`, `.env*.example`, `scripts/` |
 | Frontend Engineer | Aria | sonnet | `frontend/` — all React/TypeScript |
+| AI/ML Engineer | Nova | sonnet | `backend/app/services/llm.py`, `rag_policy.py`, `rag_logistics.py`, `ingestion.py` |
 | Code Reviewer | Viktor | haiku | Cross-domain review — reads any file, touches none |
 | Security Engineer | Sage | haiku | Security review — auth, secrets, user input, external calls |
 | Product Manager | Mira | haiku | Product review — user-facing behavior only, advisory |
+
+**Activated this phase:** Nova (per D03 — LLMService wiring is the Phase 2 trigger). Identity file: `.claude/agents/ai-engineer.md`.
 
 ## Deferred Roster (activate when phase requires)
 
 | Role | Name | Activates | Trigger |
 |---|---|---|---|
-| AI/ML Engineer | Nova | Phase 2 | When LLMService is wired |
-| QA Engineer | Quinn | Phase 2 | When business logic warrants coverage review |
+| QA Engineer | Quinn | Phase 2 | When business logic warrants coverage review (likely ~C27/C28) |
 | Tech Writer | Ryan | Phase 4 | Hardening / docs phase |
 
 To add an agent: write their identity file to `.claude/agents/[name].md` and add a row to this table.
@@ -44,6 +46,11 @@ To add an agent: write their identity file to `.claude/agents/[name].md` and add
 ### Aria — Frontend
 **Owns:** `frontend/src/`, `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tailwind.config.ts`, `frontend/tsconfig.json`, `frontend/index.html`
 **Does not touch:** `backend/` (Rex's)
+
+### Nova — AI/ML Engineer
+**Owns:** `backend/app/services/llm.py`, `backend/app/services/rag_policy.py`, `backend/app/services/rag_logistics.py`, `backend/app/services/ingestion.py`
+**Does not touch:** `backend/app/api/` (Rex's routes), `backend/app/models/` (Rex's models), `backend/alembic/` (Rex's migrations), `frontend/` (Aria's)
+**Note:** If a route needs a new service method or signature change, Nova raises a cross-domain finding to Rex — does not edit route files directly.
 
 ### Viktor — Reviewer
 **Reads:** any file in the diff

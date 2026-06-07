@@ -1,15 +1,23 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 1 verification complete — Eran manually confirmed all 4 deferred browser checks pass (login redirect, dashboard placeholder, /login form render, /admin role-redirect). D25 logged (ProtectedRoute redirects role-mismatches to /login by design, not a bug). Phase 1 closed. Next: /replan for Phase 2 (Nova/LLM wiring). No open handoffs. No blockers.",
-  "phase": 1,
+  "tldr": "Phase 2 replan applied 2026-06-07 — 10 commits (C23-C32) added for Policy RAG per manifesto-spec.md §Phase 2. Nova (AI/ML Engineer) activated, identity file written. Next: Commit 23 `pgvector-migration` (Rex). No open handoffs. No blockers.",
+  "phase": 2,
   "last_completed_commit": "22",
-  "next_commit": null,
-  "next_commit_name": "/replan for Phase 2 (Nova activates — LLMService wiring per DECISIONS.md)",
-  "next_commit_assignee": "claude",
-  "status": "phase-1-complete-awaiting-replan",
+  "next_commit": "23",
+  "next_commit_name": "pgvector-migration",
+  "next_commit_assignee": "rex",
+  "status": "phase-2-active",
   "open_handoffs": [],
   "blockers": [],
-  "replan_history": [],
+  "replan_history": [
+    {
+      "date": "2026-06-07",
+      "trigger": "Phase 1 complete, Phase 2 scope now defined",
+      "summary": "Added 10 commits (C23-C32) implementing manifesto-spec.md §Phase 2 'Policy RAG': pgvector storage (C23), LLMService implementation (C24), document ingestion (C25), document upload routes (C26), RAG policy pipeline (C27), policy chat routes (C28), conversation persistence (C29), policy chat UI (C30), conversation sidebar UI (C31), citations UI (C32). No commits removed or reordered — pure addition after C22.",
+      "agents_activated": ["nova"],
+      "files_updated": ["commit-protocol.md", "AGENTS.md", ".claude/agents/ai-engineer.md", "commit-specs/commit-23.md..commit-32.md", ".claude/agents/logs/rex-worklog.md", ".claude/agents/logs/aria-worklog.md", ".claude/agents/logs/nova-worklog.md", "project-state.json"]
+    }
+  ],
   "rollback_history": [],
-  "notes": "C22 committed 2026-06-07 (47bca18) — loginApi fixed to send JSON {email, password}, verified clean (tsc + network-level contract check by Claude). Eran then manually click-through-verified all 4 remaining browser checks: (1) /login form renders correctly, (2) admin login (admin@manifesto.local/admin123) redirects to /dashboard, (3) /dashboard shows 'Coming soon' placeholder, (4) manager login (manager.smoke@manifesto.local/manager123) navigating to /admin redirects away — to /login specifically. Item 4 initially looked surprising (redirecting an authenticated user to the login page), but Claude confirmed via ProtectedRoute.tsx (lines 12-18) that both the no-token AND wrong-role paths intentionally redirect to /login — documented by Aria in her C18 worklog. Logged as D25 (UX trade-off noted for possible Phase 2+ refinement, not a blocker). All C21 SMOKE_TEST_RESULTS.md items now resolved — Phase 1 is formally complete. Adam's throwaway manager user (manager.smoke@manifesto.local/manager123) remains in the dev DB as a useful fixture for future role-based testing. Next step: run /replan to define the Phase 2 commit sequence (Nova activates per DECISIONS.md D-roster note — LLMService wiring is the Phase 2 trigger)."
+  "notes": "C22 committed 2026-06-07 (47bca18) — loginApi fixed to send JSON {email, password}, verified clean (tsc + network-level contract check by Claude). Eran then manually click-through-verified all 4 remaining browser checks: (1) /login form renders correctly, (2) admin login (admin@manifesto.local/admin123) redirects to /dashboard, (3) /dashboard shows 'Coming soon' placeholder, (4) manager login (manager.smoke@manifesto.local/manager123) navigating to /admin redirects away — to /login specifically. Item 4 initially looked surprising (redirecting an authenticated user to the login page), but Claude confirmed via ProtectedRoute.tsx (lines 12-18) that both the no-token AND wrong-role paths intentionally redirect to /login — documented by Aria in her C18 worklog. Logged as D25 (UX trade-off noted for possible Phase 2+ refinement, not a blocker). All C21 SMOKE_TEST_RESULTS.md items now resolved — Phase 1 formally closed 2026-06-07. Adam's throwaway manager user (manager.smoke@manifesto.local/manager123) remains in the dev DB as a useful fixture for future role-based testing. Phase 2 replan applied same day: C23-C32 added per manifesto-spec.md §Phase 2 (Policy RAG). Nova activated — identity file at .claude/agents/ai-engineer.md, first commit is C24. Sequence: C23(Rex) → C24(Nova) → {C25(Nova), C26(Rex)} → C27(Nova) → C28(Rex) → {C29(Rex), C30(Aria)} → C31(Aria) → C32(Aria). Viktor's next batch wave lands at C25 (every-5th-commit cadence continues from C20)."
 }
