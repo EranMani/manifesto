@@ -1,0 +1,57 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\tool_cap_enforce.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\block_agent_commit.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\tool_cap_end.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\notify_on_stop.py\""
+          },
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\post_commit_next_step.py\""
+          },
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\generate_domain_map.py\""
+          },
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\auto_verify.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
