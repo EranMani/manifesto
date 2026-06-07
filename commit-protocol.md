@@ -34,7 +34,8 @@
 | 18 | protected-route | aria | ✅ done · 2026-06-06 |
 | 19 | placeholder-pages | aria | ✅ done · 2026-06-06 |
 | 20 | login-page | aria | ✅ done · 2026-06-07 |
-| 21 | integration-smoke | adam | pending |
+| 21 | integration-smoke | adam | pending — results in for review (1 FAIL found, see C22) |
+| 22 | fix-login-request-format | aria | pending |
 
 ---
 
