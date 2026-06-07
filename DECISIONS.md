@@ -968,4 +968,35 @@ A single redirect target keeps `ProtectedRoute` simple — one component, one fa
 
 ---
 
+## D26 — Notify-Pipeline Bug: Two Root Causes Behind "Wrong Files Shown" and "Total Silence"
+
+- **Date:** 2026-06-07
+- **Decided by:** Eran (reported + drove validation), Claude (diagnosed + fixed)
+- **Context:** The commit-approval email's "Files changed" section was showing the *previous* commit's files instead of the pending one, and was blind to brand-new untracked files. Eran asked for validation-first diagnosis rather than blind fixes ("if we can validate it properly, its a better choice").
+
+### What was wrong (two distinct bugs, found in sequence)
+
+**Bug 1 — untracked files invisible.** `get_diff_files()` used `git diff --cached --name-status`, which only sees staged/tracked changes — brand-new files (`git status` code `??`) never appeared. Fixed by switching to `git status --porcelain`, parsing the 2-character status code (staged, unstaged, and untracked), with a `PROTOCOL_PREFIXES` filter and dedup.
+
+**Bug 2 — wrong fallback branch (the actual root cause of "shows previous commit's files").** `PRE_COMMIT` was computed as `"--pre-commit" in sys.argv` only. The `--write-flag` invocation path (used to cache the file list *before* `git commit` runs and the index goes empty) never set this flag, so `get_diff_files()` fell through to the `git diff-tree ... HEAD` branch — which shows the *last completed* commit's changes, not the pending one. Fixed by adding `or "--write-flag" in sys.argv` to the `PRE_COMMIT` computation.
+
+**Bug 3 — surfaced after Bugs 1–2 were fixed: total silence ("no email, nothing").** `hooks/.pending_notify.json` was found truncated mid-JSON-string twice in a row. Root cause: `write_pending_notify()` used a direct `flag.write_text()`, which can be interrupted mid-stream (process kill, session transition, filesystem hiccup) and leave a half-written file. `notify_on_stop.py`'s exception handler then silently deleted the corrupt flag and returned — no error, no email, no visible signal of any kind.
+
+### Fixes applied
+
+1. **Atomic flag write** (`notify_agent_done.py` → `write_pending_notify()`): build the full JSON payload in memory, write it to a `.tmp` file, then `os.replace()` it into place. The Stop hook can now only ever see a complete file or no file — never a partial one.
+2. **Loud failure on corrupt flag** (`notify_on_stop.py`): if the flag still can't be parsed for any reason, the script now sends an explicit "⚠ notify flag was corrupt (no commit email sent)" alert email — including the parse error and the truncated raw content — using the existing `send_email`/SMTP machinery, instead of silently deleting the flag and exiting.
+
+### Validation
+
+A throwaway `TEST` commit slot was added to `commit-protocol.md` (clearly marked, not part of real numbering) and exercised through the full real pipeline: `--write-flag` → flag written → commit landed (`832db17`) → Stop hook → email. The final validation run produced a clean, well-formed flag (`test.txt` Modified, `test2.txt` Added, then later `notify_agent_done.py`/`notify_on_stop.py` Modified) and the approval email arrived with the **exact correct file list and statuses**. Pipeline confirmed working end-to-end. Test artifacts (`test.txt`, `test2.txt`, `commit-specs/commit-TEST-notify.md`, the `TEST` protocol row, stale flag/debug files) were removed in a follow-up `chore` commit.
+
+### Consequences
+
+- The notify pipeline now correctly reflects the *pending* commit's real changes, including brand-new files, in every approval email.
+- A corrupted or interrupted flag write can no longer produce silent total failure — Eran will always get *some* signal (either the correct email, or a corrupt-flag alert).
+- General lesson for this hook system: any "cache to disk, read later from a different process/environment" pattern (sandbox → Windows) needs both an atomic write and a loud failure path — silent partial state is the worst combination for cross-environment handoffs.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
