@@ -36,6 +36,7 @@
 | 20 | login-page | aria | ✅ done · 2026-06-07 |
 | 21 | integration-smoke | adam | ✅ done · 2026-06-07 |
 | 22 | fix-login-request-format | aria | ✅ done · 2026-06-07 |
+| TEST | notify-pipeline-validation ⚠️ TEST — not part of real sequence, delete after use | claude | pending |
 
 ---
 
