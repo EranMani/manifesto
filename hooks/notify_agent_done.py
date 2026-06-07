@@ -37,7 +37,7 @@ ROOT = Path(subprocess.check_output(
 ).strip())
 
 TEST_MODE    = "--test" in sys.argv
-PRE_COMMIT   = "--pre-commit" in sys.argv  # called before git commit; reads NOTIFY_* env vars
+PRE_COMMIT   = "--pre-commit" in sys.argv or "--write-flag" in sys.argv  # called before git commit; reads NOTIFY_* env vars (--write-flag always runs pre-commit)
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -482,40 +482,6 @@ def write_pending_notify(what: str, why: str, num: str = "", name: str = "", age
     # Snapshot staged files while index is still populated
     files = get_diff_files()   # PRE_COMMIT is True at this point
     diff_stat = get_diff_stat()
-
-    # ── DIAGNOSTIC (temporary) ────────────────────────────────────────────
-    # Logs both candidate file lists side-by-side so we can see exactly
-    # where get_files_from_commit_spec() and the real staged diff diverge.
-    # Safe to remove once the root cause of the "files changed" mismatch
-    # is confirmed and fixed.
-    try:
-        spec_files = get_files_from_commit_spec()
-        staged_result = subprocess.run(
-            ["git", "diff", "--cached", "--name-status"],
-            capture_output=True, text=True, cwd=ROOT
-        )
-        staged_raw = [
-            line for line in staged_result.stdout.strip().splitlines() if line.strip()
-        ]
-        proto_num, proto_name, proto_agent = get_next_commit_from_protocol()
-        debug_log = ROOT / "hooks" / ".notify_debug.log"
-        debug_entry = (
-            "=== notify diagnostic @ " + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ===\n"
-            "protocol next-pending: #" + proto_num + " — " + proto_name + " (" + proto_agent + ")\n"
-            "spec_files (get_files_from_commit_spec):\n"
-            + ("\n".join("  [" + f["status"] + "] " + f["path"] for f in spec_files) or "  (empty)") + "\n"
-            "staged_diff (git diff --cached --name-status):\n"
-            + ("\n".join("  " + l for l in staged_raw) or "  (empty)") + "\n"
-            "chosen_for_email (get_diff_files result):\n"
-            + ("\n".join("  [" + f["status"] + "] " + f["path"] for f in files) or "  (empty)") + "\n"
-            "\n"
-        )
-        with open(debug_log, "a", encoding="utf-8") as fh:
-            fh.write(debug_entry)
-        print("[notify][diag] wrote comparison to hooks/.notify_debug.log")
-    except Exception as e:
-        print("[notify][diag] failed: " + str(e), file=sys.stderr)
-    # ── END DIAGNOSTIC ────────────────────────────────────────────────────
 
     flag.write_text(_json.dumps({
         "NOTIFY_NUM":   num,
