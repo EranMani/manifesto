@@ -1,15 +1,15 @@
 {
   "project": "manifesto",
-  "tldr": "C22 complete (fix-login-request-format, Aria) — login contract bug from C21 fixed and verified at the network level. Awaiting Eran's manual browser click-through of the 4 deferred DOM checks to formally close Phase 1, then a replan for Phase 2 (Nova/LLM wiring). No open handoffs. No blockers.",
+  "tldr": "Phase 1 verification complete — Eran manually confirmed all 4 deferred browser checks pass (login redirect, dashboard placeholder, /login form render, /admin role-redirect). D25 logged (ProtectedRoute redirects role-mismatches to /login by design, not a bug). Phase 1 closed. Next: /replan for Phase 2 (Nova/LLM wiring). No open handoffs. No blockers.",
   "phase": 1,
   "last_completed_commit": "22",
   "next_commit": null,
-  "next_commit_name": "phase-1-closeout (pending Eran's manual verification, then /replan for Phase 2)",
-  "next_commit_assignee": "eran",
-  "status": "awaiting-manual-verification",
+  "next_commit_name": "/replan for Phase 2 (Nova activates — LLMService wiring per DECISIONS.md)",
+  "next_commit_assignee": "claude",
+  "status": "phase-1-complete-awaiting-replan",
   "open_handoffs": [],
   "blockers": [],
   "replan_history": [],
   "rollback_history": [],
-  "notes": "C22 committed 2026-06-07 (47bca18). Aria changed loginApi (frontend/src/api/auth.ts) from form-urlencoded `username`/`password` to JSON `{email, password}`, matching the backend LoginRequest schema (C10, unchanged). tsc --noEmit clean (verified independently by Aria and Claude). Claude additionally verified the fix at the network/contract level: the exact JSON request the new loginApi sends now returns 200 + valid token for both admin and manager-role accounts; the old form-urlencoded shape still 422s, confirming the root cause and the fix. The 3 remaining DOM/redirect checks (login form render, /dashboard redirect+placeholder, /admin role-redirect) require browser-driving capability not available to Claude (no Playwright/chrome-devtools MCP in this environment — same gap Adam hit in C21); Eran agreed to do a quick manual click-through himself rather than block the commit, since C22 did not touch Login.tsx/ProtectedRoute/dashboard (only the API wire format). Once Eran confirms those 3 (+ the still-open C21 'not verified' /login render check), Phase 1 can be formally declared complete and a /replan should define the Phase 2 commit sequence (Nova activates Phase 2 per DECISIONS.md — LLMService wiring). Adam's throwaway manager user (manager.smoke@manifesto.local/manager123) remains in the dev DB — still undecided whether to keep as a fixture or remove."
+  "notes": "C22 committed 2026-06-07 (47bca18) — loginApi fixed to send JSON {email, password}, verified clean (tsc + network-level contract check by Claude). Eran then manually click-through-verified all 4 remaining browser checks: (1) /login form renders correctly, (2) admin login (admin@manifesto.local/admin123) redirects to /dashboard, (3) /dashboard shows 'Coming soon' placeholder, (4) manager login (manager.smoke@manifesto.local/manager123) navigating to /admin redirects away — to /login specifically. Item 4 initially looked surprising (redirecting an authenticated user to the login page), but Claude confirmed via ProtectedRoute.tsx (lines 12-18) that both the no-token AND wrong-role paths intentionally redirect to /login — documented by Aria in her C18 worklog. Logged as D25 (UX trade-off noted for possible Phase 2+ refinement, not a blocker). All C21 SMOKE_TEST_RESULTS.md items now resolved — Phase 1 is formally complete. Adam's throwaway manager user (manager.smoke@manifesto.local/manager123) remains in the dev DB as a useful fixture for future role-based testing. Next step: run /replan to define the Phase 2 commit sequence (Nova activates per DECISIONS.md D-roster note — LLMService wiring is the Phase 2 trigger)."
 }

@@ -947,4 +947,25 @@ Both Mira (advisory) and Viktor (deferred) independently flagged the same edge c
 
 ---
 
+## D25 — ProtectedRoute Redirects Role-Mismatches to `/login`, Not `/dashboard`
+
+- **Date:** 2026-06-07
+- **Decided by:** Aria (C18 execution); confirmed during C22 closeout verification (Eran + Claude)
+- **Context:** While manually verifying C22's fix, Eran logged in as the throwaway manager user (`manager.smoke@manifesto.local`) and navigated to `/admin`. The app redirected straight to `/login` — initially surprising, since the user was already authenticated.
+
+### Decision
+
+This is intentional, pre-existing behavior from `ProtectedRoute.tsx` (built C18), not a bug: both failure paths — no token *and* wrong role — redirect to `/login` (lines 12-18, `<Navigate to="/login" replace />` in both branches). Aria documented this choice in her C18 worklog ("role check + token check both redirect to /login"). No code change made; the C21/C22 manual verification confirms the role gate correctly blocks `/admin` for non-admin roles — it just routes through `/login` rather than `/dashboard` or a dedicated 403 view.
+
+### Rationale
+
+A single redirect target keeps `ProtectedRoute` simple — one component, one fallback, no need to thread "why you got redirected" state through the router. For Phase 1 (auth scaffolding only, no real admin UI to protect yet), this is sufficient.
+
+### Consequences
+
+- UX trade-off: an *already-logged-in* user who lacks permission for a route is sent to the login page, which can read as "you got logged out" rather than "you don't have access." A clearer signal (redirect to `/dashboard` with a toast, or a dedicated `/403` view) would be a better long-term UX.
+- Logged here as a placeholder for Phase 2+ refinement — `ProtectedRoute.tsx` is the single place to change if/when this is revisited. Not a blocker for Phase 1 sign-off.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
