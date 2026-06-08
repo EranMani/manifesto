@@ -75,6 +75,16 @@ ARCHITECTURE.md:[update needed: "[section] — [what to add]" | no update needed
 GLOSSARY.md:    [new terms: "[term] — [definition]" | no new terms]
 TOKEN_RECORDS.md: [row ready — fill token counts from <usage> block]
 
+### Box 5 — Phase B Measurement
+
+Confirm `verify_constraints.py` will update:
+
+- `CONTEXT_METRICS.json`
+- `constraint-dashboard.html`
+
+The live telemetry file must exist at `.context/telemetry/C<NN>-<agent>.json` for an
+agent-run commit. Direct Claude writes may record telemetry as unavailable.
+
 Actions for Claude:
 1. [specific edit or "none"]
 2. [specific edit or "none"]

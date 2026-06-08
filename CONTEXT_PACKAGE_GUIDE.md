@@ -359,8 +359,67 @@ Rex then works from this brief instead of starting with an open-ended repository
 | `.context/index/codebase-graph.json` | Cached project network |
 | `.context/runs/CNN-agent-live.json` | Complete explainable package |
 | `.context/delegations/CNN-agent.md` | Short brief passed to the agent |
+| `.context/telemetry/CNN-agent.json` | Actual reads, searches, writes, and expansions |
+| `CONTEXT_METRICS.json` | Tracked Phase B history, one record per commit |
+| `constraint-dashboard.html` | Visual measurement dashboard |
 
 These files are local runtime artifacts and are ignored by Git.
+
+`CONTEXT_METRICS.json` and `constraint-dashboard.html` are tracked because they preserve
+the measurement history.
+
+---
+
+## Phase B: What The Dashboard Measures
+
+The dashboard has three areas:
+
+### Prepared Next Delegation
+
+Visible as soon as `/next-step` prepares context:
+
+- Commit and agent
+- Number of selected files
+- Estimated context characters
+- Number of targeted excerpts
+- Known expansion triggers
+
+### Context Efficiency
+
+Added after the commit is verified:
+
+| Field | Meaning |
+|---|---|
+| Tokens | Total agent tokens recorded for the commit |
+| Package | Selected files and estimated characters |
+| Selected used | How many selected files the agent actually read or searched |
+| Searches | Number of `Grep` or `Glob` operations |
+| Expansions | Unique paths inspected outside the package |
+| Boundary | Whether forbidden files remained untouched |
+
+Example:
+
+```text
+C24 | Rex | 21,400 tokens | 9 files / 19,796 chars
+Selected used: 7/9 (77.8%) | Searches: 1 | Expansions: 0 | Boundary: clean
+```
+
+How to interpret it:
+
+- **Low selected use:** the package may contain unnecessary files.
+- **Many expansions:** the package may be missing important context.
+- **High tokens with a small package:** implementation or debugging was expensive.
+- **Forbidden violation:** ownership or delegation boundaries failed.
+- **Zero expansions with successful tests:** strong evidence that the package was sufficient.
+
+### Constraint History
+
+The original dashboard table remains:
+
+- Context block present
+- Forbidden paths clean
+- Tool budget respected
+- Overall verification result
 
 ---
 

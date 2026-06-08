@@ -477,6 +477,23 @@ context does not authorize agent execution.
 - Live preparation rejects commit or owner mismatches against `project-state.json`.
   Manual experimentation must use shadow preview commands instead.
 
+### Phase B — measure context efficiency in the existing dashboard
+
+Use the existing constraint dashboard as the single visual measurement surface. Runtime
+hooks capture context behavior automatically, and post-commit verification stores compact
+records in `CONTEXT_METRICS.json`.
+
+**Tradeoffs:**
+
+- Automatic hooks avoid unreliable manual reporting, but only observe structured Claude
+  tools directly. Shell commands are counted as commands, not parsed as file reads.
+- Selected-file utilization is a diagnostic signal, not a score to maximize. A correctly
+  unused fallback contract may still be valuable.
+- Outside-package reads count as expansions even when justified. The goal is visibility,
+  not punishing necessary investigation.
+- Metrics begin with live Phase B commits; older commits retain their existing token and
+  constraint history without invented context-usage data.
+
 ---
 
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

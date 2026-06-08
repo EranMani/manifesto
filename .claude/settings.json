@@ -2,11 +2,24 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\tool_cap_start.py\""
+          }
+        ]
+      },
+      {
         "matcher": "*",
         "hooks": [
           {
             "type": "command",
             "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\tool_cap_enforce.py\""
+          },
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\context_telemetry.py\""
           }
         ]
       },
@@ -24,6 +37,10 @@
       {
         "matcher": "Agent",
         "hooks": [
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\context_telemetry.py\" --finalize"
+          },
           {
             "type": "command",
             "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\tool_cap_end.py\""

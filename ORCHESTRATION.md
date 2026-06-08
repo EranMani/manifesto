@@ -99,11 +99,11 @@ STEP 11 — Claude commits on Eran's behalf
 
 STEP 12 — verify_constraints + post-commit doc sweep (mandatory)
 └── python hooks/verify_constraints.py --commit NN --agent NAME --tokens N
-    Writes CONSTRAINT_LOG.md and constraint-dashboard.html.
+    Writes CONSTRAINT_LOG.md, CONTEXT_METRICS.json, and constraint-dashboard.html.
 
     Then immediately: stage and commit ALL protocol files as a chore:
       project-state.json, commit-protocol.md, TOKEN_RECORDS.md,
-      CONSTRAINT_LOG.md, constraint-dashboard.html,
+      CONSTRAINT_LOG.md, CONTEXT_METRICS.json, constraint-dashboard.html,
       .claude/agents/logs/<agent>-worklog.md,
       backend/DOMAIN_MAP.md, frontend/DOMAIN_MAP.md,
       ARCHITECTURE.md and GLOSSARY.md (if updated this commit)

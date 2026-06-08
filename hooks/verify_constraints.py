@@ -23,6 +23,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from constraint_dashboard import render_dashboard
+from context_metrics import build_metric_record, upsert_metric
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -227,7 +230,16 @@ def main():
 
     tokens = args.tokens if args.tokens is not None else get_tokens_from_records(args.commit)
     append_to_log(args.commit, args.agent, results, all_pass, tokens)
-    embed_into_dashboard()
+    upsert_metric(
+        build_metric_record(
+            args.commit,
+            args.agent,
+            tokens,
+            results,
+            changed,
+        )
+    )
+    render_dashboard()
     sys.exit(0 if all_pass else 1)
 
 
@@ -303,6 +315,9 @@ def append_to_log(commit_num: str, agent: str, results: dict, all_pass: bool, to
 # ----------------------------------------------
 
 def embed_into_dashboard():
+    render_dashboard()
+    return
+
     dashboard_path = REPO_ROOT / "constraint-dashboard.html"
     log_path       = REPO_ROOT / "CONSTRAINT_LOG.md"
     if not log_path.exists(): return

@@ -182,6 +182,8 @@ Claude must verify and update ALL of the following files as applicable:
                           handoffs, update notes.
 
 □ TOKEN_RECORDS.md     — ALWAYS: add one row per agent invocation to Commit Log,
+□ CONTEXT_METRICS.json — ALWAYS: updated by verify_constraints from live telemetry
+□ constraint-dashboard.html — ALWAYS: regenerated with constraint + context metrics
                           add one row to Session Totals.
 
 □ DECISIONS.md         — if any non-obvious design choice was made this commit.

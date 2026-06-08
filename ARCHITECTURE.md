@@ -770,6 +770,13 @@ files receive a targeted-excerpt strategy; selected paths are not automatically 
 full. Claude passes the brief verbatim, while the agent reads selected files and expands
 only for explicit unresolved-symbol, contract, test, or contradictory-evidence triggers.
 
+Phase B adds automatic measurement. Claude Code hooks write local run telemetry under
+`.context/telemetry/`, including selected reads, searches, writes, and outside-package
+expansions. After a commit, `verify_constraints.py` combines that telemetry with package
+size, token count, changed files, and boundary results, then upserts
+`CONTEXT_METRICS.json` and regenerates `constraint-dashboard.html`. Preparing `/next-step`
+also regenerates the dashboard so the next package is visible before execution.
+
 Tests live under `hooks/tests/` and cover path safety, Python and TypeScript import
 resolution, context parsing, dependency expansion, contract bridges, and historical
 Manifesto cases.

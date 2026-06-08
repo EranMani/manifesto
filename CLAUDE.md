@@ -177,13 +177,14 @@ You do **not** load files from other agents' domains unless this step explicitly
     ```
     Three steps after approval, always in this order:
     1. git commit ��� lands the commit with ERAN_COMMIT=1 bypass
-    2. verify_constraints.py — updates CONSTRAINT_LOG.md and constraint-dashboard.html
+    2. verify_constraints.py — updates CONSTRAINT_LOG.md, CONTEXT_METRICS.json,
+       and constraint-dashboard.html
     Pass --tokens 0 for Claude direct writes. Pass actual token count for agent invocations.
     Never skip step 2 — this is what keeps the dashboard accurate.
     3. Immediate doc sweep (mandatory — no exceptions):
        Stage and commit ALL post-commit protocol files as a chore commit:
          project-state.json, commit-protocol.md, TOKEN_RECORDS.md,
-         CONSTRAINT_LOG.md, constraint-dashboard.html,
+         CONSTRAINT_LOG.md, CONTEXT_METRICS.json, constraint-dashboard.html,
          .claude/agents/logs/<agent>-worklog.md,
          backend/DOMAIN_MAP.md, frontend/DOMAIN_MAP.md,
          ARCHITECTURE.md and GLOSSARY.md (if date headers were updated)
@@ -207,6 +208,7 @@ After every agent completes work — before presenting the next Commit Preview.
 □ /verify-commit       — ALWAYS: run first. If any check FAILS, stop. Fix before proceeding.
 □ project-state.json   — ALWAYS: advance commit pointer, clear resolved handoffs
 □ TOKEN_RECORDS.md     — ALWAYS: add commit row + session total row
+□ CONTEXT_METRICS.json — ALWAYS: updated automatically by verify_constraints
 □ DECISIONS.md         — if a non-obvious design choice was made
 □ ARCHITECTURE.md      — if a new component, pattern, or data flow was introduced
 □ GLOSSARY.md          — if a new term was introduced

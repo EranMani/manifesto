@@ -11,7 +11,9 @@ from pathlib import Path
 from typing import Any
 
 from codebase_graph import graph_cache_is_stale, write_codebase_graph
+from constraint_dashboard import render_dashboard
 from context_engine import ContextPackageBuilder, load_rules
+from context_telemetry import initialize_telemetry
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -195,6 +197,8 @@ def prepare(
     )
     brief_path.parent.mkdir(parents=True, exist_ok=True)
     brief_path.write_text(brief, encoding="utf-8")
+    initialize_telemetry(package, repo_root)
+    render_dashboard(repo_root)
     return package, package_path, brief_path, refreshed
 
 

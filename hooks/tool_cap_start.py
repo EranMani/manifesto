@@ -39,6 +39,17 @@ _AGENT_LIMITS: dict[str, int] = {
     "ryan":    5,
 }
 _DEFAULT_LIMIT = 25
+_AGENT_ALIASES = {
+    "backend": "rex",
+    "frontend": "aria",
+    "devops": "adam",
+    "ai-engineer": "nova",
+}
+
+
+def normalize_agent_name(value: str) -> str:
+    lowered = str(value).lower()
+    return _AGENT_ALIASES.get(lowered, lowered)
 
 
 def main() -> int:
@@ -56,6 +67,7 @@ def main() -> int:
         or tool_input.get("description", "")[:20]
         or "unknown"
     )
+    agent_name = normalize_agent_name(agent_name)
 
     limit = _AGENT_LIMITS.get(agent_name, _DEFAULT_LIMIT)
 
