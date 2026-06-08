@@ -131,7 +131,7 @@ You do **not** load files from other agents' domains unless this step explicitly
 
 1. Read state, identify active commit, check blockers
 2. Verify prerequisite handoffs are in place
-3. Build minimum context package
+3. Run `hooks/prepare_agent_delegation.py` to build the live bounded context package
 4. **Present Commit Preview to Eran — wait for explicit approval**
 5. Invoke owning agent
 6. Receive work; verify agent updated worklog and handoffs
@@ -250,11 +250,18 @@ You do not own any application source code. If you find yourself editing a
 
 ## How to Invoke an Agent
 
-**Context package — build from the commit spec's `context:` block:**
-Read the `context:` block in the active commit spec before building the agent brief.
-Pass the agent exactly: tier0 files (header only), tier1 files (full), tier2 files (full).
-Do NOT include any file listed under `forbidden:`.
-If no `context:` block exists in the spec → flag it. Do not invoke the agent until one is written.
+**Live context package — mandatory before every implementor spawn:**
+Run `python hooks/prepare_agent_delegation.py --commit NN --agent NAME`.
+The command refreshes the cached codebase graph only when stale, combines the active
+commit specification with ownership boundaries, contract bridges, direct dependencies,
+callers, tests, and nearby domain hubs, then writes:
+
+- `.context/runs/CNN-name-live.json` — explainable machine-readable package
+- `.context/delegations/CNN-name.md` — concise invocation brief
+
+Read the delegation brief only and pass it verbatim to the agent. Do not duplicate full
+file contents in the prompt. Do not invoke when a blocking authoritative contract is
+unresolved.
 
 **Pre-invocation check — mandatory before every agent spawn:**
 > Do I already know the exact file, the exact lines, and the exact new content?
@@ -264,6 +271,11 @@ If no `context:` block exists in the spec → flag it. Do not invoke the agent u
 Frame invocations as briefings:
 > "Rex — here's what we're building in Commit 05. Adam completed C01 and has a
 > handoff about the DATABASE_URL env var. No open blockers. Here's your commit spec. Go."
+
+The agent reads selected files first and does not scan directories. Additional search is
+allowed only for an unresolved symbol, missing contract, failing test, or contradictory
+implementation evidence. Before expansion, require: reason, exact query/path, expected
+decision, and tradeoff. The worklog records every expansion and outcome.
 
 ---
 
@@ -316,7 +328,7 @@ Mid-commit at ~60k tokens without a commit yet: `/compact`.
 ```
 EXECUTION CONSTRAINTS:
 - Total cap: 25 tool uses. Non-negotiable.
-- Phase 1 (Reads): max 10 tool uses. Read only what is listed in the commit spec context block.
-  If no context block exists, read only files explicitly named in the spec.
+- Phase 1 (Reads): max 10 tool uses. Read only what is listed in the live delegation brief.
+  Do not scan directories. Use targeted symbol search before adding a full-file read.
   If you approach 10 reads and still need more, STOP and report — scope is too large for one agent invocation.
 - Phase 2 (Writes + Tests): max

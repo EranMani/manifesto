@@ -406,6 +406,79 @@ Scopes: `backend / frontend / devops / config / governance`
 
 ---
 
+## D29 - Context Package V2 Starts in Shadow Mode
+
+- **Date:** 2026-06-08
+- **Decided by:** Eran and Codex
+- **Context:** Static commit context is lean, but it can omit callers, tests, structural
+  wiring, or cross-domain contracts. Direct activation would risk making agents
+  efficiently wrong.
+
+### Decision
+
+Add an explainable context engine under `hooks/` and validate it in shadow mode before
+changing real agent prompts. The engine combines the existing commit-spec context with
+structural anchors, one-hop dependencies from changed files, tests, and explicit
+cross-domain contract bridges. Generated previews are written under `.context/runs/`.
+
+### Tradeoffs
+
+- **Chosen:** deterministic rules and import graphs before embeddings or LLM retrieval.
+  This is cheap, reproducible, and easy to debug, but cannot discover every dynamic
+  runtime relationship.
+- **Chosen:** expand dependencies only from primary changed files. Expanding every
+  contract or shared hub produced unrelated sibling routes and wasted context.
+- **Chosen:** project-specific contract bridges for known cross-domain interfaces.
+  They require maintenance, but make critical contracts explicit and testable.
+- **Chosen:** preserve a reserved context budget and report exclusions. This may omit
+  low-priority neighbors, but prevents uncontrolled context growth.
+- **Reversibility:** high. Phase A does not modify commit execution, hooks, or prompts.
+
+### Activation condition
+
+Keep shadow mode until automated tests pass and historical/planned commit previews show
+complete required-contract recall without harmful unrelated context.
+
+### Phase A2 extension — cached codebase network
+
+Reuse Skillsmith's deterministic classification and graph concepts through a local
+Manifesto implementation rather than importing scripts from another project directory.
+The cache makes full-repository mapping reusable across context requests and can also
+feed an Obsidian visualization.
+
+**Tradeoffs:**
+
+- A local adaptation duplicates some Skillsmith logic, but keeps Manifesto reproducible
+  and independently versioned.
+- Cache generation adds a separate refresh step, but context requests avoid rebuilding
+  the full graph each time.
+- Hub proximity follows dependency direction. This captures shared foundations while
+  avoiding sibling-route fan-out through structural entry points.
+- Obsidian remains an optional inspection surface; agents receive only the bounded
+  selected neighborhood, never the full network.
+- Missing or invalid cache data falls back safely to the Phase A1 scanner, preserving
+  context generation at reduced graph richness.
+
+### Phase A3 extension — activate live delegation
+
+Claude now prepares a state-validated live package before every implementor invocation and
+passes the generated brief verbatim. The approval gate remains unchanged: preparing
+context does not authorize agent execution.
+
+**Tradeoffs:**
+
+- Agents may still search, but each expansion must state its reason, exact query or path,
+  expected decision, and tradeoff. This adds a small discipline cost while preventing
+  speculative exploration.
+- The package lists selected files instead of embedding their contents, saving prompt
+  tokens at the cost of targeted agent reads.
+- Large selected files use excerpt-first guidance. This reduces token consumption but
+  requires accurate symbol or section queries.
+- Live preparation rejects commit or owner mismatches against `project-state.json`.
+  Manual experimentation must use shadow preview commands instead.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
 it Preview Format: "Summary" replaces "What"
 

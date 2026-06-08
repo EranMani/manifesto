@@ -121,6 +121,12 @@ If an agent hits 25 and is not done, it stops and reports. Claude does not re-in
 
 ## Execution Constraints — Include Verbatim in Every Invocation
 
+Before invoking an implementor, Claude must run
+`python hooks/prepare_agent_delegation.py --commit NN --agent NAME` and pass the generated
+brief verbatim. Agents begin with the selected files and do not scan directories.
+Additional context requires a stated reason, exact query/path, expected decision, and
+tradeoff; the expansion and outcome are recorded in the worklog.
+
 ### Implementors (Rex, Adam, Aria)
 
 ```

@@ -71,6 +71,21 @@ To add an agent: write their identity file to `.claude/agents/[name].md` and add
 
 All agent-to-agent communication routes through Claude. No direct agent-to-agent contact.
 
+### Live Context Delegation
+
+Before every implementor invocation, Claude runs:
+
+`python hooks/prepare_agent_delegation.py --commit <N> --agent <agent-id>`
+
+Claude passes the generated `.context/delegations/C<NN>-<agent>.md` brief to the
+owning agent. It defines primary work, supporting contracts, boundaries, relevant hubs,
+acceptance criteria, and the initial read budget.
+
+Agents read listed files first and do not scan directories. Additional context is allowed
+only for an unresolved symbol, missing contract, failing test, or contradictory
+implementation evidence. Before expanding, the agent records the reason, exact query or
+path, expected decision, and tradeoff. Expansions and outcomes go in the worklog.
+
 **Standard handoff format:**
 ```
 ## Handoff → [Agent]

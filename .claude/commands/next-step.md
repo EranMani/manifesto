@@ -17,10 +17,11 @@ Execute in this order:
    - What it unlocks for the steps that follow
    - Any token budget considerations for this invocation
 
-5. **State the context package** — briefly describe what will be loaded for the agent:
-   - Identity file: [agent].md
-   - Handoffs: [list relevant handoffs or "none"]
-   - Depth needed: Tier 1 only / Tier 2 (reason)
+5. **Prepare the live context package** — run:
+   `python hooks/prepare_agent_delegation.py --commit <N> --agent <agent-id>`
+   Read only the generated `.context/delegations/C<NN>-<agent>.md` brief.
+   State the selected file count, estimated characters, primary files, contracts,
+   relevant hubs, forbidden edits, expansion triggers, and graph refresh status.
 
 6. **Ask for approval** — end with exactly:
 
@@ -28,3 +29,6 @@ Execute in this order:
 > Shall I proceed?
 
 Do not start any work until the Team Lead confirms.
+
+After approval, invoke the owning agent with the generated delegation brief verbatim.
+Do not duplicate full file contents in the invocation prompt.

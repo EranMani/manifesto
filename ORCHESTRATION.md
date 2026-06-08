@@ -47,9 +47,11 @@ STEP 1 — Claude reads commit-protocol.md
 STEP 2 — Claude reads project-state.json
 └── Checks for open blockers. Blocker exists → surface to Eran and stop.
 
-STEP 3 — Claude builds the context package for the owning agent
-└── Tier 0 (agent identity) + Tier 1 (commit spec + handoffs)
-    Tier 2 (historical depth) only if the task explicitly requires it
+STEP 3 — Claude builds the live context package for the owning agent
+└── Runs hooks/prepare_agent_delegation.py for the active commit and owner
+    Refreshes the cached graph only when stale
+    Produces a bounded brief: primary files, contracts, dependencies, hubs, tests,
+    boundaries, handoffs, acceptance criteria, and expansion triggers
 
 STEP 3.5 — Claude presents the Commit Preview to Eran
 └── Structured card: what, why now, files to touch, test gates
@@ -60,7 +62,7 @@ STEP 4 — Pre-invocation check (mandatory)
 └── "Do I already know the exact file, line, and content to change?"
     YES → use Edit directly. Do NOT invoke an agent.
           Agent overhead = 10–30k tokens. Edit = ~200 tokens.
-    NO  → invoke the agent with the context package.
+    NO  → invoke the agent with the generated delegation brief verbatim.
 
 STEP 5 — Agent executes
 └── Writes worklog continuously. Decisions logged as made.
@@ -142,6 +144,18 @@ TIER 3 — Archive (only on explicit request):
 
 Claude does not load Tier 2 by default. If the task does not explicitly require
 historical depth, Tier 0 + Tier 1 is the entire context package.
+
+### Live selection and expansion
+
+The commit specification remains authoritative, but file selection is produced by
+`hooks/prepare_agent_delegation.py`. The context engine adds only bounded structural
+evidence: direct dependencies and callers, explicit cross-domain contracts, tests, and
+at most the configured nearby domain hubs.
+
+Agents do not scan folders. They read selected files first. Expansion is permitted only
+for unresolved symbols, missing contracts, failing tests, or contradictory implementation
+evidence. Every expansion states its reason, exact query/path, expected decision, and
+tradeoff before the tool call, then records the result in the worklog.
 
 ### Token budget targets
 

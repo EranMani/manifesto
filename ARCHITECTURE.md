@@ -737,4 +737,43 @@ Inline `Login` stub (`const Login = () => <div>Login</div>`) replaced with `impo
 
 ---
 
+## Context Package V2 - Phase A Shadow Mode
+
+**Introduced:** 2026-06-08
+
+`hooks/context_engine.py` builds an explainable context preview from a commit spec. It
+groups files as primary, contract, test, structural, dependency, or identity context.
+Dependency expansion is one hop from files being changed; project-specific contract
+bridges cover cross-domain interfaces such as frontend login to backend auth schemas.
+
+`hooks/build_agent_context.py` writes previews to `.context/runs/`. These files are
+ignored by git and are not injected into agent prompts in Phase A.
+
+Selection is controlled by `hooks/context_rules.json`, including path aliases, structural
+anchors, contract bridges, file limits, character limits, and reserved expansion budget.
+Every selected file records why it was included. Missing cross-domain contracts and
+budget exclusions become explicit expansion triggers rather than silent omissions.
+
+Phase A2 adds `hooks/codebase_graph.py`, adapted from Skillsmith's deterministic
+archaeology scanner. `hooks/build_codebase_graph.py` writes a cached repository-wide
+network to `.context/index/codebase-graph.json` with file categories, resolved imports,
+reverse imports, and global plus domain-scoped hub scores. Context packages use this
+cache when valid and fall back to the original lightweight scanner when it is absent or
+malformed. Nearby hubs are considered only along a primary file's dependency direction,
+preventing unrelated sibling modules from entering through shared routers or entry points.
+
+Phase A3 activates the package for live delegation through
+`hooks/prepare_agent_delegation.py`. Before an implementor is spawned, Claude prepares a
+state-validated live package and a compact Markdown brief under `.context/delegations/`.
+The command refreshes the graph only when source files are newer than the cache. Large
+files receive a targeted-excerpt strategy; selected paths are not automatically loaded in
+full. Claude passes the brief verbatim, while the agent reads selected files and expands
+only for explicit unresolved-symbol, contract, test, or contradictory-evidence triggers.
+
+Tests live under `hooks/tests/` and cover path safety, Python and TypeScript import
+resolution, context parsing, dependency expansion, contract bridges, and historical
+Manifesto cases.
+
+---
+
 *This document is updated by Claude before every Team Lead approval prompt when a new component, pattern, or data flow is introduced.*

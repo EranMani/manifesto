@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "ignored_directories": [
+    ".git",
+    ".context",
+    ".venv",
+    "__pycache__",
+    "dist",
+    "node_modules"
+  ],
+  "source_roots": [
+    "backend/app",
+    "frontend/src"
+  ],
+  "graph": {
+    "cache_path": ".context/index/codebase-graph.json",
+    "python_import_roots": [
+      "backend",
+      "src"
+    ],
+    "hub_min_in_degree": 2,
+    "max_hubs_per_package": 2,
+    "max_hub_distance": 2,
+    "agent_categories": {
+      "rex": [
+        "backend"
+      ],
+      "nova": [
+        "ai",
+        "backend"
+      ],
+      "aria": [
+        "frontend"
+      ],
+      "adam": [
+        "devops",
+        "config"
+      ],
+      "quinn": [
+        "tests",
+        "backend",
+        "frontend",
+        "ai"
+      ]
+    }
+  },
+  "path_aliases": {
+    ".claude/agents/aria.md": ".claude/agents/frontend.md",
+    ".claude/agents/rex.md": ".claude/agents/backend.md",
+    ".claude/agents/adam.md": ".claude/agents/devops.md"
+  },
+  "agents": {
+    "rex": {
+      "worklog": ".claude/agents/logs/rex-worklog.md",
+      "read_domains": [
+        "backend/"
+      ],
+      "structural_by_area": {
+        "backend/app/api/": [
+          "backend/app/main.py"
+        ],
+        "backend/app/services/": [
+          "backend/app/services/__init__.py"
+        ],
+        "backend/app/models/": [
+          "backend/app/models/__init__.py"
+        ]
+      }
+    },
+    "nova": {
+      "worklog": ".claude/agents/logs/nova-worklog.md",
+      "read_domains": [
+        "backend/app/services/",
+        "backend/app/models/",
+        "backend/app/core/",
+        "backend/tests/",
+        "commit-specs/"
+      ],
+      "structural_by_area": {
+        "backend/app/services/": [
+          "backend/app/services/__init__.py"
+        ]
+      }
+    },
+    "aria": {
+      "worklog": ".claude/agents/logs/aria-worklog.md",
+      "read_domains": [
+        "frontend/",
+        "backend/app/api/",
+        "backend/app/schemas/",
+        "commit-specs/"
+      ],
+      "structural_by_area": {
+        "frontend/src/api/": [
+          "frontend/src/api/client.ts"
+        ],
+        "frontend/src/pages/": [
+          "frontend/src/App.tsx"
+        ],
+        "frontend/src/components/": [
+          "frontend/src/App.tsx"
+        ]
+      }
+    },
+    "adam": {
+      "worklog": ".claude/agents/logs/adam-worklog.md",
+      "read_domains": [
+        "backend/Dockerfile",
+        "docker-compose",
+        "scripts/",
+        ".env"
+      ],
+      "structural_by_area": {}
+    },
+    "quinn": {
+      "worklog": ".claude/agents/logs/quinn-worklog.md",
+      "read_domains": [
+        "backend/",
+        "frontend/",
+        "commit-specs/"
+      ],
+      "structural_by_area": {}
+    }
+  },
+  "contract_bridges": [
+    {
+      "name": "frontend-login-to-backend-auth",
+      "when_any": [
+        "frontend/src/api/auth.ts",
+        "frontend/src/pages/Login.tsx"
+      ],
+      "include": [
+        "backend/app/schemas/auth.py",
+        "backend/app/api/v1/auth.py"
+      ]
+    },
+    {
+      "name": "policy-chat-ui-to-sse-contract",
+      "when_any": [
+        "frontend/src/api/chat.ts",
+        "frontend/src/pages/ChatPolicy.tsx"
+      ],
+      "include": [
+        "commit-specs/commit-30.md",
+        "backend/app/schemas/chat.py"
+      ]
+    }
+  ],
+  "budget": {
+    "max_files": 14,
+    "max_chars_per_file": 6000,
+    "max_total_chars": 30000,
+    "reserve_chars": 6000
+  }
+}

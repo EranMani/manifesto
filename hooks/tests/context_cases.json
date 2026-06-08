@@ -1,0 +1,71 @@
+[
+  {
+    "name": "historical-login-contract",
+    "commit": "22",
+    "agent": "aria",
+    "required": [
+      "frontend/src/api/auth.ts",
+      "backend/app/schemas/auth.py",
+      "backend/app/api/v1/auth.py"
+    ],
+    "irrelevant": [
+      "backend/app/models/product.py"
+    ]
+  },
+  {
+    "name": "llm-provider-foundation",
+    "commit": "25",
+    "agent": "nova",
+    "required": [
+      "backend/app/services/llm.py",
+      "backend/app/core/config.py",
+      "backend/pyproject.toml"
+    ],
+    "irrelevant": [
+      "frontend/src/pages/Admin.tsx"
+    ]
+  },
+  {
+    "name": "document-ingestion",
+    "commit": "27",
+    "agent": "nova",
+    "required": [
+      "backend/app/services/ingestion.py",
+      "backend/app/services/llm.py",
+      "backend/app/models/policy.py"
+    ],
+    "irrelevant": [
+      "frontend/src/pages/Dashboard.tsx"
+    ]
+  },
+  {
+    "name": "policy-chat-route",
+    "commit": "30",
+    "agent": "rex",
+    "required": [
+      "backend/app/api/v1/chat.py",
+      "backend/app/services/rag_policy.py",
+      "backend/app/dependencies.py",
+      "backend/app/main.py"
+    ],
+    "irrelevant": [
+      "frontend/src/pages/ChatPolicy.tsx",
+      "backend/app/api/v1/auth.py"
+    ]
+  },
+  {
+    "name": "policy-chat-ui",
+    "commit": "32",
+    "agent": "aria",
+    "required": [
+      "frontend/src/pages/ChatPolicy.tsx",
+      "frontend/src/api/client.ts",
+      "frontend/src/store/auth.ts",
+      "frontend/src/App.tsx",
+      "commit-specs/commit-30.md"
+    ],
+    "irrelevant": [
+      "backend/app/models/product.py"
+    ]
+  }
+]
