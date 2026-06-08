@@ -162,7 +162,7 @@ CREATE TABLE policy_chunks (
     document_id UUID REFERENCES policy_documents(id) ON DELETE CASCADE,
     chunk_index INT,
     content     TEXT NOT NULL,
-    embedding   VECTOR(1536),
+    embedding   VECTOR(768),
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -191,12 +191,14 @@ One of Manifesto's differentiators is that it is LLM-agnostic. Users select a pr
 
 | Provider | Model | Use case |
 |---|---|---|
-| `ollama` | `llama3` (or any local model) | Local dev, testing, privacy-sensitive deployments |
-| `openai` | `gpt-4o` + `text-embedding-3-small` | Production, higher quality answers |
+| `ollama` | Configured local chat model | Local dev, testing, privacy-sensitive deployments |
+| `openai` | Configured pinned chat model | Production, higher quality answers |
 
 ### Abstraction layer
 
-A single `LLMService` class in `app/services/llm.py` wraps both providers behind a common interface:
+Generation and embeddings are separate concerns. `LLMService` wraps the
+conversation-selected chat provider. `EmbeddingService` wraps one deployment-wide corpus
+embedding profile used by both ingestion and retrieval.
 
 ```python
 class LLMService:
@@ -208,17 +210,24 @@ class LLMService:
             return self._openai_chat(messages, stream)
         return self._ollama_chat(messages, stream)
 
-    async def embed(self, text: str) -> list[float]:
-        if self.provider == "openai":
-            return self._openai_embed(text)
-        return self._ollama_embed(text)
+
+class EmbeddingService:
+    @property
+    def profile(self) -> EmbeddingProfile: ...
+
+    async def embed_documents(self, texts: Sequence[str]) -> list[list[float]]: ...
+    async def embed_query(self, text: str) -> list[float]: ...
 ```
 
-This means all RAG pipelines call `LLMService` — swapping providers requires no changes to business logic.
+Provider SDKs remain isolated in `llm.py`; business services depend on provider-neutral
+types.
 
 ### Embedding dimension note
 
-Ollama embeddings (e.g. `nomic-embed-text`) use 768 dimensions. OpenAI `text-embedding-3-small` uses 1536. The `policy_chunks.embedding` column must match the provider used at ingestion time. For MVP, pick one provider for ingestion and stay consistent. A future migration path: store which provider embedded each chunk and filter at query time.
+Phase 2 standardizes storage at 768 dimensions. Ollama uses `nomic-embed-text`; OpenAI
+uses `text-embedding-3-small` with `dimensions=768`. A deployment uses one provider/model
+profile for the whole corpus. Changing that profile requires a full re-index even when
+the dimensions remain equal.
 
 ---
 
@@ -266,18 +275,18 @@ Answers questions about company rules and procedures. Data source: uploaded poli
 Ingest (offline)
   Manager uploads PDF/DOCX/TXT →
   Backend extracts text (PyMuPDF / python-docx) →
-  Split into chunks (512 tokens, 50 token overlap) →
-  Embed each chunk via LLMService.embed() →
+  Split structurally, then enforce a tokenizer-based chunk budget →
+  Batch embeddings via EmbeddingService →
   Store chunks + embeddings in policy_chunks
 
 Query (online, streaming)
   User sends message →
-  Embed query via LLMService.embed() →
-  Cosine similarity search in pgvector (top-k=5) →
-  Build prompt with retrieved chunks + conversation history (last 6 messages) →
+  Embed query via EmbeddingService →
+  Hybrid pgvector + full-text candidate retrieval →
+  Reciprocal-rank fusion, evidence threshold, diversification, token budget →
+  Build a grounded prompt with retrieved chunks + token-bounded server history →
   Stream response via LLMService.chat() →
-  Persist user message + assistant response to messages table
-  Note document titles as citations in response metadata
+  Persist user message + assistant response + structured source provenance
 ```
 
 **System prompt for policy chat:**
@@ -290,22 +299,40 @@ answer comes from by name.
 
 ### RAG Pipeline — Logistics Chat (Managers)
 
-Answers questions about live inventory data. Data source: the PostgreSQL database itself.
+Answers questions about live inventory data. Vendors, shipments, products, and categories
+form an authoritative entity graph through PostgreSQL foreign keys. Phase 3 uses
+graph-aware relational retrieval: the LLM proposes a typed path/aggregate plan over an
+allowlisted domain graph, the backend validates it, and a deterministic compiler produces
+parameterised SQL.
 
 ```
 User sends message →
-  Build text-to-SQL prompt (includes full schema + conversation history) →
-  LLM generates a SELECT query →
+  Classify lookup / aggregate / multi-hop / semantic intent →
+  Build a typed plan over allowed nodes, edges, fields, and operations →
+  Validate plan against role and domain graph →
+  Compile plan to parameterised SELECT query →
   Execute on read-only DB connection (parameterised, no DDL/DML) →
-  Format result rows as context →
+  Return rows + entity/relationship/calculation provenance →
   LLM synthesises natural language answer →
   Stream response to client →
-  Persist user message + assistant response + sql_query to messages table
+  Persist user message + assistant response + plan + sql_query to messages table
 ```
 
-**Security note**: The logistics chat uses a dedicated read-only PostgreSQL role. The generated SQL is validated to be a `SELECT` statement before execution. No `INSERT`, `UPDATE`, `DELETE`, or DDL is ever executed from a chat prompt.
+**Security note**: The logistics chat uses a dedicated read-only PostgreSQL role. The LLM
+does not author executable SQL directly. Plans are allowlisted and compiled by the
+backend; statements are parameterised, bounded by timeout/row limits, and restricted to
+`SELECT`.
 
-**Conversation history in logistics chat**: The last 6 messages are included in the prompt so managers can ask follow-up questions ("and how many of those arrived in Q1?") without re-stating context.
+**GraphRAG note**: Do not introduce a second graph database by default. The normalized
+PostgreSQL schema is already the source-of-truth graph and its relationships are shallow
+and deterministic. Benchmark graph-plan-to-SQL against unconstrained text-to-SQL first.
+Consider Neo4j or full knowledge-graph extraction only when variable-depth paths, graph
+algorithms, cross-source entity resolution, or measured scale justify synchronization and
+operational cost.
+
+**Conversation history in logistics chat**: A recent server-loaded history window is
+included within a configured token budget so managers can ask follow-up questions without
+allowing unbounded context growth.
 
 ---
 
@@ -392,13 +419,14 @@ Conversations are persisted per user. This means:
 - Each user has a sidebar showing all their past conversations, grouped by type (policy / logistics)
 - Conversation titles are auto-generated from the first user message (trimmed to 60 chars)
 - Clicking a past conversation loads the full message history from the database
-- The last 6 messages of a conversation are included as context in every new prompt
+- Recent completed messages are included within a configured token budget
 - Conversation records store which `llm_provider` was used — this is fixed at conversation creation and cannot be changed mid-conversation
 
 **Schema recap:**
 ```
 conversations: id, user_id, chat_type, llm_provider, title, created_at, updated_at
-messages:      id, conversation_id, role, content, sql_query, created_at
+messages:      id, conversation_id, role, content, sql_query, status, created_at
+message_citations: assistant_message_id, rank, document_id, chunk_id, source snapshot
 ```
 
 ---
@@ -409,15 +437,17 @@ Policy documents are uploaded by managers (any manager, not just admin) and inde
 
 ```
 Manager uploads file via /api/v1/documents →
-  Validate file type (PDF, DOCX, TXT, MD) →
+  Stream with byte/structure limits; validate extension, MIME, and signature →
+  Resolve SHA-256 + embedding-profile idempotency key →
   Extract text:
     PDF  → PyMuPDF
     DOCX → python-docx
     TXT/MD → read directly →
-  Chunk with RecursiveCharacterTextSplitter (512 tokens, 50 overlap) →
-  Embed each chunk via LLMService.embed() →
-  Insert into policy_chunks with document_id + chunk_index →
-  Return { document_id, title, chunk_count } confirmation
+  Preserve page/heading/table provenance →
+  Split structurally, then enforce tokenizer bounds and overlap →
+  Batch via EmbeddingService →
+  Atomically publish chunks and mark document ready →
+  Return document status + chunk count
 ```
 
 Employees do not see the list of policy documents. They only receive answers (with source citations embedded in the response). This is intentional — the document library is a management concern, not an employee-facing feature.
@@ -455,7 +485,7 @@ manifesto/
 │   │   ├── services/
 │   │   │   ├── llm.py               — LLMService (Ollama + OpenAI abstraction)
 │   │   │   ├── rag_policy.py        — embed, retrieve, generate for policy chat
-│   │   │   ├── rag_logistics.py     — text-to-SQL pipeline
+│   │   │   ├── rag_logistics.py     — graph-plan-to-SQL logistics pipeline
 │   │   │   └── ingestion.py         — document chunking + embedding
 │   │   └── main.py
 │   ├── alembic/
@@ -504,10 +534,13 @@ manifesto/
 - Citations in policy responses
 
 ### Phase 3 — Logistics RAG
-- Text-to-SQL service
+- Curated vendor/shipment/product/category domain graph
+- Typed graph query planner and deterministic parameterised SQL compiler
+- Hybrid semantic retrieval plus authoritative relationship expansion
 - Manager logistics chat with SQL transparency block
 - Read-only DB connection for safety
 - Conversation history in logistics context window
+- Evaluation gates for exact results, relationship paths, authorization, and p95 latency
 
 ### Phase 4 — Hardening
 - Input validation and error handling throughout

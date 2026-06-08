@@ -1045,7 +1045,7 @@ Writing a new `0002_...` migration would either fail outright (duplicate `CREATE
 
 ### Resolution
 
-C23 is recorded as satisfied by prior work — no code changed, so no `git commit` was made for it. `commit-protocol.md` row C23 is marked `✅ done · pre-existing (0001_initial.py) · 2026-06-08`, and `project-state.json` advances `last_completed_commit` to `"23"` / `next_commit` to `"24"` directly, without a commit hash. The original spec's forward-looking dependency — `policy_chunks.embedding` is `VECTOR(1536)` (OpenAI dimension); if Nova's C24 settles on Ollama (`nomic-embed-text`, 768-dim) instead, a follow-up migration to `VECTOR(768)` is required before C25 can insert chunks — remains live and is now recorded as an open handoff to Nova in `project-state.json`.
+C23 is recorded as satisfied by prior work — no code changed, so no `git commit` was made for it. `commit-protocol.md` row C23 is marked `✅ done · pre-existing (0001_initial.py) · 2026-06-08`, and `project-state.json` advances `last_completed_commit` to `"23"` / `next_commit` to `"24"` directly, without a commit hash. The original provider/dimension handoff was superseded by the 2026-06-08 architecture review: C24 fixes one deployment-wide 768-dimensional embedding profile, independent of the per-conversation generation provider, and C26 migrates the pre-ingestion vector column from 1536 to 768 dimensions.
 
 ### Consequences
 

@@ -1,8 +1,8 @@
-# Commit 24 — `llm-service-impl` · Nova
+# Commit 24 — `llm-runtime-config` · Rex
 
-**Phase:** 2A — RAG Storage Foundation
-**Assignee:** Nova (AI/ML Engineer) — **first commit, Nova activates here**
-**Depends on:** C23 (pgvector-migration — confirms embedding dimension before Nova commits to a provider)
+**Phase:** 2A — Provider Foundation
+**Assignee:** Rex (Backend)
+**Depends on:** C23 (pgvector-migration)
 
 ---
 
@@ -10,23 +10,25 @@
 
 ```
 tier0:
-  - .claude/agents/ai-engineer.md (Current State header — first 50 lines; this is Nova's onboarding read)
+  - .claude/agents/backend.md (Current State header only — first 50 lines)
 
 tier1:
-  - backend/app/services/llm.py        # C16 stub — interface contract Nova implements against
-  - backend/app/core/config.py         # confirm OLLAMA_BASE_URL / OPENAI_API_KEY env var names
+  - backend/app/core/config.py     # settings pattern and current provider variables
+  - backend/pyproject.toml         # direct runtime dependencies
+  - backend/app/services/llm.py    # C16 provisional interface consumed by C25
 
 tier2:
-  - manifesto-spec.md (§5 LLM Provider Abstraction, lines ~186-221)
+  - manifesto-spec.md (§5 LLM Provider Abstraction)
 
 forbidden:
   - frontend/
-  - backend/app/api/        # Rex's routes — not touched this commit
-  - backend/app/models/     # Rex's models — not touched this commit
-  - backend/alembic/        # Rex's migrations
+  - backend/app/api/
+  - backend/app/models/
+  - backend/alembic/
+  - .env.example                   # Adam owns this file; handoff only
 
-estimated_reads: 3
-estimated_edits: 1   # llm.py — implement in place, signature frozen
+estimated_reads: 4
+estimated_edits: 3   # config.py, pyproject.toml, uv.lock
 fits_single_agent: true
 ```
 
@@ -34,10 +36,8 @@ fits_single_agent: true
 
 ## What
 
-Implement `LLMService.chat()` and `LLMService.embed()` for both `ollama` and `openai`
-providers, replacing the `NotImplementedError` stubs from C16. **Do not change the
-method signatures** — they were frozen in the C16 handoff and routes will be built
-against them in C28.
+Prepare the Rex-owned runtime surface required by Nova's provider implementation. This
+keeps dependency and application configuration changes out of Nova's service-only domain.
 
 ---
 
@@ -45,49 +45,51 @@ against them in C28.
 
 | File | Type | Description |
 |---|---|---|
-| `backend/app/services/llm.py` | edit | Implement `chat()` and `embed()` with provider branching |
+| `backend/pyproject.toml` | edit | Add official OpenAI client, pooled async HTTP client, and tokenizer |
+| `backend/uv.lock` | edit | Lock the new direct dependencies |
+| `backend/app/core/config.py` | edit | Add validated model, embedding-profile, timeout, and retry settings |
 
 ---
 
-## Interface (frozen — from C16)
+## Contract
 
-```python
-class LLMService:
-    def __init__(self, provider: Literal["ollama", "openai"]) -> None: ...
+Add direct dependencies for the official OpenAI async client, a pooled async HTTP client
+for Ollama, and the tokenizer used by ingestion. Add validated settings for:
 
-    async def chat(
-        self,
-        messages: list[dict[str, str]],
-        stream: bool = True
-    ) -> AsyncIterator[str]: ...
+- `OPENAI_API_KEY`
+- `OPENAI_CHAT_MODEL` (a pinned deployment default, not a floating "latest" alias)
+- `OLLAMA_BASE_URL`
+- `OLLAMA_CHAT_MODEL`
+- `EMBEDDING_PROVIDER`
+- `EMBEDDING_MODEL`
+- `EMBEDDING_DIMENSIONS=768`
+- connect/read/total timeouts and maximum retry count
 
-    async def embed(self, text: str) -> list[float]: ...
-```
+The corpus embedding profile is deployment-wide and independent of the conversation's
+generation provider. Phase 2 standardizes storage at 768 dimensions: local deployments
+default to Ollama `nomic-embed-text`, while OpenAI deployments use
+`text-embedding-3-small` with `dimensions=768`. Equal dimensions do not make providers
+interchangeable; changing provider or model requires a full re-index.
 
-- `chat()`: branch on `self.provider` → `_ollama_chat` (`llama3` via local Ollama HTTP API)
-  or `_openai_chat` (`gpt-4o` via OpenAI SDK). Stream tokens as they arrive when `stream=True`.
-- `embed()`: branch on `self.provider` → `_ollama_embed` (`nomic-embed-text`, 768-dim) or
-  `_openai_embed` (`text-embedding-3-small`, 1536-dim).
-
-**Provider/dimension decision:** Pick ONE provider for embeddings and document it in your
-worklog — `policy_chunks.embedding` (C23) must match. If you choose Ollama (768-dim) and
-C23 shipped `VECTOR(1536)`, raise a cross-domain finding to Rex for a follow-up migration
-*before* C25 starts.
+Secrets remain server-side and are never returned by an API.
 
 ---
 
 ## Done When
 
-- [ ] `LLMService("ollama").chat([...])` and `LLMService("openai").chat([...])` both stream real tokens (no `NotImplementedError`)
-- [ ] `LLMService("ollama").embed(text)` and `LLMService("openai").embed(text)` both return `list[float]` of the documented dimension
-- [ ] No provider SDK is imported or called outside `llm.py`
-- [ ] Method signatures unchanged from C16
+- [ ] `uv sync --locked` succeeds
+- [ ] Settings reject unsupported providers, non-positive timeouts, and dimensions other
+  than the Phase 2 value of 768.
+- [ ] The app can start without an OpenAI key when OpenAI is not selected for either chat or
+  embeddings.
+- [ ] The new settings and defaults are documented in `config.py` and this commit's handoff
 
 ---
 
 ## Handoffs Out
 
-→ Nova (C25, C27): provider chosen for embeddings is **[fill in at commit time]**, dimension
-**[768 | 1536]**. `chat()` streams `AsyncIterator[str]` — consume with `async for`.
-→ Rex (C28): `LLMService.chat()` is ready to wire into a streaming SSE route. Pass
-`messages: list[dict[str, str]]` (OpenAI-style `{role, content}` dicts).
+→ Nova (C25): rely on validated settings and direct dependencies. The embedding profile
+is fixed to one deployment-wide vector space.
+
+→ Adam (next DevOps config commit): mirror the new non-secret setting names into `.env.example`.
+configuration commit. Rex does not edit Adam's file in C24.

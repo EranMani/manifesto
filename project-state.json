@@ -1,20 +1,20 @@
 {
   "project": "manifesto",
-  "tldr": "C23 `pgvector-migration` resolved 2026-06-08 as done-by-prior-work — schema already existed in 0001_initial.py, no commit made (see D28). Next: Commit 24 `llm-service-impl` (Nova). One open handoff to Nova re: embedding dimension. No blockers.",
+  "tldr": "Phase 2 architecture review corrected and renumbered on 2026-06-08. Next: C24 `llm-runtime-config` (Rex), followed by parallel C25 provider implementation and C26 storage hardening. The embedding profile is deployment-wide at 768 dimensions and independent of chat provider.",
   "phase": 2,
   "last_completed_commit": "23",
   "next_commit": "24",
-  "next_commit_name": "llm-service-impl",
-  "next_commit_assignee": "nova",
+  "next_commit_name": "llm-runtime-config",
+  "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
     {
       "from": "rex",
       "to": "nova",
-      "regarding": "C24/C25 — embedding dimension must match policy_chunks.embedding column",
-      "detail": "policy_chunks.embedding is VECTOR(1536) (OpenAI text-embedding-3-small dimension), already live in 0001_initial.py and verified against the DB. Confirm your ingestion-time embedding provider before starting C25. If you choose Ollama (nomic-embed-text, 768-dim) instead of OpenAI, this column needs a follow-up migration to VECTOR(768) before any chunks can be inserted — flag that as its own commit before C25 begins ingestion.",
+      "regarding": "C25/C27 — embedding dimension must match policy_chunks.embedding column",
+      "detail": "Resolved by the 2026-06-08 architecture review: chat generation provider and corpus embedding provider are separate concerns. C24 configures one deployment-wide 768-dimensional profile; C26 migrates the current VECTOR(1536) column before ingestion. Local uses Ollama nomic-embed-text; OpenAI uses text-embedding-3-small with dimensions=768. Changing provider/model requires full re-index.",
       "date": "2026-06-08",
-      "actioned": false
+      "actioned": true
     }
   ],
   "blockers": [],
@@ -25,8 +25,16 @@
       "summary": "Added 10 commits (C23-C32) implementing manifesto-spec.md §Phase 2 'Policy RAG': pgvector storage (C23), LLMService implementation (C24), document ingestion (C25), document upload routes (C26), RAG policy pipeline (C27), policy chat routes (C28), conversation persistence (C29), policy chat UI (C30), conversation sidebar UI (C31), citations UI (C32). No commits removed or reordered — pure addition after C22.",
       "agents_activated": ["nova"],
       "files_updated": ["commit-protocol.md", "AGENTS.md", ".claude/agents/ai-engineer.md", "commit-specs/commit-23.md..commit-32.md", ".claude/agents/logs/rex-worklog.md", ".claude/agents/logs/aria-worklog.md", ".claude/agents/logs/nova-worklog.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-08",
+      "trigger": "Eran requested a production RAG and software-design review of the pending Phase 2 commits",
+      "summary": "Corrected the dependency graph and stale file assumptions; expanded and cleanly renumbered the pending sequence as C24-C34 with no letter suffixes. Revised the plan around a deployment-wide embedding profile, idempotent structured ingestion, HNSW plus lexical hybrid retrieval, grounded source labels, versioned SSE, cancellation, durable message/citation states, cursor pagination, and frontend race/error handling. Added a Phase 3 graph-aware logistics RAG decision.",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "commit-specs/commit-24.md..commit-34.md", "commit-specs/PHASE-2-RAG-ARCHITECTURE-REVIEW.md", "commit-specs/PHASE-3-GRAPH-RAG-DESIGN.md", "manifesto-spec.md", "project-state.json"]
     }
   ],
   "rollback_history": [],
-  "notes": "C23 (`pgvector-migration`, Rex) resolved 2026-06-08 with NO git commit — investigation (Rex, on Eran's instruction to invoke him despite the scope already looking thin) found the entire pgvector/policy schema (extension, both tables, FKs, ivfflat index) already present in `0001_initial.py` lines 101-141, dated 2026-06-05 alongside the C06 model commit (`f712343`). Verified live: `alembic current` = 0001_initial (head), pgvector v0.8.2 active, tables/FKs/index/ORM mapping all correct. Writing a new migration would have duplicated DDL or falsified history; downgrading would have torn down the entire schema. Full record in DECISIONS.md D28. commit-protocol.md C23 marked done-by-prior-work; pointer advanced straight to C24 (Nova). Nova handoff re: VECTOR(1536) vs Ollama 768-dim recorded in open_handoffs above — must be resolved before C25 ingestion begins. || C22 committed 2026-06-07 (47bca18) — loginApi fixed to send JSON {email, password}, verified clean (tsc + network-level contract check by Claude). Eran then manually click-through-verified all 4 remaining browser checks: (1) /login form renders correctly, (2) admin login (admin@manifesto.local/admin123) redirects to /dashboard, (3) /dashboard shows 'Coming soon' placeholder, (4) manager login (manager.smoke@manifesto.local/manager123) navigating to /admin redirects away — to /login specifically. Item 4 initially looked surprising (redirecting an authenticated user to the login page), but Claude confirmed via ProtectedRoute.tsx (lines 12-18) that both the no-token AND wrong-role paths intentionally redirect to /login — documented by Aria in her C18 worklog. Logged as D25 (UX trade-off noted for possible Phase 2+ refinement, not a blocker). All C21 SMOKE_TEST_RESULTS.md items now resolved — Phase 1 formally closed 2026-06-07. Adam's throwaway manager user (manager.smoke@manifesto.local/manager123) remains in the dev DB as a useful fixture for future role-based testing. Phase 2 replan applied same day: C23-C32 added per manifesto-spec.md §Phase 2 (Policy RAG). Nova activated — identity file at .claude/agents/ai-engineer.md, first commit is C24. Sequence: C23(Rex) → C24(Nova) → {C25(Nova), C26(Rex)} → C27(Nova) → C28(Rex) → {C29(Rex), C30(Aria)} → C31(Aria) → C32(Aria). Viktor's next batch wave lands at C25 (every-5th-commit cadence continues from C20)."
+  "notes": "Architecture review supersedes the original Phase 2 sequence and embedding handoff. Execute C24 next, then parallel C25/C26, C27, parallel C28/C29, C30, parallel C31/C32, C33, and C34. Phase 3 should use graph-aware relational retrieval before considering a separate graph database. See the Phase 2 and Phase 3 design reviews in commit-specs/.",
+  "historical_notes": "C23 (`pgvector-migration`, Rex) resolved 2026-06-08 with NO git commit — investigation (Rex, on Eran's instruction to invoke him despite the scope already looking thin) found the entire pgvector/policy schema (extension, both tables, FKs, ivfflat index) already present in `0001_initial.py` lines 101-141, dated 2026-06-05 alongside the C06 model commit (`f712343`). Verified live: `alembic current` = 0001_initial (head), pgvector v0.8.2 active, tables/FKs/index/ORM mapping all correct. Writing a new migration would have duplicated DDL or falsified history; downgrading would have torn down the entire schema. Full record in DECISIONS.md D28. commit-protocol.md C23 marked done-by-prior-work; pointer advanced straight to C24 (Nova). Nova handoff re: VECTOR(1536) vs Ollama 768-dim recorded in open_handoffs above — must be resolved before C25 ingestion begins. || C22 committed 2026-06-07 (47bca18) — loginApi fixed to send JSON {email, password}, verified clean (tsc + network-level contract check by Claude). Eran then manually click-through-verified all 4 remaining browser checks: (1) /login form renders correctly, (2) admin login (admin@manifesto.local/admin123) redirects to /dashboard, (3) /dashboard shows 'Coming soon' placeholder, (4) manager login (manager.smoke@manifesto.local/manager123) navigating to /admin redirects away — to /login specifically. Item 4 initially looked surprising (redirecting an authenticated user to the login page), but Claude confirmed via ProtectedRoute.tsx (lines 12-18) that both the no-token AND wrong-role paths intentionally redirect to /login — documented by Aria in her C18 worklog. Logged as D25 (UX trade-off noted for possible Phase 2+ refinement, not a blocker). All C21 SMOKE_TEST_RESULTS.md items now resolved — Phase 1 formally closed 2026-06-07. Adam's throwaway manager user (manager.smoke@manifesto.local/manager123) remains in the dev DB as a useful fixture for future role-based testing. Phase 2 replan applied same day: C23-C32 added per manifesto-spec.md §Phase 2 (Policy RAG). Nova activated — identity file at .claude/agents/ai-engineer.md, first commit is C24. Sequence: C23(Rex) → C24(Nova) → {C25(Nova), C26(Rex)} → C27(Nova) → C28(Rex) → {C29(Rex), C30(Aria)} → C31(Aria) → C32(Aria). Viktor's next batch wave lands at C25 (every-5th-commit cadence continues from C20)."
 }

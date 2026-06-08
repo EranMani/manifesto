@@ -2,7 +2,7 @@
 
 > Cross-agent protocol and roster. Claude reads this at boot.
 > Updated when agents are added or domain boundaries change.
-> Last updated: 2026-06-07
+> Last updated: 2026-06-08
 
 ---
 
@@ -25,7 +25,7 @@
 
 | Role | Name | Activates | Trigger |
 |---|---|---|---|
-| QA Engineer | Quinn | Phase 2 | When business logic warrants coverage review (likely ~C27/C28) |
+| QA Engineer | Quinn | Phase 2 | When ingestion/retrieval logic warrants coverage review (C27/C29) |
 | Tech Writer | Ryan | Phase 4 | Hardening / docs phase |
 
 To add an agent: write their identity file to `.claude/agents/[name].md` and add a row to this table.

@@ -74,10 +74,10 @@ CREATE TABLE policy_chunks (
 CREATE INDEX ON policy_chunks USING ivfflat (embedding vector_cosine_ops);
 ```
 
-**Embedding dimension note:** spec'd at `VECTOR(1536)` (OpenAI `text-embedding-3-small`). If
-Nova's C24 settles on Ollama (`nomic-embed-text`, 768-dim) as the ingestion-time provider,
-this column width must change before C25 — flag that dependency explicitly in this commit's
-worklog so it surfaces before Nova starts C25.
+**Embedding dimension note:** C23 shipped `VECTOR(1536)`. The architecture review later
+standardized Phase 2 at 768 dimensions so local Ollama and OpenAI-with-dimensions=768
+deployments use the same schema shape. C26 performs the additive migration before chunks
+exist. The per-conversation generation provider does not alter the vector space.
 
 ---
 
@@ -93,6 +93,6 @@ worklog so it surfaces before Nova starts C25.
 
 ## Handoffs Out
 
-→ Nova (C24/C25): `policy_chunks.embedding` is `VECTOR(1536)` per spec default (OpenAI dimension).
-Confirm your ingestion-time provider before C25 — if Ollama, this column needs a follow-up
-migration to `VECTOR(768)` before chunks can be inserted.
+→ Rex/Nova (C24-C27): the current column is `VECTOR(1536)`; C26 changes it to
+`VECTOR(768)`. Use the single deployment-wide embedding profile configured in C24 for
+both ingestion and query embeddings. Any provider/model change requires full re-index.

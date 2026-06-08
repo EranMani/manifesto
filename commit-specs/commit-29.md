@@ -1,8 +1,8 @@
-# Commit 29 — `conversation-persistence` · Rex
+# Commit 29 — `rag-policy-pipeline` · Nova
 
-**Phase:** 2C — Policy Chat Core
-**Assignee:** Rex (Backend)
-**Depends on:** C28 (policy-chat-routes — the route this wires persistence into already exists)
+**Phase:** 2C — Retrieval and Grounded Generation
+**Assignee:** Nova (AI/ML Engineer)
+**Depends on:** C27 (document-ingestion)
 
 ---
 
@@ -10,89 +10,134 @@
 
 ```
 tier0:
-  - .claude/agents/backend.md (Current State header — first 50 lines)
+  - .claude/agents/ai-engineer.md (Current State header only — first 50 lines)
 
 tier1:
-  - backend/app/api/v1/chat_policy.py   # Rex's own C28 — the route this commit extends
-  - backend/app/models/__init__.py
+  - backend/app/services/rag_policy.py  # C16 stub to replace
+  - backend/app/services/llm.py         # C25 service contracts
+  - backend/app/models/policy.py        # C26 retrieval fields
+  - backend/app/services/ingestion.py   # C27 metadata/chunk invariants
 
 tier2:
-  - manifesto-spec.md (§4 schema — conversations/messages DDL, lines ~127-148; §9 Chat History Persistence, lines ~388-402)
+  - manifesto-spec.md (§6 RAG Pipeline — Policy Chat)
 
 forbidden:
   - frontend/
-  - backend/app/services/
+  - backend/app/api/
+  - backend/app/models/
+  - backend/alembic/
+
+estimated_reads: 5
+estimated_edits: 3   # rag_policy.py, tests, evaluation fixture
+fits_single_agent: true
 ```
 
 ---
 
 ## What
 
-Add the `conversations` and `messages` tables, models, and history routes — then wire
-persistence into the C28 chat route so every exchange is saved and can be reloaded.
+Implement a production-oriented policy RAG pipeline with hybrid retrieval, bounded
+context, explicit grounding, validated source references, and measurable quality.
 
 ---
 
-## Files to Create / Change
+## Files to Change
 
 | File | Type | Description |
 |---|---|---|
-| `backend/alembic/versions/XXXX_conversations_messages.py` | new | `conversations`, `messages` tables + index |
-| `backend/app/models/conversation.py` | new | `Conversation`, `Message` SQLAlchemy models |
-| `backend/app/api/v1/conversations.py` | new | `GET /api/v1/conversations`, `GET /api/v1/conversations/{id}/messages` |
-| `backend/app/api/v1/chat_policy.py` | edit | Create/look up conversation; persist user + assistant messages around the existing stream |
+| `backend/app/services/rag_policy.py` | edit | Implement hybrid retrieval, grounding, streaming, and source validation |
+| `backend/tests/services/test_rag_policy.py` | new | Retrieval, prompt, stream, and abstention tests |
+| `backend/tests/evals/policy_rag.json` | new | Versioned initial evaluation dataset |
 
 ---
 
-## Schema (per manifesto-spec.md §4)
+## Public Contract
 
-```sql
-CREATE TABLE conversations (
-    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id      UUID REFERENCES users(id) ON DELETE CASCADE,
-    chat_type    TEXT NOT NULL CHECK (chat_type IN ('policy', 'logistics')),
-    llm_provider TEXT NOT NULL CHECK (llm_provider IN ('ollama', 'openai')),
-    title        TEXT,
-    created_at   TIMESTAMPTZ DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE messages (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
-    role            TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
-    content         TEXT NOT NULL,
-    sql_query       TEXT,
-    created_at      TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX ON messages (conversation_id, created_at);
+```python
+async def answer_policy_question(
+    *,
+    query: str,
+    history: Sequence[ChatMessage],
+    llm: LLMService,
+    embeddings: EmbeddingService,
+    db: AsyncSession,
+) -> AsyncIterator[PolicyEvent]:
+    ...
 ```
 
-## Behavior
+Events are provider-neutral typed values: text delta, sources, completion, or normalized
+failure. A source contains stable document/chunk IDs, title, page/section when known,
+retrieval score, and the prompt label used by the model.
 
-- New conversation: created on first message, with `chat_type='policy'` and the
-  client-selected `llm_provider`. Title auto-generated from the first user message
-  (trimmed to 60 chars).
-- `llm_provider` is fixed at creation — cannot change mid-conversation (enforced at the route, not just DB).
-- Every exchange persists both the user message and the assistant's full streamed response.
-- `GET /api/v1/conversations` — list current user's conversations, grouped by `chat_type`.
-- `GET /api/v1/conversations/{id}/messages` — full history for sidebar reload; 404/403 if not the owner.
+---
+
+## Retrieval
+
+1. Normalize and validate the query without rewriting its meaning.
+2. Embed with the deployment-wide query embedding profile from C25.
+3. Retrieve a wider candidate pool from ready documents using both HNSW cosine search and
+   PostgreSQL full-text ranking.
+4. Fuse rankings with reciprocal-rank fusion, then diversify by document and adjacent
+   chunk so one repeated section cannot consume the whole context.
+5. Apply a calibrated minimum evidence threshold and a strict token budget. Select about
+   4-8 final chunks; top-k is configuration, not a magic constant.
+6. Preserve deterministic ordering and stable source labels (`S1`, `S2`, ...).
+
+Vector-only fallback is allowed if a query has no useful lexical terms. Retrieval always
+filters to `status='ready'` and the active embedding provider/model/dimension.
+
+---
+
+## Grounding
+
+- Delimit policy excerpts as untrusted source data and instruct the model to ignore any
+  instructions contained inside them.
+- Include the current question and a bounded server-supplied history window measured by
+  tokens, not simply six arbitrary messages.
+- Require factual claims to carry inline source labels such as `[S2]`.
+- If evidence is below threshold or does not answer the question, return a clear
+  insufficient-evidence answer without calling the result authoritative.
+- Accumulate only source labels actually emitted by the model, validate them against the
+  retrieved map, and emit structured sources. Never accept model-invented IDs/titles.
+- Set low, explicit generation randomness and a maximum output budget.
+
+---
+
+## Streaming and Failure Semantics
+
+- Stream text as received and separately emit validated sources at completion.
+- Cancellation propagates immediately to the provider.
+- A retrieval/provider failure before output becomes a normalized failure event.
+- A failure after output has started is terminal and is never retried as a second answer.
+
+---
+
+## Test Gate
+
+Add a small versioned dataset containing answerable, unanswerable, paraphrased, ambiguous,
+and prompt-injection-style questions. Measure at minimum:
+
+- retrieval hit rate / MRR against expected documents
+- answer abstention on unanswerable questions
+- citation validity (every emitted source exists and was retrieved)
+- context token budget and latency
+
+Thresholds are recorded as baseline gates, not claimed as universal production targets.
 
 ---
 
 ## Done When
 
-- [ ] Migration creates both tables with correct constraints, FKs, and index
-- [ ] Sending a policy chat message creates a conversation (if new) and persists both messages
-- [ ] Title is auto-generated from the first user message, ≤60 chars
-- [ ] `GET /api/v1/conversations` returns only the current user's conversations
-- [ ] `GET /api/v1/conversations/{id}/messages` returns ordered history; rejects access to another user's conversation
-- [ ] Attempting to change `llm_provider` mid-conversation is rejected
+- [ ] Hybrid retrieval is deterministic and profile-filtered
+- [ ] The prompt cannot confuse document text with system instructions
+- [ ] Unanswerable questions abstain in tests
+- [ ] Streamed citations are structured, validated, and traceable to exact chunks
+- [ ] Unit tests and the initial offline evaluation pass
 
 ---
 
 ## Handoffs Out
 
-→ Aria (C31): `GET /api/v1/conversations` returns `{id, chat_type, llm_provider, title, created_at, updated_at}[]`.
-`GET /api/v1/conversations/{id}/messages` returns `{id, role, content, sql_query, created_at}[]` ordered by `created_at`.
+→ Rex (C30): consume typed policy events and map them to the frozen SSE v1 contract.
+
+→ Rex (C31): persist validated structured sources, not model-generated title strings.

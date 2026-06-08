@@ -1,8 +1,8 @@
-# Commit 26 — `document-upload-routes` · Rex
+# Commit 26 — `rag-storage-hardening` · Rex
 
-**Phase:** 2B — Ingestion Pipeline
+**Phase:** 2A — RAG Storage Contract
 **Assignee:** Rex (Backend)
-**Depends on:** C25 (document-ingestion — `ingest_document()` must exist), Nova's cross-domain dependency finding from C25 (new `pyproject.toml` packages)
+**Depends on:** C24 (llm-runtime-config)
 
 ---
 
@@ -10,72 +10,103 @@
 
 ```
 tier0:
-  - .claude/agents/backend.md (Current State header — first 50 lines)
+  - .claude/agents/backend.md (Current State header only — first 50 lines)
 
 tier1:
-  - backend/app/services/ingestion.py   # Nova's C25 — ingest_document() contract
-  - backend/app/api/v1/                 # existing route patterns to follow (e.g. products.py)
-  - backend/app/dependencies.py         # require_role pattern
+  - backend/app/models/policy.py          # current policy schema
+  - backend/alembic/versions/0001_initial.py  # applied C23 DDL
+  - backend/alembic/env.py                # migration conventions
 
 tier2:
-  - manifesto-spec.md (§10 Document Ingestion — confirmation flow)
+  - commit-specs/PHASE-2-RAG-ARCHITECTURE-REVIEW.md
 
 forbidden:
   - frontend/
-  - backend/app/services/    # Nova's domain — call ingest_document(), do not edit it
-  - backend/alembic/
+  - backend/app/api/
+  - backend/app/services/
+
+estimated_reads: 4
+estimated_edits: 3   # migration, policy model, focused tests
+fits_single_agent: true
 ```
 
 ---
 
 ## What
 
-Routes for managers (any manager, not just admin) to upload policy documents and list
-previously uploaded ones. Validates the upload, delegates to Nova's `ingest_document()`,
-and returns the confirmation payload.
+Make the existing policy schema safe for idempotent ingestion, operational recovery,
+traceable retrieval, and later re-indexing before any production data is written.
 
 ---
 
-## Files to Create
+## Files to Create / Change
 
 | File | Type | Description |
 |---|---|---|
-| `backend/app/api/v1/documents.py` | new | `POST /api/v1/documents` (upload+ingest), `GET /api/v1/documents` (list) |
-| `backend/app/schemas/document.py` | new | `DocumentUploadResponse`, `DocumentRead` Pydantic schemas |
+| `backend/alembic/versions/XXXX_rag_storage_hardening.py` | new | Add profile/status/provenance fields and replace vector index |
+| `backend/app/models/policy.py` | edit | Match the additive schema |
+| `backend/tests/models/test_policy_storage.py` | new | Migration constraints and index behavior |
 
-Also: append the new router to `main.py` (`# routers registered below`), and apply
-Nova's C25 dependency finding to `pyproject.toml` (PyMuPDF, python-docx).
+Do not rewrite `0001_initial.py`; it is already applied.
 
 ---
 
-## Route Behavior
+## Schema Changes
 
-```
-POST /api/v1/documents
-  - require_role("manager", "admin")
-  - Validate file type (PDF, DOCX, TXT, MD) and size before calling ingestion
-  - Call ingest_document(file_bytes, filename, title, uploaded_by=current_user.id, db)
-  - Return { document_id, title, chunk_count }
+Alter `policy_chunks.embedding` from `VECTOR(1536)` to `VECTOR(768)` before production
+chunks exist. Drop/recreate the approximate index around the type change. The migration
+must fail loudly if non-null legacy embeddings are present; silently truncating or casting
+an existing vector space is forbidden.
 
-GET /api/v1/documents
-  - require_role("manager", "admin")
-  - Return list of policy_documents: id, title, uploaded_by, uploaded_at
-```
+`policy_documents` gains:
+
+- `original_filename`, `content_type`, `byte_size`, `sha256`
+- `status`: `pending | processing | ready | failed`
+- `embedding_provider`, `embedding_model`, `embedding_dimensions`
+- `error_message`, `chunk_count`, `updated_at`
+
+`policy_chunks` gains:
+
+- `token_count`
+- `page_number` and `section` when extraction can supply them
+- `metadata JSONB NOT NULL DEFAULT '{}'`
+- generated `search_vector TSVECTOR` plus a GIN index for lexical retrieval
+- unique `(document_id, chunk_index)`
+
+Require non-null embeddings for ready chunks. Add a unique checksum/profile constraint
+that makes retrying the same upload idempotent without preventing a future re-index under
+a new embedding profile.
+
+Replace the empty-corpus IVFFlat index with HNSW cosine indexing. HNSW can be built before
+data exists and has a stronger speed/recall tradeoff for this evolving corpus. Keep index
+parameters explicit and record that production tuning must use measured recall/latency.
+
+---
+
+## Transaction Rules
+
+- A document row is created as `pending`.
+- Ingestion transitions it to `processing`, then atomically publishes chunks and `ready`.
+- Failure rolls back partial chunks and records a sanitized failure reason in a separate
+  transaction.
+- Retrieval filters to `status='ready'` and the active embedding profile.
 
 ---
 
 ## Done When
 
-- [ ] `POST /api/v1/documents` accepts a multipart upload, validates type, ingests, returns `{document_id, title, chunk_count}`
-- [ ] `GET /api/v1/documents` returns the document list, manager/admin only
-- [ ] Both routes reject employee-role JWTs with 403
-- [ ] `pyproject.toml` updated with PyMuPDF + python-docx per Nova's C25 finding; `uv sync` succeeds
-- [ ] Router registered in `main.py`
+- [ ] Upgrade and downgrade work against a database at C23 head
+- [ ] Duplicate upload/profile attempts resolve to the existing document or a conflict, never
+  duplicate chunks.
+- [ ] Unique chunk ordering and status constraints are enforced by PostgreSQL
+- [ ] `EXPLAIN` can use the HNSW cosine index for a representative nearest-neighbor query
 
 ---
 
 ## Handoffs Out
 
-→ Aria (future — if a document-management UI is added): `GET /api/v1/documents` returns
-`DocumentRead[]` with `{id, title, uploaded_by, uploaded_at}`. Not in scope for Phase 2's
-chat-focused commits — noted for later reference only.
+→ Nova (C27/C29): retrieve only `ready` documents matching the active embedding profile;
+the persisted vector column is `VECTOR(768)`.
+
+→ Rex (C28/C31): API and persistence schemas may expose safe status/profile metadata but
+never embeddings, chunk contents, or internal error details.
