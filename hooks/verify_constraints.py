@@ -190,9 +190,12 @@ def main():
     parser.add_argument("--commit",  required=True, help="Commit number, e.g. 08")
     parser.add_argument("--agent",   required=True, help="Agent name, e.g. rex, aria, adam")
     parser.add_argument("--tokens",  type=int, default=None, help="Token count for this commit (optional)")
-    parser.add_argument("--ref",      default="HEAD", help="Git ref to check (default: HEAD)")
-    parser.add_argument("--worktree", action="store_true", help="Check working-tree changes vs HEAD instead of a committed ref")
-    parser.add_argument("--json",     action="store_true", help="Output as JSON")
+    parser.add_argument("--ref",        default="HEAD", help="Git ref to check (default: HEAD)")
+    parser.add_argument("--worktree",   action="store_true", help="Check working-tree changes vs HEAD instead of a committed ref")
+    parser.add_argument("--json",       action="store_true", help="Output as JSON")
+    parser.add_argument("--no-persist", action="store_true",
+                        help="Run checks and return PASS/FAIL without writing "
+                             "CONSTRAINT_LOG.md, CONTEXT_METRICS.json, or constraint-dashboard.html")
     args = parser.parse_args()
 
     spec_text    = load_spec(args.commit)
@@ -228,18 +231,19 @@ def main():
         print(f"  RESULT: {'ALL CHECKS PASSED' if all_pass else 'FAILED - ' + ', '.join(k for k,v in results.items() if not v['pass'])}")
         print()
 
-    tokens = args.tokens if args.tokens is not None else get_tokens_from_records(args.commit)
-    append_to_log(args.commit, args.agent, results, all_pass, tokens)
-    upsert_metric(
-        build_metric_record(
-            args.commit,
-            args.agent,
-            tokens,
-            results,
-            changed,
+    if not args.no_persist:
+        tokens = args.tokens if args.tokens is not None else get_tokens_from_records(args.commit)
+        append_to_log(args.commit, args.agent, results, all_pass, tokens)
+        upsert_metric(
+            build_metric_record(
+                args.commit,
+                args.agent,
+                tokens,
+                results,
+                changed,
+            )
         )
-    )
-    render_dashboard()
+        render_dashboard()
     sys.exit(0 if all_pass else 1)
 
 

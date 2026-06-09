@@ -115,6 +115,55 @@ def finalize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> dic
     return scope
 
 
+def _validate_self_report(report: dict[str, Any]) -> None:
+    """Validate an agent self-report. Raises ValueError for any malformed field."""
+    tool_calls = report.get("tool_calls")
+    if tool_calls is None:
+        raise ValueError("tool_calls is required in agent self-report")
+    if isinstance(tool_calls, bool) or not isinstance(tool_calls, int):
+        raise ValueError(
+            f"tool_calls must be a non-negative integer, got {type(tool_calls).__name__!r}: {tool_calls!r}"
+        )
+    if tool_calls < 0:
+        raise ValueError(f"tool_calls must be non-negative, got {tool_calls}")
+
+    for key in ("read_paths", "write_paths", "commands", "expansions"):
+        val = report.get(key)
+        if val is None:
+            continue
+        if not isinstance(val, list):
+            raise ValueError(
+                f"{key} must be a list of strings or null, got {type(val).__name__!r}"
+            )
+        for i, item in enumerate(val):
+            if not isinstance(item, str):
+                raise ValueError(
+                    f"{key}[{i}] must be a string, got {type(item).__name__!r}: {item!r}"
+                )
+
+    searches = report.get("searches")
+    if searches is None:
+        return
+    if not isinstance(searches, list):
+        raise ValueError(
+            f"searches must be a list or null, got {type(searches).__name__!r}"
+        )
+    for i, item in enumerate(searches):
+        if not isinstance(item, dict):
+            raise ValueError(
+                f"searches[{i}] must be a dict with tool/path/query keys, "
+                f"got {type(item).__name__!r}"
+            )
+        for field in ("tool", "path", "query"):
+            if field not in item:
+                raise ValueError(f"searches[{i}] missing required field {field!r}")
+            if not isinstance(item[field], str):
+                raise ValueError(
+                    f"searches[{i}].{field} must be a string, "
+                    f"got {type(item[field]).__name__!r}"
+                )
+
+
 def record_agent_self_report(
     commit: str,
     agent: str,
@@ -122,6 +171,7 @@ def record_agent_self_report(
     repo_root: Path = REPO_ROOT,
 ) -> dict[str, Any]:
     """Validate and persist a structured telemetry report returned by an agent."""
+    _validate_self_report(report)
     tool_calls = report.get("tool_calls")
     read_paths = report.get("read_paths")
     write_paths = report.get("write_paths")
@@ -315,7 +365,11 @@ def main() -> int:
         except json.JSONDecodeError as exc:
             print(f"ERROR: invalid JSON for agent report: {exc}", file=sys.stderr)
             return 1
-        record_agent_self_report(commit, agent, report)
+        try:
+            record_agent_self_report(commit, agent, report)
+        except ValueError as exc:
+            print(f"ERROR: malformed agent report: {exc}", file=sys.stderr)
+            return 1
         return 0
 
     try:
