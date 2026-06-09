@@ -5,35 +5,21 @@
 ---
 
 ## Current State
-*Last updated: Onboarding · 2026-06-07*
+*Last updated: 2026-06-09 · C25 complete — pending approval*
 
-**Last completed:** none — Nova activates this phase
+**Last completed:** C25 `llm-service-impl` — pending Eran's commit approval
 **Currently active:** none
 **Blocked by:** none
 
-**📋 Onboarding Notice — 2026-06-07**
-
-Welcome, Nova. You're activating because Phase 2 ("Policy RAG") requires `LLMService` to be
-wired for real — your domain. Here's what you need to know before C25:
-
-- **Your domain:** `backend/app/services/llm.py`, `rag_policy.py`, `rag_logistics.py`, `ingestion.py`.
-  Identity file: `.claude/agents/ai-engineer.md`. Read it first — it has your stack, standards,
-  and the provider-neutral service contract in `commit-specs/commit-25.md`.
-- **Your first commit:** C25 `llm-service-impl` — implement per-conversation generation
-  providers plus the deployment-wide embedding service.
-- **Embedding decision:** C24 fixes a deployment-wide 768-dimensional profile. Local
-  deployments use Ollama `nomic-embed-text`; OpenAI deployments request 768 dimensions
-  from `text-embedding-3-small`. C26 migrates the current vector column before ingestion.
-- **Cross-domain rule:** you don't touch routes, models, or migrations — that's Rex's. If your
-  pipeline needs a dependency or route change, raise a cross-domain finding through Claude.
+Tool usage: reads=8, writes=3, total=25
 
 **Open Handoffs — Inbound:**
 - ← Rex (C24): validated provider settings, dependencies, and one 768-dimensional
-  embedding profile.
-- ← Rex (C23): `policy_chunks.embedding` is `VECTOR(1536)`.
+  embedding profile. ✅ actioned
 
 **Open Handoffs — Outbound:**
-- (none yet — first commit not started)
+- → Nova (C27/C29): Use `EmbeddingService.embed_documents()` / `embed_query()` for corpus/query vectors. Use `LLMService.chat()` only for generation. Profile is on `EmbeddingService.profile`.
+- → Rex (C30): Catch only `LLMError` and subclasses in route handlers — never provider SDK exceptions.
 
 **Key Interfaces I Will Own:**
 - `backend/app/services/llm.py` — `LLMService` (Ollama + OpenAI abstraction)
@@ -50,4 +36,48 @@ No archived sessions yet.
 
 | # | Commit | Status | Key Decision |
 |---|--------|--------|--------------|
-| — | — | — | — |
+| 1 | C25 `llm-service-impl` | complete — pending approval | Separate LLMService (per-conversation) from EmbeddingService (deployment-wide 768-dim); `chat()` returns AsyncIterator via async generator pattern; retry before first token only |
+
+---
+
+## Session 1 — C25 `llm-service-impl` · 2026-06-09
+
+**Assigned:** Nova
+**Status:** complete — pending Eran's commit approval
+**Tool usage:** reads=8, writes=3, total=25 (hit cap; orchestrator corrected two items)
+
+### What was built
+
+Replaced the C16 stub `backend/app/services/llm.py` with a full production implementation:
+
+**Provider-neutral exceptions:** `LLMError`, `LLMConfigError`, `LLMAuthError`, `LLMTimeoutError`,
+`LLMRateLimitError`, `LLMUnavailableError`, `LLMMalformedResponseError`, `LLMEmbeddingDimensionError`.
+
+**Data types:** `ChatMessage(role, content)` and `EmbeddingProfile(provider, model, dimensions)` — both frozen dataclasses.
+
+**LLMService** — per-conversation chat generation:
+- OpenAI Responses API (SSE `text-delta`/`error`/`completed` events)
+- Ollama NDJSON chat API
+- Bounded exponential backoff with jitter; retry before first token only
+- Pooled `httpx.AsyncClient`; `close()` shutdown hook
+
+**EmbeddingService** — deployment-wide 768-dim corpus embedding:
+- OpenAI `/v1/embeddings` with `dimensions=768`; Ollama `/api/embed`
+- Batched (2048/64 per provider); input-order preserved (OpenAI sorts by `index`)
+- Validates count, finite values, and exact dimension per vector
+- Retry with backoff for idempotent calls; `close()` hook
+
+**Tests:** `backend/tests/services/test_llm.py` — 45 tests covering all spec gate items (all pass).
+
+### Orchestrator corrections
+
+1. **Syntax error** — two `last_exc = LLMError(...) from exc` assignment lines in `_ollama_chat` (invalid Python: `from` is only valid on `raise` statements). Orchestrator removed the `from exc` suffixes at lines 413 and 417.
+2. **Missing dev dependency** — `pytest-asyncio` was absent from `backend/pyproject.toml`. All 42 async tests failed with "async def functions are not natively supported." Orchestrator added `pytest-asyncio>=0.23.0` to dev deps and `asyncio_mode = "auto"` to pytest.ini_options.
+3. **Incomplete test mock** — `_CaptureCM` in `test_request_payload_contains_model_and_messages` lacked `status_code = 200`, causing `AttributeError` when `llm.py` checked `response.status_code`. Orchestrator added the attribute. Implementation is correct; mock was incomplete.
+
+### Acceptance criteria
+
+- [x] Both chat providers stream without blocking the event loop
+- [x] The single embedding profile is 768-dimensional and independent of chat provider
+- [x] All mocked contract tests pass without network access (45/45)
+- [x] C27 and C29 depend only on provider-neutral types

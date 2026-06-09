@@ -69,6 +69,16 @@
         "frontend/postcss.config.js",
         "frontend/.env.example"
       ]
+    },
+    "nova.stockagent@gmail.com": {
+      "name": "Nova",
+      "role": "ai-engineer",
+      "domains": [
+        "backend/app/services/llm.py",
+        "backend/app/services/rag_policy.py",
+        "backend/app/services/rag_logistics.py",
+        "backend/app/services/ingestion.py"
+      ]
     }
   }
 }

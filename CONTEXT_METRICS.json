@@ -68,6 +68,150 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "date": "2026-06-09",
+      "commit": "C25",
+      "agent": "nova",
+      "tokens": 51146,
+      "package": {
+        "selected_files": 8,
+        "estimated_chars": 18062,
+        "usable_chars": 24000,
+        "targeted_excerpt_files": 2,
+        "excluded_candidates": 0,
+        "expansion_triggers": [],
+        "graph_source": "cache",
+        "category_counts": {
+          "primary": 1,
+          "identity": 1,
+          "worklog": 1,
+          "contract": 3,
+          "test": 1,
+          "structural": 1
+        },
+        "budget_utilization_percent": 75.3
+      },
+      "telemetry": {
+        "agent": {
+          "source": "self_report",
+          "status": "available",
+          "tool_calls": 25,
+          "read_paths": [
+            ".claude/agents/ai-engineer.md",
+            ".claude/agents/logs/nova-worklog.md",
+            "commit-specs/commit-25.md",
+            "backend/app/services/llm.py",
+            "backend/app/services/__init__.py",
+            "backend/pyproject.toml",
+            "backend/app/core/config.py",
+            "manifesto-spec.md"
+          ],
+          "write_paths": [
+            "backend/app/services/llm.py",
+            "backend/tests/services/test_llm.py",
+            "backend/tests/services/__init__.py"
+          ],
+          "searches": [
+            {
+              "tool": "Grep",
+              "path": "backend/app/core/config.py",
+              "query": "provider|embedding|ollama|openai|LLM|EmbeddingProfile|768"
+            },
+            {
+              "tool": "Grep",
+              "path": "manifesto-spec.md",
+              "query": "LLM Provider Abstraction|EmbeddingProfile|ChatMessage|provider-neutral"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/app/services/llm.py",
+              "query": "= .* from exc"
+            }
+          ],
+          "commands": [
+            "python -m pytest tests/services/test_llm.py -v",
+            "python -c 'import app.services.llm'"
+          ],
+          "expansions": []
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "tool_calls": 28,
+          "read_paths": [
+            "backend/app/services/llm.py",
+            "backend/pyproject.toml",
+            "tests/services/test_llm.py",
+            "backend/tests/services/test_llm.py",
+            "project-state.json"
+          ],
+          "write_paths": [
+            "backend/app/services/llm.py",
+            "backend/pyproject.toml",
+            "backend/tests/services/test_llm.py"
+          ],
+          "searches": [
+            {
+              "tool": "Grep",
+              "path": "backend/app/services/llm.py",
+              "query": "= .* from exc"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/app/services/llm.py",
+              "query": "= .* from exc"
+            },
+            {
+              "tool": "Glob",
+              "path": ".",
+              "query": "backend/tests/**/*.py"
+            },
+            {
+              "tool": "Glob",
+              "path": ".",
+              "query": "**/test_llm.py"
+            }
+          ],
+          "commands": [
+            "cd backend && python -c \"import app.services.llm; print('import OK')\"",
+            "cd backend && python -m pytest tests/services/test_llm.py -v 2>&1",
+            "python -m pytest backend/tests/services/test_llm.py -v 2>&1",
+            "python -m pytest tests/services/test_llm.py -v 2>&1",
+            "pip show pytest-asyncio 2>&1",
+            "pip install pytest-asyncio 2>&1",
+            "python -m pytest tests/services/test_llm.py -v 2>&1",
+            "python -m pytest tests/services/test_llm.py -v 2>&1",
+            "git status --short && git diff --stat",
+            "git diff -- ../constraint-dashboard.html 2>&1 | head -40",
+            "python hooks/verify_constraints.py --commit 25 --agent nova --worktree --no-persist 2>&1",
+            "cd D:\\AI\\_My_Projects\\manifesto && python hooks/verify_constraints.py --commit 25 --agent nova --worktree --no-persist 2"
+          ]
+        }
+      },
+      "usage": {
+        "telemetry_status": "completed",
+        "tool_calls": 0,
+        "read_calls": 0,
+        "searches": 0,
+        "write_calls": 0,
+        "selected_files_read": 0,
+        "selected_utilization_percent": 0.0,
+        "unused_selected_files": 8,
+        "outside_files_read": 0,
+        "expansions": 0
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          "backend/app/services/llm.py",
+          "backend/pyproject.toml",
+          "backend/tests/services/__init__.py",
+          "backend/tests/services/test_llm.py",
+          "constraint-dashboard.html"
+        ]
+      },
+      "result": "PASS"
     }
   ]
 }

@@ -1,20 +1,28 @@
 {
   "project": "manifesto",
-  "tldr": "C24 `llm-runtime-config` (Rex) committed 2026-06-09. Next: parallel C25 `llm-service-impl` (Nova) and C26 `rag-storage-hardening` (Rex). Embedding profile fixed: openai=text-embedding-3-small, ollama=nomic-embed-text, 768 dimensions. pytest infrastructure added.",
+  "tldr": "C25 `llm-service-impl` (Nova) committed 2026-06-09. Next: parallel C26 `rag-storage-hardening` (Rex). LLMService + EmbeddingService live; 45 tests pass. Gate wave: Viktor 2 false-positive blocks dismissed; Sage HIGH finding fixed inline.",
   "phase": 2,
-  "last_completed_commit": "24",
-  "next_commit": "25",
-  "next_commit_name": "llm-service-impl",
-  "next_commit_assignee": "nova",
+  "last_completed_commit": "25",
+  "next_commit": "26",
+  "next_commit_name": "rag-storage-hardening",
+  "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
     {
-      "from": "rex",
+      "from": "nova",
       "to": "nova",
-      "regarding": "C25/C27 — embedding dimension must match policy_chunks.embedding column",
-      "detail": "Resolved by the 2026-06-08 architecture review: chat generation provider and corpus embedding provider are separate concerns. C24 configures one deployment-wide 768-dimensional profile; C26 migrates the current VECTOR(1536) column before ingestion. Local uses Ollama nomic-embed-text; OpenAI uses text-embedding-3-small with dimensions=768. Changing provider/model requires full re-index.",
-      "date": "2026-06-08",
-      "actioned": true
+      "regarding": "C27/C29 — use EmbeddingService.embed_documents()/embed_query() for corpus/query vectors; LLMService.chat() only for generation; profile on EmbeddingService.profile",
+      "detail": "EmbeddingService and LLMService contracts are frozen by C25. C27 ingestion and C29 RAG pipeline must import only from backend/app/services/llm.py and never use provider SDK types directly.",
+      "date": "2026-06-09",
+      "actioned": false
+    },
+    {
+      "from": "nova",
+      "to": "rex",
+      "regarding": "C30 — catch only LLMError and subclasses in route handlers, never provider SDK exceptions",
+      "detail": "All SDK types are isolated in backend/app/services/llm.py. Route handlers must import LLMError hierarchy only.",
+      "date": "2026-06-09",
+      "actioned": false
     }
   ],
   "blockers": [],

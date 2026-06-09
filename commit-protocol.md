@@ -38,7 +38,7 @@
 | 22 | fix-login-request-format | aria | ✅ done · 2026-06-07 |
 | 23 | pgvector-migration | rex | ✅ done · pre-existing (0001_initial.py) · 2026-06-08 |
 | 24 | llm-runtime-config | rex | ✅ done · 2026-06-09 |
-| 25 | llm-service-impl | nova | pending |
+| 25 | llm-service-impl | nova | ✅ done · 2026-06-09 |
 | 26 | rag-storage-hardening | rex | pending |
 | 27 | document-ingestion | nova | pending |
 | 28 | document-upload-routes | rex | pending |
