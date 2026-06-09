@@ -60,18 +60,24 @@ def load_worklog(agent: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def git_files_changed(commit_ref: str = "HEAD", worktree: bool = False) -> list:
+def git_files_changed(commit_ref: str = "HEAD", worktree: bool = False, root: Path = REPO_ROOT) -> list:
     if worktree:
-        result = subprocess.run(
+        diff = subprocess.run(
             ["git", "diff", "HEAD", "--name-only"],
-            capture_output=True, text=True, cwd=REPO_ROOT
+            capture_output=True, text=True, cwd=root,
         )
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            capture_output=True, text=True, cwd=root,
+        )
+        lines = diff.stdout.splitlines() + untracked.stdout.splitlines()
     else:
         result = subprocess.run(
             ["git", "diff-tree", "--no-commit-id", "-r", "--name-only", commit_ref],
-            capture_output=True, text=True, cwd=REPO_ROOT
+            capture_output=True, text=True, cwd=root,
         )
-    return [f.strip() for f in result.stdout.splitlines() if f.strip()]
+        lines = result.stdout.splitlines()
+    return [f.strip() for f in lines if f.strip()]
 
 
 # ----------------------------------------------
@@ -220,7 +226,7 @@ def main():
             "tokens": args.tokens, "all_pass": all_pass, "checks": results
         }, indent=2))
     else:
-        status = lambda ok, msg: ("PASS" if ok else ("WARN" if msg.startswith("WARN") else "FAIL"))
+        status = lambda ok, msg: ("WARN" if msg and msg.startswith("WARN") else ("PASS" if ok else "FAIL"))
         print(f"\n-- Constraint Verification: C{args.commit.zfill(2)} ({args.agent}) --\n")
         print(f"  [1] Context block    [{status(ok1, msg1)}] {msg1}")
         print(f"  [2] Forbidden paths  [{status(ok2, msg2)}] {msg2}")
@@ -289,8 +295,9 @@ def append_to_log(commit_num: str, agent: str, results: dict, all_pass: bool, to
 
     def icon(key):
         r = results[key]
+        msg = r["message"] or ""
+        if msg.startswith("WARN"): return "WARN"
         if r["pass"]: return "PASS"
-        if r["message"].startswith("WARN"): return "WARN"
         return "FAIL"
 
     date         = datetime.now(timezone.utc).strftime("%Y-%m-%d")

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -341,6 +342,154 @@ class TestMalformedTelemetryRejection(unittest.TestCase):
                 "expansions": [],
             }, root)
         self.assertEqual(scope["tool_calls"], 0)
+
+
+SPEC_NO_FORBIDDEN = """\
+# Commit 25 — llm-service-impl
+
+## context
+```yaml
+tier0:
+  - backend/app/services/llm.py
+estimated_reads: 5
+```
+
+## What
+
+Implement the LLMService class.
+"""
+
+
+# ---------------------------------------------------------------------------
+# Task 5 — Worktree mode must include untracked files
+# ---------------------------------------------------------------------------
+
+class TestWorktreeUntrackedFiles(unittest.TestCase):
+    """git_files_changed(worktree=True) must include untracked files alongside modified ones."""
+
+    @staticmethod
+    def _init_repo(root: Path) -> bool:
+        for cmd in (
+            ["git", "init"],
+            ["git", "config", "user.email", "test@manifesto.test"],
+            ["git", "config", "user.name", "Test"],
+        ):
+            if subprocess.run(cmd, capture_output=True, cwd=root).returncode != 0:
+                return False
+        (root / "README.md").write_text("init", encoding="utf-8")
+        for cmd in (
+            ["git", "add", "README.md"],
+            ["git", "commit", "-m", "init"],
+        ):
+            if subprocess.run(cmd, capture_output=True, cwd=root).returncode != 0:
+                return False
+        return True
+
+    def test_untracked_file_appears_in_changed_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if not self._init_repo(root):
+                self.skipTest("git init/commit failed")
+            (root / "frontend").mkdir()
+            (root / "frontend" / "NewComponent.tsx").write_text("export {}", encoding="utf-8")
+
+            changed = verify_constraints.git_files_changed(worktree=True, root=root)
+            self.assertIn("frontend/NewComponent.tsx", changed,
+                          "Untracked file must appear in worktree changed-file list")
+
+    def test_untracked_forbidden_file_fails_check(self):
+        """Regression: an untracked file under a forbidden path must cause FAIL, not slip through."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if not self._init_repo(root):
+                self.skipTest("git init/commit failed")
+            (root / "frontend").mkdir()
+            (root / "frontend" / "NewComponent.tsx").write_text("export {}", encoding="utf-8")
+
+            changed = verify_constraints.git_files_changed(worktree=True, root=root)
+            ok, msg = verify_constraints.check_forbidden_paths(MINIMAL_SPEC, changed)
+            self.assertFalse(ok,
+                "Untracked file under forbidden path must cause check_forbidden_paths to FAIL")
+            self.assertIn("frontend", msg)
+
+    def test_modified_tracked_file_still_detected(self):
+        """Existing tracked-file detection must not be broken by the untracked addition."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if not self._init_repo(root):
+                self.skipTest("git init/commit failed")
+            (root / "README.md").write_text("changed", encoding="utf-8")
+
+            changed = verify_constraints.git_files_changed(worktree=True, root=root)
+            self.assertIn("README.md", changed,
+                          "Modified tracked file must still appear in changed list")
+
+
+# ---------------------------------------------------------------------------
+# Task 6 — WARN checks render as [WARN] not [PASS] in text output
+# ---------------------------------------------------------------------------
+
+class TestWarningsRenderAsWarn(unittest.TestCase):
+    """Checks that return ok=True with a 'WARN:' message must display [WARN], not [PASS]."""
+
+    def _capture_output(self, spec: str) -> str:
+        output_lines: list[str] = []
+        def capture(*a, **kw):
+            output_lines.append(" ".join(str(x) for x in a))
+        old_argv = sys.argv[:]
+        try:
+            sys.argv = ["vc", "--commit", "25", "--agent", "nova", "--worktree", "--no-persist"]
+            with (
+                patch("verify_constraints.load_spec", return_value=spec),
+                patch("verify_constraints.load_worklog", return_value=""),
+                patch("verify_constraints.git_files_changed", return_value=[]),
+                patch("builtins.print", side_effect=capture),
+            ):
+                try:
+                    verify_constraints.main()
+                except SystemExit:
+                    pass
+        finally:
+            sys.argv = old_argv
+        return "\n".join(output_lines)
+
+    def test_missing_forbidden_section_shows_warn(self):
+        """Spec with no forbidden block → forbidden-paths check must print [WARN]."""
+        output = self._capture_output(SPEC_NO_FORBIDDEN)
+        self.assertIn("[WARN]", output,
+                      "Spec without forbidden block must render forbidden check as [WARN]")
+        self.assertNotIn("[PASS] WARN", output,
+                         "A WARN message must not be labelled [PASS]")
+
+    def test_missing_worklog_budget_shows_warn(self):
+        """Empty worklog → phase-budget check must print [WARN], not [PASS]."""
+        output = self._capture_output(MINIMAL_SPEC)
+        self.assertIn("[WARN]", output,
+                      "Missing worklog must render budget check as [WARN]")
+
+    def test_warn_icon_written_to_log(self):
+        """append_to_log must write WARN (not PASS) for a warning result."""
+        results = {
+            "context_block":   {"pass": True,  "message": "context block present"},
+            "forbidden_paths": {"pass": True,  "message": "WARN: no forbidden paths defined"},
+            "phase_budget":    {"pass": True,  "message": "WARN: no worklog found", "counts": None},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            log_path = root / "CONSTRAINT_LOG.md"
+            with patch.object(verify_constraints, "REPO_ROOT", root):
+                verify_constraints.append_to_log("25", "nova", results, True, None)
+            row = log_path.read_text(encoding="utf-8").splitlines()[-1]
+        cells = [c.strip() for c in row.split("|") if c.strip()]
+        # cells: date, C25, nova, -, context, forbidden, budget, result
+        forbidden_cell = cells[5]
+        budget_cell    = cells[6]
+        self.assertEqual(forbidden_cell, "WARN",
+                         f"forbidden column must be WARN, got {forbidden_cell!r}")
+        self.assertEqual(budget_cell, "WARN",
+                         f"budget column must be WARN, got {budget_cell!r}")
+        self.assertEqual(cells[7], "PASS",
+                         "Overall RESULT must still be PASS when all ok=True")
 
 
 if __name__ == "__main__":

@@ -281,6 +281,13 @@ def badge(value: str, good: bool | None = None) -> str:
     return f'<span class="badge {css}">{html.escape(value)}</span>'
 
 
+def _constraint_badge(value: str) -> str:
+    """Render a PASS/WARN/FAIL cell from CONSTRAINT_LOG.md with correct colour."""
+    v = value.upper().split()[0]
+    good: bool | None = True if v == "PASS" else (None if v == "WARN" else False)
+    return badge(value.split()[0].lower(), good)
+
+
 def metric_value(value: Any, suffix: str = "") -> str:
     if value is None:
         return "-"
@@ -378,10 +385,10 @@ def render_dashboard(
             "<tr>"
             f"<td>{html.escape(row[0])}</td><td>{badge(row[1])}</td>"
             f"<td>{html.escape(row[2])}</td><td>{html.escape(token)}</td>"
-            f"<td>{badge(row[4].split()[0].lower(), row[4].startswith('PASS'))}</td>"
-            f"<td>{badge(row[5].split()[0].lower(), row[5].startswith('PASS'))}</td>"
-            f"<td>{badge(row[6].split()[0].lower(), row[6].startswith('PASS'))}</td>"
-            f"<td>{badge(row[7].lower(), row[7].startswith('PASS'))}</td>"
+            f"<td>{_constraint_badge(row[4])}</td>"
+            f"<td>{_constraint_badge(row[5])}</td>"
+            f"<td>{_constraint_badge(row[6])}</td>"
+            f"<td>{_constraint_badge(row[7])}</td>"
             "</tr>"
         )
 
