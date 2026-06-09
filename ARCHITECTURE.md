@@ -777,6 +777,13 @@ size, token count, changed files, and boundary results, then upserts
 `CONTEXT_METRICS.json` and regenerates `constraint-dashboard.html`. Preparing `/next-step`
 also regenerates the dashboard so the next package is visible before execution.
 
+Phase D adds a self-contained interactive graph tab to `constraint-dashboard.html`.
+It renders the entire cached codebase network as a force-directed SVG with category
+filters, path search, zoom, pan, node dragging, and per-file details. A commit selector
+overlays live context packages, exclusions, forbidden paths, actual reads, and expansions
+without hiding the surrounding architecture. The graph uses the same local JSON artifacts
+as selection and measurement; it does not export to or depend on Obsidian.
+
 Tests live under `hooks/tests/` and cover path safety, Python and TypeScript import
 resolution, context parsing, dependency expansion, contract bridges, and historical
 Manifesto cases.

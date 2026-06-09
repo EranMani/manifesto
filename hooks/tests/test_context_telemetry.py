@@ -15,7 +15,7 @@ sys.path.insert(0, str(HOOKS_DIR))
 
 import context_telemetry  # noqa: E402
 import context_metrics  # noqa: E402
-from constraint_dashboard import render_dashboard  # noqa: E402
+from constraint_dashboard import build_graph_view_data, render_dashboard  # noqa: E402
 from context_metrics import upsert_metric  # noqa: E402
 from tool_cap_start import normalize_agent_name  # noqa: E402
 
@@ -164,6 +164,56 @@ class ConstraintDashboardTests(unittest.TestCase):
                     "expansion_triggers": [],
                 },
             }), encoding="utf-8")
+            graph_path = root / ".context" / "index" / "codebase-graph.json"
+            graph_path.parent.mkdir(parents=True)
+            graph_path.write_text(json.dumps({
+                "schema_version": 1,
+                "totals": {"files": 2, "edges": 1, "hubs": 1},
+                "categories": {
+                    "backend/app/core/config.py": "backend",
+                    "backend/app/core/database.py": "backend",
+                },
+                "summaries": {
+                    "backend/app/core/config.py": "Defines validated runtime settings.",
+                    "backend/app/core/database.py": "Creates async database sessions.",
+                },
+                "imports": {
+                    "backend/app/core/config.py": [],
+                    "backend/app/core/database.py": ["backend/app/core/config.py"],
+                },
+                "hubs": [{
+                    "path": "backend/app/core/config.py",
+                    "category": "backend",
+                    "in_degree": 1,
+                    "domain_in_degree": 1,
+                    "out_degree": 0,
+                }],
+            }), encoding="utf-8")
+            run_path = root / ".context" / "runs" / "C24-rex-live.json"
+            run_path.parent.mkdir(parents=True)
+            spec_path = root / "commit-specs" / "commit-24.md"
+            spec_path.parent.mkdir(parents=True)
+            spec_path.write_text(
+                "# Commit 24 - Runtime config\n\n"
+                "## What\n\n"
+                "Prepare provider runtime configuration for the next service commit.\n",
+                encoding="utf-8",
+            )
+            run_path.write_text(json.dumps({
+                "commit": "C24",
+                "agent": "rex",
+                "task_kind": "implementation",
+                "spec": "commit-specs/commit-24.md",
+                "budget": {"estimated_selected_chars": 630},
+                "files": [{
+                    "path": "backend/app/core/config.py",
+                    "category": "primary",
+                    "reasons": ["commit spec change table"],
+                    "read_strategy": "full file",
+                }],
+                "excluded_candidates": [],
+                "forbidden_edits": ["frontend/"],
+            }), encoding="utf-8")
 
             output = root / "constraint-dashboard.html"
             document = render_dashboard(root, output)
@@ -171,7 +221,75 @@ class ConstraintDashboardTests(unittest.TestCase):
             self.assertIn("Phase B context efficiency", document)
             self.assertIn("77.8%", document)
             self.assertIn("C24", document)
+            self.assertIn("Commit measurements", document)
+            self.assertIn("Codebase graph", document)
+            self.assertIn("commitOverlay", document)
+            self.assertNotIn("categoryFilters", document)
+            self.assertIn("backend/app/core/config.py", document)
+            self.assertIn('label.setAttribute("text-anchor","middle")', document)
+            self.assertIn("label.textContent=n.name", document)
+            self.assertIn("const categoryCenters=new Map", document)
+            self.assertIn("function hubScore(n)", document)
+            self.assertIn("nodes.sort((a,b)=>hubScore(b)-hubScore(a)", document)
+            self.assertIn(
+                "categories.forEach(category=>drawCategoryFrame(g,ns,category))",
+                document,
+            )
+            self.assertIn('label.setAttribute("font-size","7")', document)
+            self.assertIn("label.textContent=category.toUpperCase()", document)
+            self.assertIn('id="graphTooltip"', document)
+            self.assertIn("function showTooltip(n,e)", document)
+            self.assertIn("function updateEdgeStyles()", document)
+            self.assertIn('connected?".92"', document)
+            self.assertIn('line.dataset.same==="1"?".12":".035"', document)
+            self.assertIn("function nodeSummary(n,incoming,outgoing)", document)
+            self.assertIn("if(n.summary)return n.summary", document)
+            self.assertIn('class="tooltip-summary"', document)
+            self.assertIn('id="commitSummary"', document)
+            self.assertIn("function renderCommitSummary()", document)
+            self.assertIn('class="commit-file-link"', document)
+            self.assertIn("function focusGraphNode(path)", document)
+            self.assertIn("panX=width*.62-node.x*scale", document)
+            self.assertIn("hideTooltip();resize();focusedNode=node.id", document)
+            self.assertNotIn("function showTooltipAtNode(n)", document)
+            self.assertNotIn('stroke="#f8fafc";sw=5', document)
+            self.assertIn("const activeNode=hoveredNode||focusedNode", document)
+            self.assertIn("function startCategoryDrag(category,e)", document)
+            self.assertIn('rect.style.cursor="move"', document)
+            self.assertIn(
+                "ai:[150,145],backend:[610,270],tests:[150,435]",
+                document,
+            )
+            self.assertIn("frontend:[1050,710]", document)
+            self.assertIn("function resetCategoryCenters()", document)
+            self.assertIn("width:310px;max-height:540px", document)
+            self.assertIn(
+                'if(btn.dataset.tab==="graph")requestAnimationFrame(fitGraph)',
+                document,
+            )
+            self.assertIn("Prepare provider runtime configuration", document)
+            self.assertNotIn('id="graphDetails"', document)
             self.assertTrue(output.is_file())
+
+            graph_data = build_graph_view_data(root)
+            self.assertEqual(len(graph_data["nodes"]), 2)
+            self.assertEqual(len(graph_data["edges"]), 1)
+            self.assertIn("C24-rex", graph_data["overlays"])
+            self.assertEqual(
+                graph_data["overlays"]["C24-rex"]["title"],
+                "Commit 24 - Runtime config",
+            )
+            config = next(
+                node
+                for node in graph_data["nodes"]
+                if node["path"] == "backend/app/core/config.py"
+            )
+            self.assertEqual(config["in_degree"], 1)
+            self.assertTrue(config["hub"])
+            self.assertEqual(
+                config["summary"],
+                "Defines validated runtime settings.",
+            )
 
 
 if __name__ == "__main__":

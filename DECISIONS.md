@@ -494,6 +494,22 @@ records in `CONTEXT_METRICS.json`.
 - Metrics begin with live Phase B commits; older commits retain their existing token and
   constraint history without invented context-usage data.
 
+### Phase D — embed the codebase graph in the dashboard
+
+Add a second dashboard tab for the whole-codebase graph. A commit dropdown overlays one
+context package at a time while the remaining network stays visible for comparison.
+
+**Tradeoffs:**
+
+- A dependency-free SVG keeps the dashboard portable and offline, but provides fewer
+  layout algorithms than a dedicated graph library.
+- The whole network is the default because architecture inspection needs global context.
+  Commit overlays then answer the narrower question of why a package was selected.
+- Force layout runs in the browser and is appropriate for the current graph size. A much
+  larger repository may later need clustering or server-side positions.
+- No Obsidian export is produced. This avoids duplicate artifacts while preserving the
+  Obsidian-style node-and-edge inspection experience inside the existing dashboard.
+
 ---
 
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

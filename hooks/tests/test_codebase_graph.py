@@ -13,7 +13,7 @@ HOOKS_DIR = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "context_repo"
 sys.path.insert(0, str(HOOKS_DIR))
 
-from codebase_graph import build_codebase_graph  # noqa: E402
+from codebase_graph import build_codebase_graph, summarize_python  # noqa: E402
 from context_engine import ContextPackageBuilder, load_rules  # noqa: E402
 
 
@@ -66,6 +66,55 @@ class CodebaseGraphTests(unittest.TestCase):
         self.assertEqual(package["graph"]["source"], "fallback")
         selected = {item["path"] for item in package["files"]}
         self.assertIn("frontend/src/api/client.ts", selected)
+
+    def test_python_summary_describes_security_responsibilities(self) -> None:
+        summary = summarize_python(
+            "backend/app/core/security.py",
+            """
+import bcrypt
+import jwt
+from fastapi import HTTPException, status
+from app.core.config import settings
+
+def hash_password(plain: str) -> str:
+    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
+
+def create_access_token(data: dict) -> str:
+    return jwt.encode(data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def decode_token(token: str) -> dict:
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+""",
+        )
+        self.assertIn("Hashes and verifies passwords with bcrypt", summary)
+        self.assertIn("Creates and validates JWT access tokens", summary)
+        self.assertIn("HTTP 401", summary)
+
+    def test_python_summary_describes_login_flow(self) -> None:
+        summary = summarize_python(
+            "backend/app/api/v1/auth.py",
+            """
+from fastapi import APIRouter
+from app.core.security import create_access_token, verify_password
+
+router = APIRouter()
+
+@router.post("/login")
+async def login(request, db):
+    user = await db.execute(select(User).where(User.email == request.email))
+    if not user.is_active:
+        raise ValueError("inactive")
+    if not verify_password(request.password, user.password_hash):
+        raise ValueError("invalid")
+    return create_access_token({"sub": str(user.id)})
+""",
+        )
+        self.assertIn("POST /login", summary)
+        self.assertIn("Authenticates active users", summary)
+        self.assertIn("returns a signed access token", summary)
 
 
 if __name__ == "__main__":

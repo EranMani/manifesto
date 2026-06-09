@@ -43,6 +43,15 @@ JS_IMPORT = re.compile(
 )
 JS_REQUIRE = re.compile(r"""require\s*\(\s*['"]([^'"]+)['"]\s*\)""")
 JS_DYNAMIC_IMPORT = re.compile(r"""import\s*\(\s*['"]([^'"]+)['"]\s*\)""")
+JS_EXPORTED_FUNCTION = re.compile(
+    r"""export\s+(?:default\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)"""
+)
+JS_EXPORTED_INTERFACE = re.compile(
+    r"""export\s+interface\s+([A-Za-z_$][\w$]*)"""
+)
+JS_HTTP_CALL = re.compile(
+    r"""\.(get|post|put|patch|delete)\s*(?:<[^>]+>)?\s*\(\s*['"]([^'"]+)['"]"""
+)
 
 
 def normalize_path(path: str) -> str:
@@ -79,6 +88,204 @@ def read_text(path: Path) -> str:
         return path.read_text(encoding="utf-8", errors="ignore")
     except OSError:
         return ""
+
+
+def _sentence(text: str, limit: int = 360) -> str:
+    compact = " ".join(text.split())
+    if len(compact) <= limit:
+        return compact
+    return compact[: limit - 1].rsplit(" ", 1)[0] + "…"
+
+
+def _humanize_symbol(name: str) -> str:
+    words = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", name).replace("_", " ")
+    return words.lower()
+
+
+def summarize_python(path: str, text: str) -> str:
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return ""
+    docstring = ast.get_docstring(tree)
+    functions = [
+        node.name
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+    classes = [
+        node.name
+        for node in tree.body
+        if isinstance(node, ast.ClassDef)
+    ]
+    imports = {
+        alias.name.split(".")[0]
+        for node in tree.body
+        if isinstance(node, ast.Import)
+        for alias in node.names
+    }
+    imports.update(
+        (node.module or "").split(".")[0]
+        for node in tree.body
+        if isinstance(node, ast.ImportFrom)
+    )
+    lowered_functions = {name.lower() for name in functions}
+    details: list[str] = []
+
+    password_helpers = {
+        name for name in lowered_functions
+        if "password" in name and ("hash" in name or "verify" in name)
+    }
+    token_helpers = {
+        name for name in lowered_functions
+        if "token" in name and any(verb in name for verb in ("create", "decode", "verify"))
+    }
+    if password_helpers:
+        library = "bcrypt" if "bcrypt" in imports else "password hashing"
+        details.append(f"Hashes and verifies passwords with {library}.")
+    if token_helpers:
+        library = "JWT" if "jwt" in imports or "jose" in imports else "access tokens"
+        detail = f"Creates and validates {library} access tokens"
+        if "settings" in text and "EXPIRE" in text:
+            detail += " using configured expiry and signing settings"
+        if "HTTP_401_UNAUTHORIZED" in text:
+            detail += ", translating invalid or expired tokens into HTTP 401 responses"
+        details.append(detail + ".")
+
+    routes: list[str] = []
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in node.decorator_list:
+            if not isinstance(decorator, ast.Call) or not isinstance(decorator.func, ast.Attribute):
+                continue
+            if decorator.func.attr not in {"get", "post", "put", "patch", "delete"}:
+                continue
+            route = ""
+            if decorator.args and isinstance(decorator.args[0], ast.Constant):
+                route = str(decorator.args[0].value)
+            routes.append(f"{decorator.func.attr.upper()} {route}".strip())
+    if routes:
+        details.append(
+            f"Defines FastAPI endpoint{'s' if len(routes) != 1 else ''} "
+            f"{', '.join(routes[:4])}."
+        )
+        if (
+            any("login" in route.lower() for route in routes)
+            and "verify_password" in text
+            and "create_access_token" in text
+        ):
+            user_scope = "active users" if "is_active" in text else "users"
+            details.append(
+                f"Authenticates {user_scope} by email and password, rejects invalid "
+                "credentials, and returns a signed access token."
+            )
+        elif "select(" in text:
+            operations = [
+                verb
+                for verb, marker in (
+                    ("reads", "select("),
+                    ("creates", ".add("),
+                    ("updates", "update("),
+                    ("deletes", "delete("),
+                )
+                if marker in text
+            ]
+            if operations:
+                details.append(
+                    "Handles database "
+                    + ", ".join(operations)
+                    + " for this API surface."
+                )
+    if "get_db" in lowered_functions and (
+        "sqlalchemy" in imports or "AsyncSession" in text
+    ):
+        details.append(
+            "Creates the async SQLAlchemy engine/session factory and exposes "
+            "the request-scoped database dependency."
+        )
+    if classes and any(
+        base_name in text
+        for base_name in ("DeclarativeBase", "BaseModel", "SQLModel")
+    ):
+        if "mapped_column" in text or "Mapped[" in text:
+            details.append(
+                f"Defines persistent database model{'s' if len(classes) != 1 else ''} "
+                f"{', '.join(classes[:4])}."
+            )
+        elif "BaseModel" in text:
+            details.append(
+                f"Defines validated request/response schema{'s' if len(classes) != 1 else ''} "
+                f"{', '.join(classes[:4])}."
+            )
+        else:
+            details.append(
+                f"Defines data model infrastructure for {', '.join(classes[:4])}."
+            )
+    if docstring:
+        details.insert(0, _sentence(docstring, 180))
+    if not details and functions:
+        named = ", ".join(_humanize_symbol(name) for name in functions[:5])
+        details.append(f"Implements {named}.")
+    if not details and classes:
+        details.append(f"Defines {', '.join(classes[:5])}.")
+    if not details:
+        details.append(f"Python module for {Path(path).stem.replace('_', ' ')}.")
+    return _sentence(" ".join(dict.fromkeys(details)))
+
+
+def summarize_javascript(path: str, text: str) -> str:
+    functions = JS_EXPORTED_FUNCTION.findall(text)
+    interfaces = JS_EXPORTED_INTERFACE.findall(text)
+    calls = JS_HTTP_CALL.findall(text)
+    details: list[str] = []
+    if calls:
+        endpoints = ", ".join(f"{method.upper()} {route}" for method, route in calls[:4])
+        details.append(f"Calls backend API endpoint{'s' if len(calls) != 1 else ''} {endpoints}.")
+    if functions:
+        details.append(
+            "Exports "
+            + ", ".join(_humanize_symbol(name) for name in functions[:5])
+            + "."
+        )
+    if interfaces:
+        details.append(f"Defines response/data contracts {', '.join(interfaces[:4])}.")
+    is_component = re.search(
+        r"\bfunction\s+[A-Z]\w*\s*\(|\bconst\s+[A-Z]\w*\s*=",
+        text,
+    )
+    if "react-router" in text or "<Route" in text:
+        route_paths = re.findall(r"""path\s*=\s*['"]([^'"]+)['"]""", text)
+        details.append(
+            "Defines application routing"
+            + (f" for {', '.join(route_paths[:6])}" if route_paths else "")
+            + "."
+        )
+    elif is_component:
+        details.append("Implements a React UI component.")
+    if not details:
+        details.append(
+            f"Frontend module for {Path(path).stem.replace('-', ' ').replace('_', ' ')}."
+        )
+    return _sentence(" ".join(dict.fromkeys(details)))
+
+
+def summarize_file(path: str, text: str, category: str) -> str:
+    suffix = Path(path).suffix.lower()
+    if suffix == ".py":
+        return summarize_python(path, text)
+    if suffix in {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}:
+        return summarize_javascript(path, text)
+    name = Path(path).name
+    if name in {"pyproject.toml", "package.json"}:
+        return f"Declares project metadata, runtime dependencies, and tool configuration for {path}."
+    if name in {"docker-compose.yml", "docker-compose.yaml"}:
+        return "Defines the local multi-service container stack, networking, volumes, and environment wiring."
+    if name.lower() in {"dockerfile", "containerfile"}:
+        return "Builds the application container image and defines its runtime environment."
+    if name.startswith(".env"):
+        return "Defines environment variables used to configure the application at runtime."
+    return f"{category.title()} configuration or source file for {path}."
 
 
 def classify_file(path: str, text: str) -> str:
@@ -271,6 +478,10 @@ def build_codebase_graph(repo_root: Path, rules: dict[str, Any]) -> dict[str, An
         path: classify_file(path, texts[path])
         for path, _absolute in files
     }
+    summaries = {
+        path: summarize_file(path, texts[path], categories[path])
+        for path, _absolute in files
+    }
     index = build_import_index(
         files,
         graph_rules.get("python_import_roots", ["backend", "src"]),
@@ -333,6 +544,7 @@ def build_codebase_graph(repo_root: Path, rules: dict[str, Any]) -> dict[str, An
             "hubs": len(hubs),
         },
         "categories": categories,
+        "summaries": summaries,
         "imports": {
             path: sorted(targets)
             for path, targets in sorted(imports.items())

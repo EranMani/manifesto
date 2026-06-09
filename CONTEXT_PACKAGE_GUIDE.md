@@ -423,6 +423,64 @@ The original dashboard table remains:
 
 ---
 
+## Phase D: Inspecting The Graph
+
+The dashboard has two tabs:
+
+```text
+[Commit measurements] [Codebase graph]
+```
+
+### Whole-Codebase View
+
+The graph tab opens with the complete indexed codebase:
+
+- A circle represents a file.
+- A line represents an import.
+- Node color represents backend, frontend, AI, tests, DevOps, or config.
+- Larger nodes are important hubs with more callers.
+
+You can:
+
+- Zoom with the mouse wheel
+- Pan by dragging the background
+- Drag individual nodes
+- Search by file path
+- Hide or show categories
+- Click a node to inspect imports, callers, category, and hub score
+
+### Commit Overlay
+
+Choose a commit from the dropdown to place its context package over the whole network.
+The rest of the codebase remains faintly visible, so you can judge whether the package
+captured the correct neighborhood.
+
+| Marking | Meaning |
+|---|---|
+| Cyan outline | Primary work file |
+| Purple outline | Contract |
+| Green outline | Dependency |
+| Blue outline | Structural file |
+| Orange outline | Hub context |
+| Thick outline | File actually read |
+| Yellow outline | File discovered outside the package |
+| Red outline | File under a forbidden path |
+| Gray outline | Candidate excluded by the context budget |
+
+Example questions the graph helps answer:
+
+- Did C24 select the correct files around `config.py`?
+- Was an important caller left outside the package?
+- Did the agent expand into an unrelated domain?
+- Is a globally popular hub actually relevant to this commit?
+- Are forbidden files too close to the work being delegated?
+
+The graph is embedded directly in `constraint-dashboard.html`. It uses the same
+`codebase-graph.json`, live package, and telemetry data as the context engine. There is
+no Obsidian export.
+
+---
+
 ## Important Safety Rules
 
 - `project-state.json` must match the requested commit and owner.
