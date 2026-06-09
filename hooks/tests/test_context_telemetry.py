@@ -114,6 +114,16 @@ class ContextTelemetryTests(unittest.TestCase):
             self.assertEqual(record["usage"]["selected_utilization_percent"], 50.0)
             self.assertEqual(record["usage"]["expansions"], 1)
             self.assertTrue(record["boundaries"]["forbidden_clean"])
+            # Dual-scope telemetry: hooks data becomes agent scope
+            agent = record["telemetry"]["agent"]
+            self.assertEqual(agent["source"], "hooks")
+            self.assertEqual(agent["status"], "available")
+            self.assertEqual(agent["tool_calls"], 5)
+            self.assertIn("a.py", agent["read_paths"])
+            self.assertIn("b.py", agent["read_paths"])
+            self.assertEqual(agent["expansions"], ["b.py"])
+            # No orchestrator data → unavailable
+            self.assertEqual(record["telemetry"]["orchestrator"]["status"], "unavailable")
 
     def test_agent_aliases_match_live_package_ids(self) -> None:
         self.assertEqual(normalize_agent_name("backend"), "rex")

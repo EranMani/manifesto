@@ -1,7 +1,7 @@
 # GLOSSARY.md — Manifesto
 
 > Maintained by Claude. New terms are added when first introduced — not retroactively.
-> Last updated: 2026-06-09 (C24)
+> Last updated: 2026-06-09 (D31 — dual-scope telemetry terms)
 
 ---
 
@@ -54,6 +54,18 @@ Dataclass holding the three embedding parameters: `provider` (ollama/openai), `m
 
 ### ChatMessage
 Typed dict `{"role": "user"|"assistant", "content": str}` used as elements of the `messages` argument to `LLMService.chat()`. Routes pass a list of `ChatMessage`s; the service forwards them to the provider without coupling routes to provider SDK types.
+
+### agent scope (telemetry)
+The per-commit telemetry record for the implementor agent's own tool activity. Sourced from the agent's **self-report** (preferred) or hooks-captured data (fallback). Lives in `telemetry.agent` inside each `CONTEXT_METRICS.json` record. Status is `available` (full path-level data), `partial` (tool count only), or `unavailable`. See D31.
+
+### orchestrator scope (telemetry)
+The per-commit telemetry record for Claude's post-agent activity: inspection, test runs, verification, corrections. Sourced exclusively from hook-captured events between `--start-orchestrator` and `--stop-orchestrator`. Lives in `telemetry.orchestrator`. Status is `available` or `unavailable`. See D31.
+
+### self-report (telemetry)
+The structured JSON block an agent includes in its final message under the **Return Contract** heading. Contains `tool_calls`, `read_paths`, `write_paths`, `searches`, `commands`, and `expansions`. Claude persists it via `python hooks/context_telemetry.py --agent-report`. It is the canonical source for the agent scope because outer hooks cannot observe nested agent tool events. See D31.
+
+### dual-scope telemetry
+The two-scope telemetry system introduced in D31. Each commit has an `agent` scope (what the implementor did) and an `orchestrator` scope (what Claude did during review). Stored together in `CONTEXT_METRICS.json`. Dashboard shows both scopes separately, a combined total, and marks missing data as N/A rather than zero. "Expansion-free" is only counted when expansion status is positively known — Unknown records are excluded from the count.
 
 ### policy chunk
 One atomic fragment of a policy document, stored as a row in `policy_chunks`. Each chunk has an `embedding` vector (768 dimensions) and a `source_label` identifying its parent document and page/section range. The retrieval pipeline scores chunks by cosine similarity to the query embedding and returns the top-k as grounding context for generation.

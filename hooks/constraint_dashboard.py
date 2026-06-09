@@ -205,6 +205,74 @@ def json_for_script(value: Any) -> str:
     return json.dumps(value, separators=(",", ":")).replace("</", "<\\/")
 
 
+def _scope_cell(scope: dict[str, Any] | None) -> str:
+    """Render an agent or orchestrator tool-call count with a source badge."""
+    if scope is None or scope.get("status") == "unavailable":
+        return '<span style="color:#94a3b8">N/A</span>'
+    tool_calls = scope.get("tool_calls")
+    calls_text = str(tool_calls) if tool_calls is not None else "N/A"
+    source = scope.get("source", "unknown")
+    source_styles = {
+        "self_report": ("background:#eff6ff;color:#1d4ed8", "self-report"),
+        "hooks": ("background:#f0fdf4;color:#166534", "hooks"),
+    }
+    style, label = source_styles.get(source, ("background:#f8fafc;color:#64748b", source))
+    badge_html = (
+        f'<span style="{style};border-radius:3px;padding:1px 5px;'
+        f'font-size:10px;font-weight:500;margin-left:4px">{label}</span>'
+    )
+    return f"{calls_text}{badge_html}"
+
+
+def _expansion_cell(agent_scope: dict[str, Any] | None) -> str:
+    """Render expansion count, or Unknown when path-level data is absent."""
+    if agent_scope is None or agent_scope.get("status") == "unavailable":
+        return '<span style="color:#94a3b8">Unknown</span>'
+    expansions = agent_scope.get("expansions")
+    if expansions is None:
+        return '<span style="color:#94a3b8">Unknown</span>'
+    n = len(expansions) if isinstance(expansions, list) else int(expansions)
+    color = "#16a34a" if n == 0 else "#dc2626"
+    return f'<span style="color:{color};font-weight:500">{n}</span>'
+
+
+def _combined_cell(
+    agent_scope: dict[str, Any] | None,
+    orch_scope: dict[str, Any] | None,
+) -> str:
+    """Render combined tool call total. N/A only when both scopes are unavailable."""
+    a_calls: int | None = None
+    o_calls: int | None = None
+    if agent_scope and agent_scope.get("status") != "unavailable":
+        a_calls = agent_scope.get("tool_calls")
+    if orch_scope and orch_scope.get("status") != "unavailable":
+        o_calls = orch_scope.get("tool_calls")
+    if a_calls is None and o_calls is None:
+        return '<span style="color:#94a3b8">N/A</span>'
+    total = (a_calls or 0) + (o_calls or 0)
+    return f'<strong>{total}</strong>'
+
+
+def _is_expansion_free(record: dict[str, Any]) -> bool | None:
+    """Return True=expansion-free, False=had expansions, None=unknown (not counted either way)."""
+    telemetry = record.get("telemetry")
+    if telemetry:
+        agent = telemetry.get("agent", {})
+        if agent.get("status") == "unavailable":
+            return None
+        expansions = agent.get("expansions")
+        if expansions is None:
+            return None
+        n = len(expansions) if isinstance(expansions, list) else int(expansions)
+        return n == 0
+    # Fallback for records without telemetry key (v1-style)
+    usage = record.get("usage", {})
+    exp = usage.get("expansions")
+    if exp is None:
+        return None
+    return exp == 0
+
+
 def badge(value: str, good: bool | None = None) -> str:
     if good is None:
         css = "neutral"
@@ -246,7 +314,9 @@ def render_dashboard(
         for r in metrics
         if r.get("usage", {}).get("selected_utilization_percent") is not None
     ]
-    expansion_free = sum(r.get("usage", {}).get("expansions", 0) == 0 for r in metrics)
+    expansion_statuses = [_is_expansion_free(r) for r in metrics]
+    expansion_free = sum(1 for s in expansion_statuses if s is True)
+    expansion_unknown = sum(1 for s in expansion_statuses if s is None)
     boundary_clean = sum(r.get("boundaries", {}).get("forbidden_clean", False) for r in metrics)
     avg_package = round(sum(package_chars) / len(package_chars)) if package_chars else None
     avg_use = round(sum(utilizations) / len(utilizations), 1) if utilizations else None
@@ -275,6 +345,9 @@ def render_dashboard(
         pkg = record.get("package", {})
         usage = record.get("usage", {})
         boundary = record.get("boundaries", {})
+        telemetry = record.get("telemetry", {})
+        agent_scope = telemetry.get("agent") if telemetry else None
+        orch_scope = telemetry.get("orchestrator") if telemetry else None
         selected = pkg.get("selected_files", 0)
         used = usage.get("selected_files_read")
         use_pct = usage.get("selected_utilization_percent")
@@ -285,14 +358,16 @@ def render_dashboard(
             f"<td>{metric_value(record.get('tokens'))}</td>"
             f"<td><strong>{selected}</strong> / {pkg.get('estimated_chars', 0):,} chars</td>"
             f"<td>{metric_value(used)} / {selected} ({metric_value(use_pct, '%')})</td>"
-            f"<td>{usage.get('searches', 0)}</td>"
-            f"<td>{badge(str(usage.get('expansions', 0)), usage.get('expansions', 0) == 0)}</td>"
+            f"<td>{_scope_cell(agent_scope)}</td>"
+            f"<td>{_scope_cell(orch_scope)}</td>"
+            f"<td>{_combined_cell(agent_scope, orch_scope)}</td>"
+            f"<td>{_expansion_cell(agent_scope)}</td>"
             f"<td>{badge('clean' if boundary.get('forbidden_clean') else 'violation', boundary.get('forbidden_clean'))}</td>"
             "</tr>"
         )
     if not metric_rows:
         metric_rows = (
-            '<tr><td colspan="8" class="empty">Phase B measurements begin with the next '
+            '<tr><td colspan="10" class="empty">Phase B measurements begin with the next '
             'verified live delegation.</td></tr>'
         )
 
@@ -335,11 +410,17 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
 .overlay-key{display:inline-flex;align-items:center;gap:4px}.overlay-mark{width:13px;height:13px;border:2px solid;border-radius:4px}.graph-status{position:absolute;left:10px;bottom:8px;color:#b8c2d3;background:#111827cc;padding:4px 7px;border-radius:5px;font-size:11px;pointer-events:none}
 @media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}.prepared-grid{grid-template-columns:1fr}.graph-controls{grid-template-columns:1fr 1fr}.graph-stage{height:560px}}
 """
+    if measured:
+        ef_label = f"{expansion_free}/{measured}"
+        if expansion_unknown:
+            ef_label += f" ({expansion_unknown} unknown)"
+    else:
+        ef_label = "-"
     phase_cards = [
         ("Measured commits", measured),
         ("Avg package", f"{avg_package:,} chars" if avg_package is not None else "-"),
         ("Selected files used", f"{avg_use}%" if avg_use is not None else "-"),
-        ("Expansion-free", f"{expansion_free}/{measured}" if measured else "-"),
+        ("Expansion-free", ef_label),
         ("Boundary clean", f"{boundary_clean}/{measured}" if measured else "-"),
     ]
     cards_html = "".join(
@@ -369,9 +450,9 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
 <p>Measures whether the prepared package was concise and sufficient.</p></div></div>
 <div class="cards">{cards_html}</div>
 <div class="table-wrap"><table><thead><tr><th>Commit</th><th>Agent</th><th>Tokens</th><th>Package</th>
-<th>Selected used</th><th>Searches</th><th>Expansions</th><th>Boundary</th></tr></thead>
+<th>Selected used</th><th>Agent calls</th><th>Orch calls</th><th>Combined</th><th>Expansions</th><th>Boundary</th></tr></thead>
 <tbody>{metric_rows}</tbody></table></div>
-<p class="legend">Selected used = unique package files read. Expansion = unique paths read outside the package.</p></section>
+<p class="legend">Agent / Orch calls = tool calls per scope with source badge. N/A = telemetry unavailable for that scope. Expansion = paths read outside the selected package (Unknown when path-level data missing).</p></section>
 <section><div class="section-head"><div><h2>Constraint history</h2>
 <p>Existing checks for upfront context, forbidden paths, tool budget, and result.</p></div></div>
 <div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>Agent</th><th>Tokens</th>

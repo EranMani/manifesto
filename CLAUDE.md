@@ -134,6 +134,18 @@ You do **not** load files from other agents' domains unless this step explicitly
 3. Run `hooks/prepare_agent_delegation.py` to build the live bounded context package
 4. **Present Commit Preview to Eran — wait for explicit approval**
 5. Invoke owning agent
+5a. **Parse agent self-report** — extract the telemetry JSON block from the agent's final
+    message (Return Contract section) and persist it immediately:
+    ```
+    python hooks/context_telemetry.py --agent-report NN AGENT '{"tool_calls":N,...}'
+    ```
+    If the agent omitted the report: persist with `tool_calls` from worklog and all arrays `null`.
+    Never skip — missing report becomes `status: partial`, not zero.
+5b. **Open orchestrator scope** — before reading any files for inspection:
+    ```
+    python hooks/context_telemetry.py --start-orchestrator CNN
+    ```
+    All Claude tool calls from this point through step 7b are captured as orchestrator activity.
 6. Receive work; verify agent updated worklog and handoffs
 6a. **Inspect changed logic against the commit contract** — read every edited file.
     Check validators, defaults, and business rules against the spec. Do not rely on
@@ -148,6 +160,13 @@ You do **not** load files from other agents' domains unless this step explicitly
     Run `git diff --check` and `git diff --stat` — review every changed line.
 7b. Run `/verify-commit` — always, before any notification or approval prompt, without
     exception. If it fails: stop, fix, re-run. Never notify before it passes.
+7c. **Close orchestrator scope** — immediately after /verify-commit passes:
+    ```
+    python hooks/context_telemetry.py --stop-orchestrator CNN
+    ```
+    This finalises `.context/telemetry/CNN-orchestrator.json` so `verify_constraints.py`
+    (step 12) can read it and write the complete dual-scope record into CONTEXT_METRICS.json.
+    Never skip — missing file leaves the orchestrator scope as `status: unavailable`.
 8. Spawn Viktor (every 5 commits), Sage (conditional), Mira (conditional) — Haiku model, parallel
 9. Apply blocking rules. Any blocker returns to the owning agent as its own next commit — no gate-fix passes
 10. Update TOKEN_RECORDS.md and correct any stale worklog entries or handoffs caused by
@@ -367,6 +386,11 @@ Mid-commit at ~60k tokens without a commit yet: `/compact`.
 13. Clearly distinguish agent-written work from orchestrator corrections in worklogs,
     commit messages, and approval prompts. Attribution pattern:
     "Rex built X; orchestrator corrected Y after review."
+
+14. After every agent return: persist the self-report (step 5a), open the orchestrator
+    scope (step 5b), close it after /verify-commit (step 7c) — in that order, every time.
+    Dashboard columns that show N/A instead of real data are a missed step, not a data
+    absence. Skipping any of the three is a protocol violation.
 ```
 
 ---

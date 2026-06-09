@@ -38,6 +38,85 @@ def load_live_package(commit: str, agent: str) -> dict[str, Any] | None:
     return _load_json(path)
 
 
+def load_agent_self_report(commit: str, agent: str) -> dict[str, Any] | None:
+    """Load the structured telemetry report the agent returned at end of its session."""
+    commit_key = f"C{str(commit).zfill(2)}"
+    path = REPO_ROOT / ".context" / "telemetry" / f"{commit_key}-{agent.lower()}-self-report.json"
+    return _load_json(path)
+
+
+def load_orchestrator_telemetry(commit: str) -> dict[str, Any] | None:
+    """Load the orchestrator-scope telemetry captured during post-agent review."""
+    commit_key = f"C{str(commit).zfill(2)}"
+    path = REPO_ROOT / ".context" / "telemetry" / f"{commit_key}-orchestrator.json"
+    return _load_json(path)
+
+
+def _build_agent_scope(
+    self_report: dict[str, Any] | None,
+    hooks_telemetry: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Build agent telemetry scope. Self-report takes priority over hooks-captured data."""
+    if self_report is not None:
+        return {
+            "source": "self_report",
+            "status": self_report.get("status", "partial"),
+            "tool_calls": self_report.get("tool_calls"),
+            "read_paths": self_report.get("read_paths"),
+            "write_paths": self_report.get("write_paths"),
+            "searches": self_report.get("searches"),
+            "commands": self_report.get("commands"),
+            "expansions": self_report.get("expansions"),
+        }
+    if hooks_telemetry is not None and hooks_telemetry.get("status") == "completed":
+        tools = hooks_telemetry.get("tools", {})
+        selected_reads = hooks_telemetry.get("selected_read_paths", [])
+        outside_reads = hooks_telemetry.get("outside_read_paths", [])
+        return {
+            "source": "hooks",
+            "status": "available",
+            "tool_calls": tools.get("total"),
+            "read_paths": selected_reads + outside_reads,
+            "write_paths": hooks_telemetry.get("write_paths", []),
+            "searches": hooks_telemetry.get("search_events", []),
+            "commands": [],
+            "expansions": outside_reads,
+        }
+    return {
+        "source": "unavailable",
+        "status": "unavailable",
+        "tool_calls": None,
+        "read_paths": None,
+        "write_paths": None,
+        "searches": None,
+        "commands": None,
+        "expansions": None,
+    }
+
+
+def _build_orchestrator_scope(orch_telemetry: dict[str, Any] | None) -> dict[str, Any]:
+    """Build orchestrator telemetry scope from hook-captured data."""
+    if orch_telemetry is not None and orch_telemetry.get("status") == "completed":
+        return {
+            "source": "hooks",
+            "status": "available",
+            "tool_calls": orch_telemetry.get("tool_calls"),
+            "read_paths": orch_telemetry.get("read_paths"),
+            "write_paths": orch_telemetry.get("write_paths"),
+            "searches": orch_telemetry.get("searches"),
+            "commands": orch_telemetry.get("commands"),
+        }
+    return {
+        "source": "hooks",
+        "status": "unavailable",
+        "tool_calls": None,
+        "read_paths": None,
+        "write_paths": None,
+        "searches": None,
+        "commands": None,
+    }
+
+
 def build_metric_record(
     commit: str,
     agent: str,
@@ -46,9 +125,12 @@ def build_metric_record(
     changed_files: list[str],
 ) -> dict[str, Any]:
     commit_key = f"C{str(commit).zfill(2)}"
-    telemetry = load_run_telemetry(commit, agent)
+    self_report = load_agent_self_report(commit, agent)
+    hooks_telemetry = load_run_telemetry(commit, agent)
+    orch_telemetry = load_orchestrator_telemetry(commit)
     package = load_live_package(commit, agent)
-    package_data = (telemetry or {}).get("package", {})
+
+    package_data = (hooks_telemetry or {}).get("package", {})
     if not package_data and package:
         package_data = {
             "selected_files": package["budget"]["selected_files"],
@@ -64,12 +146,34 @@ def build_metric_record(
             "category_counts": {},
         }
 
+    agent_scope = _build_agent_scope(self_report, hooks_telemetry)
+    orch_scope = _build_orchestrator_scope(orch_telemetry)
+
     selected_files = int(package_data.get("selected_files", 0))
-    selected_reads = len((telemetry or {}).get("selected_read_paths", []))
-    outside_reads = len((telemetry or {}).get("outside_read_paths", []))
-    searches = int((telemetry or {}).get("tools", {}).get("searches", 0))
     estimated_chars = int(package_data.get("estimated_chars", 0))
     usable_chars = int(package_data.get("usable_chars", 0))
+
+    # Derive selected-file utilization from hooks data (unavailable for self-report-only)
+    selected_reads: int | None = None
+    outside_reads: int | None = None
+    hook_searches: int | None = None
+    hook_expansions: int | None = None
+    if hooks_telemetry and hooks_telemetry.get("status") == "completed":
+        selected_reads = len(hooks_telemetry.get("selected_read_paths", []))
+        outside_reads = len(hooks_telemetry.get("outside_read_paths", []))
+        hook_searches = int(hooks_telemetry.get("tools", {}).get("searches", 0))
+        hook_expansions = outside_reads
+    elif self_report:
+        # Use agent self-report for expansion count when hooks are absent
+        exp = self_report.get("expansions")
+        if isinstance(exp, list):
+            hook_expansions = len(exp)
+        elif isinstance(exp, int):
+            hook_expansions = exp
+        srch = self_report.get("searches")
+        if isinstance(srch, list):
+            hook_searches = len(srch)
+
     return {
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "commit": commit_key,
@@ -81,19 +185,24 @@ def build_metric_record(
                 estimated_chars / usable_chars * 100, 1
             ) if usable_chars else None,
         },
+        "telemetry": {
+            "agent": agent_scope,
+            "orchestrator": orch_scope,
+        },
+        # "usage" is kept for backward compatibility with dashboard selected-utilization rendering
         "usage": {
-            "telemetry_status": (telemetry or {}).get("status", "unavailable"),
-            "tool_calls": int((telemetry or {}).get("tools", {}).get("total", 0)),
-            "read_calls": int((telemetry or {}).get("tools", {}).get("reads", 0)),
-            "searches": searches,
-            "write_calls": int((telemetry or {}).get("tools", {}).get("writes", 0)),
+            "telemetry_status": (hooks_telemetry or {}).get("status", "unavailable"),
+            "tool_calls": (hooks_telemetry or {}).get("tools", {}).get("total") if hooks_telemetry else None,
+            "read_calls": (hooks_telemetry or {}).get("tools", {}).get("reads") if hooks_telemetry else None,
+            "searches": hook_searches,
+            "write_calls": (hooks_telemetry or {}).get("tools", {}).get("writes") if hooks_telemetry else None,
             "selected_files_read": selected_reads,
             "selected_utilization_percent": round(
                 selected_reads / selected_files * 100, 1
-            ) if selected_files else None,
-            "unused_selected_files": max(selected_files - selected_reads, 0),
+            ) if selected_files and selected_reads is not None else None,
+            "unused_selected_files": max(selected_files - (selected_reads or 0), 0) if selected_reads is not None else None,
             "outside_files_read": outside_reads,
-            "expansions": outside_reads,
+            "expansions": hook_expansions,
         },
         "boundaries": {
             "forbidden_clean": bool(results["forbidden_paths"]["pass"]),

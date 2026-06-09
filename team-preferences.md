@@ -176,10 +176,20 @@ Do not reason through gate decisions manually. Do not skip `/gate-triage`. It is
 After every agent invocation, before any notification or approval prompt,
 Claude completes these steps in order. This is the fixed commit loop sequence:
 
-**Implement → test → inspect logic → verify-commit → inspect diff/boundaries
-→ update records → notify → request approval → commit**
+**Implement → capture telemetry → inspect logic → verify-commit → close scope
+→ inspect diff/boundaries → update records → notify → request approval → commit**
 
 ```
+STEP A0 — TELEMETRY CAPTURE (two sub-steps, always before inspection)
+  (a) Persist agent self-report:
+      Extract JSON block from agent's final message (Return Contract section).
+      Run: python hooks/context_telemetry.py --agent-report NN AGENT '{...}'
+      If agent omitted the block: use worklog tool-usage line for tool_calls,
+      set all path arrays to null. Never skip. Never treat missing as zero.
+  (b) Open orchestrator scope:
+      Run: python hooks/context_telemetry.py --start-orchestrator CNN
+      Opens before any Claude file reads so all inspection activity is captured.
+
 STEP A — INSPECT LOGIC (mandatory, never skip)
   Read every file the agent edited.
   Check validators, defaults, and business rules against the commit contract.
@@ -202,6 +212,12 @@ STEP C — DIFF AND BOUNDARY REVIEW
 STEP D — /verify-commit
   Always, without exception. If it fails: stop, fix, re-run.
   Never proceed to notification before this passes.
+
+STEP D.5 — CLOSE ORCHESTRATOR SCOPE (immediately after STEP D passes)
+  Run: python hooks/context_telemetry.py --stop-orchestrator CNN
+  Writes .context/telemetry/CNN-orchestrator.json. verify_constraints.py reads it
+  in STEP 13 to build the complete dual-scope record in CONTEXT_METRICS.json.
+  Never skip — missing file makes orchestrator scope show unavailable on dashboard.
 
 STEP E — UPDATE RECORDS
   TOKEN_RECORDS.md: correct counts if orchestrator made post-session fixes.
@@ -389,3 +405,4 @@ Add commit-specific items where the spec has known sharp edges.
 | 2026-06-05 | Claude now commits after approval (D13) | Agents were invisible as GitHub contributors; Eran no longer runs git commands manually. Claude uses CLAUDE_COMMIT=1 + Co-Authored-By trailers. |
 | 2026-06-06 | Added mandatory git status clean step to Post-Commit Checklist | Files were accumulating as unstaged/untracked across sessions — chore commit is now a required final step of every commit loop. |
 | 2026-06-09 | Added Orchestrator Post-Agent Verification Protocol (Steps A–G) | C24 session: orchestrator presented a buggy commit without logic inspection; notified before /verify-commit passed; accepted tests that mirrored a bug rather than enforcing the contract; guessed agent email. 15 behavior corrections recorded across CLAUDE.md, ORCHESTRATION.md, and team-preferences.md. |
+| 2026-06-09 | Added dual-scope telemetry steps A0 and D.5 to Verification Protocol | Agent and orchestrator activity must be recorded separately per commit. A0 persists agent self-report and opens orchestrator scope. D.5 closes it after /verify-commit so verify_constraints.py can write the complete dual-scope record. See D31. |

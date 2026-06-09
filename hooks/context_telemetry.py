@@ -13,6 +13,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ACTIVE_PATH = REPO_ROOT / ".context" / "telemetry" / "active.json"
+ORCHESTRATOR_ACTIVE_PATH = REPO_ROOT / ".context" / "telemetry" / "orchestrator-active.json"
 
 
 def utc_now() -> str:
@@ -79,9 +80,85 @@ def initialize_telemetry(
     return telemetry
 
 
+def initialize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+    """Open an orchestrator telemetry scope for post-agent review and verification."""
+    scope = {
+        "commit": commit,
+        "status": "running",
+        "started_at": utc_now(),
+        "ended_at": None,
+        "tool_calls": 0,
+        "read_paths": [],
+        "write_paths": [],
+        "searches": [],
+        "commands": [],
+    }
+    path = repo_root / ".context" / "telemetry" / "orchestrator-active.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
+    return scope
+
+
+def finalize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> dict[str, Any] | None:
+    """Close the orchestrator scope and write a permanent commit-keyed file."""
+    path = repo_root / ".context" / "telemetry" / "orchestrator-active.json"
+    try:
+        scope = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    scope["status"] = "completed"
+    scope["ended_at"] = utc_now()
+    path.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
+    commit_key = commit if str(commit).upper().startswith("C") else f"C{str(commit).zfill(2)}"
+    output = repo_root / ".context" / "telemetry" / f"{commit_key}-orchestrator.json"
+    output.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
+    return scope
+
+
+def record_agent_self_report(
+    commit: str,
+    agent: str,
+    report: dict[str, Any],
+    repo_root: Path = REPO_ROOT,
+) -> dict[str, Any]:
+    """Validate and persist a structured telemetry report returned by an agent."""
+    tool_calls = report.get("tool_calls")
+    read_paths = report.get("read_paths")
+    write_paths = report.get("write_paths")
+    searches = report.get("searches")
+    commands = report.get("commands")
+    expansions = report.get("expansions")
+
+    # "available" when path-level arrays are present; "partial" when only counts are known
+    status = "available" if read_paths is not None else "partial"
+
+    scope = {
+        "source": "self_report",
+        "status": status,
+        "tool_calls": tool_calls,
+        "read_paths": read_paths,
+        "write_paths": write_paths,
+        "searches": searches,
+        "commands": commands,
+        "expansions": expansions,
+    }
+    commit_key = commit if str(commit).upper().startswith("C") else f"C{str(commit).zfill(2)}"
+    output = repo_root / ".context" / "telemetry" / f"{commit_key}-{agent.lower()}-self-report.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
+    return scope
+
+
 def _load_active() -> dict[str, Any] | None:
     try:
         return json.loads(ACTIVE_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _load_orchestrator_active() -> dict[str, Any] | None:
+    try:
+        return json.loads(ORCHESTRATOR_ACTIVE_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
 
@@ -111,22 +188,45 @@ def _append_unique(items: list[Any], value: Any) -> None:
 
 
 def record_tool_event(event: dict[str, Any]) -> dict[str, Any] | None:
+    tool_name = str(event.get("tool_name", ""))
+    if tool_name == "Agent":
+        return None
+
+    tool_input = event.get("tool_input") or {}
+    if not isinstance(tool_input, dict):
+        tool_input = {}
+    path = _tool_path(tool_input)
+
+    # Route to orchestrator scope when it is active (opened by Claude during review phase)
+    orch = _load_orchestrator_active()
+    if orch and orch.get("status") == "running":
+        orch["tool_calls"] = orch.get("tool_calls", 0) + 1
+        if tool_name == "Read" and path:
+            _append_unique(orch.setdefault("read_paths", []), path)
+        elif tool_name in {"Grep", "Glob"}:
+            orch.setdefault("searches", []).append({
+                "tool": tool_name,
+                "path": path or ".",
+                "query": str(tool_input.get("pattern", "")),
+            })
+        elif tool_name in {"Write", "Edit", "MultiEdit", "NotebookEdit"} and path:
+            _append_unique(orch.setdefault("write_paths", []), path)
+        elif tool_name == "Bash":
+            orch.setdefault("commands", []).append(str(tool_input.get("command", ""))[:120])
+        ORCHESTRATOR_ACTIVE_PATH.write_text(json.dumps(orch, indent=2) + "\n", encoding="utf-8")
+        return orch
+
+    # Route to agent scope when tool_cap has the matching agent active
     telemetry = _load_active()
     if not telemetry or telemetry.get("status") not in {"prepared", "running"}:
         return telemetry
 
-    tool_name = str(event.get("tool_name", ""))
-    if tool_name == "Agent":
-        return telemetry
     active_agent = _active_agent()
     if not active_agent or active_agent != str(telemetry.get("agent", "")).lower():
         return telemetry
-    tool_input = event.get("tool_input") or {}
-    if not isinstance(tool_input, dict):
-        tool_input = {}
+
     telemetry["status"] = "running"
     telemetry["tools"]["total"] += 1
-    path = _tool_path(tool_input)
     selected = set(telemetry.get("selected_paths", []))
 
     if tool_name == "Read":
@@ -178,10 +278,46 @@ def finalize_telemetry() -> dict[str, Any] | None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--finalize", action="store_true")
+    parser.add_argument(
+        "--start-orchestrator",
+        metavar="COMMIT",
+        help="Open orchestrator scope for the given commit (call before post-agent review)",
+    )
+    parser.add_argument(
+        "--stop-orchestrator",
+        metavar="COMMIT",
+        help="Close and persist orchestrator scope (call after verification is complete)",
+    )
+    parser.add_argument(
+        "--agent-report",
+        nargs=3,
+        metavar=("COMMIT", "AGENT", "JSON"),
+        help="Persist an agent's structured self-report: COMMIT AGENT '{...}'",
+    )
     args = parser.parse_args()
+
     if args.finalize:
         finalize_telemetry()
         return 0
+
+    if args.start_orchestrator:
+        initialize_orchestrator_scope(args.start_orchestrator)
+        return 0
+
+    if args.stop_orchestrator:
+        finalize_orchestrator_scope(args.stop_orchestrator)
+        return 0
+
+    if args.agent_report:
+        commit, agent, json_str = args.agent_report
+        try:
+            report = json.loads(json_str)
+        except json.JSONDecodeError as exc:
+            print(f"ERROR: invalid JSON for agent report: {exc}", file=sys.stderr)
+            return 1
+        record_agent_self_report(commit, agent, report)
+        return 0
+
     try:
         raw = sys.stdin.read()
         event = json.loads(raw) if raw.strip() else {}

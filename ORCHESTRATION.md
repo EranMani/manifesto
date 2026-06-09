@@ -3,7 +3,7 @@
 > The master rules for running this project through the multi-agent workflow.
 > CLAUDE.md is the boot sequence. This file is the full ruleset.
 > When CLAUDE.md is ambiguous — this file is authoritative.
-> Last updated: 2026-06-09
+> Last updated: 2026-06-09 (D31 — dual-scope telemetry wired into commit loop)
 
 ---
 
@@ -67,6 +67,17 @@ STEP 4 — Pre-invocation check (mandatory)
 STEP 5 — Agent executes
 └── Writes worklog continuously. Decisions logged as made.
 
+STEP 5.5 — Telemetry capture — two mandatory sub-steps, in this order:
+└── (a) Persist agent self-report:
+        Extract the telemetry JSON block from the agent's final message (Return Contract).
+        Run: python hooks/context_telemetry.py --agent-report NN AGENT '{...}'
+        If the agent omitted the report: construct from worklog tool-usage line,
+        set all path arrays to null (status: partial). Never skip. Never treat as zero.
+    (b) Open orchestrator scope:
+        Run: python hooks/context_telemetry.py --start-orchestrator CNN
+        All Claude tool calls from this point through STEP 7.5 are captured as
+        orchestrator activity. Open BEFORE reading any files for inspection.
+
 STEP 6 — Agent completes
 └── Updates Current State Header. Writes outgoing handoff notes.
     Worklog status is "pending approval" — not complete — until git commit succeeds.
@@ -90,6 +101,12 @@ STEP 7.5 — Diff review and /verify-commit (mandatory — before any notificati
     git diff --check and git diff --stat — review every changed line and file count.
     /verify-commit — always, without exception. If it fails: stop, fix, re-run.
     Never send the completion notification before /verify-commit passes.
+
+STEP 7.75 — Close orchestrator scope (immediately after /verify-commit passes)
+└── Run: python hooks/context_telemetry.py --stop-orchestrator CNN
+    Finalises .context/telemetry/CNN-orchestrator.json so verify_constraints.py (STEP 13)
+    can read it and write the complete dual-scope record into CONTEXT_METRICS.json.
+    Never skip — missing file leaves orchestrator scope as status: unavailable in the dashboard.
 
 STEP 8 — Quality gate wave (parallel where triggered)
 └── Viktor: every 5th commit (C05, C10, C15, C20) — Haiku
@@ -332,3 +349,7 @@ These cannot be overridden by any agent or any instruction:
     the cap is reached, not reported after the fact
 15. Completion notifications describe only the final, verified, corrected state of the
     work — never a preliminary or unreviewed state
+16. Dual-scope telemetry is mandatory every commit: persist agent self-report (STEP 5.5a),
+    open orchestrator scope (STEP 5.5b), close it after /verify-commit (STEP 7.75).
+    Dashboard columns showing N/A when real data existed are a skipped step, not
+    missing data. All three sub-steps run every commit without exception.

@@ -867,6 +867,43 @@ Manifesto cases.
 
 Run `npm install` in `frontend/` before any build or dev command on a fresh checkout.
 
+---
+
+## D31 — Dual-Scope Telemetry: Agent and Orchestrator Recorded Separately
+
+- **Date:** 2026-06-09
+- **Decided by:** Eran (requirement), Claude (design)
+- **Context:** Phase B telemetry was recording a single flat usage record per commit, sourced entirely from hook-captured agent tool calls. C24 exposed two problems: the hooks were not firing inside nested agent sessions (the project hooks cannot observe sub-agent tool events), and Claude's own post-agent activity (inspection, verification, corrections) was invisible to the dashboard.
+
+### What was decided
+
+Two telemetry scopes per commit, stored in the same `CONTEXT_METRICS.json` record under a `telemetry` key:
+
+**Agent scope** (`telemetry.agent`) — sourced from the agent's structured self-report returned in its final message. Self-report takes priority over any hooks-captured data. Status is `available` when path arrays are present, `partial` when only `tool_calls` is known, `unavailable` when neither exist.
+
+**Orchestrator scope** (`telemetry.orchestrator`) — sourced from hook-captured events during the explicitly-bounded review phase. Claude opens the scope with `--start-orchestrator` before inspection and closes it with `--stop-orchestrator` after `/verify-commit` passes. Scope is hooks-native, so it can be fully automated.
+
+### Why not a single merged scope
+
+Merging would make it impossible to distinguish agent efficiency (did Rex over-read?) from orchestrator overhead (did Claude correct logic after the fact?). Keeping them separate makes each independently auditable. The dashboard shows both plus a combined total.
+
+### Why self-report for agent scope instead of hooks
+
+The Claude Code hooks framework fires for the outer Claude session. When Claude spawns a sub-agent (the Agent tool), the sub-agent's internal tool calls are not observable by the outer hooks. The only reliable source is the agent itself. Self-report is therefore the canonical source for agent scope. It is not guesswork — it is the agent recording what it did before returning control to the orchestrator.
+
+### Why not zero when self-report is absent
+
+Treating a missing report as zero is a false measurement. A missing report means "we don't know", not "nothing happened". The dashboard shows `N/A` for unavailable fields and `Unknown` for expansion status that cannot be determined. The "Expansion-free" summary card counts only records where the status is positively known.
+
+### Consequences
+
+- Every delegation brief includes a **Return Contract** section (added to `prepare_agent_delegation.py`).
+- Commit loop gains STEP 5.5 (persist self-report + open scope) and STEP 7.75 (close scope).
+- `context_telemetry.py` gains `--agent-report`, `--start-orchestrator`, `--stop-orchestrator` flags.
+- `context_metrics.py` `build_metric_record` produces `telemetry.agent` + `telemetry.orchestrator`.
+- Dashboard Phase B table gains Agent calls, Orch calls, Combined, and Unknown expansion columns.
+- C24 history corrected: agent scope shows 26 tool calls (self-reported), path-level null.
+
 ### Consequences
 
 - Any new machine or fresh clone must run `npm install` in `frontend/` before `npm run build`

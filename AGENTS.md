@@ -2,7 +2,7 @@
 
 > Cross-agent protocol and roster. Claude reads this at boot.
 > Updated when agents are added or domain boundaries change.
-> Last updated: 2026-06-08
+> Last updated: 2026-06-09 (D31 — Return Contract added to delegation brief)
 
 ---
 
@@ -85,6 +85,27 @@ Agents read listed files first and do not scan directories. Additional context i
 only for an unresolved symbol, missing contract, failing test, or contradictory
 implementation evidence. Before expanding, the agent records the reason, exact query or
 path, expected decision, and tradeoff. Expansions and outcomes go in the worklog.
+
+### Return Contract (required in every agent's final message)
+
+Every implementor must include a structured telemetry report in their final message.
+The delegation brief's **Return Contract** section specifies the exact format:
+
+```json
+{
+  "tool_calls": <total count>,
+  "read_paths": ["path/a.py", "path/b.py"],
+  "write_paths": ["path/c.py"],
+  "searches": [{"tool": "Grep", "path": ".", "query": "pattern"}],
+  "commands": ["pytest backend/tests/"],
+  "expansions": ["path/outside-package.py"]
+}
+```
+
+Set any array to `null` if path-level detail is unavailable (e.g. after a context gap).
+`tool_calls` is always required — never omit it.
+Claude validates and persists this report as the agent scope of the commit's telemetry.
+Missing report → Claude constructs a partial report from the worklog's tool-usage line.
 
 **Standard handoff format:**
 ```
