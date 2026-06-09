@@ -23,17 +23,38 @@
         },
         "budget_utilization_percent": 82.5
       },
+      "telemetry": {
+        "agent": {
+          "source": "self_report",
+          "status": "partial",
+          "tool_calls": 26,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null
+        }
+      },
       "usage": {
-        "telemetry_status": "completed",
-        "tool_calls": 0,
-        "read_calls": 0,
-        "searches": 0,
-        "write_calls": 0,
-        "selected_files_read": 0,
-        "selected_utilization_percent": 0.0,
-        "unused_selected_files": 9,
-        "outside_files_read": 0,
-        "expansions": 0
+        "telemetry_status": "unavailable",
+        "tool_calls": 26,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
       },
       "boundaries": {
         "forbidden_clean": true,
