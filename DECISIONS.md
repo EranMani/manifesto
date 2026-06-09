@@ -2,7 +2,7 @@
 
 > Maintained by Claude. Every non-obvious design choice made during this project
 > is logged here with the reason it was made — including the debate that led to it.
-> Last updated: 2026-06-04
+> Last updated: 2026-06-09
 
 ---
 
@@ -304,33 +304,52 @@ Pre-write `.git/COMMIT_EDITMSG` with the intended commit message immediately bef
 
 Also: the `Co-Authored-By` regex in `pre_commit_check.py` uses `\S+\s+<email>` — it expects a single-word name before the email. Multi-word names like "Claude Sonnet 4.6" are not matched. Convention: use single-word agent names in `Co-Authored-By` trailers (e.g., `Co-Authored-By: Adam <adam@manifesto.local>`).
 
+**Superseded by D12:** The `GIT_MESSAGE` env-var priority fix in D12 makes the pre-write workaround unnecessary. The two-step pattern remains harmless if used but is no longer required.
+
 ### Consequences
 
-- Every commit requires a two-step pattern: `printf ... > .git/COMMIT_EDITMSG`, then `git commit -m`
-- Co-Authored-By must use single-word names matching agent-config.json keys
-- This should be investigated in C21 (Adam's smoke test) to see if a hook fix is preferable
+- `GIT_MESSAGE` env var must be set before `git commit -m` is called (D12)
+- Co-Authored-By must use single-word names matching agent-config.json keys (still active)
 
 ---
 
-## D11 — postcss.config.js: Required but Absent from Spec
+## D11 — Agent Commit Blocker: ERAN_COMMIT=1 Bypass Pattern
 
 - **Date:** 2026-06-04
-- **Decided by:** Aria (C03 execution)
-- **Context:** `commit-03.md` spec did not list `postcss.config.js`. Aria encountered a build failure without it.
+- **Decided by:** Andrej + Boris (analysis of /insight report), Eran (approval)
+- **Context:** /insight report (5 sessions, 47 messages): 9 dissatisfied moments, 1 happy. Primary violations: Aria committed without approval (gate-triage bypass), governance docs updated partially, encoding fix cascaded into blocking Eran's next commit.
 
-### Decision
+### The problem
 
-Add `postcss.config.js` to `frontend/` alongside the spec files.
+Protocol rules live in files. Files don't enforce themselves. Between session resets, Claude loses working context of stored preferences — the same violations recur because the enforcement layer was trust-based, not mechanical.
 
-### Rationale
+### Decisions
 
-Tailwind CSS v3 requires PostCSS to process `@tailwind` directives at build time. Without `postcss.config.js`, Vite's CSS pipeline does not invoke Tailwind at all — the build succeeds but all Tailwind classes are stripped. This is a mechanical requirement of the declared stack (Tailwind v3 + Vite), not a design choice.
+**1. `block_agent_commit.py` — PreToolUse hook on Bash**
+Intercepts any bash command containing `git commit`, `git push`, `git merge`, `git rebase`.
+Blocks with exit 2 and a clear message. Eran bypasses with `ERAN_COMMIT=1 git commit -m "..."`.
+Agents never set this env var — they are always blocked mechanically.
+
+**2. CLAUDE.md Critical Rules callout at the very top**
+Four rules added as the first block in CLAUDE.md, before the boot sequence:
+- Always address Eran by name
+- Never commit without Eran's explicit approval
+- When updating any governance file, update all related files in the same pass
+- Before staging, verify domain ownership
+
+**3. Governance sync check added to pre-commit-doc-checklist skill**
+When any governance file changes, the skill greps for related files and flags missed updates.
+Related file map defined: editing commit-protocol.md → also check project-state.json + team-preferences.md, etc.
+
+**4. Root-cause discipline rule**
+If a fix fails once, stop patching symptoms. State the root-cause hypothesis explicitly before trying another approach. (From the Chroma health-check session in rag-from-scratch — 3+ failed attempts before the real cause was found.)
 
 ### Consequences
 
-- `frontend/postcss.config.js` exists from C03 onward; no commit needed later
-- All future commit specs involving Tailwind may assume PostCSS is configured
-- Spec omission noted — future specs should include it when listing Tailwind as a dependency
+- Aria-style unauthorized commits are mechanically impossible — hook blocks before git runs
+- Eran can commit freely: `ERAN_COMMIT=1 git commit -m "..."`
+- Partial governance updates are caught by the skill's sync check before approval is surfaced
+- The same enforcement now exists in CLAUDE.md (read every session) + hooks (run every commit)
 
 ---
 
@@ -406,375 +425,6 @@ Scopes: `backend / frontend / devops / config / governance`
 
 ---
 
-## D29 - Context Package V2 Starts in Shadow Mode
-
-- **Date:** 2026-06-08
-- **Decided by:** Eran and Codex
-- **Context:** Static commit context is lean, but it can omit callers, tests, structural
-  wiring, or cross-domain contracts. Direct activation would risk making agents
-  efficiently wrong.
-
-### Decision
-
-Add an explainable context engine under `hooks/` and validate it in shadow mode before
-changing real agent prompts. The engine combines the existing commit-spec context with
-structural anchors, one-hop dependencies from changed files, tests, and explicit
-cross-domain contract bridges. Generated previews are written under `.context/runs/`.
-
-### Tradeoffs
-
-- **Chosen:** deterministic rules and import graphs before embeddings or LLM retrieval.
-  This is cheap, reproducible, and easy to debug, but cannot discover every dynamic
-  runtime relationship.
-- **Chosen:** expand dependencies only from primary changed files. Expanding every
-  contract or shared hub produced unrelated sibling routes and wasted context.
-- **Chosen:** project-specific contract bridges for known cross-domain interfaces.
-  They require maintenance, but make critical contracts explicit and testable.
-- **Chosen:** preserve a reserved context budget and report exclusions. This may omit
-  low-priority neighbors, but prevents uncontrolled context growth.
-- **Reversibility:** high. Phase A does not modify commit execution, hooks, or prompts.
-
-### Activation condition
-
-Keep shadow mode until automated tests pass and historical/planned commit previews show
-complete required-contract recall without harmful unrelated context.
-
-### Phase A2 extension — cached codebase network
-
-Reuse Skillsmith's deterministic classification and graph concepts through a local
-Manifesto implementation rather than importing scripts from another project directory.
-The cache makes full-repository mapping reusable across context requests and can also
-feed an Obsidian visualization.
-
-**Tradeoffs:**
-
-- A local adaptation duplicates some Skillsmith logic, but keeps Manifesto reproducible
-  and independently versioned.
-- Cache generation adds a separate refresh step, but context requests avoid rebuilding
-  the full graph each time.
-- Hub proximity follows dependency direction. This captures shared foundations while
-  avoiding sibling-route fan-out through structural entry points.
-- Obsidian remains an optional inspection surface; agents receive only the bounded
-  selected neighborhood, never the full network.
-- Missing or invalid cache data falls back safely to the Phase A1 scanner, preserving
-  context generation at reduced graph richness.
-
-### Phase A3 extension — activate live delegation
-
-Claude now prepares a state-validated live package before every implementor invocation and
-passes the generated brief verbatim. The approval gate remains unchanged: preparing
-context does not authorize agent execution.
-
-**Tradeoffs:**
-
-- Agents may still search, but each expansion must state its reason, exact query or path,
-  expected decision, and tradeoff. This adds a small discipline cost while preventing
-  speculative exploration.
-- The package lists selected files instead of embedding their contents, saving prompt
-  tokens at the cost of targeted agent reads.
-- Large selected files use excerpt-first guidance. This reduces token consumption but
-  requires accurate symbol or section queries.
-- Live preparation rejects commit or owner mismatches against `project-state.json`.
-  Manual experimentation must use shadow preview commands instead.
-
-### Phase B — measure context efficiency in the existing dashboard
-
-Use the existing constraint dashboard as the single visual measurement surface. Runtime
-hooks capture context behavior automatically, and post-commit verification stores compact
-records in `CONTEXT_METRICS.json`.
-
-**Tradeoffs:**
-
-- Automatic hooks avoid unreliable manual reporting, but only observe structured Claude
-  tools directly. Shell commands are counted as commands, not parsed as file reads.
-- Selected-file utilization is a diagnostic signal, not a score to maximize. A correctly
-  unused fallback contract may still be valuable.
-- Outside-package reads count as expansions even when justified. The goal is visibility,
-  not punishing necessary investigation.
-- Metrics begin with live Phase B commits; older commits retain their existing token and
-  constraint history without invented context-usage data.
-
-### Phase D — embed the codebase graph in the dashboard
-
-Add a second dashboard tab for the whole-codebase graph. A commit dropdown overlays one
-context package at a time while the remaining network stays visible for comparison.
-
-**Tradeoffs:**
-
-- A dependency-free SVG keeps the dashboard portable and offline, but provides fewer
-  layout algorithms than a dedicated graph library.
-- The whole network is the default because architecture inspection needs global context.
-  Commit overlays then answer the narrower question of why a package was selected.
-- Force layout runs in the browser and is appropriate for the current graph size. A much
-  larger repository may later need clustering or server-side positions.
-- No Obsidian export is produced. This avoids duplicate artifacts while preserving the
-  Obsidian-style node-and-edge inspection experience inside the existing dashboard.
-
----
-
-*This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
-it Preview Format: "Summary" replaces "What"
-
-- **Date:** 2026-06-04
-- **Decided by:** Andrej + Boris (debate), Eran (approval)
-- **Context:** First Commit Preview rendered for C01. Eran asked: would a junior developer understand this?
-
-### Decision
-
-Replace "What" with "Summary" in the Commit Preview format. 1-2 sentences, plain English, junior-readable. Parallel callout moves above Changes. Quality gate line always states the rule explicitly, never "None".
-
-### Consequences
-
-- Any reader can understand a commit from the Summary line alone
-- No token cost increase — same field count, one field renamed
-- Explicit quality gate line builds Eran's understanding of when and why gates trigger
-
----
-
-## D05 — Token Optimization Strategy: What We Adopt and What We Reject
-
-- **Date:** 2026-06-04
-- **Decided by:** Andrej + Boris (debate), Eran (approval)
-
-| Strategy | Verdict |
-|---|---|
-| CodeGraph indexing | Adopt as per-agent domain graphs (not full-project) |
-| Log compression (RTK) | Adopt principle as execution constraint — no library |
-| Caveman output truncation | Reject — degrades context loop |
-| Session management | Already implemented + 4 new checkpoint rules added |
-
-Per-domain graphs: Rex gets `backend/DOMAIN_MAP.md`, Aria gets `frontend/DOMAIN_MAP.md`. Generated by `hooks/generate_domain_map.py` post-commit. Scoped to agent domain only — domain boundaries preserved.
-
----
-
-## D06 — Gate-Triage: Skill vs. Inline Matrix
-
-- **Date:** 2026-06-04
-- **Decided by:** Andrej + Boris (debate), Eran (approval)
-
-Gate triage matrix moved from `team-preferences.md` to `.claude/commands/gate-triage.md`. On-demand only — costs zero tokens on commits where no gate runs. Pointer in `team-preferences.md`: "Step 8: invoke `/gate-triage` with the diff." Invocation is a mandatory protocol step, not a judgment call.
-
----
-
-## D07 — Skills Build List: What to Build Before C01
-
-- **Date:** 2026-06-04
-- **Decided by:** Andrej + Boris (debate), Eran (approval)
-
-Built: `gate-triage`, `pre-commit-doc-checklist`, `parallel-wave-detector` skills. `hooks/generate_domain_map.py`. `TOKEN_RECORDS.md`. Updated `team-preferences.md` with verbose output rules, session checkpoints, agent context tiers.
-
----
-
-## D08 — TOKEN_RECORDS.md: Schema and Purpose
-
-- **Date:** 2026-06-04
-- **Decided by:** Andrej + Boris (debate), Eran (approval)
-
-Schema: `| Commit | Agent | Model | Tokens | Tool uses | vs. Target |` — one row per agent invocation, exact counts from `<usage>` block. Updated by Claude before every approval prompt. Estimated entries banned.
-
----
-
-## D09 — Git Hook: sh Wrapper Instead of Direct Python Copy (Windows)
-
-- **Date:** 2026-06-04
-- **Decided by:** Claude (orchestrator, C01 commit)
-- **Context:** On Windows, `.git/hooks/pre-commit` must be a shell script — a raw Python file with no shebang is not executable by git-bash.
-
-### Decision
-
-`.git/hooks/pre-commit` is a small sh wrapper: `#!/bin/sh\npython hooks/pre_commit_check.py "$@"`. Not a copy of the Python file.
-
----
-
-## D10 — Pre-Commit Hook: COMMIT_EDITMSG Pre-Write Workaround (Windows)
-
-- **Date:** 2026-06-04
-- **Decided by:** Claude (orchestrator, C01 commit)
-- **Context:** On this Windows setup, `git commit -m "message"` does not update `.git/COMMIT_EDITMSG` before the pre-commit hook runs.
-
-### Decision
-
-Every commit uses a two-step pattern: `printf ... > .git/COMMIT_EDITMSG`, then `git commit -m`. Co-Authored-By must use single-word agent names matching agent-config.json keys.
-
----
-
-## D11 — Agent Commit Blocker: ERAN_COMMIT=1 Bypass Pattern
-
-- **Date:** 2026-06-04
-- **Decided by:** Andrej + Boris (analysis of /insight report), Eran (approval)
-- **Context:** /insight report showed 9 dissatisfied moments across 5 sessions. Primary cause: Aria committed without approval (gate-triage bypass), governance docs updated partially, encoding fix cascaded into blocking Eran's next commit.
-
-### The problem
-
-Protocol rules live in files. Files don't enforce themselves. Between session resets, Claude loses working context of stored preferences — the same violations recur because the enforcement layer was trust-based, not mechanical.
-
-### Decisions
-
-**1. `block_agent_commit.py` — PreToolUse hook on Bash**
-Intercepts any bash command containing `git commit`, `git push`, `git merge`, `git rebase`.
-Blocks with exit 2 and a clear message. Eran bypasses with `ERAN_COMMIT=1 git commit -m "..."`.
-Agents never set this env var — they are always blocked mechanically.
-
-**2. CLAUDE.md Critical Rules callout at the very top**
-Four rules added as the first block in CLAUDE.md, before the boot sequence:
-- Always address Eran by name
-- Never commit without Eran's explicit approval
-- When updating any governance file, update all related files in the same pass
-- Before staging, verify domain ownership
-
-**3. Governance sync check added to pre-commit-doc-checklist skill**
-When any governance file changes, the skill greps for related files and flags missed updates.
-Related file map defined: editing commit-protocol.md → also check project-state.json + team-preferences.md, etc.
-
-**4. Root-cause discipline rule**
-If a fix fails once, stop patching symptoms. State the root-cause hypothesis explicitly before trying another approach. (From the Chroma health-check session in rag-from-scratch — 3+ failed attempts before the real cause was found.)
-
-### Consequences
-
-- Aria-style unauthorized commits are mechanically impossible — hook blocks before git runs
-- Eran can commit freely: `ERAN_COMMIT=1 git commit -m "..."`
-- Partial governance updates are caught by the skill's sync check before approval is surfaced
-- The same enforcement now exists in CLAUDE.md (read every session) + hooks (run every commit)
-
----
-
-*This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
-
-**Boris's risk flag:** If Claude forgets to invoke the skill, the gate decision gets made without the matrix. Mitigation: make invocation mandatory and mechanical — the commit loop protocol says "Step 8 always starts with `/gate-triage`." Not a judgment call — a protocol step.
-
-### Decision
-
-Build `gate-triage` as a skill. Remove the full matrix from `team-preferences.md` — keep only the pointer: "Step 8: invoke `/gate-triage` with the diff." Matrix logic lives in the skill only.
-
-### Consequences
-
-- Always-loaded files shrink
-- Gate logic is on-demand — zero cost on commits where no gate runs
-- Risk: invocation must be mechanical (protocol step), not optional
-
----
-
-## D07 — Skills Build List: What to Build Before C01
-
-- **Date:** 2026-06-04
-- **Decided by:** Andrej + Boris (debate), Eran (approval)
-
-Built: `gate-triage`, `pre-commit-doc-checklist`, `parallel-wave-detector` skills. `hooks/generate_domain_map.py`. `TOKEN_RECORDS.md`. Updated `team-preferences.md` with verbose output rules, session checkpoints, agent context tiers.
-
----
-
-## D08 — TOKEN_RECORDS.md: Schema and Purpose
-
-- **Date:** 2026-06-04
-- **Decided by:** Andrej + Boris (debate), Eran (approval)
-
-Schema: `| Commit | Agent | Model | Tokens | Tool uses | vs. Target |` — one row per agent invocation, exact counts from `<usage>` block. Updated by Claude before every approval prompt. Estimated entries banned.
-
----
-
-## D09 — Git Hook: sh Wrapper Instead of Direct Python Copy (Windows)
-
-- **Date:** 2026-06-04
-- **Decided by:** Claude (orchestrator, C01 commit)
-
-`.git/hooks/pre-commit` is a small sh wrapper calling `python hooks/pre_commit_check.py`. On Windows, a raw Python file with no shebang is not executable by git-bash.
-
----
-
-## D10 — Pre-Commit Hook: COMMIT_EDITMSG Pre-Write Workaround (Windows)
-
-- **Date:** 2026-06-04
-- **Decided by:** Claude (orchestrator, C01 commit)
-
-On this Windows setup, `git commit -m "message"` does not update `.git/COMMIT_EDITMSG` before the pre-commit hook runs. Every commit uses a two-step pattern: `printf ... > .git/COMMIT_EDITMSG`, then `git commit -m`. Co-Authored-By must use single-word agent names matching agent-config.json keys.
-
----
-
-## D11 — Agent Commit Blocker: ERAN_COMMIT=1 Bypass Pattern
-
-- **Date:** 2026-06-04
-- **Decided by:** Andrej + Boris (analysis of /insight report), Eran (approval)
-- **Context:** /insight report (5 sessions, 47 messages): 9 dissatisfied moments, 1 happy. Primary violations: Aria committed without approval, governance docs updated partially, encoding fix missed a file and cascaded into blocking Eran's next commit.
-
-### Root cause
-
-Protocol rules live in files. Files don't enforce themselves. Between session resets, Claude loses working context of stored preferences — the same violations recur because the enforcement layer was trust-based, not mechanical.
-
-### Decisions made
-
-**1. `hooks/block_agent_commit.py` — PreToolUse hook on Bash**
-Intercepts bash commands containing `git commit`, `git push`, `git merge`, `git rebase`. Blocks with exit 2. Eran bypasses with `ERAN_COMMIT=1 git commit -m "..."`. Agents never set this env var — blocked mechanically.
-
-**2. CLAUDE.md Critical Rules callout at the very top**
-Four rules added before the boot sequence — first thing read every session:
-- Always address Eran by name
-- Never commit without Eran's explicit approval
-- When updating any governance file, update all related files in the same pass (grep to verify)
-- Before staging, verify domain ownership
-
-**3. Governance sync check added to pre-commit-doc-checklist skill**
-Related file map defined — editing one governance file triggers a check of all related files. Must reach "Governance sync: CLEAN" before approval is surfaced.
-
-**4. Root-cause discipline**
-If a fix fails once, stop patching symptoms. State the root-cause hypothesis explicitly before trying another approach.
-
-### Consequences
-
-- Aria-style unauthorized commits are mechanically impossible
-- Eran commits freely: `ERAN_COMMIT=1 git commit -m "..."`
-- Partial governance updates caught by skill sync check before approval surfaces
-- Same enforcement exists in CLAUDE.md (read every session) + hook (runs every commit)
-
----
-
-## D21 — Admin Route PUT: user_id Typed as str, Not UUID
-
-- **Date:** 2026-06-05
-- **Decided by:** Rex (C11 execution)
-- **Context:** `PUT /api/v1/admin/users/{user_id}` path parameter. The `User.id` column is declared `UUID(as_uuid=False)` — SQLAlchemy stores it as a plain Python string, not a `uuid.UUID` object. FastAPI path-param coercion to `uuid.UUID` would cause a silent type mismatch in the `WHERE User.id == user_id` query.
-
-### Decision
-
-Type `user_id` as `str` in the route signature, not `UUID`.
-
-### Rationale
-
-Matching the path param type to the storage representation avoids a silent comparison failure. Casting to `UUID` and back adds noise with no practical benefit.
-
-### Consequences
-
-- All routes querying by ID on `UUID(as_uuid=False)` columns must use `str` path params
-- C12–C14 routes should follow the same convention for their respective ID columns
-- If `User.id` is ever migrated to `UUID(as_uuid=True)`, all affected path params need revisiting
-
----
-
-*This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
-
----
-
-## D13 — Local Validation: npm install Must Run Before npm run build
-
-- **Date:** 2026-06-04
-- **Decided by:** Observed during C03 local validation
-- **Context:** `npm run build` failed with `'tsc' is not recognized` on Eran's machine after C03 was marked done.
-
-### Root cause
-
-Session notes recorded "npm install and npm run build both pass" — this referred to the agent's execution environment, not the developer's local machine. `node_modules/` is gitignored and was never present locally.
-
-### Fix
-
-Run `npm install` in `frontend/` before any build or dev command on a fresh checkout.
-
-### Consequences
-
-- Any new machine or fresh clone must run `npm install` in `frontend/` before `npm run build`
-- C03's "Done When" criteria should be read as: "passes in the build environment" — local setup requires `npm install` first
-- README.md quick-start should include `cd frontend && npm install` as a setup step
-
----
-
 ## D14 — Dockerfile CMD: uvicorn Must Be Invoked via uv run
 
 - **Date:** 2026-06-04
@@ -803,43 +453,6 @@ CMD ["uv", "run", "uvicorn", "app.main:app", ...]
 - Any executable installed by `uv sync` must be invoked via `uv run <executable>` in Docker CMD/ENTRYPOINT
 - This applies to all future Dockerfiles in this project using uv (alembic, pytest, etc.)
 - Rex must use `uv run` for any process-launch commands in Docker context
-
----
-
-## D11 — Agent Commit Blocker: ERAN_COMMIT=1 Bypass Pattern
-
-- **Date:** 2026-06-04
-- **Decided by:** Andrej + Boris (analysis of /insight report), Eran (approval)
-- **Context:** /insight report (5 sessions, 47 messages): 9 dissatisfied moments, 1 happy. Primary violations: Aria committed without approval, governance docs updated partially, encoding fix missed a file and blocked Eran's next commit.
-
-### Root cause
-
-Protocol rules live in files. Files don't enforce themselves. Between session resets, Claude loses working context of stored preferences — the same violations recur because the enforcement layer was trust-based, not mechanical.
-
-### Decisions made
-
-**1. hooks/block_agent_commit.py — PreToolUse hook on Bash**
-Intercepts bash commands containing git commit, git push, git merge, git rebase. Blocks with exit 2. Eran bypasses with ERAN_COMMIT=1 git commit. Agents never set this env var — blocked mechanically.
-
-**2. CLAUDE.md Critical Rules callout at the very top**
-Four rules added before the boot sequence — first thing read every session:
-- Always address Eran by name
-- Never commit without Eran's explicit approval
-- When updating any governance file, update all related files in the same pass (grep to verify)
-- Before staging, verify domain ownership
-
-**3. Governance sync check added to pre-commit-doc-checklist skill**
-Related file map defined — editing one governance file triggers a check of all related files. Must reach "Governance sync: CLEAN" before approval is surfaced.
-
-**4. Root-cause discipline**
-If a fix fails once, stop patching symptoms. State the root-cause hypothesis explicitly before trying another approach.
-
-### Consequences
-
-- Aria-style unauthorized commits are mechanically impossible
-- Eran commits freely: ERAN_COMMIT=1 git commit -m "..."
-- Partial governance updates caught by skill sync check before approval surfaces
-- Same enforcement exists in CLAUDE.md (read every session) + hook (runs every commit)
 
 ---
 
@@ -986,23 +599,43 @@ Viktor's proposed fix rearranges the inactive-user check to after `verify_passwo
 
 ---
 
+## D21 — Admin Route PUT: user_id Typed as str, Not UUID
+
+- **Date:** 2026-06-05
+- **Decided by:** Rex (C11 execution)
+- **Context:** `PUT /api/v1/admin/users/{user_id}` path parameter. The `User.id` column is declared `UUID(as_uuid=False)` — SQLAlchemy stores it as a plain Python string, not a `uuid.UUID` object. FastAPI path-param coercion to `uuid.UUID` would cause a silent type mismatch in the `WHERE User.id == user_id` query.
+
+### Decision
+
+Type `user_id` as `str` in the route signature, not `UUID`.
+
+### Rationale
+
+Matching the path param type to the storage representation avoids a silent comparison failure. Casting to `UUID` and back adds noise with no practical benefit.
+
+### Consequences
+
+- All routes querying by ID on `UUID(as_uuid=False)` columns must use `str` path params
+- C12–C14 routes should follow the same convention for their respective ID columns
+- If `User.id` is ever migrated to `UUID(as_uuid=True)`, all affected path params need revisiting
+
+---
+
 ## D22 — Admin User Creation: Unrestricted Role Assignment (Viktor C15 Finding 2)
 
 - **Date:** 2026-06-05
-- **Decided by:** Pending — flagged at C15 Viktor batch wave, not yet resolved
+- **Decided by:** Closed 2026-06-09 — Option A accepted (implicit, by Phase 1 completion without change)
 - **Context:** Viktor flagged (WARN) that `create_user` in `admin.py` accepts any role including `"admin"` with no secondary confirmation or audit log. An admin can create new admins in one step.
 
 ### Finding
 
 Viktor Finding 2 (C11 batch wave, C15 wave): `UserCreate.role` accepts `"admin"` freely. No friction, no escalation check, no audit event.
 
-### Status: OPEN
+### Status: CLOSED — Option A accepted
 
-Not addressed in C15a (which fixes the field-discard and self-demotion bugs). Whether unrestricted admin-creation is acceptable depends on product requirements:
-- **Option A (accept):** This is an internal tool. The admin user set is small and controlled. Document it and move on.
-- **Option B (restrict):** Require a separate permission level or emit an audit log entry when an admin-role user is created.
+No change was made through Phase 1 completion (C24). For an internal tool with a small, controlled admin set, unrestricted role assignment is acceptable. If Phase 2+ introduces self-service admin creation flows or audit requirements, revisit this decision.
 
-Eran to decide before C19 (placeholder pages) when admin UI is first rendered.
+**If reopened:** Option B would require either a separate `require_role("superadmin")` guard or an explicit audit log entry when an admin-role user is created.
 
 ---
 
@@ -1095,7 +728,7 @@ A single redirect target keeps `ProtectedRoute` simple — one component, one fa
 
 ### Validation
 
-A throwaway `TEST` commit slot was added to `commit-protocol.md` (clearly marked, not part of real numbering) and exercised through the full real pipeline: `--write-flag` → flag written → commit landed (`832db17`) → Stop hook → email. The final validation run produced a clean, well-formed flag (`test.txt` Modified, `test2.txt` Added, then later `notify_agent_done.py`/`notify_on_stop.py` Modified) and the approval email arrived with the **exact correct file list and statuses**. Pipeline confirmed working end-to-end. Test artifacts (`test.txt`, `test2.txt`, `commit-specs/commit-TEST-notify.md`, the `TEST` protocol row, stale flag/debug files) were removed in a follow-up `chore` commit.
+A throwaway `TEST` commit slot was added to `commit-protocol.md` (clearly marked, not part of real numbering) and exercised through the full real pipeline: `--write-flag` → flag written → commit landed (`832db17`) → Stop hook → email. The final validation run produced a clean, well-formed flag and the approval email arrived with the exact correct file list and statuses. Pipeline confirmed working end-to-end. Test artifacts were removed in a follow-up `chore` commit.
 
 ### Consequences
 
@@ -1158,6 +791,87 @@ C23 is recorded as satisfied by prior work — no code changed, so no `git commi
 - General lesson: this is the second instance (after the `policy.py` discovery moments earlier in the same session) of Phase 2 schema work having been built ahead of schedule during Phase 1's C06/C07. Before invoking any remaining Phase 2 commit whose spec describes "new" backend files, check whether the artifact already exists — `0001_initial.py` and `policy.py` both predate the Phase 2 replan (2026-06-07) by two days, suggesting Rex anticipated the RAG schema while building the initial migration and model set.
 - No process change needed beyond this awareness — the "verify before invoking" check (CLAUDE.md's pre-invocation question: "do I already know the exact file/line/content?") already caught half of this; the agent invocation caught the rest cleanly and stopped rather than forcing a false deliverable into existence.
 - **No `CONSTRAINT_LOG.md` row exists for C23 — intentionally.** `verify_constraints.py --commit 23 --agent Rex` was run once against the `chore(state)` commit (`9f29431`) and produced a false-positive `forbidden_paths FAIL`: that commit bundled both `backend/DOMAIN_MAP.md` and `frontend/DOMAIN_MAP.md` (auto-regenerated date-stamp bumps for *both* domains, not Rex touching frontend) because there was no separate feature commit to absorb them into — the defining trait of this no-deliverable commit. Running the domain-ownership check against a pure-bookkeeping commit is a category mismatch: the check is designed to catch an agent's *work* commit touching another agent's domain, not an orchestrator state-reconciliation commit that happens to bundle a routine cross-domain doc regeneration. The stray FAIL row and dashboard update were reverted via `git checkout -- CONSTRAINT_LOG.md constraint-dashboard.html` (same remedy as D27's stray-row incident) and the check intentionally was not re-run. Any future no-deliverable commit of this shape should skip `verify_constraints` for the same reason.
+
+---
+
+## D29 — Context Package V2 Starts in Shadow Mode
+
+- **Date:** 2026-06-08
+- **Decided by:** Eran and Codex
+- **Context:** Static commit context is lean, but it can omit callers, tests, structural
+  wiring, or cross-domain contracts. Direct activation would risk making agents
+  efficiently wrong.
+
+### Decision
+
+Add an explainable context engine under `hooks/` and validate it in shadow mode before
+changing real agent prompts. The engine combines the existing commit-spec context with
+structural anchors, one-hop dependencies from changed files, tests, and explicit
+cross-domain contract bridges. Generated previews are written under `.context/runs/`.
+
+### Tradeoffs
+
+- **Chosen:** deterministic rules and import graphs before embeddings or LLM retrieval.
+  This is cheap, reproducible, and easy to debug, but cannot discover every dynamic
+  runtime relationship.
+- **Chosen:** expand dependencies only from primary changed files. Expanding every
+  contract or shared hub produced unrelated sibling routes and wasted context.
+- **Chosen:** project-specific contract bridges for known cross-domain interfaces.
+  They require maintenance, but make critical contracts explicit and testable.
+- **Chosen:** preserve a reserved context budget and report exclusions. This may omit
+  low-priority neighbors, but prevents uncontrolled context growth.
+- **Reversibility:** high. Phase A does not modify commit execution, hooks, or prompts.
+
+### Activation condition
+
+Keep shadow mode until automated tests pass and historical/planned commit previews show
+complete required-contract recall without harmful unrelated context.
+
+### Phase A2 extension — cached codebase network
+
+Reuse Skillsmith's deterministic classification and graph concepts through a local
+Manifesto implementation rather than importing scripts from another project directory.
+The cache makes full-repository mapping reusable across context requests and can also
+feed an Obsidian visualization.
+
+### Phase A3 extension — activate live delegation
+
+Claude now prepares a state-validated live package before every implementor invocation and
+passes the generated brief verbatim. The approval gate remains unchanged: preparing
+context does not authorize agent execution.
+
+### Phase B — measure context efficiency in the existing dashboard
+
+Use the existing constraint dashboard as the single visual measurement surface. Runtime
+hooks capture context behavior automatically, and post-commit verification stores compact
+records in `CONTEXT_METRICS.json`.
+
+### Phase D — embed the codebase graph in the dashboard
+
+Add a second dashboard tab for the whole-codebase graph. A commit dropdown overlays one
+context package at a time while the remaining network stays visible for comparison.
+
+Tests live under `hooks/tests/` and cover path safety, Python and TypeScript import
+resolution, context parsing, dependency expansion, contract bridges, and historical
+Manifesto cases.
+
+---
+
+## D30 — Local Setup: npm install Must Run Before npm run build
+
+- **Date:** 2026-06-04
+- **Decided by:** Observed during C03 local validation
+- **Context:** `npm run build` failed with `'tsc' is not recognized` on Eran's machine after C03 was marked done. Session notes recorded "npm install and npm run build both pass" — this referred to the agent's execution environment, not the developer's local machine. `node_modules/` is gitignored and was never present locally.
+
+### Fix
+
+Run `npm install` in `frontend/` before any build or dev command on a fresh checkout.
+
+### Consequences
+
+- Any new machine or fresh clone must run `npm install` in `frontend/` before `npm run build`
+- C03's "Done When" criteria should be read as: "passes in the build environment" — local setup requires `npm install` first
+- README.md quick-start should include `cd frontend && npm install` as a setup step
 
 ---
 

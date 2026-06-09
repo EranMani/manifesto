@@ -114,6 +114,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C17 | 23,705 | 1 (Aria) | none | Aria 61% under target; 8 tool uses; 3 new files |
 | C18 | 27,747 | 1 (Aria) | none | Aria 54% under target; 20 tool uses; ProtectedRoute + full App.tsx router |
 | C19 | 0 | none (direct write) | none | Orchestrator direct write; 6 placeholder pages + App.tsx import update; no gate wave |
+| C20 | 76,065 | 1 (Aria) | Viktor 23,704 + Mira 17,893 | Aria 43% under target; batch wave C16–C20: 3 Viktor BLOCKs all dismissed (false positives on frontend patterns); Mira advisory only |
 | C21 | 0 | 1 (Adam) | none | Adam ran live integration smoke test (verification commit, no app code); SMOKE_TEST_RESULTS.md: 15 PASS / 1 PASS-w-deviation / 1 FAIL / 2 blocked / 1 not-verified; FAIL → C22 fix-commit inserted |
 | C22 | 34,661 | 1 (Aria) | none | Aria 42% under target; 12 tool uses; single-file fix to loginApi request format (C21 contract-mismatch fix-commit); tsc clean; gate: PASS |
 | C24 | 37,486 | 1 (Rex) | none | Rex 38% under target; 26 tool uses (1 over cap); config.py + pyproject.toml + uv.lock; all 4 acceptance criteria pass; no gate wave at C24 |
@@ -122,17 +123,19 @@ The delta column is the signal — positive means over budget, negative means un
 
 ## Running Analysis
 
-*Updated at C15 (15 commits, enough data for patterns).*
+*Updated at C24 (24 numbered commits + letter fixes, Phase 1 complete).*
 
-**High-cost commits:** C07 (Rex, 57k tokens, 81 tool uses — Docker troubleshooting); C03 (Aria, 34k tokens, 49 tool uses — exceeded cap).
+**High-cost commits:** C07 (Rex, 57k tokens, 81 tool uses — Docker troubleshooting); C03 (Aria, 34k tokens, 49 tool uses — exceeded cap); C20 batch wave (76k total including Viktor + Mira gate); C24 (Rex, 37k — config validation + post-session orchestrator corrections).
 
-**Direct-write acceleration (C08, C10, C12, C13, C14, C15):** Six of the last eight commits were orchestrator direct writes — 0 agent tokens each. Pre-invocation checks are working. Pattern established in backend routes means each new route is derivable without spawning Rex.
+**Direct-write dominance:** Of commits C12–C24, only 4 spawned implementors (Aria C17/C18/C20, Rex C24). Everything else was orchestrator direct write — 0 agent tokens. The pre-invocation check is working as designed. Direct writes eliminated approximately 300–400k tokens of agent cost across Phase 1.
 
-**Viktor batch wave yield:** C10 wave: 1 BLOCK (dismissed), 1 WARN. C15 wave: 3 BLOCKs (real bugs), 3 WARNs. Viktor is catching real issues — update_user ignoring fields, vendor update conflating unset vs null, product PUT allowing shipment reassignment. Wave cost: 22–36k tokens per batch.
+**Viktor calibration note:** C15 backend wave: 3 real BLOCKs (field-discard bugs, schema errors). C20 frontend wave: 3 BLOCKs all dismissed (localStorage hydration contradicts documented standard, try/catch scope misread, fail-closed role analysis). Viktor is high-signal on backend Python patterns; frontend React findings warrant more scrutiny before accepting as BLOCKs.
 
-**Gate cost trend:** Reviewer (Viktor, Sage) targets are consistently exceeded (~7–21k over 15k target). Acceptable — reviewers are doing thorough work. No action needed.
+**Gate cost trend:** Reviewer targets (≤15k) are consistently exceeded by 7–21k. Acceptable — reviewers are doing thorough work. Sage has also over-fired (C09: BLOCK dismissed, C04: 2 findings dismissed) but catches real issues too.
 
-**Strategy impact:** Direct writes have eliminated ~60–100k tokens per commit since C12. Viktor waves add back ~22k every 5 commits = ~4.4k amortized per commit. Net win: significant.
+**Phase 2 setup (C24):** Rex spent 37,486 tokens on config validation. Orchestrator added 17 automated tests post-session (tokens untracked — no usage block for orchestrator direct writes). First automated test suite established; covers config.py only. All Phase 1 route tests remain manual.
+
+**Strategy impact:** Direct writes eliminated ~60–100k tokens per commit since C12. Viktor waves add back ~22k every 5 commits = ~4.4k amortized. Net token savings vs. always-spawning: approximately 400–500k tokens across Phase 1.
 
 ---
 
@@ -147,7 +150,3 @@ Column definitions:
 - **Tokens**: total input + output tokens from `<usage>` block
 - **Tool uses**: number of tool calls the agent made
 - **vs. Target**: `tokens - target` (negative = under budget ✅, positive = over ⚠️)
-| C12 | vendor-routes | Claude (direct) | — | 0 | 3 writes | — | Pre-invocation check: exact content known from admin.py pattern; no agent spawned |
-| C13 | shipment-routes | Claude (direct) | — | 0 | 3 writes | — | Pre-invocation check: exact content known from vendor-routes pattern; no agent spawned |
-| C14 | product-routes | Claude (direct) | — | 0 | 3 writes | — | Pre-invocation check: exact content known from shipments.py pattern; no agent spawned |
-| C15 | stub-routes | Claude (direct) | — | 0 | 3 writes | — | Pre-invocation check: exact content known; no agent spawned |

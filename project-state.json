@@ -35,6 +35,59 @@
     }
   ],
   "rollback_history": [],
+  "open_issues": [
+    {
+      "id": "OI-01",
+      "title": "No automated Phase 1 backend test coverage",
+      "detail": "pytest infrastructure exists (C24) but only covers config.py. All Phase 1 routes (auth, admin, inventory), the JWT helpers, and the ORM model constraints have zero automated test coverage. Any regression in Phase 1 code during Phase 2 work is undetectable. Prioritize before C28 (policy chat routes) which will build on the Phase 1 auth and admin layers.",
+      "priority": "high",
+      "opened": "2026-06-09"
+    },
+    {
+      "id": "OI-02",
+      "title": "Rollback protocol untested",
+      "detail": "rollback_history is empty. The rollback path (alembic downgrade, container teardown, re-migration) has never been exercised against the actual schema. When C26 runs a schema migration for HNSW, the ability to safely roll back is unverified. Test the downgrade path before any irreversible schema migration lands.",
+      "priority": "medium",
+      "opened": "2026-06-09"
+    },
+    {
+      "id": "OI-03",
+      "title": "Orchestrator post-session token costs untracked",
+      "detail": "TOKEN_RECORDS.md tracks per-invocation token counts for implementor and reviewer agents. Claude's own orchestration tokens (boot, verification passes, correction rounds, commit writing) are never measured or included in session totals. True cost per commit is understated. Add an 'orchestrator' row to TOKEN_RECORDS schema and instrument it.",
+      "priority": "low",
+      "opened": "2026-06-09"
+    },
+    {
+      "id": "OI-04",
+      "title": "No cross-commit regression test gate",
+      "detail": "Each commit's test gate covers only the tests added or explicitly run for that commit. There is no protocol step that runs the full test suite before approving a commit. A Phase 2 agent could break a Phase 1 test and the regression would go undetected until someone runs pytest manually. Add a 'run full suite' gate before every approval in the commit loop, once coverage is sufficient to make it meaningful.",
+      "priority": "medium",
+      "opened": "2026-06-09"
+    },
+    {
+      "id": "OI-05",
+      "title": "Quinn activation criterion must be decided before C27",
+      "detail": "Quinn (QA) is deferred until 'ingestion or retrieval service has ≥3 public methods with non-trivial logic and no parametric test suite'. C27 (document-ingestion) is likely to meet this criterion. The activation decision must be made before C27 is approved so Quinn can run the gate wave at C27 or C28 if warranted. Decision owner: Claude, approval: Eran.",
+      "priority": "medium",
+      "opened": "2026-06-09",
+      "deadline": "before C27"
+    },
+    {
+      "id": "OI-06",
+      "title": "prepare_agent_delegation.py cache freshness unverified for C25",
+      "detail": "The Context Package V2 cache (D29) was introduced as shadow-mode only. Before C25 is invoked, the codebase graph cache should be validated against the current repo state: run prepare_agent_delegation.py with --commit 25 --agent nova and inspect the generated brief for stale paths, missing contracts, or wrong dependency edges. Do not invoke Nova without confirming the brief is accurate.",
+      "priority": "medium",
+      "opened": "2026-06-09",
+      "deadline": "before C25 invocation"
+    },
+    {
+      "id": "OI-07",
+      "title": "verify-commit is structural only — perception gap vs. quality gate",
+      "detail": "CLAUDE.md Step 7b and team-preferences.md both describe '/verify-commit' as a required quality gate. verify_constraints.py checks three things: context block present, no forbidden-path files, tool budget respected. It does NOT check: test results, logic correctness, doc currency, handoff completeness, or whether changes implement the spec. The name and placement in the protocol imply a quality guarantee the tool cannot provide. Either rename it to 'structural-check' and update all references, or document its scope limitations prominently everywhere it is referenced.",
+      "priority": "low",
+      "opened": "2026-06-09"
+    }
+  ],
   "notes": "Architecture review supersedes the original Phase 2 sequence and embedding handoff. Execute C24 next, then parallel C25/C26, C27, parallel C28/C29, C30, parallel C31/C32, C33, and C34. Phase 3 should use graph-aware relational retrieval before considering a separate graph database. See the Phase 2 and Phase 3 design reviews in commit-specs/.",
   "historical_notes": "C23 (`pgvector-migration`, Rex) resolved 2026-06-08 with NO git commit — investigation (Rex, on Eran's instruction to invoke him despite the scope already looking thin) found the entire pgvector/policy schema (extension, both tables, FKs, ivfflat index) already present in `0001_initial.py` lines 101-141, dated 2026-06-05 alongside the C06 model commit (`f712343`). Verified live: `alembic current` = 0001_initial (head), pgvector v0.8.2 active, tables/FKs/index/ORM mapping all correct. Writing a new migration would have duplicated DDL or falsified history; downgrading would have torn down the entire schema. Full record in DECISIONS.md D28. commit-protocol.md C23 marked done-by-prior-work; pointer advanced straight to C24 (Nova). Nova handoff re: VECTOR(1536) vs Ollama 768-dim recorded in open_handoffs above — must be resolved before C25 ingestion begins. || C22 committed 2026-06-07 (47bca18) — loginApi fixed to send JSON {email, password}, verified clean (tsc + network-level contract check by Claude). Eran then manually click-through-verified all 4 remaining browser checks: (1) /login form renders correctly, (2) admin login (admin@manifesto.local/admin123) redirects to /dashboard, (3) /dashboard shows 'Coming soon' placeholder, (4) manager login (manager.smoke@manifesto.local/manager123) navigating to /admin redirects away — to /login specifically. Item 4 initially looked surprising (redirecting an authenticated user to the login page), but Claude confirmed via ProtectedRoute.tsx (lines 12-18) that both the no-token AND wrong-role paths intentionally redirect to /login — documented by Aria in her C18 worklog. Logged as D25 (UX trade-off noted for possible Phase 2+ refinement, not a blocker). All C21 SMOKE_TEST_RESULTS.md items now resolved — Phase 1 formally closed 2026-06-07. Adam's throwaway manager user (manager.smoke@manifesto.local/manager123) remains in the dev DB as a useful fixture for future role-based testing. Phase 2 replan applied same day: C23-C32 added per manifesto-spec.md §Phase 2 (Policy RAG). Nova activated — identity file at .claude/agents/ai-engineer.md, first commit is C24. Sequence: C23(Rex) → C24(Nova) → {C25(Nova), C26(Rex)} → C27(Nova) → C28(Rex) → {C29(Rex), C30(Aria)} → C31(Aria) → C32(Aria). Viktor's next batch wave lands at C25 (every-5th-commit cadence continues from C20)."
 }

@@ -20,8 +20,8 @@ If no diff is provided, Claude reads `git diff HEAD~1` automatically.
 
 Evaluate each reviewer against the diff:
 
-### Viktor — runs every 5th commit (C05, C10, C15, C20)
-- Check: is this commit number divisible by 5?
+### Viktor — runs every 5th commit (C05, C10, C15, C20, C25, …)
+- Check: is this commit number divisible by 5? (Count by commit number only — letter suffixes like C04b, C15a do not count.)
 - YES → **Viktor: RUN** (batch wave)
 - NO → **Viktor: SKIP** (not this commit's wave)
 - Model: haiku. Pass: `git diff` only, no full file contents. Token target: ≤20k.
@@ -52,8 +52,9 @@ Run Mira if the diff introduces or changes:
 **Mira: SKIP** if the diff contains only: backend logic, migrations, config, stubs, hooks, docs, worklogs.
 - Model: haiku. Pass: one-paragraph brief only — no diff, no files.
 
-### Quinn — deferred (Phase 1)
-Quinn is not active in Phase 1. Skip unconditionally until activated in AGENTS.md.
+### Quinn — deferred (activate before C27)
+Quinn is not yet activated. Skip until explicitly activated in AGENTS.md.
+Activation criteria: ingestion or retrieval service has ≥3 public methods with non-trivial logic and no parametric test suite. Decide before C27 (document-ingestion).
 
 ---
 

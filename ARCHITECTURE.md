@@ -2,7 +2,7 @@
 
 > Maintained by Claude. Every new component, data flow, or structural pattern introduced
 > during this project is documented here as it is built.
-> Last updated: 2026-06-06 (C19)
+> Last updated: 2026-06-09 (C24)
 
 ---
 
@@ -593,7 +593,7 @@ response interceptor: error.response.status === 401 → logout() + window.locati
 
 ### Login API (api/auth.ts)
 
-`loginApi(email, password)` posts `application/x-www-form-urlencoded` with fields `username` (= email) and `password` to `/auth/login`. FastAPI's `OAuth2PasswordRequestForm` requires the `username` field name and form encoding — not JSON.
+`loginApi(email, password)` posts JSON `{email, password}` to `/auth/login`. (**Corrected by C22** — the original C17 implementation sent `application/x-www-form-urlencoded` with fields `username`/`password`; the C21 smoke test revealed the contract mismatch and C22 corrected it.)
 
 Returns `TokenResponse { access_token: string; token_type: string }`.
 
@@ -734,6 +734,89 @@ If `useAuthStore` already holds a token when `Login` mounts, it renders `<Naviga
 ### App.tsx update
 
 Inline `Login` stub (`const Login = () => <div>Login</div>`) replaced with `import Login from './pages/Login'`. All 7 pages now use real imports — no inline stubs remain.
+
+---
+
+## C21 — Integration Smoke Test
+
+**Introduced by:** Adam (DevOps), Commit 21
+
+### Live Stack Verification
+
+Verification-only commit — no application code written. Adam ran a full live integration smoke test against the assembled Docker stack (db, ollama, backend, frontend via Vite dev server).
+
+**SMOKE_TEST_RESULTS.md outcomes:**
+- 15 PASS
+- 1 PASS-with-deviation (manager user navigating to `/admin` redirected to `/login` — confirmed intentional per D25)
+- 1 FAIL → C22 inserted (loginApi sent form-urlencoded; backend expected JSON)
+- 2 BLOCKED (pending C22 fix)
+- 1 NOT-VERIFIED (local Ollama model unavailable)
+
+**Phase 1 sign-off:** All items resolved after C22. Phase 1 formally closed 2026-06-07. The throwaway manager seed user (`manager.smoke@manifesto.local / manager123`) remains in the dev DB as a role-based testing fixture.
+
+---
+
+## C22 — Fix Login Request Format
+
+**Introduced by:** Aria (Frontend), Commit 22
+
+### Contract Fix
+
+Single-file change: `frontend/src/api/auth.ts`.
+
+**Before (C17 original):** `loginApi` sent `application/x-www-form-urlencoded` with fields `username` (= email) and `password`, following the OAuth2PasswordRequestForm convention.
+
+**After (C22):** `loginApi` sends JSON `{email, password}`, matching the backend `LoginRequest` schema (`email: str, password: str`) that `POST /auth/login` actually expects.
+
+**Root cause:** C10's login route was written directly by Claude with a `LoginRequest` JSON body schema. C17's `loginApi` was built against OAuth2PasswordRequestForm convention without verifying the backend contract. The mismatch was invisible until C21's smoke test attempted a real login.
+
+---
+
+## C24 — LLM Runtime Config
+
+**Introduced by:** Rex (Backend) with orchestrator post-session corrections, Commit 24
+
+### New Configuration Fields (config.py)
+
+Extends `Settings` with LLM provider and deployment-wide embedding fields:
+
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| OPENAI_CHAT_MODEL | str | "gpt-4o-mini" | OpenAI generation model |
+| OLLAMA_CHAT_MODEL | str | "llama3.2" | Ollama generation model |
+| EMBEDDING_PROVIDER | Literal["ollama","openai"] | "ollama" | Which provider handles embeddings |
+| EMBEDDING_MODEL | Optional[str] | None | Embedding model — auto-resolves to provider default if unset |
+| EMBEDDING_DIMENSIONS | int | 768 | Output dimensions (enforced by validator) |
+| LLM_CONNECT_TIMEOUT | float | 10.0 | Connect timeout (seconds) |
+| LLM_READ_TIMEOUT | float | 30.0 | Read timeout (seconds) |
+| LLM_TOTAL_TIMEOUT | float | 90.0 | Total request timeout (seconds) |
+| LLM_MAX_RETRIES | int | 3 | Retries for idempotent calls |
+
+**EMBEDDING_MODEL auto-resolution (orchestrator post-session correction):**
+- `ollama` + model unset → resolves to `"nomic-embed-text"`
+- `openai` + model unset → resolves to `"text-embedding-3-small"`
+- Explicit model value → used as-is with dimension validation
+
+**Architectural constraint:** Embedding provider/model/dimensions are a single deployment-wide configuration. The conversation's chat-generation provider (Ollama vs OpenAI) is independent of the embedding profile. Changing the embedding configuration after ingestion requires a full re-index.
+
+### New Dependencies (pyproject.toml)
+
+| Package | Purpose |
+|---|---|
+| openai>=1.30.0 | OpenAI SDK (generation + embeddings) |
+| httpx>=0.27.0 | Async HTTP client (Ollama transport) |
+| tiktoken>=0.7.0 | Token counting |
+| pytest, pytest-asyncio, pytest-cov | Test infrastructure |
+
+### Test Infrastructure
+
+`backend/tests/` directory established with 17 automated tests for `config.py` validation. First automated test suite in the project.
+
+**Test coverage as of C24:** config.py settings only. Phase 1 route tests remain manual.
+
+### Downstream contracts
+
+→ Nova (C25): read all settings from `app.core.config.settings`. `EMBEDDING_MODEL` is always resolved (never `None`) when accessed — resolved by validator at startup. See Rex → Nova handoff in rex-worklog.md.
 
 ---
 
