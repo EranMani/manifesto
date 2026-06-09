@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 2 architecture review corrected and renumbered on 2026-06-08. Next: C24 `llm-runtime-config` (Rex), followed by parallel C25 provider implementation and C26 storage hardening. The embedding profile is deployment-wide at 768 dimensions and independent of chat provider.",
+  "tldr": "C24 `llm-runtime-config` (Rex) committed 2026-06-09. Next: parallel C25 `llm-service-impl` (Nova) and C26 `rag-storage-hardening` (Rex). Embedding profile fixed: openai=text-embedding-3-small, ollama=nomic-embed-text, 768 dimensions. pytest infrastructure added.",
   "phase": 2,
-  "last_completed_commit": "23",
-  "next_commit": "24",
-  "next_commit_name": "llm-runtime-config",
-  "next_commit_assignee": "rex",
+  "last_completed_commit": "24",
+  "next_commit": "25",
+  "next_commit_name": "llm-service-impl",
+  "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
     {

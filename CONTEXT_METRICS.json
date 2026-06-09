@@ -1,4 +1,52 @@
 {
   "schema_version": 1,
-  "records": []
+  "records": [
+    {
+      "date": "2026-06-09",
+      "commit": "C24",
+      "agent": "rex",
+      "tokens": 37486,
+      "package": {
+        "selected_files": 9,
+        "estimated_chars": 19796,
+        "usable_chars": 24000,
+        "targeted_excerpt_files": 2,
+        "excluded_candidates": 0,
+        "expansion_triggers": [],
+        "graph_source": "cache",
+        "category_counts": {
+          "primary": 3,
+          "identity": 1,
+          "worklog": 1,
+          "contract": 2,
+          "dependency": 2
+        },
+        "budget_utilization_percent": 82.5
+      },
+      "usage": {
+        "telemetry_status": "completed",
+        "tool_calls": 0,
+        "read_calls": 0,
+        "searches": 0,
+        "write_calls": 0,
+        "selected_files_read": 0,
+        "selected_utilization_percent": 0.0,
+        "unused_selected_files": 9,
+        "outside_files_read": 0,
+        "expansions": 0
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          "backend/app/core/config.py",
+          "backend/pyproject.toml",
+          "backend/tests/__init__.py",
+          "backend/tests/conftest.py",
+          "backend/tests/test_config.py",
+          "backend/uv.lock"
+        ]
+      },
+      "result": "PASS"
+    }
+  ]
 }

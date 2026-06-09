@@ -5,9 +5,9 @@
 ---
 
 ## Current State
-*Last updated: Commit 23 · 2026-06-08*
+*Last updated: Commit 24 (fix) · 2026-06-09*
 
-**Last completed:** Commit 23 `pgvector-migration` ✅ (resolved as done-by-prior-work — no file written, no commit made; see DECISIONS.md D28)
+**Last completed:** Commit 24 `llm-runtime-config` ✅ (post-session fix applied by orchestrator)
 **Currently active:** none
 **Blocked by:** none
 **Incoming fix commits:** none
@@ -18,6 +18,8 @@
 - → Aria (C17): Token format is `{access_token: string, token_type: "bearer"}`. Store `access_token` in Zustand, attach as `Authorization: Bearer <token>` header.
 - → Aria (C19 — products): Dashboard table shows products. Fields available: name, description, quantity, unit, category_id, shipment_id, added_by, created_at. Routes: GET /api/v1/products, GET /api/v1/products/{id}, POST, PUT, DELETE. All require admin/manager JWT.
 - → Aria (C20): Login credentials for frontend testing: `admin@manifesto.local` / `admin123`.
+- → Nova (C25): Settings are fully validated. Read from `app.core.config.settings`. Fields available: OPENAI_API_KEY, OPENAI_CHAT_MODEL (default: "gpt-4o-mini"), OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL (default: "llama3.2"), EMBEDDING_PROVIDER (Literal["ollama","openai"], default: "ollama"), EMBEDDING_MODEL (default: "nomic-embed-text"), EMBEDDING_DIMENSIONS (always 768), LLM_CONNECT_TIMEOUT, LLM_READ_TIMEOUT, LLM_TOTAL_TIMEOUT, LLM_MAX_RETRIES. Direct deps: openai>=1.30.0, httpx>=0.27.0, tiktoken>=0.7.0 — all locked in uv.lock. EMBEDDING_MODEL has no per-provider auto-default: OpenAI deployments must set EMBEDDING_MODEL=text-embedding-3-small explicitly.
+- → Adam (next DevOps config commit): Mirror these non-secret env var names into `.env.example`: OPENAI_CHAT_MODEL, OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, EMBEDDING_PROVIDER, EMBEDDING_MODEL, EMBEDDING_DIMENSIONS, LLM_CONNECT_TIMEOUT, LLM_READ_TIMEOUT, LLM_TOTAL_TIMEOUT, LLM_MAX_RETRIES. Do not expose OPENAI_API_KEY default value.
 
 **Note on C10:** Written directly by Claude (orchestrator) — pre-invocation check confirmed exact file/line/content known. No Rex agent spawned. All test gates passed via live server.
 
@@ -66,6 +68,7 @@ Your next commit is now: Commit 24 `llm-runtime-config`.
 | 10 | C13: shipment-routes | ✅ Done | Written directly by Claude (exact content known from vendor-routes pattern + Shipment model); vendor_id FK validated before insert; all test gates passed |
 | 11 | C14: product-routes | ✅ Done | Written directly by Claude; shipment_id FK validated on POST; added_by set from current_user.id; full CRUD (GET list, GET by id, POST, PUT, DELETE); all test gates passed |
 | 12 | C23: pgvector-migration | ✅ Done | Investigated spec'd migration file — entire pgvector/policy schema already present in 0001_initial.py (lines 101-141, dated 2026-06-05); wrote nothing, no commit, recorded as done-by-prior-work per D28 |
+| 13 | C24: llm-runtime-config | ✅ Done | Added validated LLM/embedding settings to config.py; added openai, httpx, tiktoken to pyproject.toml; uv sync succeeded. Post-session fix (orchestrator): EMBEDDING_MODEL changed to Optional[str]=None with provider-aware resolver validator — OpenAI deployments now default to text-embedding-3-small, never silently nomic-embed-text. Added pytest + 17 persistent tests (all pass). |
 
 ---
 
