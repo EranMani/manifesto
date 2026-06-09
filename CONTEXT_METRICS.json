@@ -195,20 +195,23 @@
         "read_calls": 0,
         "searches": 0,
         "write_calls": 0,
-        "selected_files_read": 0,
-        "selected_utilization_percent": 0.0,
-        "unused_selected_files": 8,
-        "outside_files_read": 0,
-        "expansions": 0
+        "selected_files_read": 7,
+        "selected_utilization_percent": 87.5,
+        "unused_selected_files": 1,
+        "outside_files_read": 1,
+        "expansions": 1
       },
       "boundaries": {
         "forbidden_clean": true,
         "changed_files": [
-          "backend/app/services/llm.py",
-          "backend/pyproject.toml",
-          "backend/tests/services/__init__.py",
-          "backend/tests/services/test_llm.py",
-          "constraint-dashboard.html"
+          ".claude/agents/logs/nova-worklog.md",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "TOKEN_RECORDS.md",
+          "commit-protocol.md",
+          "constraint-dashboard.html",
+          "hooks/agent-config.json",
+          "project-state.json"
         ]
       },
       "result": "PASS"

@@ -3,9 +3,12 @@
 All tests run without network access. Provider transports are replaced with
 controlled mocks to verify:
 - Correct request payloads dispatched to each provider.
-- Fragmented SSE / NDJSON frame parsing.
+- Proper SSE frame parsing: event: control lines, multi-line data:, blank separators.
 - Empty deltas, error frames, timeout, cancellation, malformed JSON.
 - Retry before first token; no retry after partial emission.
+- total_timeout enforced as an overall deadline including retries.
+- Unknown providers and empty model names rejected with LLMConfigError.
+- No raw SSE lines, Ollama frames, or provider messages logged.
 - Embedding batches preserve order; dimension mismatch is rejected.
 - Missing credentials / model produce a normalized configuration error.
 """
@@ -147,6 +150,18 @@ class TestLLMServiceConfig:
         svc = _openai_llm()
         assert svc.provider == "openai"
 
+    def test_unknown_provider_raises_config_error(self) -> None:
+        with pytest.raises(LLMConfigError, match="Unknown LLM provider"):
+            LLMService(provider="anthropic")  # type: ignore[arg-type]
+
+    def test_empty_ollama_model_raises_config_error(self) -> None:
+        with pytest.raises(LLMConfigError, match="must not be empty"):
+            LLMService(provider="ollama", ollama_chat_model="")
+
+    def test_empty_openai_model_raises_config_error(self) -> None:
+        with pytest.raises(LLMConfigError, match="must not be empty"):
+            LLMService(provider="openai", openai_api_key=_FAKE_KEY, openai_chat_model="")
+
 
 # ---------------------------------------------------------------------------
 # LLMService — OpenAI streaming
@@ -155,12 +170,15 @@ class TestLLMServiceConfig:
 
 class TestOpenAIChatStreaming:
     def _sse_lines(self, deltas: list[str], *, include_done: bool = True) -> list[str]:
+        """Produce proper SSE lines with blank-line event boundaries."""
         lines: list[str] = []
         for d in deltas:
             payload = {"type": "response.output_text.delta", "delta": d}
             lines.append(f"data: {json.dumps(payload)}")
+            lines.append("")  # SSE event boundary
         if include_done:
             lines.append('data: {"type": "response.completed"}')
+            lines.append("")  # SSE event boundary
         return lines
 
     @pytest.mark.asyncio
@@ -185,8 +203,11 @@ class TestOpenAIChatStreaming:
         svc = _openai_llm()
         lines = [
             'data: {"type": "response.output_text.delta", "delta": ""}',
+            "",
             'data: {"type": "response.output_text.delta", "delta": "actual"}',
+            "",
             'data: {"type": "response.completed"}',
+            "",
         ]
         fake_resp = _FakeStreamResponse(200, lines)
         with patch.object(svc._client, "stream", return_value=fake_resp):
@@ -198,7 +219,9 @@ class TestOpenAIChatStreaming:
         svc = _openai_llm()
         lines = [
             'data: {"type": "response.output_text.delta", "delta": "ok"}',
+            "",
             "data: [DONE]",
+            "",
         ]
         fake_resp = _FakeStreamResponse(200, lines)
         with patch.object(svc._client, "stream", return_value=fake_resp):
@@ -208,6 +231,7 @@ class TestOpenAIChatStreaming:
     @pytest.mark.asyncio
     async def test_malformed_json_raises(self) -> None:
         svc = _openai_llm()
+        # Single malformed data line — processed at end-of-stream (no blank separator needed)
         fake_resp = _FakeStreamResponse(200, ["data: not-json"])
         with patch.object(svc._client, "stream", return_value=fake_resp):
             with pytest.raises(LLMMalformedResponseError):
@@ -245,10 +269,6 @@ class TestOpenAIChatStreaming:
     async def test_timeout_raises_timeout_error(self) -> None:
         svc = _openai_llm(max_retries=0)
 
-        async def _raise_timeout(*args: Any, **kwargs: Any) -> Any:
-            raise httpx.ReadTimeout("timed out")
-
-        # We need a context manager mock
         class _FailCM:
             async def __aenter__(self) -> "_FailCM":
                 raise httpx.ReadTimeout("timed out")
@@ -290,7 +310,9 @@ class TestOpenAIChatStreaming:
                 200,
                 [
                     'data: {"type": "response.output_text.delta", "delta": "ok"}',
+                    "",
                     'data: {"type": "response.completed"}',
+                    "",
                 ],
             )
 
@@ -305,9 +327,12 @@ class TestOpenAIChatStreaming:
         """Once a token is yielded, errors are NOT retried."""
         svc = _openai_llm(max_retries=2)
 
+        # Two separate SSE events: first yields a token, second is malformed
         partial_lines = [
             'data: {"type": "response.output_text.delta", "delta": "partial"}',
+            "",   # event boundary — first event processed, token yielded
             'data: not-valid-json',
+            "",   # event boundary — parse fails → LLMMalformedResponseError
         ]
         fake_resp = _FakeStreamResponse(200, partial_lines)
         with patch.object(svc._client, "stream", return_value=fake_resp):
@@ -315,6 +340,56 @@ class TestOpenAIChatStreaming:
                 chunks: list[str] = []
                 async for chunk in await svc.chat([ChatMessage("user", "hi")], stream=True):
                     chunks.append(chunk)
+
+    @pytest.mark.asyncio
+    async def test_realistic_sse_frames_with_event_field(self) -> None:
+        """Parser handles realistic SSE frames: event: field, data: field, blank separators."""
+        svc = _openai_llm()
+        # Realistic output from OpenAI Responses API — event: and data: on separate lines
+        lines = [
+            "event: response.output_text.delta",
+            'data: {"type": "response.output_text.delta", "delta": "Hello"}',
+            "",
+            "event: response.output_text.delta",
+            'data: {"type": "response.output_text.delta", "delta": " world"}',
+            "",
+            "event: response.completed",
+            'data: {"type": "response.completed"}',
+            "",
+        ]
+        fake_resp = _FakeStreamResponse(200, lines)
+        with patch.object(svc._client, "stream", return_value=fake_resp):
+            chunks = await _collect(svc.chat([ChatMessage("user", "hi")], stream=True))
+        assert chunks == ["Hello", " world"]
+
+    @pytest.mark.asyncio
+    async def test_total_timeout_expired_before_retry(self) -> None:
+        """LLMTimeoutError raised when total_timeout expires before a retry attempt."""
+        svc = _openai_llm(total_timeout=1.0, max_retries=3)
+        # Simulate: deadline set at t=0.0, but after first attempt t=2.0 (past deadline)
+        _times = [0.0, 2.0, 2.0, 2.0, 2.0]
+
+        with patch("app.services.llm.time.monotonic", side_effect=_times):
+            with patch.object(svc._client, "stream", return_value=_FakeStreamResponse(429, [])):
+                with patch("app.services.llm.asyncio.sleep", new_callable=AsyncMock):
+                    with pytest.raises(LLMTimeoutError):
+                        await _collect(svc.chat([ChatMessage("user", "hi")], stream=True))
+
+    @pytest.mark.asyncio
+    async def test_malformed_sse_does_not_log_raw_content(self) -> None:
+        """Malformed SSE must not produce log records containing raw line content."""
+        svc = _openai_llm()
+        fake_resp = _FakeStreamResponse(200, ["data: not-json"])
+
+        with patch("app.services.llm.logger") as mock_logger:
+            with patch.object(svc._client, "stream", return_value=fake_resp):
+                with pytest.raises(LLMMalformedResponseError):
+                    await _collect(svc.chat([ChatMessage("user", "hi")], stream=True))
+
+        for call in mock_logger.error.call_args_list:
+            extra = call.kwargs.get("extra", {})
+            assert "raw_line" not in extra, "raw SSE line must not be logged"
+            assert "raw" not in extra, "raw content must not be logged"
 
 
 # ---------------------------------------------------------------------------
@@ -413,6 +488,26 @@ class TestOllamaChatStreaming:
         assert captured["json"]["model"] == "llama3.2"
         assert captured["json"]["messages"][0] == {"role": "user", "content": "ping"}
 
+    @pytest.mark.asyncio
+    async def test_error_frame_does_not_log_provider_message(self) -> None:
+        """Ollama error frame must not produce log records containing provider text."""
+        svc = _ollama_llm()
+        secret_payload = "secret_model_failure_xyz"
+        fake_resp = _FakeStreamResponse(200, [json.dumps({"error": secret_payload})])
+
+        with patch("app.services.llm.logger") as mock_logger:
+            with patch.object(svc._client, "stream", return_value=fake_resp):
+                with pytest.raises(LLMMalformedResponseError):
+                    await _collect(svc.chat([ChatMessage("user", "hi")], stream=True))
+
+        all_calls = (
+            mock_logger.error.call_args_list
+            + mock_logger.warning.call_args_list
+            + mock_logger.info.call_args_list
+        )
+        for call in all_calls:
+            assert secret_payload not in str(call), "Provider error message must not be logged"
+
 
 # ---------------------------------------------------------------------------
 # EmbeddingService — configuration guard
@@ -444,6 +539,22 @@ class TestEmbeddingServiceConfig:
             model="nomic-embed-text",
             dimensions=768,
         )
+
+    def test_unknown_provider_raises_config_error(self) -> None:
+        with pytest.raises(LLMConfigError, match="Unknown embedding provider"):
+            EmbeddingService(
+                provider="anthropic",  # type: ignore[arg-type]
+                model="some-model",
+                dimensions=768,
+            )
+
+    def test_empty_model_raises_config_error(self) -> None:
+        with pytest.raises(LLMConfigError, match="must not be empty"):
+            EmbeddingService(
+                provider="ollama",
+                model="",
+                dimensions=768,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -624,7 +735,7 @@ class TestOllamaEmbeddings:
 
         async def _mock_post(url: str, **kwargs: Any) -> Any:
             captured.update(kwargs)
-            return self._fake_ollama_response([_FAKE_VEC])
+            return _FakeResponse(200, {"embeddings": [_FAKE_VEC]})
 
         with patch.object(svc._client, "post", side_effect=_mock_post):
             await svc.embed_documents(["hello"])

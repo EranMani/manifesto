@@ -159,8 +159,17 @@ def build_metric_record(
     hook_searches: int | None = None
     hook_expansions: int | None = None
     if hooks_telemetry and hooks_telemetry.get("status") == "completed":
-        selected_reads = len(hooks_telemetry.get("selected_read_paths", []))
-        outside_reads = len(hooks_telemetry.get("outside_read_paths", []))
+        hook_selected_reads_list = hooks_telemetry.get("selected_read_paths", [])
+        if not hook_selected_reads_list and self_report and self_report.get("read_paths"):
+            # Hooks captured no reads (e.g. worktree invocation); cross-match self-report
+            # read_paths against the package's selected_paths to derive utilization.
+            selected_paths_set = set(hooks_telemetry.get("selected_paths", []))
+            matched = [p for p in self_report["read_paths"] if p in selected_paths_set]
+            selected_reads = len(matched)
+            outside_reads = len(self_report["read_paths"]) - selected_reads
+        else:
+            selected_reads = len(hook_selected_reads_list)
+            outside_reads = len(hooks_telemetry.get("outside_read_paths", []))
         hook_searches = int(hooks_telemetry.get("tools", {}).get("searches", 0))
         hook_expansions = outside_reads
     elif self_report:

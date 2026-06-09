@@ -26,6 +26,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_VALID_PROVIDERS: frozenset[str] = frozenset({"ollama", "openai"})
+
 # ---------------------------------------------------------------------------
 # Provider-neutral exceptions
 # ---------------------------------------------------------------------------
@@ -100,6 +102,60 @@ def _backoff_delay(attempt: int) -> float:
 
 
 # ---------------------------------------------------------------------------
+# SSE parser
+# ---------------------------------------------------------------------------
+
+
+async def _iter_sse_events(
+    response: httpx.Response,
+    deadline: float,
+) -> AsyncIterator[dict[str, Any]]:
+    """Parse an SSE stream into JSON event dicts.
+
+    Handles event: control lines, multi-line data: fields, and blank-line
+    event boundaries. Raises LLMTimeoutError if the overall deadline is exceeded.
+    Never logs raw line content.
+    """
+    data_lines: list[str] = []
+
+    async for line in response.aiter_lines():
+        if time.monotonic() >= deadline:
+            raise LLMTimeoutError("Total timeout expired during streaming.")
+
+        if not line:
+            # Blank line = end of SSE event block
+            if data_lines:
+                raw = "\n".join(data_lines)
+                data_lines = []
+                if raw == "[DONE]":
+                    return
+                try:
+                    yield json.loads(raw)
+                except json.JSONDecodeError as exc:
+                    raise LLMMalformedResponseError(
+                        "OpenAI returned malformed streaming data."
+                    ) from exc
+        elif line.startswith("data:"):
+            val = line[5:]
+            if val.startswith(" "):
+                val = val[1:]
+            data_lines.append(val)
+        elif line.startswith(("event:", "id:", ":")):
+            pass  # SSE control lines; event type comes from the JSON type field
+
+    # Process final event if the stream ended without a trailing blank line
+    if data_lines:
+        raw = "\n".join(data_lines)
+        if raw != "[DONE]":
+            try:
+                yield json.loads(raw)
+            except json.JSONDecodeError as exc:
+                raise LLMMalformedResponseError(
+                    "OpenAI returned malformed streaming data."
+                ) from exc
+
+
+# ---------------------------------------------------------------------------
 # LLMService — per-conversation chat generation
 # ---------------------------------------------------------------------------
 
@@ -124,6 +180,25 @@ class LLMService:
         total_timeout: float = 120.0,
         max_retries: int = 3,
     ) -> None:
+        if provider not in _VALID_PROVIDERS:
+            raise LLMConfigError(
+                f"Unknown LLM provider {provider!r}. Must be 'ollama' or 'openai'."
+            )
+        if provider == "openai":
+            if not openai_api_key:
+                raise LLMConfigError(
+                    "OPENAI_API_KEY is required when provider='openai'."
+                )
+            if not openai_chat_model:
+                raise LLMConfigError(
+                    "openai_chat_model must not be empty when provider='openai'."
+                )
+        elif provider == "ollama":
+            if not ollama_chat_model:
+                raise LLMConfigError(
+                    "ollama_chat_model must not be empty when provider='ollama'."
+                )
+
         self.provider = provider
         self._openai_api_key = openai_api_key
         self._openai_chat_model = openai_chat_model
@@ -133,11 +208,6 @@ class LLMService:
         self._read_timeout = read_timeout
         self._total_timeout = total_timeout
         self._max_retries = max_retries
-
-        if provider == "openai" and not openai_api_key:
-            raise LLMConfigError(
-                "OPENAI_API_KEY is required when provider='openai'."
-            )
 
         timeout = httpx.Timeout(
             connect=connect_timeout,
@@ -190,18 +260,20 @@ class LLMService:
 
         first_token_yielded = False
         last_exc: Exception | None = None
+        deadline = time.monotonic() + self._total_timeout
 
         for attempt in range(self._max_retries + 1):
             if attempt > 0:
-                if first_token_yielded:
-                    # Never retry after partial emission
-                    raise last_exc  # type: ignore[misc]
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Total timeout expired.")
                 delay = _backoff_delay(attempt - 1)
                 logger.info(
                     "openai_chat_retry",
                     extra={"attempt": attempt, "delay_s": round(delay, 2)},
                 )
                 await asyncio.sleep(delay)
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Total timeout expired after retry delay.")
 
             t_start = time.monotonic()
             try:
@@ -213,23 +285,9 @@ class LLMService:
                 ) as response:
                     self._raise_for_openai_status(response.status_code)
 
-                    buffer = ""
                     accumulated: list[str] = []
 
-                    async for raw_line in response.aiter_lines():
-                        raw_line = raw_line.strip()
-                        if not raw_line or raw_line == "data: [DONE]":
-                            continue
-                        if raw_line.startswith("data: "):
-                            raw_line = raw_line[6:]
-                        try:
-                            event = json.loads(raw_line)
-                        except json.JSONDecodeError as exc:
-                            logger.error("openai_chat_sse_malformed", extra={"raw_line": raw_line})
-                            raise LLMMalformedResponseError(
-                                "OpenAI returned malformed streaming data."
-                            ) from exc
-
+                    async for event in _iter_sse_events(response, deadline):
                         event_type = event.get("type", "")
 
                         if event_type == "response.output_text.delta":
@@ -262,21 +320,21 @@ class LLMService:
                                 yield "".join(accumulated)
                             return
 
-                    _ = buffer  # unused but suppresses lint
                 return
 
             except asyncio.CancelledError:
                 raise
-            except (LLMAuthError, LLMConfigError, LLMUnavailableError) as exc:
-                # Non-retryable
+            except (LLMAuthError, LLMConfigError, LLMUnavailableError):
                 raise
             except (LLMRateLimitError, LLMTimeoutError, LLMMalformedResponseError, LLMError) as exc:
                 last_exc = exc
                 if attempt >= self._max_retries or first_token_yielded:
                     raise
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Total timeout expired.") from exc
             except httpx.TimeoutException as exc:
                 last_exc = LLMTimeoutError(f"OpenAI request timed out: {exc}")
-                if attempt >= self._max_retries or first_token_yielded:
+                if attempt >= self._max_retries or first_token_yielded or time.monotonic() >= deadline:
                     raise last_exc
             except httpx.HTTPStatusError as exc:
                 self._raise_for_openai_status(exc.response.status_code)
@@ -328,17 +386,20 @@ class LLMService:
 
         first_token_yielded = False
         last_exc: Exception | None = None
+        deadline = time.monotonic() + self._total_timeout
 
         for attempt in range(self._max_retries + 1):
             if attempt > 0:
-                if first_token_yielded:
-                    raise last_exc  # type: ignore[misc]
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Total timeout expired.")
                 delay = _backoff_delay(attempt - 1)
                 logger.info(
                     "ollama_chat_retry",
                     extra={"attempt": attempt, "delay_s": round(delay, 2)},
                 )
                 await asyncio.sleep(delay)
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Total timeout expired after retry delay.")
 
             t_start = time.monotonic()
             try:
@@ -359,26 +420,24 @@ class LLMService:
                     accumulated: list[str] = []
 
                     async for line in response.aiter_lines():
+                        if time.monotonic() >= deadline:
+                            raise LLMTimeoutError("Total timeout expired during streaming.")
                         line = line.strip()
                         if not line:
                             continue
                         try:
                             frame = json.loads(line)
                         except json.JSONDecodeError as exc:
-                            logger.error("ollama_chat_ndjson_malformed", extra={"raw_line": line})
                             raise LLMMalformedResponseError(
                                 "Ollama returned malformed streaming data."
                             ) from exc
 
                         if frame.get("error"):
-                            logger.error("ollama_chat_error_frame", extra={"error": frame["error"]})
                             raise LLMMalformedResponseError(
                                 "Ollama chat service returned an error."
                             )
 
-                        delta = (
-                            frame.get("message", {}).get("content", "")
-                        )
+                        delta = frame.get("message", {}).get("content", "")
                         done = frame.get("done", False)
 
                         if delta:
@@ -406,15 +465,17 @@ class LLMService:
 
             except asyncio.CancelledError:
                 raise
-            except (LLMUnavailableError, LLMConfigError) as exc:
+            except (LLMUnavailableError, LLMConfigError):
                 raise
-            except (LLMMalformedResponseError, LLMError) as exc:
+            except (LLMMalformedResponseError, LLMTimeoutError, LLMError) as exc:
                 last_exc = exc
                 if attempt >= self._max_retries or first_token_yielded:
                     raise
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Total timeout expired.") from exc
             except httpx.TimeoutException as exc:
                 last_exc = LLMTimeoutError(f"Ollama request timed out: {exc}")
-                if attempt >= self._max_retries or first_token_yielded:
+                if attempt >= self._max_retries or first_token_yielded or time.monotonic() >= deadline:
                     raise last_exc
             except httpx.ConnectError as exc:
                 last_exc = LLMUnavailableError(f"Ollama connection refused: {exc}")
@@ -455,6 +516,12 @@ class EmbeddingService:
         total_timeout: float = 120.0,
         max_retries: int = 3,
     ) -> None:
+        if provider not in _VALID_PROVIDERS:
+            raise LLMConfigError(
+                f"Unknown embedding provider {provider!r}. Must be 'ollama' or 'openai'."
+            )
+        if not model:
+            raise LLMConfigError("model must not be empty.")
         if dimensions != 768:
             raise LLMConfigError(
                 f"EmbeddingService requires dimensions=768 for Phase 2; got {dimensions}."
@@ -472,6 +539,7 @@ class EmbeddingService:
         self._openai_api_key = openai_api_key
         self._ollama_base_url = ollama_base_url.rstrip("/")
         self._max_retries = max_retries
+        self._total_timeout = total_timeout
 
         timeout = httpx.Timeout(
             connect=connect_timeout,
@@ -544,24 +612,31 @@ class EmbeddingService:
 
     async def _openai_embed_batch_with_retry(self, texts: list[str]) -> list[list[float]]:
         last_exc: Exception | None = None
+        deadline = time.monotonic() + self._total_timeout
         for attempt in range(self._max_retries + 1):
             if attempt > 0:
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Embedding total timeout expired.")
                 delay = _backoff_delay(attempt - 1)
                 logger.info(
                     "openai_embed_retry",
                     extra={"attempt": attempt, "delay_s": round(delay, 2)},
                 )
                 await asyncio.sleep(delay)
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Embedding total timeout expired after retry delay.")
             try:
                 return await self._openai_embed_batch(texts)
             except asyncio.CancelledError:
                 raise
-            except (LLMAuthError, LLMConfigError, LLMEmbeddingDimensionError) as exc:
+            except (LLMAuthError, LLMConfigError, LLMEmbeddingDimensionError):
                 raise
             except (LLMRateLimitError, LLMTimeoutError, LLMUnavailableError, LLMMalformedResponseError) as exc:
                 last_exc = exc
                 if attempt >= self._max_retries:
                     raise
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Embedding total timeout expired.") from exc
         raise last_exc  # type: ignore[misc]
 
     async def _openai_embed_batch(self, texts: list[str]) -> list[list[float]]:
@@ -597,7 +672,10 @@ class EmbeddingService:
 
         data = body.get("data")
         if not isinstance(data, list):
-            logger.error("openai_embed_malformed_response", extra={"body_keys": list(body.keys()) if isinstance(body, dict) else None})
+            logger.error(
+                "openai_embed_malformed_response",
+                extra={"body_keys": list(body.keys()) if isinstance(body, dict) else None},
+            )
             raise LLMMalformedResponseError(
                 "OpenAI embedding returned a malformed response."
             )
@@ -653,24 +731,31 @@ class EmbeddingService:
 
     async def _ollama_embed_batch_with_retry(self, texts: list[str]) -> list[list[float]]:
         last_exc: Exception | None = None
+        deadline = time.monotonic() + self._total_timeout
         for attempt in range(self._max_retries + 1):
             if attempt > 0:
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Embedding total timeout expired.")
                 delay = _backoff_delay(attempt - 1)
                 logger.info(
                     "ollama_embed_retry",
                     extra={"attempt": attempt, "delay_s": round(delay, 2)},
                 )
                 await asyncio.sleep(delay)
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Embedding total timeout expired after retry delay.")
             try:
                 return await self._ollama_embed_batch(texts)
             except asyncio.CancelledError:
                 raise
-            except (LLMUnavailableError, LLMConfigError, LLMEmbeddingDimensionError) as exc:
+            except (LLMUnavailableError, LLMConfigError, LLMEmbeddingDimensionError):
                 raise
             except (LLMTimeoutError, LLMMalformedResponseError, LLMError) as exc:
                 last_exc = exc
                 if attempt >= self._max_retries:
                     raise
+                if time.monotonic() >= deadline:
+                    raise LLMTimeoutError("Embedding total timeout expired.") from exc
         raise last_exc  # type: ignore[misc]
 
     async def _ollama_embed_batch(self, texts: list[str]) -> list[list[float]]:
@@ -708,7 +793,10 @@ class EmbeddingService:
 
         raw = body.get("embeddings")
         if not isinstance(raw, list):
-            logger.error("ollama_embed_malformed_response", extra={"body_keys": list(body.keys()) if isinstance(body, dict) else None})
+            logger.error(
+                "ollama_embed_malformed_response",
+                extra={"body_keys": list(body.keys()) if isinstance(body, dict) else None},
+            )
             raise LLMMalformedResponseError(
                 "Ollama embedding returned a malformed response."
             )
