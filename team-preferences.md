@@ -2,7 +2,7 @@
 
 > Claude reads this file at every session boot, immediately after project-state.json.
 > These preferences tune agent behavior for this project and Team Lead.
-> Last updated: 2026-06-04
+> Last updated: 2026-06-09
 
 ---
 
@@ -168,6 +168,55 @@ The full triage matrix lives in `.claude/commands/gate-triage.md` — loaded on 
 This keeps always-loaded files lean. The rule here is simple: run the skill, get the verdict.
 
 Do not reason through gate decisions manually. Do not skip `/gate-triage`. It is a protocol step.
+
+---
+
+## Orchestrator Post-Agent Verification Protocol
+
+After every agent invocation, before any notification or approval prompt,
+Claude completes these steps in order. This is the fixed commit loop sequence:
+
+**Implement → test → inspect logic → verify-commit → inspect diff/boundaries
+→ update records → notify → request approval → commit**
+
+```
+STEP A — INSPECT LOGIC (mandatory, never skip)
+  Read every file the agent edited.
+  Check validators, defaults, and business rules against the commit contract.
+  Passing tests do not substitute for this — tests can mirror a bug.
+  Scope expansions: verify reason, path, expected decision, and tradeoff are in the worklog.
+  If logic does not match the contract: fix before proceeding, note as orchestrator correction.
+
+STEP B — INSPECT TESTS
+  Does each test fail when the requirement is violated?
+  Tests that pass because the implementation allows something are not correct.
+  Negative tests for invalid values, boundaries, and conflicting configs are required.
+  A test file with no rejection tests is incomplete — add them before proceeding.
+
+STEP C — DIFF AND BOUNDARY REVIEW
+  git status --short — report every modified and untracked file explicitly.
+  git diff --check — confirm no whitespace errors.
+  git diff --stat — review every changed file and line count.
+  Confirm no files outside the agent's domain are modified.
+
+STEP D — /verify-commit
+  Always, without exception. If it fails: stop, fix, re-run.
+  Never proceed to notification before this passes.
+
+STEP E — UPDATE RECORDS
+  TOKEN_RECORDS.md: correct counts if orchestrator made post-session fixes.
+  Worklog Current State: stays "currently active / pending approval" until git commit.
+  Worklog session index: add orchestrator correction notes where applicable.
+  Outbound handoffs: update with any corrected facts (model names, file counts, etc.).
+
+STEP F — NOTIFY
+  Only after STEP D passes and STEP E is complete.
+  NOTIFY_WHAT and NOTIFY_WHY describe the final, corrected state — never a preliminary state.
+
+STEP G — REQUEST APPROVAL
+  Clearly label what is agent-written vs orchestrator corrections.
+  Show git status --short output so every changed file is visible to Eran.
+```
 
 ---
 
@@ -339,3 +388,4 @@ Add commit-specific items where the spec has known sharp edges.
 | 2026-06-04 | Added Post-Commit File Checklist section | project-state.json and team-preferences.md were not being updated consistently — checklist now covers all required files |
 | 2026-06-05 | Claude now commits after approval (D13) | Agents were invisible as GitHub contributors; Eran no longer runs git commands manually. Claude uses CLAUDE_COMMIT=1 + Co-Authored-By trailers. |
 | 2026-06-06 | Added mandatory git status clean step to Post-Commit Checklist | Files were accumulating as unstaged/untracked across sessions — chore commit is now a required final step of every commit loop. |
+| 2026-06-09 | Added Orchestrator Post-Agent Verification Protocol (Steps A–G) | C24 session: orchestrator presented a buggy commit without logic inspection; notified before /verify-commit passed; accepted tests that mirrored a bug rather than enforcing the contract; guessed agent email. 15 behavior corrections recorded across CLAUDE.md, ORCHESTRATION.md, and team-preferences.md. |

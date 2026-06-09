@@ -3,7 +3,7 @@
 > The master rules for running this project through the multi-agent workflow.
 > CLAUDE.md is the boot sequence. This file is the full ruleset.
 > When CLAUDE.md is ambiguous — this file is authoritative.
-> Last updated: 2026-06-06
+> Last updated: 2026-06-09
 
 ---
 
@@ -69,11 +69,27 @@ STEP 5 — Agent executes
 
 STEP 6 — Agent completes
 └── Updates Current State Header. Writes outgoing handoff notes.
+    Worklog status is "pending approval" — not complete — until git commit succeeds.
+
+STEP 6.5 — Claude inspects agent output (mandatory — never skip)
+└── Read every file the agent edited. Check logic against the commit contract:
+    validators, defaults, business rules, and acceptance criteria independently.
+    Passing tests are not a substitute — tests can mirror a bug.
+    Verify any scope expansions are recorded with reason, path, expected decision,
+    and tradeoff in the worklog. Report any deviation from the spec to Eran.
 
 STEP 7 — Test gate
 └── Tests pass → continue.
     Tests fail → return to agent. Agent fixes. Back to Step 5.
     Gate does not surface to Eran until tests pass.
+    Test suite must include negative tests for invalid values, boundaries, and
+    conflicting configurations. A suite with no rejection tests is incomplete.
+
+STEP 7.5 — Diff review and /verify-commit (mandatory — before any notification)
+└── git status --short — report every modified and untracked file explicitly.
+    git diff --check and git diff --stat — review every changed line and file count.
+    /verify-commit — always, without exception. If it fails: stop, fix, re-run.
+    Never send the completion notification before /verify-commit passes.
 
 STEP 8 — Quality gate wave (parallel where triggered)
 └── Viktor: every 5th commit (C05, C10, C15, C20) — Haiku
@@ -83,21 +99,33 @@ STEP 8 — Quality gate wave (parallel where triggered)
     Blocking finding → owning agent fixes in a NEW commit (no gate-fix passes)
     Viktor Hard Block → routes directly to Eran
 
-STEP 9 — Pre-commit documentation checklist (Claude)
+STEP 9 — Records update (mandatory before notification)
 └── DECISIONS.md — non-obvious choice or debate made?
     ARCHITECTURE.md — new component or data flow introduced?
     GLOSSARY.md — new term introduced?
-    TOKEN_RECORDS.md — always: add commit entry
+    TOKEN_RECORDS.md — always: add commit entry; correct counts if orchestrator
+    made post-session fixes (logic, tests, attribution).
+    Worklog — update Current State and session index to reflect orchestrator corrections;
+    correct outbound handoffs with any revised facts (model names, counts, etc.).
 
-STEP 10 — Eran's approval
+STEP 10 — Notify Eran
+└── Only after STEP 7.5 (/verify-commit) passes and STEP 9 (records) are current.
+    NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py --write-flag
+    NOTIFY_WHAT and NOTIFY_WHY must describe the final, corrected state of the work.
+
+STEP 11 — Eran's approval
 └── Approval prompt: what was built, test results, gate findings, "Approve to commit?"
+    Clearly label any work that is an orchestrator correction vs agent-written.
+    Show git status --short output so every changed file is visible.
 
-STEP 11 — Claude commits on Eran's behalf
-└── export ERAN_COMMIT=1 && git commit -F <msg_file>
-    pre_commit_check.py runs (domain boundary, message format)
-    Commit message must include "Commit #NN" on its own line.
+STEP 12 — Claude commits on Eran's behalf
+└── CLAUDE_COMMIT=1 git commit with Co-Authored-By trailer.
+    Co-Authored-By email read from hooks/agent-config.json at commit time —
+    never recalled from memory. Memory entries are convenience only.
+    pre_commit_check.py runs (domain boundary, message format).
+    Commit message must include "Commit #NN" and What/Why block.
 
-STEP 12 — verify_constraints + post-commit doc sweep (mandatory)
+STEP 13 — verify_constraints + post-commit doc sweep (mandatory)
 └── python hooks/verify_constraints.py --commit NN --agent NAME --tokens N
     Writes CONSTRAINT_LOG.md, CONTEXT_METRICS.json, and constraint-dashboard.html.
 
@@ -108,12 +136,14 @@ STEP 12 — verify_constraints + post-commit doc sweep (mandatory)
       backend/DOMAIN_MAP.md, frontend/DOMAIN_MAP.md,
       ARCHITECTURE.md and GLOSSARY.md (if updated this commit)
     Commit: chore(state): advance state after C-NN
+    Use GIT_MESSAGE env var to prevent hook from reading stale COMMIT_EDITMSG.
 
     Final check: git status must show no modified or untracked files
-    in protocol-managed paths. If any remain — commit them before Step 13.
-    BLOCKED: Do not proceed to Step 13 until git status is clean.
+    in protocol-managed paths. If any remain — commit them before Step 14.
+    Worklog status updated to "complete" only after this step succeeds.
+    BLOCKED: Do not proceed to Step 14 until git status is clean.
 
-STEP 13 — Claude presents next Commit Preview
+STEP 14 — Claude presents next Commit Preview
 └── Eran approves → loop restarts at Step 1
     Eran defers → Claude holds. No agent invoked until approval.
 ```
@@ -293,3 +323,12 @@ These cannot be overridden by any agent or any instruction:
 8. Secrets never appear in code — not in defaults, not in comments
 9. Scope overflows are flagged immediately — not silently built
 10. Never spawn an agent when the exact file, line, and content is already known — use Edit
+11. Agent output is never approved without independent logic inspection — passing tests alone
+    are not sufficient evidence that the implementation matches the contract
+12. /verify-commit runs before every notification and approval prompt — no exceptions
+13. Co-Authored-By emails are read from hooks/agent-config.json at commit time —
+    never recalled from memory or prior sessions
+14. Tool caps are hard limits — justified expansion is requested and recorded before
+    the cap is reached, not reported after the fact
+15. Completion notifications describe only the final, verified, corrected state of the
+    work — never a preliminary or unreviewed state

@@ -135,11 +135,27 @@ You do **not** load files from other agents' domains unless this step explicitly
 4. **Present Commit Preview to Eran — wait for explicit approval**
 5. Invoke owning agent
 6. Receive work; verify agent updated worklog and handoffs
-7. Run automated test gate
+6a. **Inspect changed logic against the commit contract** — read every edited file.
+    Check validators, defaults, and business rules against the spec. Do not rely on
+    test results alone. Structure checks miss logic bugs (wrong defaults, off-by-ones).
+    Scope expansions must have reason, path, expected decision, and tradeoff in worklog.
+6b. **Inspect the test suite** — does each test fail when the requirement is violated?
+    Tests that pass because the implementation happens to allow something are not
+    evidence of correctness. Require negative tests for invalid values, boundaries,
+    and conflicting configurations before accepting the suite as complete.
+7. Run automated test gate (must pass before diff review, gate wave, or notification)
+7a. Run `git status --short` — report every modified and untracked file explicitly.
+    Run `git diff --check` and `git diff --stat` — review every changed line.
+7b. Run `/verify-commit` — always, before any notification or approval prompt, without
+    exception. If it fails: stop, fix, re-run. Never notify before it passes.
 8. Spawn Viktor (every 5 commits), Sage (conditional), Mira (conditional) — Haiku model, parallel
 9. Apply blocking rules. Any blocker returns to the owning agent as its own next commit — no gate-fix passes
-10. Run pre-commit documentation checklist
-11. Run --write-flag to notify Eran, then surface to Eran for approval
+10. Update TOKEN_RECORDS.md and correct any stale worklog entries or handoffs caused by
+    orchestrator corrections. Worklog Current State stays "pending approval" until the
+    git commit succeeds — not when the agent finishes, not when the notification fires.
+11. Run --write-flag to notify Eran — only after /verify-commit passes and records are current.
+    Then surface to Eran for approval. Clearly distinguish agent-written work from any
+    orchestrator corrections in the approval prompt.
     ```
     NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py --write-flag
     ```
@@ -320,6 +336,37 @@ Mid-commit at ~60k tokens without a commit yet: `/compact`.
    If yes → Edit directly. No agent. No exception.
 
 4. Debates and non-obvious decisions go into DECISIONS.md immediately.
+
+5. Never treat "agent returned" as "work is correct." Every agent output is inspected
+   against the commit contract — logic, defaults, validators, business rules — before
+   any verification or approval step is triggered.
+
+6. Inspect changed logic, not just structure. A validator with the wrong default or a
+   test that mirrors a bug instead of catching it are invisible to structure checks.
+
+7. Tests must enforce requirements, not mirror implementation. Before accepting a test
+   suite, ask: does each test fail when the requirement is violated?
+
+8. Always require negative tests for invalid values, boundary conditions, and conflicting
+   configurations. A test suite with no rejection tests is incomplete.
+
+9. Worklog Current State stays "currently active / pending approval" until git commit
+   succeeds — not when the agent finishes, not when the notification fires.
+
+10. Send the completion notification only after /verify-commit passes and TOKEN_RECORDS.md
+    is current. Never on agent completion alone.
+
+11. After any orchestrator correction pass: update the worklog, outbound handoffs,
+    TOKEN_RECORDS.md, and test counts to reflect the corrected state before
+    re-presenting for approval.
+
+12. Read Co-Authored-By emails from hooks/agent-config.json before every commit.
+    Never recall from memory or prior sessions. Memory entries for emails are
+    convenience references only — the file is authoritative.
+
+13. Clearly distinguish agent-written work from orchestrator corrections in worklogs,
+    commit messages, and approval prompts. Attribution pattern:
+    "Rex built X; orchestrator corrected Y after review."
 ```
 
 ---
