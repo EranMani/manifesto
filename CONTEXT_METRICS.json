@@ -357,6 +357,184 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "date": "2026-06-10",
+      "commit": "C27",
+      "agent": "nova",
+      "tokens": 174687,
+      "package": {
+        "selected_files": 9,
+        "estimated_chars": 21314,
+        "usable_chars": 24000,
+        "targeted_excerpt_files": 2,
+        "excluded_candidates": 0,
+        "expansion_triggers": [],
+        "graph_source": "cache",
+        "category_counts": {
+          "primary": 1,
+          "identity": 1,
+          "worklog": 1,
+          "contract": 3,
+          "test": 2,
+          "structural": 1
+        },
+        "budget_utilization_percent": 88.8
+      },
+      "telemetry": {
+        "agent": {
+          "source": "self_report",
+          "status": "available",
+          "tool_calls": 26,
+          "read_paths": [
+            ".claude/agents/ai-engineer.md",
+            ".claude/agents/logs/nova-worklog.md",
+            "backend/app/models/policy.py",
+            "backend/app/services/__init__.py",
+            "backend/app/services/ingestion.py",
+            "backend/app/services/llm.py",
+            "manifesto-spec.md",
+            "backend/tests/conftest.py",
+            "backend/tests/services/test_llm.py",
+            "backend/pyproject.toml"
+          ],
+          "write_paths": [
+            "backend/app/services/ingestion.py"
+          ],
+          "searches": [
+            {
+              "tool": "Grep",
+              "path": "backend/app/services/llm.py",
+              "query": "EmbeddingService/LLMService contract symbols"
+            },
+            {
+              "tool": "Grep",
+              "path": "manifesto-spec.md",
+              "query": "ingestion/chunk/tokenizer"
+            },
+            {
+              "tool": "Bash",
+              "path": "backend/tests",
+              "query": "find ingestion tests/fixtures, conftest"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/app",
+              "query": "tiktoken|advisory|pg_advisory"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/tests/services/test_llm.py",
+              "query": "test class structure / mocking conventions"
+            }
+          ],
+          "commands": [],
+          "expansions": []
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "tool_calls": 63,
+          "read_paths": [
+            "backend/app/services/ingestion.py",
+            "backend/app/models/policy.py",
+            "backend/app/services/llm.py",
+            "backend/tests/conftest.py",
+            "backend/tests/services/test_ingestion.py",
+            "backend/tests/fixtures/documents/make_fixtures.py"
+          ],
+          "write_paths": [
+            "backend/tests/fixtures/documents/sample.txt",
+            "backend/tests/fixtures/documents/sample.md",
+            "backend/tests/fixtures/documents/make_fixtures.py",
+            "backend/app/services/ingestion.py",
+            "backend/tests/services/test_ingestion.py"
+          ],
+          "searches": [
+            {
+              "tool": "Grep",
+              "path": "backend/app/services/llm.py",
+              "query": "class EmbeddingService|embed_documents|embed_query|EmbeddingProfile|LLMEmbeddingDimensionError|profile"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/app/services/llm.py",
+              "query": "class EmbeddingService|embed_documents|embed_query|class EmbeddingProfile|LLMEmbeddingDimensionError|self\\.profile|def profile"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/app",
+              "query": "class EmbeddingProfile|profile.provider|profile.model|profile.dimensions|class PolicyChunk"
+            }
+          ],
+          "commands": [
+            "cd \"D:\\AI\\_My_Projects\\manifesto\\backend\" && grep -iE \"tiktoken|pymupdf|fitz|python-docx|docx\" pyproject.toml",
+            "cd \"D:\\AI\\_My_Projects\\manifesto\\backend\" && python -c \"import ast; ast.parse(open('app/services/ingestion.py', encoding",
+            "cd \"D:\\AI\\_My_Projects\\manifesto\\backend\" && wc -l tests/services/test_llm.py && head -n 80 tests/services/test_llm.py",
+            "python -c \"import msoffcrypto\" 2>&1 | tail -3; python -c \"import fitz, docx; print('ok')\"; ls tests/fixtures 2>&1; grep ",
+            "cd D:/AI/_My_Projects/manifesto/backend && python -c \"import fitz, docx; print('ok')\" 2>&1 | tail -3 && python -c \"impor",
+            "cd D:/AI/_My_Projects/manifesto/backend && (poetry run python -c \"import fitz, docx; print('ok')\" 2>&1 | tail -2) ; (.ve",
+            "mkdir -p D:/AI/_My_Projects/manifesto/backend/tests/fixtures/documents",
+            "cd D:/AI/_My_Projects/manifesto/backend && .venv/Scripts/python tests/fixtures/documents/make_fixtures.py",
+            "cd D:/AI/_My_Projects/manifesto/backend && .venv/Scripts/python -c \"import PIL; print('ok')\"",
+            "cd D:/AI/_My_Projects/manifesto/backend && rm -f tests/fixtures/documents/sample.pdf tests/fixtures/documents/encrypted.",
+            "cd D:/AI/_My_Projects/manifesto/backend && .venv/Scripts/python tests/fixtures/documents/make_fixtures.py",
+            "cd D:/AI/_My_Projects/manifesto/backend && .venv/Scripts/python -c \"\nfrom app.services.ingestion import _extract_docx, _",
+            "cd D:/AI/_My_Projects/manifesto/backend && .venv/Scripts/python -m pytest tests/services/test_ingestion.py -q 2>&1 | tai",
+            "cd D:/AI/_My_Projects/manifesto/backend && .venv/Scripts/python -m pytest tests/services/test_ingestion.py::TestIngestDo",
+            "cd \"D:\\AI\\_My_Projects\\manifesto\\backend\" && .venv\\Scripts\\python.exe -m pytest tests/services/test_ingestion.py -q 2>&1",
+            "cd \"D:/AI/_My_Projects/manifesto/backend\" && .venv/Scripts/python.exe -m pytest tests/services/test_ingestion.py -q 2>&1",
+            "cd \"D:/AI/_My_Projects/manifesto/backend\" && .venv/Scripts/python.exe -m pytest tests/services/test_ingestion.py -q 2>&1",
+            "cd \"D:/AI/_My_Projects/manifesto/backend\" && .venv/Scripts/python.exe -m pytest -q 2>&1 | tail -n 15",
+            "cd \"D:/AI/_My_Projects/manifesto/backend\" && .venv/Scripts/python.exe -m pytest tests/models/test_policy_storage.py -q 2",
+            "cd \"D:/AI/_My_Projects/manifesto\" && git status --short && echo --- && git diff --stat",
+            "cd \"D:/AI/_My_Projects/manifesto\" && git diff backend/DOMAIN_MAP.md project-state.json constraint-dashboard.html",
+            "cd \"D:/AI/_My_Projects/manifesto\" && git diff project-state.json",
+            "cd \"D:/AI/_My_Projects/manifesto\" && git diff backend/app/services/ingestion.py | head -n 60",
+            "cd \"D:/AI/_My_Projects/manifesto\" && grep -n \"OLE\\|D0CF\\|D0 CF\\|encrypt\\|_extract_docx\" backend/app/services/ingestion.p",
+            "cd \"D:/AI/_My_Projects/manifesto/backend\" && .venv/Scripts/python.exe -m pytest tests/services/test_ingestion.py -q 2>&1",
+            "cd \"D:/AI/_My_Projects/manifesto\" && ls backend/tests/fixtures/documents/",
+            "cd \"D:/AI/_My_Projects/manifesto\" && cat backend/tests/fixtures/documents/sample.txt && echo --- && cat backend/tests/fi",
+            "cd \"D:/AI/_My_Projects/manifesto\" && git diff --check; echo \"exit=$?\" && git status --short",
+            "cd \"D:/AI/_My_Projects/manifesto\" && sed -n '30,33p;73,76p' backend/DOMAIN_MAP.md | cat -A | head -20",
+            "cd \"D:/AI/_My_Projects/manifesto\" && git config core.whitespace; git config --get-all core.whitespace; echo \"---\"; git d",
+            "cd \"D:/AI/_My_Projects/manifesto\" && python -c \"\nimport pathlib\np = pathlib.Path('backend/DOMAIN_MAP.md')\ndata = p.read_",
+            "cd \"D:/AI/_My_Projects/manifesto\" && git diff --check; echo \"exit=$?\"",
+            "cd \"D:/AI/_My_Projects/manifesto\" && python hooks/verify_constraints.py --commit 27 --agent nova --worktree --no-persist",
+            "cd \"D:/AI/_My_Projects/manifesto\" && python hooks/context_telemetry.py --stop-orchestrator C27"
+          ]
+        }
+      },
+      "usage": {
+        "telemetry_status": "completed",
+        "tool_calls": 0,
+        "read_calls": 0,
+        "searches": 0,
+        "write_calls": 0,
+        "selected_files_read": 7,
+        "selected_utilization_percent": 77.8,
+        "unused_selected_files": 2,
+        "outside_files_read": 3,
+        "expansions": 3
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          "backend/DOMAIN_MAP.md",
+          "backend/app/services/ingestion.py",
+          "backend/tests/fixtures/documents/corrupt.docx",
+          "backend/tests/fixtures/documents/encrypted.docx",
+          "backend/tests/fixtures/documents/encrypted.pdf",
+          "backend/tests/fixtures/documents/image_only.pdf",
+          "backend/tests/fixtures/documents/make_fixtures.py",
+          "backend/tests/fixtures/documents/sample.docx",
+          "backend/tests/fixtures/documents/sample.md",
+          "backend/tests/fixtures/documents/sample.pdf",
+          "backend/tests/fixtures/documents/sample.txt",
+          "backend/tests/services/test_ingestion.py"
+        ]
+      },
+      "result": "FAIL"
     }
   ]
 }

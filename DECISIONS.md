@@ -912,4 +912,99 @@ Treating a missing report as zero is a false measurement. A missing report means
 
 ---
 
+## D32 — Quinn (QA) Activated for C27 `document-ingestion`
+
+- **Date:** 2026-06-10
+- **Decided by:** Claude (recommendation), Eran (approval)
+- **Context:** OI-05 required a decision before C27 was approved on whether Quinn's
+  activation criterion ("ingestion/retrieval service has ≥3 public methods with
+  non-trivial logic and no parametric test suite") is met by C27. The C27 spec's test
+  gate covers four file-format parsers (PDF/DOCX/TXT/MD), seven-plus failure-mode cases
+  (empty/encrypted/corrupt/image-only/invalid UTF-8/oversized/duplicate), chunking
+  determinism/overlap/cap rules, and batched embedding/concurrency/idempotency paths —
+  well past the threshold.
+
+### What was decided
+
+Quinn runs a coverage review on C27 after Nova's implementation, in addition to the
+standard test gate. OI-05 is resolved.
+
+### Consequences
+
+- C27's commit loop gains a Quinn pass alongside (or in place of) the gate-triage outcome.
+- Quinn checks Nova's `test_ingestion.py` for negative tests, boundary conditions, and
+  per-format coverage — not just that tests pass.
+
+---
+
+## D33 — Sage CRITICAL Finding on C27 Dismissed Pending Live Verification
+
+- **Date:** 2026-06-10
+- **Decided by:** Claude (recommendation), Eran (approval)
+- **Context:** Sage's gate review of C27 `document-ingestion` raised a CRITICAL finding —
+  "PyMuPDF decompression bomb: `fitz.open()` may allocate memory before the `_MAX_PAGES`
+  check fires." Sage's calibration treats CRITICAL as a hard block.
+
+### What was decided
+
+Dismissed as a likely false positive for now, same pattern as the two C25 Viktor
+hard-block dismissals:
+- The `_MAX_PAGES` check (line ~158 of `ingestion.py`) runs immediately after
+  `fitz.open()` and *before* the per-page extraction loop that decodes content
+  streams — MuPDF does not eagerly decompress all page content on open.
+- The C27 spec explicitly frames `_MAX_PAGES`/`_MAX_BLOCKS`/`_MAX_BLOCK_CHARS` as
+  in-service defenses layered *on top of* the upload route's byte-size limit (C28,
+  not yet built) — exactly as implemented.
+
+Eran will exercise this empirically (e.g. a crafted oversized/pathological PDF) once
+the upload route exists and decide then whether it's a real blocker.
+
+### Consequences
+
+- C27 proceeds to commit without a fix for this finding.
+- New open issue (OI-09): verify PyMuPDF memory behavior on a pathological/oversized
+  PDF against `_MAX_PAGES` once C28 (upload route) lands; revisit D33 if the live
+  test shows real unbounded memory growth before the page-count check.
+- The two MEDIUM Sage findings (plain-text decode-before-size-check; DOCX zip handling
+  has no extra zip-bomb guard) are non-blocking per Sage calibration and are bundled
+  here for visibility, not tracked as separate open issues — both are mitigated by the
+  same C28 upload byte-size limit.
+
+---
+
+## D34 — C27 Phase-Budget FAIL Accepted as Documented Scope Overflow
+
+- **Date:** 2026-06-10
+- **Decided by:** Claude (recommendation), Eran (approval)
+- **Context:** `/verify-commit` for C27 returned `phase_budget: FAIL` —
+  Nova's combined worklog tool usage across two invocations
+  (reads=14, writes=10, total=53) exceeds the single-invocation cap
+  (reads<=10, total<=25) checked by `verify_constraints.py`.
+
+### What was decided
+
+Accepted as a real, pre-approved scope overflow rather than a protocol violation
+to fix:
+- C27's scope (PDF/DOCX/TXT/MD extractors, structure-then-token chunking,
+  idempotent `ingest_document()` orchestration, 31 tests, 6 binary fixtures)
+  genuinely exceeded a single 25-tool-use invocation.
+- Both Nova invocations were individually scoped and approved by Eran during
+  this session (invocation A: implementation, hit cap at 26; invocation B:
+  fixtures+tests, approved separately, hit cap at 27).
+- This mirrors C26 (Rex, 2 invocations, 51 combined tool uses), which produced
+  a WARN rather than FAIL only because its combined tool-usage line fell outside
+  the regex-matched worklog section — not because the underlying situation
+  differed.
+
+### Consequences
+
+- C27 proceeds to commit with `phase_budget: FAIL` recorded honestly in
+  CONSTRAINT_LOG.md / CONTEXT_METRICS.json / constraint-dashboard.html — per
+  non-negotiable #9 (scope overflows flagged, not hidden), this is the intended
+  outcome, not a defect to suppress.
+- No process change required for single-invocation commits; this only applies
+  when a commit's scope requires Eran-approved multi-invocation splits.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

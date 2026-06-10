@@ -1,18 +1,18 @@
 {
   "project": "manifesto",
-  "tldr": "C26 `rag-storage-hardening` (Rex) committed 2026-06-10 (e213d7b). policy_documents/policy_chunks hardened: idempotency, status lifecycle, provenance, search_vector+GIN, VECTOR(768)+HNSW, ready-state trigger. Live alembic/pytest verification deferred (OI-08, host port 5432 conflict) — code reviewed, accepted by Eran. Next: C27 `document-ingestion` (Nova).",
+  "tldr": "C27 `document-ingestion` (Nova) committed 2026-06-10 (4323405). backend/app/services/ingestion.py: PDF/DOCX/TXT/MD extractors, NFC normalization, structure-then-token chunk_blocks() (450/600/60), idempotent ingest_document() with per-document advisory lock, atomic publish/rollback. 31/31 ingestion tests pass + 1 skip (DB integration stub, OI-08). Gate: Quinn (first run, D32) PASS WITH COMMENTS; Sage 1 CRITICAL dismissed (D33, OI-09), 2 MEDIUM bundled. Phase-budget FAIL accepted as documented scope overflow (D34). Next: C28 `document-upload-routes` (Rex).",
   "phase": 2,
-  "last_completed_commit": "26",
-  "next_commit": "27",
-  "next_commit_name": "document-ingestion",
-  "next_commit_assignee": "nova",
+  "last_completed_commit": "27",
+  "next_commit": "28",
+  "next_commit_name": "document-upload-routes",
+  "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
     {
       "from": "nova",
       "to": "nova",
-      "regarding": "C27/C29 — use EmbeddingService.embed_documents()/embed_query() for corpus/query vectors; LLMService.chat() only for generation; profile on EmbeddingService.profile",
-      "detail": "EmbeddingService and LLMService contracts are frozen by C25. C27 ingestion and C29 RAG pipeline must import only from backend/app/services/llm.py and never use provider SDK types directly.",
+      "regarding": "C29 — use EmbeddingService.embed_documents()/embed_query() for corpus/query vectors; LLMService.chat() only for generation; profile on EmbeddingService.profile",
+      "detail": "EmbeddingService and LLMService contracts are frozen by C25. C29 RAG pipeline must import only from backend/app/services/llm.py and never use provider SDK types directly. (C27 ingestion already actioned this — uses EmbeddingService.embed_documents() exclusively.)",
       "date": "2026-06-09",
       "actioned": false
     },
@@ -22,6 +22,22 @@
       "regarding": "C30 — catch only LLMError and subclasses in route handlers, never provider SDK exceptions",
       "detail": "All SDK types are isolated in backend/app/services/llm.py. Route handlers must import LLMError hierarchy only.",
       "date": "2026-06-09",
+      "actioned": false
+    },
+    {
+      "from": "nova",
+      "to": "rex",
+      "regarding": "C28 — create/resolve the policy_documents row and call the frozen ingest_document() contract",
+      "detail": "backend/app/services/ingestion.py exposes async ingest_document(*, document_id, file_bytes, filename, content_type, db, embeddings) -> IngestResult. The route handler creates the policy_documents row (status='processing') and calls this; the service owns the processing -> ready|failed transition and never raises to the caller.",
+      "date": "2026-06-10",
+      "actioned": false
+    },
+    {
+      "from": "nova",
+      "to": "nova",
+      "regarding": "C29 — retrieval may assume deterministic chunk indexes and page/section metadata produced by chunk_blocks()",
+      "detail": "chunk_blocks() in backend/app/services/ingestion.py produces sequential chunk_index values and preserves page_number/section provenance per chunk, deterministically across re-ingestion. C29 retrieval/citation logic can rely on this for stable references.",
+      "date": "2026-06-10",
       "actioned": false
     }
   ],
@@ -75,10 +91,11 @@
     {
       "id": "OI-05",
       "title": "Quinn activation criterion must be decided before C27",
-      "detail": "Quinn (QA) is deferred until 'ingestion or retrieval service has ≥3 public methods with non-trivial logic and no parametric test suite'. C27 (document-ingestion) is likely to meet this criterion. The activation decision must be made before C27 is approved so Quinn can run the gate wave at C27 or C28 if warranted. Decision owner: Claude, approval: Eran.",
+      "detail": "Resolved 2026-06-10 (D32): C27 meets the activation criterion. Quinn runs a coverage review on C27 after Nova's implementation, alongside the standard gate-triage.",
       "priority": "medium",
       "opened": "2026-06-09",
-      "deadline": "before C27"
+      "deadline": "before C27",
+      "status": "resolved"
     },
     {
       "id": "OI-06",
@@ -101,6 +118,14 @@
       "detail": "A native Windows PostgreSQL 18 service (postgresql-x64-18) listens on 0.0.0.0:5432 and intercepts connections meant for the dockerized manifesto-db-1 (also mapped to 5432), so host-side asyncpg/alembic/pytest get InvalidPasswordError against the wrong server. Same issue previously hit C07 (worked around by running migrations inside the Docker container). C26's alembic upgrade/downgrade and pytest run for test_policy_storage.py were skipped for this reason (Eran's call). Fix options: (1) stop/disable postgresql-x64-18, (2) always run DB-touching commands via `docker compose run`/`exec` against the backend container (C07 pattern) — document this as the standard in backend.md, or (3) remap the docker-compose db port. Any future commit with DB-dependent tests (C27 ingestion, C29 RAG pipeline, C31 conversation persistence) will hit this again until resolved.",
       "priority": "high",
       "opened": "2026-06-10"
+    },
+    {
+      "id": "OI-09",
+      "title": "Verify PyMuPDF memory behavior on a pathological/oversized PDF",
+      "detail": "Sage flagged a CRITICAL on C27 (PyMuPDF decompression-bomb risk during PDF page extraction). Dismissed per D33 as a likely false positive — `_MAX_PAGES` is checked before per-page extraction begins, and the spec frames upload size limits (C28) as a layered defense. Eran's call: dismiss for now, verify live once C28 (upload route) lands. Revisit D33 if a live test with a pathological/oversized PDF shows real unbounded memory growth before the page-count check triggers.",
+      "priority": "medium",
+      "opened": "2026-06-10",
+      "deadline": "after C28"
     }
   ],
   "notes": "Architecture review supersedes the original Phase 2 sequence and embedding handoff. Execute C24 next, then parallel C25/C26, C27, parallel C28/C29, C30, parallel C31/C32, C33, and C34. Phase 3 should use graph-aware relational retrieval before considering a separate graph database. See the Phase 2 and Phase 3 design reviews in commit-specs/.",

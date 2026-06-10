@@ -5,22 +5,33 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-09 · C25 committed*
+*Last updated: 2026-06-10 · C27 committed*
 
-**Last completed:** C25 `llm-service-impl` — committed 2026-06-09
+**Last completed:** C27 `document-ingestion` — committed 2026-06-10 (4323405)
 **Currently active:** none
 **Blocked by:** none
 
-Tool usage: reads=8, writes=3, total=25
-Note: counts are Nova's agent invocation only. Orchestrator applied ~9 additional direct fixes post-session (see Session 1 corrections).
+Tool usage: reads=14, writes=10, total=53 (across two invocations, both hit the 25-cap)
+Note: counts are Nova's agent invocations only. Orchestrator applied a few additional direct
+fixes post-session (see Session 2 corrections).
 
 **Open Handoffs — Inbound:**
 - ← Rex (C24): validated provider settings, dependencies, and one 768-dimensional
   embedding profile. ✅ actioned
+- ← Rex (C26): `policy_documents`/`policy_chunks` hardened — status lifecycle, profile/provenance
+  fields, ready-state trigger requiring all chunk embeddings non-null. ✅ actioned
 
 **Open Handoffs — Outbound:**
-- → Nova (C27/C29): Use `EmbeddingService.embed_documents()` / `embed_query()` for corpus/query vectors. Use `LLMService.chat()` only for generation. Profile is on `EmbeddingService.profile`.
+- → Nova (C29): retrieval may assume deterministic chunk indexes and page/section metadata
+  produced by `chunk_blocks()` in `backend/app/services/ingestion.py`. ✅ recorded in project-state.json
+- → Rex (C28): create/resolve the `policy_documents` row and call the frozen
+  `ingest_document()` contract; the service owns `processing -> ready|failed`. ✅ recorded in project-state.json
 - → Rex (C30): Catch only `LLMError` and subclasses in route handlers — never provider SDK exceptions.
+
+**Open Issue:**
+- The opt-in DB integration test (`TestIngestDocumentIntegration`) is a stub
+  (`pytest.skip("Integration harness not wired up")`) — blocked on OI-08 (host port 5432
+  conflict). Wire up a real pgvector insertion/status-transition test once OI-08 is resolved.
 
 **Key Interfaces I Will Own:**
 - `backend/app/services/llm.py` — `LLMService` (Ollama + OpenAI abstraction)
@@ -38,6 +49,7 @@ No archived sessions yet.
 | # | Commit | Status | Key Decision |
 |---|--------|--------|--------------|
 | 1 | C25 `llm-service-impl` | committed 2026-06-09 | Separate LLMService (per-conversation) from EmbeddingService (deployment-wide 768-dim); `chat()` returns AsyncIterator via async generator pattern; retry before first token only |
+| 2 | C27 `document-ingestion` | committed 2026-06-10 (4323405) | Structure-first then token-bounded chunking (450/600/60 overlap) at whole-`ExtractedBlock` granularity; per-document `pg_advisory_xact_lock` serializes concurrent ingestion; failure path deletes partial chunks and marks `status='failed'` with sanitized error |
 
 ---
 
@@ -100,3 +112,91 @@ The following fixes were applied directly by Claude in a separate correction pas
 - [x] Unknown providers and empty models rejected with LLMConfigError
 - [x] No raw SSE lines or provider messages in logs
 - [x] uv.lock includes pytest-asyncio
+
+---
+
+## Session 2 — C27 `document-ingestion` · 2026-06-10
+
+**Assigned:** Nova
+**Status:** committed 2026-06-10 (4323405)
+**Tool usage (Nova):** invocation A reads=10, writes=1, total=26 (hit cap, implementation only);
+invocation B reads=4, writes=9, total=27 (hit cap, fixtures+tests+1 bugfix). Combined: reads=14, writes=10, total=53.
+**Orchestrator corrections:** small fixes after both invocations (see below) — not Nova's work.
+
+### What was built
+
+Replaced the C16 stub `backend/app/services/ingestion.py` with a full pipeline:
+
+- **Errors:** `IngestionError` and subclasses — `UnsupportedContentTypeError`, `EmptyDocumentError`,
+  `EncryptedDocumentError`, `CorruptDocumentError`, `ImageOnlyDocumentError`, `InvalidEncodingError`.
+- **Data types:** `ExtractedBlock`, `ExtractedDocument`, `Chunk`, `IngestResult` (frozen dataclasses).
+- **Extractors:** PDF (PyMuPDF — rejects encrypted/image-only/empty), DOCX (python-docx —
+  headings become section provenance, tables flattened to `"cell | cell"` rows, OLE-CFB
+  magic-byte check for encrypted files), TXT/MD (strict UTF-8, `#` headings → section).
+- **Normalization:** NFC unicode + whitespace collapse, paragraph/line structure preserved.
+- **`chunk_blocks()`:** structure-first then `tiktoken` (`cl100k_base`) token-bounded
+  chunking — target 450, hard cap 600, 60-token overlap within the same section only,
+  deterministic, sequential `chunk_index`. Oversized single blocks are pre-split at the
+  hard cap. Overlap operates at whole-`ExtractedBlock` granularity — if every block in a
+  section exceeds the 60-token overlap budget, no overlap occurs for that boundary (by
+  design; no sub-block overlap is attempted).
+- **`ingest_document()`:** per-document `pg_advisory_xact_lock` (key derived from
+  `sha256(document_id)`), CPU-heavy extraction/chunking via `asyncio.to_thread`, batched
+  embeddings via `EmbeddingService.embed_documents()`, atomic replace-chunks +
+  `chunk_count` + `status='ready'` + embedding profile fields in one transaction. On any
+  exception: rollback, re-acquire lock, delete partial chunks, set `status='failed'` with
+  a sanitized `error_message`, return `IngestResult` (never raises to the caller).
+
+**Tests (Nova):** `backend/tests/services/test_ingestion.py` — 31 tests (after orchestrator
+additions, see below) covering PDF/DOCX/TXT/MD extraction (headings, pages, tables, Unicode),
+empty/encrypted/corrupt/image-only/invalid-UTF-8/unsupported-type rejections, chunking
+(hard cap, overlap, determinism, sequential indices, section boundaries, metadata), and
+`ingest_document` orchestration (success, empty doc, embedding-count mismatch, row-not-found,
+idempotent retry). One opt-in `TestIngestDocumentIntegration` class is gated by
+`MANIFESTO_DB_INTEGRATION_TESTS` (currently a stub — see Open Issue above).
+
+**Fixtures:** `backend/tests/fixtures/documents/` — `sample.txt`, `sample.md` (static),
+`sample.pdf`, `sample.docx`, `encrypted.pdf`, `encrypted.docx`, `corrupt.docx`,
+`image_only.pdf` (generated by committed `make_fixtures.py`).
+
+### Nova correction (within Session 2, invocation B)
+
+1. **Encrypted DOCX detection bug** — `_extract_docx` originally caught a generic exception
+   and string-matched `"encrypt"`/`"password"` in the message, but `python-docx` raises
+   `PackageNotFoundError` for real encrypted OOXML (OLE-CFB, not a valid zip), which mapped
+   to `CorruptDocumentError` instead of `EncryptedDocumentError`. Nova added an OLE-CFB
+   magic-byte (`D0 CF 11 E0 A1 B1 1A E1`) check before attempting to open as zip. Verified
+   against a real OLE-CFB fixture (`encrypted.docx`).
+
+### Orchestrator corrections (2026-06-10 — NOT Nova's work)
+
+2. **One-line test assertion fix** — `test_document_row_not_found_marks_failed` expected
+   the generic sanitized message, but `IngestionError("Document row not found during
+   publish.")` is itself an `IngestionError` subclass, so `_sanitize_error` returns the
+   message verbatim. Corrected the expected string. (Nova had identified and reported this
+   exact fix but hit the tool cap before applying it.)
+3. **`test_overlap_within_same_section` fixed** — original test used 15 blocks of ~73
+   tokens each; since each block alone exceeds the 60-token overlap budget, the
+   whole-block-granularity overlap algorithm correctly produces zero overlap, failing the
+   test's assumption. Rewrote the test with 80 small blocks (~7 tokens each) so the
+   overlap tail can span whole blocks, matching the documented chunking design.
+4. **Added `test_advisory_lock_acquired`** — the C27 test gate requires "concurrent lock
+   path" coverage; no test asserted `pg_advisory_xact_lock` was actually issued. Added a
+   test asserting the lock SQL appears in `db.execute.await_args_list`.
+5. **`backend/DOMAIN_MAP.md` line-ending fix** — `prepare_agent_delegation.py`'s graph
+   refresh wrote two new rows with CRLF into an LF file, tripping `git diff --check`.
+   Normalized the whole file to LF.
+
+Full suite after corrections: `pytest backend/tests/services/test_ingestion.py -q` →
+**31 passed, 1 skipped**. Full backend suite: **106 passed, 1 skipped, 7 errors** — the 7
+errors are pre-existing `tests/models/test_policy_storage.py` DB-connection failures from
+C26 (OI-08, host port 5432 conflict), unrelated to this commit.
+
+### Acceptance criteria
+
+- [x] A fixture of each supported type reaches `ready` with deterministic chunks (verified
+  via unit tests with `FakeEmbeddingService`)
+- [x] No partial chunk set is visible after any injected failure
+- [x] Duplicate/retried ingestion is idempotent (delete-then-replace, identical chunk content)
+- [~] Unit tests use fake embeddings (done); one opt-in DB integration test verifies pgvector
+  insertion and status transitions — currently a skip-gated stub, blocked on OI-08
