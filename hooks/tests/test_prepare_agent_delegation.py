@@ -68,6 +68,17 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             self.assertIn("Do not scan directories", brief)
             self.assertIn("Before each expansion", brief)
             self.assertIn("tradeoffs", brief)
+            self.assertIn("## Human Summary", brief)
+            self.assertIn("**What I completed:**", brief)
+            self.assertIn("**What changed:**", brief)
+            self.assertIn("**What went wrong:**", brief)
+            self.assertIn("**What remains:**", brief)
+            self.assertIn("**Recommended next commit:**", brief)
+            self.assertIn("**Developer attention:**", brief)
+            self.assertLess(
+                brief.index("## Human Summary"),
+                brief.index('"tool_calls": <total count>'),
+            )
             worklog = next(
                 item for item in package["files"] if item["category"] == "worklog"
             )

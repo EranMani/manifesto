@@ -94,3 +94,23 @@ python -m pytest path/to/focused_test.py -q
 ## Not In This Commit
 
 - Name deferred behavior and the later commit that owns it.
+
+---
+
+## Return Contract
+
+The implementor's final message must begin with this concise human summary:
+
+```markdown
+## Human Summary
+**What I completed:** Plain-language description of the finished behavior.
+**What changed:** Important files, interfaces, or behavior changed.
+**What went wrong:** Problems encountered, or `None`.
+**What remains:** Unfinished or deferred work, or `None`.
+**Recommended next commit:** Suggested follow-up scope, or `None`.
+**Developer attention:** Decisions, risks, or manual checks requiring attention, or `None`.
+```
+
+After the human summary, include the structured telemetry JSON required by the
+generated delegation brief. If the commit cannot finish within its budget, also
+include the `SPLIT_REQUIRED` report.

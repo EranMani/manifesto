@@ -2,7 +2,7 @@
 
 > Cross-agent protocol and roster. Claude reads this at boot.
 > Updated when agents are added or domain boundaries change.
-> Last updated: 2026-06-09 (D31 — Return Contract added to delegation brief)
+> Last updated: 2026-06-10 (Human Summary added to Return Contract)
 
 ---
 
@@ -88,7 +88,22 @@ path, expected decision, and tradeoff. Expansions and outcomes go in the worklog
 
 ### Return Contract (required in every agent's final message)
 
-Every implementor must include a structured telemetry report in their final message.
+Every implementor must begin their final message with a concise plain-language report:
+
+```markdown
+## Human Summary
+**What I completed:** Plain-language description of the finished behavior.
+**What changed:** Important files, interfaces, or behavior changed.
+**What went wrong:** Problems encountered, or `None`.
+**What remains:** Unfinished or deferred work, or `None`.
+**Recommended next commit:** Suggested follow-up scope, or `None`.
+**Developer attention:** Decisions, risks, or manual checks requiring attention, or `None`.
+```
+
+This summary is for Eran, Claude, and reviewers. It must be understandable without
+reading telemetry, diffs, or worklogs.
+
+After the human summary, every implementor must include a structured telemetry report.
 The delegation brief's **Return Contract** section specifies the exact format:
 
 ```json
