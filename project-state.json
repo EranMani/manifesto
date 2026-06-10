@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C25 `llm-service-impl` (Nova) committed 2026-06-09. Next: parallel C26 `rag-storage-hardening` (Rex). LLMService + EmbeddingService live; 45 tests pass. Gate wave: Viktor 2 false-positive blocks dismissed; Sage HIGH finding fixed inline.",
+  "tldr": "C26 `rag-storage-hardening` (Rex) committed 2026-06-10 (e213d7b). policy_documents/policy_chunks hardened: idempotency, status lifecycle, provenance, search_vector+GIN, VECTOR(768)+HNSW, ready-state trigger. Live alembic/pytest verification deferred (OI-08, host port 5432 conflict) — code reviewed, accepted by Eran. Next: C27 `document-ingestion` (Nova).",
   "phase": 2,
-  "last_completed_commit": "25",
-  "next_commit": "26",
-  "next_commit_name": "rag-storage-hardening",
-  "next_commit_assignee": "rex",
+  "last_completed_commit": "26",
+  "next_commit": "27",
+  "next_commit_name": "document-ingestion",
+  "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
     {

@@ -215,6 +215,148 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "date": "2026-06-10",
+      "commit": "C26",
+      "agent": "rex",
+      "tokens": 102587,
+      "package": {
+        "selected_files": 10,
+        "estimated_chars": 21090,
+        "usable_chars": 24000,
+        "targeted_excerpt_files": 1,
+        "excluded_candidates": 0,
+        "expansion_triggers": [],
+        "graph_source": "cache",
+        "category_counts": {
+          "primary": 2,
+          "identity": 1,
+          "worklog": 1,
+          "contract": 3,
+          "test": 1,
+          "structural": 1,
+          "dependency": 1
+        },
+        "budget_utilization_percent": 87.9
+      },
+      "telemetry": {
+        "agent": {
+          "source": "self_report",
+          "status": "available",
+          "tool_calls": 51,
+          "read_paths": [
+            "commit-specs/commit-26.md",
+            ".claude/agents/backend.md",
+            ".claude/agents/logs/rex-worklog.md",
+            "backend/app/models/policy.py",
+            "backend/alembic/env.py",
+            "backend/app/models/__init__.py",
+            "backend/app/core/database.py",
+            "commit-specs/PHASE-2-RAG-ARCHITECTURE-REVIEW.md",
+            "backend/alembic/versions/0001_initial.py",
+            "backend/tests/conftest.py",
+            "backend/tests/services/test_llm.py",
+            "backend/app/core/config.py",
+            "backend/pyproject.toml",
+            "backend/alembic/versions/0002_rag_storage_hardening.py",
+            "docker-compose.yml"
+          ],
+          "write_paths": [
+            "backend/alembic/versions/0002_rag_storage_hardening.py",
+            "backend/app/models/policy.py",
+            "backend/tests/models/test_policy_storage.py",
+            "backend/tests/models/__init__.py"
+          ],
+          "searches": [
+            {
+              "tool": "Glob",
+              "path": "backend/alembic/versions",
+              "query": "*"
+            },
+            {
+              "tool": "Glob",
+              "path": "backend/tests/models",
+              "query": "*"
+            },
+            {
+              "tool": "Glob",
+              "path": "backend/tests",
+              "query": "**/*.py"
+            },
+            {
+              "tool": "Bash",
+              "path": "backend/alembic/versions/0001_initial.py",
+              "query": "policy_documents|policy_chunks|ivfflat|vector|down_revision|^revision"
+            }
+          ],
+          "commands": [
+            "docker compose ps",
+            "docker compose up -d db",
+            "alembic upgrade head (failed: InvalidPasswordError - wrong Postgres on host port 5432)",
+            "psql inside container (succeeded via socket)"
+          ],
+          "expansions": [
+            "backend/tests/conftest.py",
+            "backend/tests/services/test_llm.py",
+            "backend/app/core/config.py",
+            "backend/pyproject.toml",
+            "docker-compose.yml"
+          ]
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "tool_calls": 14,
+          "read_paths": [
+            "TOKEN_RECORDS.md"
+          ],
+          "write_paths": [
+            ".claude/agents/logs/rex-worklog.md",
+            "TOKEN_RECORDS.md"
+          ],
+          "searches": [],
+          "commands": [
+            "cd \"D:\\AI\\_My_Projects\\manifesto\" && git status --short && echo ---DIFFCHECK--- && git diff --check && echo ---STAT--- &",
+            "cd \"D:\\AI\\_My_Projects\\manifesto\" && file .claude/agents/logs/rex-worklog.md && python -c \"\ndata = open('.claude/agents/",
+            "cd \"D:\\AI\\_My_Projects\\manifesto\" && git config core.autocrlf; cat .gitattributes 2>/dev/null; echo ---; git diff -- .cl",
+            "cd \"D:\\AI\\_My_Projects\\manifesto\" && python hooks/verify_constraints.py --commit 26 --agent rex --worktree --no-persist",
+            "cd \"D:\\AI\\_My_Projects\\manifesto\" && python hooks/verify_constraints.py --commit 26 --agent rex --worktree --no-persist",
+            "cd \"D:\\AI\\_My_Projects\\manifesto\" && grep -n \"Tool usage\\|reads=\" -B2 -A2 hooks/verify_constraints.py",
+            "cd \"D:\\AI\\_My_Projects\\manifesto\" && grep -n \"match = \\|re.search\\|re.compile\\|TOOL_USAGE\" -B2 -A4 hooks/verify_constrai",
+            "cd \"D:\\AI\\_My_Projects\\manifesto\" && grep -n \"^## \\|^| C2[0-9]\" TOKEN_RECORDS.md | tail -20",
+            "cd \"D:\\AI\\_My_Projects\\manifesto\" && python hooks/context_telemetry.py --stop-orchestrator C26"
+          ]
+        }
+      },
+      "usage": {
+        "telemetry_status": "completed",
+        "tool_calls": 0,
+        "read_calls": 0,
+        "searches": 0,
+        "write_calls": 0,
+        "selected_files_read": 8,
+        "selected_utilization_percent": 80.0,
+        "unused_selected_files": 2,
+        "outside_files_read": 7,
+        "expansions": 7
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          ".claude/agents/logs/rex-worklog.md",
+          "AGENTS.md",
+          "TOKEN_RECORDS.md",
+          "backend/alembic/versions/0002_rag_storage_hardening.py",
+          "backend/app/models/policy.py",
+          "backend/tests/models/__init__.py",
+          "backend/tests/models/test_policy_storage.py",
+          "constraint-dashboard.html",
+          "hooks/agent-config.json",
+          "project-state.json"
+        ]
+      },
+      "result": "PASS"
     }
   ]
 }
