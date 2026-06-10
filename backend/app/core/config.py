@@ -76,6 +76,15 @@ class Settings(BaseSettings):
     LLM_MAX_RETRIES: int = 3
 
     # ------------------------------------------------------------------
+    # Document ingestion
+    # ------------------------------------------------------------------
+    # MAX_DOCUMENT_UPLOAD_BYTES – Hard cap enforced while streaming an upload.
+    #                             Content-Length is never trusted; the request
+    #                             body is read in chunks and aborted once this
+    #                             limit is exceeded. Default: 25 MiB.
+    MAX_DOCUMENT_UPLOAD_BYTES: int = 25 * 1024 * 1024
+
+    # ------------------------------------------------------------------
     # Validators
     # ------------------------------------------------------------------
     @field_validator("SECRET_KEY")
@@ -107,6 +116,13 @@ class Settings(BaseSettings):
     def retries_must_be_non_negative(cls, v: int) -> int:
         if v < 0:
             raise ValueError("LLM_MAX_RETRIES must be >= 0")
+        return v
+
+    @field_validator("MAX_DOCUMENT_UPLOAD_BYTES")
+    @classmethod
+    def max_upload_bytes_must_be_positive(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("MAX_DOCUMENT_UPLOAD_BYTES must be positive")
         return v
 
     @model_validator(mode="after")
