@@ -42,7 +42,7 @@
 | 26 | rag-storage-hardening | rex | ✅ done · 2026-06-10 |
 | 27 | document-ingestion | nova | ✅ done · 2026-06-10 |
 | 28 | document-upload-routes | rex | ✅ done · 2026-06-10 |
-| 29 | agent-budget-circuit-breaker | claude | pending |
+| 29 | agent-budget-circuit-breaker | claude | ✅ done · 2026-06-10 |
 | 30 | telemetry-per-invocation | claude | pending |
 | 31 | document-upload-status-contract | rex | pending |
 | 32 | database-test-baseline | rex | pending |

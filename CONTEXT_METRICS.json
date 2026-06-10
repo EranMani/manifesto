@@ -678,6 +678,72 @@
         ]
       },
       "result": "FAIL"
+    },
+    {
+      "date": "2026-06-10",
+      "commit": "C29",
+      "agent": "claude",
+      "tokens": 0,
+      "package": {
+        "budget_utilization_percent": null
+      },
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          "CLAUDE.md",
+          "MULTI_AGENT_WORKFLOW_REDESIGN_ROADMAP.md",
+          "ORCHESTRATION.md",
+          "commit-protocol.md",
+          "commit-specs/TEMPLATE.md",
+          "commit-specs/commit-29.md",
+          "hooks/agent-config.json",
+          "hooks/context_rules.json",
+          "hooks/prepare_agent_delegation.py",
+          "hooks/tests/test_prepare_agent_delegation.py",
+          "hooks/tests/test_tool_cap.py",
+          "hooks/tests/test_validate_commit_spec.py",
+          "hooks/tool_cap_end.py",
+          "hooks/tool_cap_enforce.py",
+          "hooks/tool_cap_start.py",
+          "hooks/validate_commit_spec.py",
+          "hooks/verify_constraints.py",
+          "project-state.json"
+        ]
+      },
+      "result": "PASS"
     }
   ]
 }

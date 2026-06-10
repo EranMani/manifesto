@@ -1,18 +1,18 @@
 {
   "project": "manifesto",
-  "tldr": "C28 is complete. Product work is frozen while C29 `agent-budget-circuit-breaker` installs pre-delegation scope validation, commit-level invocation/tool/token limits, and the SPLIT_REQUIRED workflow. C29 is a Claude-owned governance bootstrap with no product-code changes.",
+  "tldr": "C29 `agent-budget-circuit-breaker` committed and verified on 2026-06-10. Commit specs now validate before delegation; normal implementors are limited to one invocation, 18 tool calls, and two expansions, with SPLIT_REQUIRED and one narrow repair path. Next: C30 `telemetry-per-invocation` planning against commit-specs/TEMPLATE.md.",
   "phase": 2,
-  "last_completed_commit": "28",
-  "next_commit": "29",
-  "next_commit_name": "agent-budget-circuit-breaker",
+  "last_completed_commit": "29",
+  "next_commit": "30",
+  "next_commit_name": "telemetry-per-invocation",
   "next_commit_assignee": "claude",
   "status": "phase-2-active",
   "open_handoffs": [
     {
       "from": "nova",
       "to": "nova",
-      "regarding": "C29 — use EmbeddingService.embed_documents()/embed_query() for corpus/query vectors; LLMService.chat() only for generation; profile on EmbeddingService.profile",
-      "detail": "EmbeddingService and LLMService contracts are frozen by C25. C29 RAG pipeline must import only from backend/app/services/llm.py and never use provider SDK types directly. (C27 ingestion already actioned this — uses EmbeddingService.embed_documents() exclusively.)",
+      "regarding": "C34 — use EmbeddingService.embed_documents()/embed_query() for corpus/query vectors; LLMService.chat() only for generation; profile on EmbeddingService.profile",
+      "detail": "EmbeddingService and LLMService contracts are frozen by C25. C34 retrieval candidates must import only from backend/app/services/llm.py and never use provider SDK types directly. (C27 ingestion already actioned this — uses EmbeddingService.embed_documents() exclusively.)",
       "date": "2026-06-09",
       "actioned": false
     },
@@ -43,7 +43,7 @@
     {
       "from": "nova",
       "to": "nova",
-      "regarding": "C29 — retrieval may assume deterministic chunk indexes and page/section metadata produced by chunk_blocks()",
+      "regarding": "C34-C37 — retrieval and citations may assume deterministic chunk indexes and page/section metadata produced by chunk_blocks()",
       "detail": "chunk_blocks() in backend/app/services/ingestion.py produces sequential chunk_index values and preserves page_number/section provenance per chunk, deterministically across re-ingestion. C29 retrieval/citation logic can rely on this for stable references.",
       "date": "2026-06-10",
       "actioned": false

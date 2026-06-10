@@ -39,3 +39,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-10 | C26 | rex | 102,587 | PASS | PASS | WARN | PASS |
 | 2026-06-10 | C27 | nova | 174,687 | PASS | PASS | FAIL r=14 w=10 t=53 | FAIL |
 | 2026-06-10 | C28 | rex | 348,889 | PASS | PASS | FAIL r=70 w=10 t=116 | FAIL |
+| 2026-06-10 | C29 | claude | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
