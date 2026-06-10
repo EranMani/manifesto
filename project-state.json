@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C27 `document-ingestion` (Nova) committed 2026-06-10 (4323405). backend/app/services/ingestion.py: PDF/DOCX/TXT/MD extractors, NFC normalization, structure-then-token chunk_blocks() (450/600/60), idempotent ingest_document() with per-document advisory lock, atomic publish/rollback. 31/31 ingestion tests pass + 1 skip (DB integration stub, OI-08). Gate: Quinn (first run, D32) PASS WITH COMMENTS; Sage 1 CRITICAL dismissed (D33, OI-09), 2 MEDIUM bundled. Phase-budget FAIL accepted as documented scope overflow (D34). Next: C28 `document-upload-routes` (Rex).",
+  "tldr": "C28 `document-upload-routes` (Rex) committed 2026-06-10. backend/app/api/v1/documents.py rewritten from 501 stub: POST /api/v1/documents (upload, role-gated manager/admin, content-type/extension/signature validation, streamed byte-cap via MAX_DOCUMENT_UPLOAD_BYTES, sha256 idempotency on (sha256, embedding_provider, embedding_model, embedding_dimensions), creates policy_documents row status='processing' then calls frozen ingest_document()), GET /api/v1/documents (cursor-paginated by uploaded_at DESC, id DESC), GET /api/v1/documents/{id}. New app/schemas/document.py (safe metadata only). 16/16 new tests pass; full suite 123 passed/1 skipped/7 pre-existing errors (test_policy_storage.py, OI-11). Phase-budget FAIL accepted as documented scope overflow (D35, 5 Rex invocations). Gate: Sage + Mira (D36) — no blockers; OI-10 opened (failure-code mapping fragility, Nova); OI-09 reaffirmed open. Next: C29 `rag-policy-pipeline` (Nova).",
   "phase": 2,
-  "last_completed_commit": "27",
-  "next_commit": "28",
-  "next_commit_name": "document-upload-routes",
-  "next_commit_assignee": "rex",
+  "last_completed_commit": "28",
+  "next_commit": "29",
+  "next_commit_name": "rag-policy-pipeline",
+  "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
     {
@@ -29,6 +29,14 @@
       "to": "rex",
       "regarding": "C28 — create/resolve the policy_documents row and call the frozen ingest_document() contract",
       "detail": "backend/app/services/ingestion.py exposes async ingest_document(*, document_id, file_bytes, filename, content_type, db, embeddings) -> IngestResult. The route handler creates the policy_documents row (status='processing') and calls this; the service owns the processing -> ready|failed transition and never raises to the caller.",
+      "date": "2026-06-10",
+      "actioned": true
+    },
+    {
+      "from": "rex",
+      "to": "aria",
+      "regarding": "C32+ — safe document metadata shape from GET /api/v1/documents and GET /api/v1/documents/{id}",
+      "detail": "Both endpoints return id, title, original_filename, status, chunk_count, uploaded_by, embedding_provider/embedding_model/embedding_dimensions, uploaded_at, updated_at, and failure_code (one of DocumentFailureCode, only set when status == 'failed'). Never chunk text, embeddings, or file_path.",
       "date": "2026-06-10",
       "actioned": false
     },
@@ -122,10 +130,24 @@
     {
       "id": "OI-09",
       "title": "Verify PyMuPDF memory behavior on a pathological/oversized PDF",
-      "detail": "Sage flagged a CRITICAL on C27 (PyMuPDF decompression-bomb risk during PDF page extraction). Dismissed per D33 as a likely false positive — `_MAX_PAGES` is checked before per-page extraction begins, and the spec frames upload size limits (C28) as a layered defense. Eran's call: dismiss for now, verify live once C28 (upload route) lands. Revisit D33 if a live test with a pathological/oversized PDF shows real unbounded memory growth before the page-count check triggers.",
+      "detail": "Sage flagged a CRITICAL on C27 (PyMuPDF decompression-bomb risk during PDF page extraction). Dismissed per D33 as a likely false positive — `_MAX_PAGES` is checked before per-page extraction begins, and the spec frames upload size limits (C28) as a layered defense. C28 (D36) reaffirmed: open. MAX_DOCUMENT_UPLOAD_BYTES (25 MiB) is one layer but does not resolve in-memory decompression risk during page extraction. Needs a live test with a pathological/oversized PDF to confirm bounded memory growth before the page-count check triggers.",
       "priority": "medium",
       "opened": "2026-06-10",
-      "deadline": "after C28"
+      "status": "open"
+    },
+    {
+      "id": "OI-10",
+      "title": "Document upload failure_code mapping is coupled to ingestion.py's exact error message strings",
+      "detail": "C28's _failure_code_for() in backend/app/api/v1/documents.py maps PolicyDocument.error_message text to a stable DocumentFailureCode via _FAILURE_CODE_BY_MESSAGE, a hardcoded dict of ingestion.py's sanitized error strings (see app.services.ingestion._sanitize_error and the IngestionError subclasses). Any change to those message strings silently breaks the mapping (falls back to 'internal_error'). Sage flagged HIGH but non-blocking (D36). Recommend Nova add a structured error code to IngestResult/policy_documents and replace the string mapping with a direct lookup.",
+      "priority": "low",
+      "opened": "2026-06-10"
+    },
+    {
+      "id": "OI-11",
+      "title": "tests/models/test_policy_storage.py (C26) hardcodes localhost:5432 DB_URL — 7 errors when run via docker compose",
+      "detail": "Same root cause as the fix applied in C28's tests/api/test_documents.py: DB_URL = \"postgresql+asyncpg://manifesto:manifesto@localhost:5432/manifesto\" resolves to the wrong host inside the backend container (should read DATABASE_URL env var, which resolves to db:5432). Currently produces 7 errors when the full suite is run via `docker compose run --rm backend uv run pytest`. Out of scope for C28; apply the same os.environ.get(\"DATABASE_URL\", ...) fix in a future commit.",
+      "priority": "medium",
+      "opened": "2026-06-10"
     }
   ],
   "notes": "Architecture review supersedes the original Phase 2 sequence and embedding handoff. Execute C24 next, then parallel C25/C26, C27, parallel C28/C29, C30, parallel C31/C32, C33, and C34. Phase 3 should use graph-aware relational retrieval before considering a separate graph database. See the Phase 2 and Phase 3 design reviews in commit-specs/.",

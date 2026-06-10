@@ -1007,4 +1007,110 @@ to fix:
 
 ---
 
+## D35 — C28 Phase-Budget FAIL Accepted as Documented Scope Overflow; OI-08 Resolved
+
+- **Date:** 2026-06-10
+- **Decided by:** Claude (recommendation), Eran (approval pending)
+- **Context:** `/verify-commit` for C28 returned `phase_budget: FAIL` —
+  Rex's combined worklog tool usage across five invocations
+  (reads=70, writes=10, total=116) exceeds the single-invocation cap
+  (reads<=10, total<=25) checked by `verify_constraints.py`.
+
+### What was decided
+
+Accepted as a real, pre-approved scope overflow rather than a protocol violation
+to fix:
+- C28's 9-file context budget (~21.5k chars) plus a 25-tool Phase 1 read cap
+  meant research alone consumed two full invocations before any write.
+- A third and fourth invocation implemented `app/schemas/document.py`,
+  rewrote `documents.py` (upload/list/detail routes), added
+  `MAX_DOCUMENT_UPLOAD_BYTES` to `config.py`, and wrote
+  `backend/tests/api/test_documents.py` (16 tests).
+- A fifth invocation hit OI-08 (host port 5432 conflict) attempting to run the
+  new tests from the host, and in the process applied a non-destructive
+  `ALTER USER manifesto WITH PASSWORD 'manifesto'` to the docker `db` container
+  to re-align it with `.env`/`docker-compose.yml` (the password had drifted).
+  This did not resolve OI-08 (the host's native `postgresql-x64-18` Windows
+  service still intercepts `localhost:5432`).
+- **OI-08 resolved for this commit by the orchestrator directly**: ran
+  `docker compose run --rm backend uv run pytest ...` (resolves `db` via the
+  compose network, bypassing the host port conflict entirely — the C07/OI-08
+  documented workaround), fixed the test file's hardcoded
+  `postgresql+asyncpg://manifesto:manifesto@localhost:5432/manifesto` to read
+  `DATABASE_URL` from the environment (falling back to the old literal for
+  host runs), and ran `alembic upgrade head` against the docker `db` (was at
+  base — migrations had never been applied to this volume).
+- Result: 16/16 new tests pass; full backend suite 123 passed / 1 skipped.
+  `tests/models/test_policy_storage.py` (C26) has the same hardcoded-`localhost`
+  pattern and still errors (7 errors) — out of scope for C28, logged as a
+  follow-up (see Open Issue note below).
+- The orchestrator also closed a real spec gap found during code-inspection:
+  `DocumentRead.failure_code` was always `None` because `PolicyDocument` has no
+  `failure_code` attribute. Added `_failure_code_for()` in `documents.py`,
+  mapping `error_message` text to `DocumentFailureCode` — a best-effort mapping
+  coupled to `ingestion.py`'s exact sanitized message strings. Flagged as a
+  handoff for Nova to replace with a structured error code on `IngestResult`/
+  `policy_documents` in a future commit.
+
+### Consequences
+
+- C28 proceeds to commit with `phase_budget: FAIL` recorded honestly in
+  CONSTRAINT_LOG.md / CONTEXT_METRICS.json / constraint-dashboard.html — per
+  non-negotiable #9, this is the intended outcome, not a defect to suppress.
+- OI-08 is resolved as a *procedure* (always run DB-touching backend tests via
+  `docker compose run --rm backend ...`, never from the host) — the host port
+  conflict itself is untouched and may still affect ad-hoc host-side tooling.
+  `backend.md` / a future devops note should document this as the standard.
+- New follow-up: `tests/models/test_policy_storage.py` needs the same
+  `DATABASE_URL`-from-env fix applied to its hardcoded `DB_URL` constant before
+  its 7 tests can run. Not blocking C28 — tracked as a small fix for a future
+  commit.
+
+---
+
+## D36 — C28 Gate Wave (Sage + Mira): No Blockers, Two Follow-Ups Logged
+
+- **Date:** 2026-06-10
+- **Decided by:** Sage, Mira (haiku, per commit-28 spec — new authenticated
+  upload route), Claude (synthesis)
+
+### Sage (security)
+
+- Authorization placement correct: `require_role` runs before any parsing/SHA256/DB work.
+- **HIGH (non-blocking per Sage's own verdict — "no blocking issues"):** the new
+  `_FAILURE_CODE_BY_MESSAGE` mapping in `documents.py` is coupled to the exact
+  sanitized strings `ingestion.py` raises. If Nova changes a message, the
+  response silently degrades to `failure_code: "internal_error"` with no log/error
+  — already flagged in D35 as a handoff for Nova to add a structured error code
+  to `IngestResult`/`policy_documents`. Logged as OI-10.
+- MEDIUM: logging hygiene around the `(IngestionError, LLMError)` catch — acceptable
+  given C27's "never raises to caller" contract; no action needed unless that
+  contract changes.
+- MEDIUM: txt/md have no signature check — by design, deferred to extraction. Acceptable.
+- **OI-09 (PyMuPDF decompression-bomb, dismissed CRITICAL from C27/D33):**
+  `MAX_DOCUMENT_UPLOAD_BYTES` (25 MiB streamed cap) is one layer of defense at
+  the HTTP boundary but does **not** resolve OI-09 — a small PDF can still
+  decompress to a large in-memory document inside C27's `fitz.open()`. OI-09
+  stays open; verify with a real pathological PDF post-C28 as originally planned.
+
+### Mira (product, advisory only)
+
+- 200 (duplicate-identical) vs 201 (new) for upload have identical response
+  shapes — a future UI (C32+) needs to surface this distinction explicitly so
+  managers don't read "200" as "nothing happened."
+- `failure_code` values (e.g. `corrupt_document`) are not user-actionable on
+  their own — C32 should pair them with remediation copy.
+- `embedding_provider`/`model`/`dimensions` in the response is intentional per
+  the C26→C28 handoff (safe profile metadata); Mira flagged it as possible UI
+  noise — left as-is per spec, future UI may choose not to render it.
+- Logged as a handoff to Aria for C32+ (see project-state.json).
+
+### Outcome
+
+No blocking findings. C28 proceeds to commit. OI-09 remains open (deadline
+already "after C28" — unchanged). New OI-10 opened for the failure-code mapping
+fragility (Nova, low priority, no deadline).
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

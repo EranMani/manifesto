@@ -41,7 +41,7 @@
 | 25 | llm-service-impl | nova | ✅ done · 2026-06-09 |
 | 26 | rag-storage-hardening | rex | ✅ done · 2026-06-10 |
 | 27 | document-ingestion | nova | ✅ done · 2026-06-10 |
-| 28 | document-upload-routes | rex | pending |
+| 28 | document-upload-routes | rex | ✅ done · 2026-06-10 |
 | 29 | rag-policy-pipeline | nova | pending |
 | 30 | policy-chat-routes | rex | pending |
 | 31 | conversation-persistence | rex | pending |

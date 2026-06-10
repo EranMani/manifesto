@@ -5,14 +5,17 @@
 ---
 
 ## Current State
-*Last updated: Commit 26 · 2026-06-10*
+*Last updated: Commit 28 · 2026-06-10*
 
-**Last completed:** Commit 26 `rag-storage-hardening` ✅ (pending Eran approval/commit)
+**Last completed:** Commit 28 `document-upload-routes` ✅ (pending Eran approval/commit)
 **Currently active:** none
 **Blocked by:** none
 **Incoming fix commits:** none
 
+Tool usage: reads=70, writes=10, total=116 (across 5 invocations; phase-1 research hit the 25-cap twice; final OI-08 fix and verification done directly by orchestrator)
+
 **Open Handoffs — Outbound:**
+- → Aria (future document UI, C32+): `GET /api/v1/documents` and `GET /api/v1/documents/{id}` return safe metadata only — `id`, `title`, `original_filename`, `status`, `chunk_count`, `uploaded_by`, `embedding_provider`/`embedding_model`/`embedding_dimensions`, `uploaded_at`, `updated_at`, and `failure_code` (one of `DocumentFailureCode`, only set when `status == "failed"`). Never chunk text, embeddings, or `file_path`.
 - → Aria (C19): Admin page at `/admin` renders a user list. Backend returns `UserRead` schema — fields: id, name, email, role, is_active, created_at. Routes: `GET /api/v1/admin/users`, `POST /api/v1/admin/users`, `PUT /api/v1/admin/users/{id}`. All require admin JWT.
 - → Rex (C12–C14): `require_role("admin", "manager")` guards all inventory routes. ✅ FULFILLED
 - → Aria (C17): Token format is `{access_token: string, token_type: "bearer"}`. Store `access_token` in Zustand, attach as `Authorization: Bearer <token>` header.
@@ -73,6 +76,7 @@ Your next commit is now: Commit 24 `llm-runtime-config`.
 | 12 | C23: pgvector-migration | ✅ Done | Investigated spec'd migration file — entire pgvector/policy schema already present in 0001_initial.py (lines 101-141, dated 2026-06-05); wrote nothing, no commit, recorded as done-by-prior-work per D28 |
 | 13 | C24: llm-runtime-config | ✅ Done | Added validated LLM/embedding settings to config.py; added openai, httpx, tiktoken to pyproject.toml; uv sync succeeded. Post-session fix (orchestrator): EMBEDDING_MODEL changed to Optional[str]=None with provider-aware resolver validator — OpenAI deployments now default to text-embedding-3-small, never silently nomic-embed-text. Added pytest + 17 persistent tests (all pass). |
 | 14 | C26: rag-storage-hardening | ✅ Done | New migration 0002_rag_storage_hardening.py: VECTOR(1536)->VECTOR(768) with fail-loud guard if non-null embeddings exist, HNSW cosine index replacing IVFFlat, generated search_vector TSVECTOR + GIN index, idempotency unique constraint on (sha256, embedding_provider, embedding_model, embedding_dimensions), unique (document_id, chunk_index), trigger blocking status='ready' while any chunk embedding is null. policy.py models updated to match. test_policy_storage.py written covering all 7 acceptance scenarios. Live alembic upgrade/downgrade + pytest run blocked by environment (see Session 14 note) — verification deferred, code reviewed by orchestrator. |
+| 15 | C28: document-upload-routes | ✅ Done | Tool usage: reads=70, writes=10, total=116 (across 5 invocations; phase-1 research hit the 25-cap twice). New `app/schemas/document.py` (DocumentRead/DocumentListResponse/DocumentUploadResponse, safe fields only). Rewrote `documents.py` 501 stub: POST validates role, title, content-type/extension/signature, streams body with a configurable byte cap (`MAX_DOCUMENT_UPLOAD_BYTES`, new in config.py, never trusts Content-Length), computes sha256, checks `(sha256, embedding_provider, embedding_model, embedding_dimensions)` for idempotency (200 for existing ready doc, 201 for new), creates `policy_documents` row status='processing', calls frozen `ingest_document()`. GET list is cursor-paginated by `(uploaded_at DESC, id DESC)`. GET by id returns safe metadata or 404. Catches only `IngestionError`/`LLMError`. Orchestrator added `_failure_code_for()` mapping `error_message` text -> `DocumentFailureCode` (best-effort, coupled to ingestion.py's exact sanitized messages — flagged for Nova to replace with a structured error code in a future commit). OI-08 resolved for this commit by running tests inside `docker compose run backend` (db service hostname `db`, not `localhost`) — fixed hardcoded `localhost:5432` in test_documents.py to read `DATABASE_URL` env var; also ran `alembic upgrade head` against the docker db (was at base). 16/16 new tests pass; full backend suite 123 passed/1 skipped, plus 7 pre-existing errors in test_policy_storage.py (C26, same hardcoded-localhost issue, out of scope for C28 — flagged separately). |
 
 ---
 

@@ -7,12 +7,14 @@
 
 ## Key Hubs (imported by 3+ modules)
 
-- `app.core.database` — imported by 14 modules
-- `app.models.user` — imported by 6 modules
+- `app.core.database` — imported by 15 modules
+- `app.models.user` — imported by 7 modules
+- `app.dependencies` — imported by 5 modules
 - `app.models.shipment` — imported by 4 modules
-- `app.dependencies` — imported by 4 modules
 - `app.core.security` — imported by 3 modules
+- `app.core.config` — imported by 3 modules
 - `app.models.vendor` — imported by 3 modules
+- `app.models.policy` — imported by 3 modules
 
 ## Entry Points (import others, not imported themselves)
 
@@ -32,6 +34,7 @@
 - `services\ingestion.py`
 - `api\v1\admin.py`
 - `api\v1\auth.py`
+- `api\v1\documents.py`
 - `api\v1\products.py`
 - `api\v1\shipments.py`
 - `api\v1\vendors.py`
@@ -46,7 +49,7 @@
 | `api\v1\admin.py` | `app.core.database`, `app.core.security`, `app.dependencies`, `app.models.user`, `app.schemas.user` |
 | `api\v1\auth.py` | `app.core.database`, `app.core.security`, `app.models.user`, `app.schemas.auth` |
 | `api\v1\chat.py` | — |
-| `api\v1\documents.py` | — |
+| `api\v1\documents.py` | `app.core.config`, `app.core.database`, `app.dependencies`, `app.models.policy`, `app.models.user` (+3 more) |
 | `api\v1\products.py` | `app.core.database`, `app.dependencies`, `app.models.product`, `app.models.shipment`, `app.models.user` (+1 more) |
 | `api\v1\shipments.py` | `app.core.database`, `app.dependencies`, `app.models.shipment`, `app.models.vendor`, `app.schemas.shipment` |
 | `api\v1\vendors.py` | `app.core.database`, `app.dependencies`, `app.models.user`, `app.models.shipment`, `app.models.vendor` (+1 more) |
@@ -67,6 +70,7 @@
 | `models\vendor.py` | `app.core.database` |
 | `schemas\__init__.py` | — |
 | `schemas\auth.py` | — |
+| `schemas\document.py` | — |
 | `schemas\product.py` | — |
 | `schemas\shipment.py` | — |
 | `schemas\user.py` | — |

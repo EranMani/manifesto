@@ -535,6 +535,149 @@
         ]
       },
       "result": "FAIL"
+    },
+    {
+      "date": "2026-06-10",
+      "commit": "C28",
+      "agent": "rex",
+      "tokens": 348889,
+      "package": {
+        "selected_files": 9,
+        "estimated_chars": 21471,
+        "usable_chars": 24000,
+        "targeted_excerpt_files": 2,
+        "excluded_candidates": 0,
+        "expansion_triggers": [],
+        "graph_source": "cache",
+        "category_counts": {
+          "primary": 2,
+          "identity": 1,
+          "worklog": 1,
+          "contract": 4,
+          "test": 1
+        },
+        "budget_utilization_percent": 89.5
+      },
+      "telemetry": {
+        "agent": {
+          "source": "self_report",
+          "status": "available",
+          "tool_calls": 116,
+          "read_paths": [
+            ".claude/agents/backend.md",
+            "commit-specs/commit-28.md",
+            ".claude/agents/logs/rex-worklog.md",
+            "backend/app/api/v1/documents.py",
+            "backend/app/dependencies.py",
+            "backend/app/main.py",
+            "backend/app/services/ingestion.py",
+            "backend/app/models/policy.py",
+            "backend/app/models/user.py",
+            "backend/app/schemas/product.py",
+            "backend/app/services/llm.py",
+            "backend/app/api/v1/chat.py",
+            "backend/app/api/v1/vendors.py",
+            "backend/app/core/config.py",
+            "backend/app/core/database.py",
+            "backend/tests/conftest.py",
+            "backend/tests/services/test_ingestion.py",
+            "backend/tests/models/test_policy_storage.py",
+            "backend/app/core/security.py",
+            "backend/.env.test",
+            ".env"
+          ],
+          "write_paths": [
+            "backend/app/schemas/document.py",
+            "backend/app/core/config.py",
+            "backend/app/api/v1/documents.py",
+            "backend/tests/api/__init__.py",
+            "backend/tests/api/test_documents.py"
+          ],
+          "searches": [
+            {
+              "tool": "Glob",
+              "path": "backend/app/schemas",
+              "query": "*.py"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend",
+              "query": "EmbeddingService construction patterns"
+            },
+            {
+              "tool": "Glob",
+              "path": "backend/tests",
+              "query": "conftest.py"
+            },
+            {
+              "tool": "Glob",
+              "path": "backend/tests/fixtures/documents",
+              "query": "*"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/app/core/security.py",
+              "query": "hash_password|create_access_token"
+            }
+          ],
+          "commands": [
+            "uv run pytest tests/api/test_documents.py -v (multiple iterations)",
+            "uv run alembic upgrade head",
+            "docker compose run --rm backend uv run pytest -q"
+          ],
+          "expansions": []
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "tool_calls": 17,
+          "read_paths": [
+            "DECISIONS.md"
+          ],
+          "write_paths": [
+            ".claude/agents/logs/rex-worklog.md",
+            "DECISIONS.md"
+          ],
+          "searches": [],
+          "commands": [
+            "cd D:/AI/_My_Projects/manifesto && git status --short && echo ---CHECK--- && git diff --check && echo ---STAT--- && git ",
+            "cd D:/AI/_My_Projects/manifesto && file .claude/agents/logs/rex-worklog.md && python -c \"\ndata = open('.claude/agents/lo",
+            "cd D:/AI/_My_Projects/manifesto && git config --get core.whitespace; git config --get core.autocrlf; git check-attr -a .",
+            "cd D:/AI/_My_Projects/manifesto && python hooks/verify_constraints.py --commit 28 --agent rex --worktree --no-persist",
+            "cd D:/AI/_My_Projects/manifesto && python hooks/verify_constraints.py --commit 28 --agent rex --worktree --no-persist",
+            "cd D:/AI/_My_Projects/manifesto && grep -n -B2 -A8 \"Tool usage\" hooks/verify_constraints.py",
+            "cd D:/AI/_My_Projects/manifesto && grep -n -B6 \"Tool usage\" hooks/verify_constraints.py | head -20",
+            "cd D:/AI/_My_Projects/manifesto && sed -n '140,175p' hooks/verify_constraints.py",
+            "cd D:/AI/_My_Projects/manifesto && python hooks/verify_constraints.py --commit 28 --agent rex --worktree --no-persist",
+            "cd D:/AI/_My_Projects/manifesto && grep -n -A 15 \"^### D34\\|^## D34\\|D34\" DECISIONS.md | head -30",
+            "cd D:/AI/_My_Projects/manifesto && sed -n '975,1015p' DECISIONS.md",
+            "cd D:/AI/_My_Projects/manifesto && python hooks/context_telemetry.py --stop-orchestrator C28"
+          ]
+        }
+      },
+      "usage": {
+        "telemetry_status": "completed",
+        "tool_calls": 0,
+        "read_calls": 0,
+        "searches": 0,
+        "write_calls": 0,
+        "selected_files_read": 6,
+        "selected_utilization_percent": 66.7,
+        "unused_selected_files": 3,
+        "outside_files_read": 15,
+        "expansions": 15
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          "backend/app/api/v1/documents.py",
+          "backend/app/core/config.py",
+          "backend/app/schemas/document.py",
+          "backend/tests/api/__init__.py",
+          "backend/tests/api/test_documents.py"
+        ]
+      },
+      "result": "FAIL"
     }
   ]
 }
