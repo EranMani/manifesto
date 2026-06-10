@@ -4,6 +4,7 @@
 **Owner:** rex
 **Depends on:** CXX
 **Estimated diff lines:** 200
+**Developer test milestone:** no
 
 ---
 
@@ -88,6 +89,22 @@ python -m pytest path/to/focused_test.py -q
 
 - [ ] The primary behavior is implemented.
 - [ ] The verification command passes.
+
+---
+
+## Developer Test Checkpoint
+
+Set `Developer test milestone` to `yes` only when this commit closes a coherent technical
+or application capability.
+
+When `yes`, define:
+
+- **Ready now:** The capability Eran can test.
+- **How to test:** Exact startup command, URL or API call, and short steps.
+- **Expected result:** Observable successful behavior.
+- **Still incomplete:** Later behavior that must not be mistaken as ready.
+
+When `no`, state which later commit owns the next relevant milestone.
 
 ---
 

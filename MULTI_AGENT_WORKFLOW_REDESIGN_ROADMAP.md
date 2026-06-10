@@ -2,7 +2,7 @@
 
 **Project:** Manifesto
 **Owner:** Eran Mani
-**Status:** Redesign contract approved by Eran on 2026-06-10; C29 specification drafted
+**Status:** C29 completed; pending roadmap re-decomposed as C30-C77 on 2026-06-10
 **Created:** 2026-06-10
 **Evidence window:** Commits C26-C28 and Claude Code Insights through 2026-06-10
 
@@ -146,7 +146,7 @@ the spec names the exact path and explains why generation is unavoidable.
 | Absolute stop | 60,000 total observable commit tokens | Block implementor, repair, and review activity |
 
 The 60,000 total includes implementor, repair, and review usage that the system can
-observe. C30 must improve measurement of orchestrator usage; until then, unknown token
+observe. C31-C32 must improve measurement of orchestrator usage; until then, unknown token
 usage must be displayed as unknown rather than treated as zero.
 
 ---
@@ -424,7 +424,7 @@ breaker so the next oversized commit is stopped rather than merely measured.
 
 **Known regression target:**
 
-C31 must establish:
+C34 must establish:
 
 - New document upload returns HTTP 201.
 - Duplicate identical ready document returns HTTP 200.
@@ -504,7 +504,7 @@ Approved decisions:
 - C29 receives a one-time atomic bootstrap exception.
 - The budget values in Section 5 are locked for the C29 specification.
 - Agents may return `SPLIT_REQUIRED`; Claude drafts the split; Eran approves it.
-- Pending product work will use the sequential C29-C43 roadmap.
+- Pending product work will use the sequential C29-C77 roadmap.
 
 Exit criteria:
 
@@ -540,113 +540,134 @@ Exit criteria:
 
 **Priority:** High
 
-#### C30 - `telemetry-per-invocation`
-
-Installs:
-
-- Immutable invocation records.
-- Commit aggregation.
-- Contradiction detection.
-- Expansion derivation.
-- Orchestrator-token support when available.
-- Dashboard invocation ledger.
+| Commit | Owner | One primary behavior |
+|---|---|---|
+| C30 `workflow-hook-ownership` | Claude | Assign `hooks/` workflow automation to Adam and align his identity contract |
+| C31 `invocation-record-storage` | Adam | Store each normal, repair, and review invocation as an immutable record |
+| C32 `telemetry-reconciliation` | Adam | Aggregate commit totals and surface contradictions without silently choosing a source |
+| C33 `telemetry-dashboard-ledger` | Adam | Display the invocation ledger, budget state, and contradiction status |
 
 Exit criteria:
 
 - C26-C28 can be represented without flattening or overwriting invocations.
 - Contradictory totals are displayed and fail reconciliation checks.
+- `hooks/` has an explicit implementor owner after C29's Claude exception expires.
 
 ### Phase 3 - Restore Product And Test Trust
 
 **Priority:** High
 
-#### C31 - `document-upload-status-contract`
-
-- Duplicate upload returns HTTP 200.
-- New upload returns HTTP 201.
-- Regression tests enforce both branches.
-
-#### C32 - `database-test-baseline`
-
-- Fix OI-11.
-- Standardize Docker database test commands.
-- Establish the required full-backend-suite command.
-
-#### C33 - `ingestion-database-integration`
-
-- Replace the permanently skipped C27 integration placeholder.
-- Verify real pgvector insertion.
-- Verify document status transitions and rollback behavior.
+| Commit | Owner | One primary behavior |
+|---|---|---|
+| C34 `upload-duplicate-status` | Rex | Return 201 for a new upload and 200 for an identical ready document |
+| C35 `database-test-container-command` | Adam | Provide one reproducible backend test command that resolves the Docker database host |
+| C36 `policy-storage-db-url` | Rex | Make policy-storage tests consume `DATABASE_URL` instead of hardcoded localhost |
+| C37 `ingestion-pgvector-write-integration` | Nova | Prove real document and chunk insertion through pgvector |
+| C38 `ingestion-status-transaction-integration` | Nova | Prove ready/failed transitions and rollback behavior against the database |
 
 Exit criteria:
 
 - Full backend suite has a documented green execution path.
 - Upload status behavior matches the specification.
-- Ingestion has a real database integration gate.
+- Ingestion insertion and transaction behavior have separate real-database gates.
 
 ### Phase 4 - Build Policy RAG Surgically
 
 **Priority:** Medium after Phases 1-3
 
-The old C29 feature epic becomes:
-
-#### C34 - `policy-retrieval-candidates`
-
-- Normalize query.
-- Embed query.
-- Fetch profile-filtered vector and lexical candidate sets.
-- Excludes rank fusion, prompt construction, streaming, and evaluation.
-
-#### C35 - `policy-rank-fusion`
-
-- Reciprocal-rank fusion.
-- Deterministic ordering.
-- Document and adjacency diversification.
-- Excludes prompt construction and generation.
-
-#### C36 - `policy-grounding-context`
-
-- Evidence threshold.
-- Token-budgeted context selection.
-- Stable source labels.
-- Injection-resistant prompt construction.
-- Excludes streaming transport.
-
-#### C37 - `policy-stream-citations`
-
-- Provider-neutral event stream.
-- Citation-label validation.
-- Cancellation and failure semantics.
-- Excludes offline evaluation dataset.
-
-#### C38 - `policy-rag-evaluation`
-
-- Versioned evaluation dataset.
-- Retrieval hit rate and MRR.
-- Abstention and citation validity.
-- Context-size and latency baselines.
+| Commit | Owner | One primary behavior |
+|---|---|---|
+| C39 `policy-query-embedding` | Nova | Normalize and embed a policy query using the frozen embedding profile |
+| C40 `policy-vector-candidates` | Nova | Fetch profile-filtered vector candidates |
+| C41 `policy-lexical-candidates` | Nova | Fetch lexical candidates with the same policy filters |
+| C42 `policy-rank-fusion` | Nova | Fuse vector and lexical ranks deterministically |
+| C43 `policy-result-diversification` | Nova | Apply document and adjacency diversification to fused results |
+| C44 `policy-evidence-threshold` | Nova | Abstain when retrieved evidence does not meet the minimum threshold |
+| C45 `policy-context-budget` | Nova | Select evidence within a deterministic token budget |
+| C46 `policy-source-labels` | Nova | Assign stable source labels and provenance to selected evidence |
+| C47 `policy-grounded-prompt` | Nova | Construct an injection-resistant prompt from labelled evidence |
+| C48 `policy-stream-events` | Nova | Emit provider-neutral typed generation events |
+| C49 `policy-stream-cancellation` | Nova | Cancel provider work and normalize terminal failure semantics |
+| C50 `policy-citation-validation` | Nova | Accept only citation labels present in the selected evidence |
+| C51 `policy-evaluation-dataset` | Nova | Define the versioned policy evaluation dataset and expected outcomes |
+| C52 `policy-retrieval-metrics` | Nova | Calculate retrieval hit rate and MRR |
+| C53 `policy-answer-quality-metrics` | Nova | Calculate abstention and citation-validity results |
+| C54 `policy-runtime-baselines` | Nova | Record context-size and latency baselines separately from quality metrics |
 
 Exit criteria:
 
 - Each RAG behavior fits the micro-commit contract independently.
 - Each commit has focused tests and one verification command.
+- Retrieval, grounding, streaming, citations, and evaluation can fail independently
+  without reopening unrelated behavior.
 
-### Phase 5 - Resume Renumbered Product Roadmap
+### Phase 5 - Backend Policy Chat
 
 **Priority:** Normal
 
-Existing pending product commits move after C38:
+| Commit | Owner | One primary behavior |
+|---|---|---|
+| C55 `policy-chat-request-schema` | Rex | Freeze validated request and typed SSE response schemas |
+| C56 `policy-chat-sse-route` | Rex | Expose authenticated incremental policy streaming |
+| C57 `policy-chat-stream-errors` | Rex | Map pre-stream and mid-stream failures to the frozen public contract |
+| C58 `message-stream-state-schema` | Rex | Persist message idempotency and terminal stream state |
+| C59 `message-citation-schema` | Rex | Persist ordered citation snapshots separately from messages |
+| C60 `conversation-write-service` | Rex | Create owned conversations and persist the initial user message |
+| C61 `chat-stream-persistence` | Rex | Persist assistant completion, cancellation, and failure states |
+| C62 `chat-idempotent-retry` | Rex | Replay a completed client-message retry without another model call |
+| C63 `conversation-send-concurrency` | Rex | Reject overlapping sends for the same conversation predictably |
+| C64 `conversation-list-api` | Rex | Return owner-scoped cursor-paginated policy conversations |
+| C65 `conversation-history-api` | Rex | Return owner-scoped paginated messages with citation snapshots |
 
-| New number | Existing planned work |
-|---|---|
-| C39 | policy-chat-routes |
-| C40 | conversation-persistence |
-| C41 | policy-chat-ui |
-| C42 | conversation-sidebar-ui |
-| C43 | citations-ui |
+### Phase 6 - Frontend Policy Chat
 
-Every renumbered spec must be revalidated. Renumbering does not prove that these commits
-already satisfy the new size limits; any oversized item must be split again.
+**Priority:** Normal after C55-C65
+
+| Commit | Owner | One primary behavior |
+|---|---|---|
+| C66 `frontend-test-baseline` | Aria | Install and prove the focused frontend component-test command |
+| C67 `chat-sse-client` | Aria | Parse authenticated POST SSE events across arbitrary transport chunks |
+| C68 `policy-chat-state` | Aria | Model typed local chat states and optimistic user messages |
+| C69 `stream-message-rendering` | Aria | Render incremental assistant deltas safely |
+| C70 `message-input-cancel` | Aria | Provide accessible submit, stop, and safe retry controls |
+| C71 `provider-selection-ui` | Aria | Require and lock provider selection for a new conversation |
+| C72 `conversation-api-client` | Aria | Consume typed conversation-list and history contracts |
+| C73 `conversation-sidebar-list` | Aria | Render paginated conversation navigation |
+| C74 `conversation-history-navigation` | Aria | Make URL-selected history race-safe and reloadable |
+| C75 `citations-ui` | Aria | Render completed live and historical citation provenance safely |
+| C76 `policy-chat-ui-integration` | Aria | Prove the complete mocked frontend chat, history, and citations workflow |
+
+### Phase 7 - Assembled Verification
+
+**Priority:** Final Phase 2 gate
+
+| Commit | Owner | One primary behavior |
+|---|---|---|
+| C77 `assembled-policy-chat-smoke` | Adam | Prove upload, ask, stream, reload, and citations through the running stack |
+
+Every pending spec must be recreated from `commit-specs/TEMPLATE.md` and validated.
+The sequence may expand again if exact file or test planning cannot retain safety margin.
+
+### Developer Test Milestones
+
+Micro-commits do not require Eran to manually test every internal step. The roadmap marks
+coherent checkpoints where Claude must surface a concise testing invitation.
+
+| Milestone | Commit | Readiness |
+|---|---|---|
+| M1 Workflow visibility | C33 | Invocation-ledger dashboard is inspectable |
+| M2 Ingestion database | C38 | Upload and ingestion database behavior is testable |
+| M3 RAG service | C50 | Retrieval, grounding, streaming, and citations are testable as a service |
+| M4 Streaming API | C57 | Authenticated policy SSE is testable through the API |
+| M5 Durable backend | C65 | Persistence, retry, concurrency, and history APIs are testable |
+| M6 Basic visible chat | C71 | Provider selection and live chat controls are testable in the application |
+| M7 Visible history | C74 | Sidebar, reload, and navigation are testable in the application |
+| M8 Visible citations | C75 | Live and historical citations are testable in the application |
+| M9 Complete Phase 2 | C77 | The full assembled policy-chat workflow is testable |
+
+Each milestone commit spec must contain exact manual test instructions, expected results,
+and known incomplete behavior. Milestones are readiness-based; no fixed commit interval
+creates one automatically.
 
 ---
 
@@ -655,20 +676,20 @@ already satisfy the new size limits; any oversized item must be split again.
 ```mermaid
 flowchart TD
     P0["Phase 0: Approve redesign"] --> C29["C29: Circuit breaker"]
-    C29 --> C30["C30: Per-invocation telemetry"]
-    C29 --> C31["C31: Upload status contract"]
-    C30 --> C32["C32: Database test baseline"]
-    C32 --> C33["C33: Ingestion DB integration"]
-    C33 --> C34["C34: Retrieval candidates"]
-    C34 --> C35["C35: Rank fusion"]
-    C35 --> C36["C36: Grounding context"]
-    C36 --> C37["C37: Stream citations"]
-    C37 --> C38["C38: RAG evaluation"]
-    C38 --> C39["C39+: Renumbered product roadmap"]
+    C29 --> C30["C30: Hook ownership"]
+    C30 --> WF["C31-C33: Telemetry trust"]
+    WF --> REC["C34-C38: Product and DB recovery"]
+    REC --> RET["C39-C43: Retrieval"]
+    RET --> GRD["C44-C47: Grounding"]
+    GRD --> STR["C48-C50: Streaming and citations"]
+    STR --> EVAL["C51-C54: Evaluation"]
+    EVAL --> API["C55-C65: Backend chat and persistence"]
+    API --> UI["C66-C76: Frontend chat"]
+    UI --> C77["C77: Assembled smoke"]
 ```
 
-C31 may run after C29 without waiting for C30, but C32-C33 should use the normalized
-telemetry and environment procedure where practical.
+No pending parallel group is assumed. Exact validated specs may later propose disjoint
+parallel work, but sequential execution remains the conservative default.
 
 ---
 
@@ -759,7 +780,7 @@ is installed. The recommended approach is the one-time atomic bootstrap exceptio
 
 ### 12.5 Renumbering tests
 
-- C29-C34 can move to C34-C43 without filename collision.
+- A pending range can be transactionally renumbered without filename collision.
 - Headings, dependencies, state, handoffs, and protocol rows remain consistent.
 - Completed commits remain unchanged.
 - Failed graph validation rolls back the proposed renumber.
@@ -792,8 +813,9 @@ docker compose run --rm backend uv run pytest -q
 8. Use one synthetic `SPLIT_REQUIRED` return to prove spec-drafting flow.
 9. Only then resume C30 and later work.
 
-Historical C26-C28 records should not be rewritten to appear compliant. C30 may migrate
-their telemetry representation while preserving the original evidence and contradictions.
+Historical C26-C28 records should not be rewritten to appear compliant. C31-C32 may
+migrate their telemetry representation while preserving the original evidence and
+contradictions.
 
 ---
 
@@ -822,7 +844,7 @@ their telemetry representation while preserving the original evidence and contra
 | Budget failure policy | Approved: non-waivable |
 | Missing state behavior | Approved: fail closed for continuation |
 | Agent split authority | Approved: proposal only; Claude drafts; Eran approves |
-| Pending roadmap numbering | Approved: C29-C43 as listed |
+| Pending roadmap numbering | Revised: C30-C77, with further splitting allowed during exact spec drafting |
 | Product freeze | Approved: active through C29 completion |
 
 ---

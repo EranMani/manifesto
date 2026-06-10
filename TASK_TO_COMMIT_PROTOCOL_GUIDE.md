@@ -547,6 +547,22 @@ Include:
 Use objective checkboxes. Avoid phrases such as "works correctly" without a measurable
 condition.
 
+### Developer Test Checkpoint
+
+Mark a commit as a developer test milestone only when it completes a coherent capability
+that can be tested through an API, dashboard, service boundary, or visible application
+workflow.
+
+The milestone must define:
+
+- What is ready now.
+- Exact startup and test steps.
+- The expected observable result.
+- What remains intentionally incomplete.
+
+Do not create milestones at arbitrary intervals such as every five commits. Several
+micro-commits may combine into one useful checkpoint.
+
 ### Not In This Commit
 
 Name excluded work and the later commit that owns it.
@@ -730,6 +746,9 @@ Before presenting a protocol:
 - [ ] Every candidate fits six context files and 15,000 characters.
 - [ ] Every candidate has one focused verification command.
 - [ ] Every candidate includes tests.
+- [ ] Coherent technical and application test milestones are identified.
+- [ ] Every milestone has exact manual steps and an expected result.
+- [ ] No milestone is based only on elapsed commit count.
 - [ ] Cross-domain work is separated by explicit contracts.
 - [ ] Risky candidates were split with safety margin.
 - [ ] Final IDs are sequential integers.

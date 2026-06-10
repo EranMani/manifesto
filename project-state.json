@@ -1,25 +1,25 @@
 {
   "project": "manifesto",
-  "tldr": "C29 `agent-budget-circuit-breaker` committed and verified on 2026-06-10. Commit specs now validate before delegation; normal implementors are limited to one invocation, 18 tool calls, and two expansions, with SPLIT_REQUIRED and one narrow repair path. Next: C30 `telemetry-per-invocation` planning against commit-specs/TEMPLATE.md.",
+  "tldr": "C29 enforcement is active. The remaining Phase 2 roadmap was re-decomposed as C30-C77 using the approved task-to-commit guide, with readiness-based developer test milestones. Next: C30 `workflow-hook-ownership`; existing C30-C34 spec files are stale and delegation remains blocked until the pending specs are rewritten and validated.",
   "phase": 2,
   "last_completed_commit": "29",
   "next_commit": "30",
-  "next_commit_name": "telemetry-per-invocation",
+  "next_commit_name": "workflow-hook-ownership",
   "next_commit_assignee": "claude",
   "status": "phase-2-active",
   "open_handoffs": [
     {
       "from": "nova",
       "to": "nova",
-      "regarding": "C34 — use EmbeddingService.embed_documents()/embed_query() for corpus/query vectors; LLMService.chat() only for generation; profile on EmbeddingService.profile",
-      "detail": "EmbeddingService and LLMService contracts are frozen by C25. C34 retrieval candidates must import only from backend/app/services/llm.py and never use provider SDK types directly. (C27 ingestion already actioned this — uses EmbeddingService.embed_documents() exclusively.)",
+      "regarding": "C39-C50 — use EmbeddingService.embed_documents()/embed_query() for corpus/query vectors; LLMService.chat() only for generation; profile on EmbeddingService.profile",
+      "detail": "EmbeddingService and LLMService contracts are frozen by C25. Policy retrieval and generation commits must import only from backend/app/services/llm.py and never use provider SDK types directly. C27 ingestion already uses EmbeddingService.embed_documents() exclusively.",
       "date": "2026-06-09",
       "actioned": false
     },
     {
       "from": "nova",
       "to": "rex",
-      "regarding": "C30 — catch only LLMError and subclasses in route handlers, never provider SDK exceptions",
+      "regarding": "C56-C57 — catch only LLMError and subclasses in route handlers, never provider SDK exceptions",
       "detail": "All SDK types are isolated in backend/app/services/llm.py. Route handlers must import LLMError hierarchy only.",
       "date": "2026-06-09",
       "actioned": false
@@ -35,7 +35,7 @@
     {
       "from": "rex",
       "to": "aria",
-      "regarding": "C32+ — safe document metadata shape from GET /api/v1/documents and GET /api/v1/documents/{id}",
+      "regarding": "Future frontend document work — safe document metadata shape from GET /api/v1/documents and GET /api/v1/documents/{id}",
       "detail": "Both endpoints return id, title, original_filename, status, chunk_count, uploaded_by, embedding_provider/embedding_model/embedding_dimensions, uploaded_at, updated_at, and failure_code (one of DocumentFailureCode, only set when status == 'failed'). Never chunk text, embeddings, or file_path.",
       "date": "2026-06-10",
       "actioned": false
@@ -43,8 +43,8 @@
     {
       "from": "nova",
       "to": "nova",
-      "regarding": "C34-C37 — retrieval and citations may assume deterministic chunk indexes and page/section metadata produced by chunk_blocks()",
-      "detail": "chunk_blocks() in backend/app/services/ingestion.py produces sequential chunk_index values and preserves page_number/section provenance per chunk, deterministically across re-ingestion. C29 retrieval/citation logic can rely on this for stable references.",
+      "regarding": "C40-C50 — retrieval and citations may assume deterministic chunk indexes and page/section metadata produced by chunk_blocks()",
+      "detail": "chunk_blocks() in backend/app/services/ingestion.py produces sequential chunk_index values and preserves page_number/section provenance per chunk, deterministically across re-ingestion. Policy retrieval and citation logic can rely on this for stable references.",
       "date": "2026-06-10",
       "actioned": false
     }
@@ -64,6 +64,13 @@
       "summary": "Corrected the dependency graph and stale file assumptions; expanded and cleanly renumbered the pending sequence as C24-C34 with no letter suffixes. Revised the plan around a deployment-wide embedding profile, idempotent structured ingestion, HNSW plus lexical hybrid retrieval, grounded source labels, versioned SSE, cancellation, durable message/citation states, cursor pagination, and frontend race/error handling. Added a Phase 3 graph-aware logistics RAG decision.",
       "agents_activated": [],
       "files_updated": ["commit-protocol.md", "commit-specs/commit-24.md..commit-34.md", "commit-specs/PHASE-2-RAG-ARCHITECTURE-REVIEW.md", "commit-specs/PHASE-3-GRAPH-RAG-DESIGN.md", "manifesto-spec.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-10",
+      "trigger": "Eran requested a second decomposition pass using the approved task-to-commit guides and C29 limits",
+      "summary": "Replaced the preliminary C30-C43 roadmap with C30-C77. Each pending row now represents one owner and one observable behavior across workflow telemetry, recovery, policy RAG, backend chat, frontend chat, and assembled verification. Exact specs remain intentionally unwritten until the revised protocol is approved and each candidate is budgeted with exact files and tests.",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "MULTI_AGENT_WORKFLOW_REDESIGN_ROADMAP.md", "project-state.json"]
     }
   ],
   "rollback_history": [],
@@ -150,6 +157,6 @@
       "opened": "2026-06-10"
     }
   ],
-  "notes": "Architecture review supersedes the original Phase 2 sequence and embedding handoff. Execute C24 next, then parallel C25/C26, C27, parallel C28/C29, C30, parallel C31/C32, C33, and C34. Phase 3 should use graph-aware relational retrieval before considering a separate graph database. See the Phase 2 and Phase 3 design reviews in commit-specs/.",
+  "notes": "The approved task-to-commit decomposition revised pending Phase 2 work as C30-C77. C30 establishes permanent workflow-hook ownership; C31-C33 restore telemetry trust; C34-C38 restore product and database-test trust; C39-C54 build policy RAG; C55-C65 build backend chat and persistence; C66-C76 build frontend chat; C77 verifies the assembled stack. Developer test milestones identify technical checkpoints and visible application checkpoints; Claude announces exact manual test steps when each milestone passes. Existing C30-C34 specs are stale and must be replaced before delegation.",
   "historical_notes": "C23 (`pgvector-migration`, Rex) resolved 2026-06-08 with NO git commit — investigation (Rex, on Eran's instruction to invoke him despite the scope already looking thin) found the entire pgvector/policy schema (extension, both tables, FKs, ivfflat index) already present in `0001_initial.py` lines 101-141, dated 2026-06-05 alongside the C06 model commit (`f712343`). Verified live: `alembic current` = 0001_initial (head), pgvector v0.8.2 active, tables/FKs/index/ORM mapping all correct. Writing a new migration would have duplicated DDL or falsified history; downgrading would have torn down the entire schema. Full record in DECISIONS.md D28. commit-protocol.md C23 marked done-by-prior-work; pointer advanced straight to C24 (Nova). Nova handoff re: VECTOR(1536) vs Ollama 768-dim recorded in open_handoffs above — must be resolved before C25 ingestion begins. || C22 committed 2026-06-07 (47bca18) — loginApi fixed to send JSON {email, password}, verified clean (tsc + network-level contract check by Claude). Eran then manually click-through-verified all 4 remaining browser checks: (1) /login form renders correctly, (2) admin login (admin@manifesto.local/admin123) redirects to /dashboard, (3) /dashboard shows 'Coming soon' placeholder, (4) manager login (manager.smoke@manifesto.local/manager123) navigating to /admin redirects away — to /login specifically. Item 4 initially looked surprising (redirecting an authenticated user to the login page), but Claude confirmed via ProtectedRoute.tsx (lines 12-18) that both the no-token AND wrong-role paths intentionally redirect to /login — documented by Aria in her C18 worklog. Logged as D25 (UX trade-off noted for possible Phase 2+ refinement, not a blocker). All C21 SMOKE_TEST_RESULTS.md items now resolved — Phase 1 formally closed 2026-06-07. Adam's throwaway manager user (manager.smoke@manifesto.local/manager123) remains in the dev DB as a useful fixture for future role-based testing. Phase 2 replan applied same day: C23-C32 added per manifesto-spec.md §Phase 2 (Policy RAG). Nova activated — identity file at .claude/agents/ai-engineer.md, first commit is C24. Sequence: C23(Rex) → C24(Nova) → {C25(Nova), C26(Rex)} → C27(Nova) → C28(Rex) → {C29(Rex), C30(Aria)} → C31(Aria) → C32(Aria). Viktor's next batch wave lands at C25 (every-5th-commit cadence continues from C20)."
 }

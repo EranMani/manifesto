@@ -118,6 +118,7 @@ Produce:
 9. One template-compliant spec per commit.
 10. Validator results.
 11. A concise approval package for the user.
+12. Readiness-based technical and application test milestones.
 
 The system must not implement the mission.
 
@@ -406,6 +407,14 @@ Required fields:
   "focused_tests": [],
   "environment_prerequisites": [],
   "not_in_commit": [],
+  "developer_test_checkpoint": {
+    "is_milestone": false,
+    "type": null,
+    "ready_now": null,
+    "how_to_test": null,
+    "expected_result": null,
+    "still_incomplete": null
+  },
   "risk": "low"
 }
 ```
@@ -565,6 +574,7 @@ Include:
 - Commit table with behavior, owner, files, estimate, and dependency.
 - Split explanations.
 - Parallel groups.
+- Technical and application test milestones.
 - Risks or unresolved decisions.
 - Validation status.
 - Exact files that will change if approved.
@@ -572,6 +582,10 @@ Include:
 Do not force the user to read every full spec before understanding the plan.
 
 The full specs remain available for inspection.
+
+Milestones are based on coherent readiness, not a fixed interval. When a milestone
+commit is completed, the runtime orchestrator should announce what is ready, how to test
+it, the expected result, and what remains incomplete.
 
 ### 7.14 Transactional Apply Engine
 
@@ -1049,6 +1063,8 @@ The Task-To-Commit Planner is complete when:
 - No authoritative planning file changes without explicit approval.
 - Approved changes apply transactionally.
 - Runtime `SPLIT_REQUIRED` can safely return unfinished scope to planning.
+- The protocol identifies when coherent functionality becomes manually testable.
+- Milestone notices include exact test steps and do not overstate feature readiness.
 - A user can understand the proposed protocol from a concise summary.
 
 ---
