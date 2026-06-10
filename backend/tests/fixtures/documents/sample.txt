@@ -1,0 +1,8 @@
+Manifesto Policy Sample
+
+This is a plain text fixture used to exercise the TXT extractor.
+It contains multiple paragraphs separated by blank lines.
+
+Second paragraph with some Unicode: café, naïve, émigré, 中文, русский.
+
+Third paragraph for good measure.

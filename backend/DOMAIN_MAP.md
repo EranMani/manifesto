@@ -29,6 +29,7 @@
 - `models\user.py`
 - `models\vendor.py`
 - `models\__init__.py`
+- `services\ingestion.py`
 - `api\v1\admin.py`
 - `api\v1\auth.py`
 - `api\v1\products.py`
@@ -71,7 +72,7 @@
 | `schemas\user.py` | — |
 | `schemas\vendor.py` | — |
 | `services\__init__.py` | — |
-| `services\ingestion.py` | — |
+| `services\ingestion.py` | `app.services.llm`, `app.models.policy` |
 | `services\llm.py` | — |
 | `services\rag_logistics.py` | — |
 | `services\rag_policy.py` | — |
