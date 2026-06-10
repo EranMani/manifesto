@@ -47,8 +47,10 @@ STEP 1 — Claude reads commit-protocol.md
 STEP 2 — Claude reads project-state.json
 └── Checks for open blockers. Blocker exists → surface to Eran and stop.
 
-STEP 3 — Claude builds the live context package for the owning agent
-└── Runs hooks/prepare_agent_delegation.py for the active commit and owner
+STEP 3 — Claude validates scope, then builds the live context package
+└── Runs hooks/validate_commit_spec.py for the active commit and owner
+    Validation failure → stop and draft a smaller sequential spec for Eran
+    Validation success → run hooks/prepare_agent_delegation.py
     Refreshes the cached graph only when stale
     Produces a bounded brief: primary files, contracts, dependencies, hubs, tests,
     boundaries, handoffs, acceptance criteria, and expansion triggers
@@ -65,7 +67,9 @@ STEP 4 — Pre-invocation check (mandatory)
     NO  → invoke the agent with the generated delegation brief verbatim.
 
 STEP 5 — Agent executes
-└── Writes worklog continuously. Decisions logged as made.
+└── One normal invocation, maximum 18 tool calls and two expansions.
+    Call 12 reports budget status. By call 16, finish or return SPLIT_REQUIRED.
+    Writes worklog continuously. Decisions logged as made.
 
 STEP 5.5 — Telemetry capture — two mandatory sub-steps, in this order:
 └── (a) Persist agent self-report:
@@ -91,7 +95,8 @@ STEP 6.5 — Claude inspects agent output (mandatory — never skip)
 
 STEP 7 — Test gate
 └── Tests pass → continue.
-    Tests fail → return to agent. Agent fixes. Back to Step 5.
+    Tests fail → one narrow repair may be authorized from concrete failure evidence,
+    with a delta brief below 6,000 characters and no renewed discovery.
     Gate does not surface to Eran until tests pass.
     Test suite must include negative tests for invalid values, boundaries, and
     conflicting configurations. A suite with no rejection tests is incomplete.
@@ -165,6 +170,16 @@ STEP 14 — Claude presents next Commit Preview
     Eran defers → Claude holds. No agent invoked until approval.
 ```
 
+### Scope-stop path
+
+When an implementor returns `SPLIT_REQUIRED`, Claude stops the invocation and inspects
+whether the completed subset is atomic and safe. Claude does not finish oversized
+application work directly. Claude drafts and validates the next sequential micro-commit,
+then presents the disposition and proposed split to Eran.
+
+Budget failures cannot be waived, accepted as documented overflow, or reset by another
+normal invocation.
+
 ---
 
 ## 3. The Context Budget System
@@ -208,8 +223,11 @@ tradeoff before the tool call, then records the result in the worklog.
 
 | Agent type | Target per invocation |
 |---|---|
-| Implementor (Rex, Adam, Aria) | ≤60k tokens |
+| Implementor (Rex, Adam, Aria, Nova) | warning at 35k; hard stop at 45k |
 | Reviewer (Viktor, Sage, Mira) | ≤15k tokens |
+
+The absolute observable commit stop is 60k tokens across implementation, repair, and
+review. Missing token data remains unknown and cannot authorize continuation.
 
 When a session approaches 80% of context capacity:
 1. Trigger `/archive-worklog` for any agent with >3 completed sessions

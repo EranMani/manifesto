@@ -131,7 +131,8 @@ You do **not** load files from other agents' domains unless this step explicitly
 
 1. Read state, identify active commit, check blockers
 2. Verify prerequisite handoffs are in place
-3. Run `hooks/prepare_agent_delegation.py` to build the live bounded context package
+3. Run `hooks/validate_commit_spec.py`. If it fails, stop and propose a smaller
+   sequential commit. Only then run `hooks/prepare_agent_delegation.py`.
 4. **Present Commit Preview to Eran — wait for explicit approval**
 5. Invoke owning agent
 5a. **Parse agent self-report** — extract the telemetry JSON block from the agent's final
@@ -328,6 +329,8 @@ decision, and tradeoff. The worklog records every expansion and outcome.
 8. Secrets never appear in code — not in defaults, not in comments
 9. Scope overflows are flagged immediately — not silently built
 10. Never spawn an agent when the exact file, line, and content is already known — use Edit
+11. Budget failures are non-waivable. Unfinished work becomes a new numbered commit.
+12. An implementor may return `SPLIT_REQUIRED`; Claude drafts the spec and Eran approves it.
 
 ---
 
@@ -397,11 +400,25 @@ Mid-commit at ~60k tokens without a commit yet: `/compact`.
 
 ## Execution Constraints — Include Verbatim in Every Agent Invocation
 
-### Implementors (Rex, Adam, Aria)
+### Implementors (Rex, Adam, Aria, Nova)
 ```
 EXECUTION CONSTRAINTS:
-- Total cap: 25 tool uses. Non-negotiable.
+- One normal implementor invocation per commit.
+- Total cap: 18 tool uses. Call 19 is mechanically blocked.
 - Phase 1 (Reads): max 10 tool uses. Read only what is listed in the live delegation brief.
   Do not scan directories. Use targeted symbol search before adding a full-file read.
   If you approach 10 reads and still need more, STOP and report — scope is too large for one agent invocation.
-- Phase 2 (Writes + Tests): max
+- Maximum two justified context expansions. Expansion 3 is mechanically blocked.
+- By calls 6-8, implementation should normally have started.
+- At call 12, report budget status and remaining acceptance criteria.
+- By call 16, finish by call 18 or return SPLIT_REQUIRED.
+- Implementor tokens: green through 35k, warning through 45k, hard stop above 45k.
+- A second invocation is allowed only for one authorized failing-test repair with a
+  delta brief below 6,000 characters. It may not restart discovery.
+- Include focused tests, update the worklog, and return structured telemetry.
+- No commits. Claude stages and commits only after Eran's approval.
+```
+
+`SPLIT_REQUIRED` includes completed scope, remaining scope, reason, suggested commit
+name/owner, required files, acceptance criteria, verification command, dependencies,
+and tool-call count. The agent proposes; Claude plans; Eran approves.

@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C28 `document-upload-routes` (Rex) committed 2026-06-10. backend/app/api/v1/documents.py rewritten from 501 stub: POST /api/v1/documents (upload, role-gated manager/admin, content-type/extension/signature validation, streamed byte-cap via MAX_DOCUMENT_UPLOAD_BYTES, sha256 idempotency on (sha256, embedding_provider, embedding_model, embedding_dimensions), creates policy_documents row status='processing' then calls frozen ingest_document()), GET /api/v1/documents (cursor-paginated by uploaded_at DESC, id DESC), GET /api/v1/documents/{id}. New app/schemas/document.py (safe metadata only). 16/16 new tests pass; full suite 123 passed/1 skipped/7 pre-existing errors (test_policy_storage.py, OI-11). Phase-budget FAIL accepted as documented scope overflow (D35, 5 Rex invocations). Gate: Sage + Mira (D36) — no blockers; OI-10 opened (failure-code mapping fragility, Nova); OI-09 reaffirmed open. Next: C29 `rag-policy-pipeline` (Nova).",
+  "tldr": "C28 is complete. Product work is frozen while C29 `agent-budget-circuit-breaker` installs pre-delegation scope validation, commit-level invocation/tool/token limits, and the SPLIT_REQUIRED workflow. C29 is a Claude-owned governance bootstrap with no product-code changes.",
   "phase": 2,
   "last_completed_commit": "28",
   "next_commit": "29",
-  "next_commit_name": "rag-policy-pipeline",
-  "next_commit_assignee": "nova",
+  "next_commit_name": "agent-budget-circuit-breaker",
+  "next_commit_assignee": "claude",
   "status": "phase-2-active",
   "open_handoffs": [
     {

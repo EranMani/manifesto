@@ -1,96 +1,126 @@
 #!/usr/bin/env python3
-"""
-tool_cap_enforce.py — hard tool-use cap for subagent invocations.
+"""Enforce tool, expansion, and token limits for the active commit invocation."""
 
-Registered as PreToolUse hook on all tools ("*" matcher).
-Counts tool calls while hooks/tool_cap.json has active=true.
-Blocks the agent at the configured limit with exit code 2.
-
-Orchestrator protocol (MUST follow):
-  Before Agent():  Write tool_cap.json → {"active": true,  "agent": "<name>", "count": 0, "limit": 25}
-  After  Agent():  Write tool_cap.json → {"active": false, "agent": null,    "count": 0, "limit": 25}
-
-Excluded from counting (always allowed through):
-  - Write calls targeting tool_cap.json itself  (orchestrator marker writes)
-  - Agent tool calls                             (spawning is orchestrator action, not agent tool use)
-
-Fail-open: any I/O or parse error → exit 0 (allow). Never block due to hook internals.
-"""
+from __future__ import annotations
 
 import json
-import subprocess
 import sys
 from pathlib import Path
+from typing import Any
+
+from tool_cap_start import git_root, load_state, read_stdin, write_state
 
 
-def git_root() -> Path:
-    result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        capture_output=True, text=True
+WRITE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
+PATH_KEYS = ("file_path", "path")
+
+
+def tool_path(tool_input: dict[str, Any]) -> str:
+    for key in PATH_KEYS:
+        value = tool_input.get(key)
+        if value:
+            return str(value).replace("\\", "/").lstrip("./")
+    return ""
+
+
+def selected(path: str, selected_paths: list[str]) -> bool:
+    normalized = path.replace("\\", "/").lstrip("./")
+    return any(
+        normalized == allowed or normalized.startswith(allowed.rstrip("/") + "/")
+        for allowed in selected_paths
     )
-    return Path(result.stdout.strip())
 
 
-def read_stdin() -> dict:
-    try:
-        raw = sys.stdin.read()
-        return json.loads(raw) if raw.strip() else {}
-    except Exception:
-        return {}
+def enforce_tool_event(
+    state: dict[str, Any],
+    tool_name: str,
+    tool_input: dict[str, Any],
+) -> tuple[bool, str | None]:
+    if not state.get("active") or not state.get("active_invocation"):
+        return True, None
+    if tool_name == "Agent":
+        return True, None
+
+    path = tool_path(tool_input)
+    if path.endswith("hooks/tool_cap.json") or path == "hooks/tool_cap.json":
+        return True, None
+
+    invocation = state["active_invocation"]
+    next_call = int(invocation.get("tool_calls", 0)) + 1
+    limit = int(state.get("limit", 18))
+    if next_call > limit:
+        state["stop_reason"] = f"tool_call_limit:{limit}"
+        state["status"] = "blocked"
+        return False, f"tool call {next_call} exceeds the limit of {limit}"
+
+    if invocation.get("kind") in {"normal", "repair"}:
+        limits = state.get("limits", {})
+        if state.get("known_implementor_tokens", 0) >= limits.get("max_implementor_tokens", 45000):
+            state["stop_reason"] = "implementor_token_hard_stop"
+            state["status"] = "blocked"
+            return False, "implementor token hard stop reached"
+        if state.get("known_total_tokens", 0) >= limits.get("max_total_tokens", 60000):
+            state["stop_reason"] = "absolute_commit_token_stop"
+            state["status"] = "blocked"
+            return False, "absolute commit token stop reached"
+
+    if tool_name in WRITE_TOOLS:
+        if invocation.get("kind") == "repair":
+            allowed = (state.get("repair_authorization") or {}).get("allowed_files", [])
+            if path and not selected(path, allowed):
+                state["stop_reason"] = f"repair_path_not_authorized:{path}"
+                state["status"] = "blocked"
+                return False, f"repair write is outside authorized files: {path}"
+        state["write_started"] = True
+
+    expansion_tools = {"Read", "Grep", "Glob"}
+    if tool_name in expansion_tools and path and not selected(path, state.get("selected_paths", [])):
+        expanded = state.setdefault("expanded_paths", [])
+        if path not in expanded:
+            next_expansion = len(expanded) + 1
+            max_expansions = state.get("limits", {}).get("max_expansions", 2)
+            if next_expansion > max_expansions:
+                state["stop_reason"] = f"expansion_limit:{max_expansions}"
+                state["status"] = "blocked"
+                return False, f"context expansion {next_expansion} exceeds the limit of {max_expansions}"
+            expanded.append(path)
+            state["expansions"] = len(expanded)
+
+    invocation["tool_calls"] = next_call
+    state["count"] = next_call
+    if invocation.get("kind") in {"normal", "repair"}:
+        state["tool_calls"] = int(state.get("tool_calls", 0)) + 1
+
+    warning = None
+    if next_call in {6, 7, 8} and not state.get("write_started") and invocation.get("kind") == "normal":
+        warning = f"call {next_call}: implementation has not started; prepare to split"
+    elif next_call == 12:
+        warning = "call 12: report budget status and remaining acceptance criteria"
+    elif next_call == 16:
+        warning = "call 16: finish by call 18 or return SPLIT_REQUIRED"
+    elif next_call == limit:
+        warning = f"call {next_call}: final allowed tool call"
+    return True, warning
 
 
 def main() -> int:
     try:
-        cap_file = git_root() / "hooks" / "tool_cap.json"
+        state_path: Path = git_root() / "hooks" / "tool_cap.json"
     except Exception:
         return 0
-
-    if not cap_file.exists():
+    state = load_state(state_path)
+    if state is None or not state.get("active"):
         return 0
-
-    try:
-        cap = json.loads(cap_file.read_text(encoding="utf-8"))
-    except Exception:
-        return 0
-
-    if not cap.get("active", False):
-        return 0
-
-    stdin_data = read_stdin()
-    tool_name = stdin_data.get("tool_name", "")
-    tool_input = stdin_data.get("tool_input", {})
-
-    # Always allow: any access to tool_cap.json itself (orchestrator file management)
-    # Covers Write (reset), Read (read-before-write safety check), Edit (partial update)
-    for key in ("file_path", "path"):
-        if "tool_cap.json" in str(tool_input.get(key, "")):
-            return 0
-
-    # Always allow: orchestrator spawning subagents (not a subagent tool use)
-    if tool_name == "Agent":
-        return 0
-
-    count = cap.get("count", 0) + 1
-    limit = cap.get("limit", 25)
-    agent = cap.get("agent") or "unknown"
-
-    cap["count"] = count
-    try:
-        cap_file.write_text(json.dumps(cap, indent=2), encoding="utf-8")
-    except Exception:
-        return 0  # fail open — never block due to I/O error
-
-    if count > limit:
-        sys.stderr.write(
-            f"\n[31m\U0001f6ab TOOL CAP REACHED[0m\n"
-            f"  Agent : {agent}\n"
-            f"  Used  : {limit}/{limit} tools (this is call #{count})\n"
-            f"  Action: STOP. Do not call any more tools.\n"
-            f"          Report what you completed, what files changed, and what remains.\n\n"
-        )
-        return 2
-
-    return 0
+    event = read_stdin()
+    allowed, message = enforce_tool_event(
+        state,
+        str(event.get("tool_name", "")),
+        event.get("tool_input") or {},
+    )
+    write_state(state_path, state)
+    if message:
+        sys.stderr.write(f"CIRCUIT BREAKER: {message}\n")
+    return 0 if allowed else 2
 
 
 if __name__ == "__main__":

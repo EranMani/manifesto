@@ -1,43 +1,79 @@
 #!/usr/bin/env python3
-"""
-tool_cap_end.py — PostToolUse hook on Agent tool.
+"""Close an Agent invocation while preserving commit-level budget state."""
 
-Fires automatically after every Agent() invocation completes (success or error).
-Resets tool_cap.json to active=false and clears the counter.
-"""
+from __future__ import annotations
 
-import json
-import subprocess
 import sys
-from pathlib import Path
+from typing import Any
+
+from tool_cap_start import git_root, load_state, read_stdin, utc_now, write_state
 
 
-def git_root() -> Path:
-    result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        capture_output=True, text=True
-    )
-    return Path(result.stdout.strip())
+def extract_tokens(payload: Any) -> int | None:
+    if isinstance(payload, dict):
+        for key in ("total_tokens", "tokens"):
+            value = payload.get(key)
+            if isinstance(value, int) and not isinstance(value, bool):
+                return value
+        usage = payload.get("usage")
+        if isinstance(usage, dict):
+            total = usage.get("total_tokens")
+            if isinstance(total, int) and not isinstance(total, bool):
+                return total
+            input_tokens = usage.get("input_tokens")
+            output_tokens = usage.get("output_tokens")
+            if isinstance(input_tokens, int) and isinstance(output_tokens, int):
+                return input_tokens + output_tokens
+        for value in payload.values():
+            found = extract_tokens(value)
+            if found is not None:
+                return found
+    elif isinstance(payload, list):
+        for value in payload:
+            found = extract_tokens(value)
+            if found is not None:
+                return found
+    return None
+
+
+def close_invocation(state: dict[str, Any], tokens: int | None = None) -> dict[str, Any]:
+    invocation = state.get("active_invocation")
+    if not state.get("active") or not invocation:
+        return state
+    invocation["ended_at"] = utc_now()
+    if tokens is not None:
+        invocation["tokens"] = tokens
+        state["known_total_tokens"] = int(state.get("known_total_tokens", 0)) + tokens
+        if invocation.get("kind") in {"normal", "repair"}:
+            state["known_implementor_tokens"] = int(state.get("known_implementor_tokens", 0)) + tokens
+    state.setdefault("invocations", []).append(invocation)
+    kind = invocation.get("kind", "unknown")
+    state["active"] = False
+    state["active_invocation"] = None
+    state["count"] = 0
+    state["status"] = f"{kind}_completed"
+    limits = state.get("limits", {})
+    if state.get("known_implementor_tokens", 0) >= limits.get("max_implementor_tokens", 45000):
+        state["stop_reason"] = "implementor_token_hard_stop"
+        state["status"] = "blocked"
+    if state.get("known_total_tokens", 0) >= limits.get("max_total_tokens", 60000):
+        state["stop_reason"] = "absolute_commit_token_stop"
+        state["status"] = "blocked"
+    return state
 
 
 def main() -> int:
     try:
-        cap_file = git_root() / "hooks" / "tool_cap.json"
+        state_path = git_root() / "hooks" / "tool_cap.json"
     except Exception:
         return 0
-
-    cap = {
-        "active": False,
-        "agent": None,
-        "count": 0,
-        "limit": 25,
-    }
-
-    try:
-        cap_file.write_text(json.dumps(cap, indent=2), encoding="utf-8")
-    except Exception:
-        pass  # fail open
-
+    state = load_state(state_path)
+    if state is None:
+        sys.stderr.write("CIRCUIT BREAKER: commit state is missing or corrupt.\n")
+        return 2
+    event = read_stdin()
+    close_invocation(state, extract_tokens(event))
+    write_state(state_path, state)
     return 0
 
 

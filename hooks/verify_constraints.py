@@ -25,6 +25,7 @@ from pathlib import Path
 
 from constraint_dashboard import render_dashboard
 from context_metrics import build_metric_record, upsert_metric
+from validate_commit_spec import validate_commit_spec
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -37,8 +38,8 @@ LOGS_DIR = AGENTS_DIR / "logs"
 PHASE_BUDGETS = {
     "reads":   10,
     "writes":  12,
-    "reserve": 3,
-    "total":   25,
+    "reserve": 0,
+    "total":   18,
 }
 
 # ----------------------------------------------
@@ -85,7 +86,14 @@ def git_files_changed(commit_ref: str = "HEAD", worktree: bool = False, root: Pa
 # ----------------------------------------------
 
 def check_context_block(spec_text: str, commit_num: str):
-    if "## context" in spec_text:
+    lowered = spec_text.lower()
+    if "## context" in lowered:
+        if (
+            "initial_context:" in spec_text
+            and "forbidden:" in spec_text
+            and "execution_budget:" in spec_text
+        ):
+            return True, "context block present (initial_context, forbidden, execution_budget)"
         has_tier0     = "tier0:" in spec_text
         has_forbidden = "forbidden:" in spec_text
         has_estimate  = "estimated_reads:" in spec_text
@@ -155,9 +163,15 @@ def check_forbidden_paths(spec_text: str, changed_files: list):
 # Check 3 - Phase budget from worklog
 # ----------------------------------------------
 
-def check_phase_budget(worklog_text: str, commit_num: str):
+def check_phase_budget(worklog_text: str, commit_num: str, agent: str):
+    if agent.lower() == "claude":
+        return True, {"reads": 0, "writes": 0, "total": 0}, "orchestrator bootstrap: no implementor invocation"
+    numeric = re.match(r"\d+", str(commit_num))
+    legacy = bool(numeric and int(numeric.group(0)) <= 28)
     if not worklog_text:
-        return True, None, "WARN: no worklog found - cannot verify phase budget"
+        if legacy:
+            return True, None, "WARN: legacy commit has no worklog budget evidence"
+        return False, None, "missing worklog - implementor budget cannot be verified"
 
     _num_match = re.match(r"(\d+)", commit_num)
     _base = int(_num_match.group(1)) if _num_match else None
@@ -173,7 +187,9 @@ def check_phase_budget(worklog_text: str, commit_num: str):
         section
     )
     if not match:
-        return True, None, "WARN: no 'Tool usage: reads=N, writes=N, total=N' line found in worklog"
+        if legacy:
+            return True, None, "WARN: legacy commit has no structured tool-usage evidence"
+        return False, None, "missing 'Tool usage: reads=N, writes=N, total=N' evidence"
 
     reads, writes, total = int(match.group(1)), int(match.group(2)), int(match.group(3))
     counts = {"reads": reads, "writes": writes, "total": total}
@@ -185,6 +201,88 @@ def check_phase_budget(worklog_text: str, commit_num: str):
     if failures:
         return False, counts, f"phase budget exceeded: {'; '.join(failures)}"
     return True, counts, f"budget ok: reads={reads}/{PHASE_BUDGETS['reads']}, writes={writes}/{PHASE_BUDGETS['writes']}, total={total}/{PHASE_BUDGETS['total']}"
+
+
+def check_spec_validation(commit_num: str, agent: str):
+    numeric = re.match(r"\d+", str(commit_num))
+    if numeric and int(numeric.group(0)) <= 28:
+        return True, "legacy completed commit: new spec schema not required", {
+            "status": "valid",
+            "commit": f"C{int(numeric.group(0)):02d}",
+            "budget": {},
+            "planned_changed_files": [],
+            "legacy": True,
+        }
+    result = validate_commit_spec(REPO_ROOT, commit_num, expected_owner=agent)
+    if result["status"] == "valid":
+        return True, "commit specification is valid", result
+    detail = "; ".join(item["message"] for item in result["violations"])
+    return False, f"commit specification invalid: {detail}", result
+
+
+def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bool, commit_ref: str):
+    if spec_result.get("legacy"):
+        return True, None, "legacy completed commit: actual micro-scope check not applied"
+    planned = set(spec_result.get("planned_changed_files", []))
+    unplanned = sorted(path for path in changed_files if path not in planned)
+    budget = spec_result.get("budget", {})
+    spec_text = load_spec(spec_result["commit"][1:])
+    bootstrap = re.search(
+        r"bootstrap_exception:.*?max_changed_files:\s*(\d+)",
+        spec_text,
+        re.DOTALL,
+    )
+    max_changed = int(bootstrap.group(1)) if bootstrap else int(budget.get("max_changed_files", 4))
+    bootstrap_diff = re.search(
+        r"bootstrap_exception:.*?max_estimated_diff_lines:\s*(\d+)",
+        spec_text,
+        re.DOTALL,
+    )
+    failures = []
+    if len(changed_files) > max_changed:
+        failures.append(f"changed_files={len(changed_files)} exceeds cap of {max_changed}")
+    if unplanned:
+        failures.append("unplanned files: " + ", ".join(unplanned))
+
+    command = ["git", "diff", "--numstat", "HEAD"] if worktree else [
+        "git", "show", "--numstat", "--format=", commit_ref
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, cwd=REPO_ROOT)
+    diff_lines = 0
+    for line in result.stdout.splitlines():
+        cells = line.split("\t")
+        if len(cells) >= 2 and cells[0].isdigit() and cells[1].isdigit():
+            diff_lines += int(cells[0]) + int(cells[1])
+    if worktree:
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            capture_output=True,
+            text=True,
+            cwd=REPO_ROOT,
+        )
+        for relative in untracked.stdout.splitlines():
+            path = REPO_ROOT / relative.strip()
+            try:
+                diff_lines += len(path.read_text(encoding="utf-8").splitlines())
+            except (OSError, UnicodeDecodeError):
+                failures.append(f"cannot count untracked text lines: {relative.strip()}")
+    diff_limit = (
+        int(bootstrap_diff.group(1))
+        if bootstrap_diff
+        else int(budget.get("max_estimated_diff_lines", 350))
+    )
+    if diff_lines > diff_limit:
+        failures.append(f"diff_lines={diff_lines} exceeds cap of {diff_limit}")
+    counts = {
+        "changed_files": len(changed_files),
+        "max_changed_files": max_changed,
+        "diff_lines": diff_lines,
+        "max_diff_lines": diff_limit,
+        "unplanned_files": unplanned,
+    }
+    if failures:
+        return False, counts, "actual scope exceeded: " + "; ".join(failures)
+    return True, counts, f"actual scope ok: files={len(changed_files)}/{max_changed}, diff_lines={diff_lines}/{diff_limit}"
 
 
 # ----------------------------------------------
@@ -208,14 +306,18 @@ def main():
     worklog_text = load_worklog(args.agent)
     changed      = git_files_changed(args.ref, worktree=args.worktree)
 
+    ok0, msg0, spec_result = check_spec_validation(args.commit, args.agent)
     ok1, msg1          = check_context_block(spec_text, args.commit)
     ok2, msg2          = check_forbidden_paths(spec_text, changed)
-    ok3, counts3, msg3 = check_phase_budget(worklog_text, args.commit)
+    ok3, counts3, msg3 = check_phase_budget(worklog_text, args.commit, args.agent)
+    ok4, counts4, msg4 = check_actual_scope(spec_result, changed, args.worktree, args.ref)
 
     results = {
+        "spec_validation": {"pass": ok0, "message": msg0},
         "context_block":   {"pass": ok1, "message": msg1},
         "forbidden_paths": {"pass": ok2, "message": msg2},
         "phase_budget":    {"pass": ok3, "message": msg3, "counts": counts3},
+        "actual_scope":    {"pass": ok4, "message": msg4, "counts": counts4},
     }
 
     all_pass = all(r["pass"] for r in results.values())
@@ -228,11 +330,13 @@ def main():
     else:
         status = lambda ok, msg: ("WARN" if msg and msg.startswith("WARN") else ("PASS" if ok else "FAIL"))
         print(f"\n-- Constraint Verification: C{args.commit.zfill(2)} ({args.agent}) --\n")
+        print(f"  [0] Commit spec      [{status(ok0, msg0)}] {msg0}")
         print(f"  [1] Context block    [{status(ok1, msg1)}] {msg1}")
         print(f"  [2] Forbidden paths  [{status(ok2, msg2)}] {msg2}")
         print(f"  [3] Phase budget     [{status(ok3, msg3)}] {msg3}")
+        print(f"  [4] Actual scope     [{status(ok4, msg4)}] {msg4}")
         if args.tokens:
-            print(f"  [4] Tokens used      {args.tokens:,}")
+            print(f"  [5] Tokens used      {args.tokens:,}")
         print()
         print(f"  RESULT: {'ALL CHECKS PASSED' if all_pass else 'FAILED - ' + ', '.join(k for k,v in results.items() if not v['pass'])}")
         print()

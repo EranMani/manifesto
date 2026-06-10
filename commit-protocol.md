@@ -42,27 +42,38 @@
 | 26 | rag-storage-hardening | rex | ✅ done · 2026-06-10 |
 | 27 | document-ingestion | nova | ✅ done · 2026-06-10 |
 | 28 | document-upload-routes | rex | ✅ done · 2026-06-10 |
-| 29 | rag-policy-pipeline | nova | pending |
-| 30 | policy-chat-routes | rex | pending |
-| 31 | conversation-persistence | rex | pending |
-| 32 | policy-chat-ui | aria | pending |
-| 33 | conversation-sidebar-ui | aria | pending |
-| 34 | citations-ui | aria | pending |
+| 29 | agent-budget-circuit-breaker | claude | pending |
+| 30 | telemetry-per-invocation | claude | pending |
+| 31 | document-upload-status-contract | rex | pending |
+| 32 | database-test-baseline | rex | pending |
+| 33 | ingestion-database-integration | nova | pending |
+| 34 | policy-retrieval-candidates | nova | pending |
+| 35 | policy-rank-fusion | nova | pending |
+| 36 | policy-grounding-context | nova | pending |
+| 37 | policy-stream-citations | nova | pending |
+| 38 | policy-rag-evaluation | nova | pending |
+| 39 | policy-chat-routes | rex | pending |
+| 40 | conversation-persistence | rex | pending |
+| 41 | policy-chat-ui | aria | pending |
+| 42 | conversation-sidebar-ui | aria | pending |
+| 43 | citations-ui | aria | pending |
 
 ---
 
-## Phase 2 — Policy RAG (added via /replan, 2026-06-07)
+## Workflow Redesign And Phase 2 Recovery (approved 2026-06-10)
 
-Added per `manifesto-spec.md` §Phase 2. See `replan_history` in `project-state.json`
-for the trigger record. Architecture review on 2026-06-08 expanded the sequence to
-resolve runtime ownership and storage-contract blockers before implementation.
+Product work is frozen until C29 installs the commit-level circuit breaker. C30 restores
+telemetry trust, C31-C33 restore product/test contracts, and C34-C38 split the former
+RAG pipeline epic into bounded commits. Existing product work resumes at C39.
 
 ```
-C23 → C24 → {C25 ∥ C26} → C27 → {C28 ∥ C29} → C30
-    → {C31 ∥ C32} → C33 → C34
+C29 → C30 → {C31 ∥ C32} → C33 → C34 → C35 → C36 → C37 → C38
+    → C39 → {C40 ∥ C41} → C42 → C43
 ```
 
-C28 cannot run in parallel with C27 because its route calls C27's ingestion contract.
+C31 may run after C29 without waiting for C30. Database and RAG work proceeds
+sequentially from C32 because each step establishes the verification baseline for the
+next.
 
 ---
 
@@ -72,10 +83,10 @@ C28 cannot run in parallel with C27 because its route calls C27's ingestion cont
 Wave A: 02 ∥ 03   — python-skeleton (Rex) and frontend-scaffold (Aria) touch zero shared files
 Wave A2: 25 ∥ 26  — provider adapters (Nova) and additive storage migration (Rex) share
                      only the frozen embedding profile from C24
-Wave B: 28 ∥ 29   — upload routes and retrieval pipeline both depend on C27's frozen
-                     ingestion/storage contract, but do not touch each other's files
-Wave C: 31 ∥ 32   — persistence and the initial chat UI both build against C30's
-                     versioned SSE contract; C33 joins them
+Wave B: 31 ∥ 32   — upload contract correction and database-test baseline touch separate
+                     focused surfaces after the circuit breaker is active
+Wave C: 40 ∥ 41   — persistence and the initial chat UI both build against C39's
+                     versioned SSE contract; C42 joins them
 ```
 
 ---
@@ -101,3 +112,8 @@ Load `commit-specs/commit-XX.md` (active commit only) when executing a step.
 10. New pending work uses the next integer and the pending range is renumbered when needed.
     Letter suffixes (`24a`, `24b`) are reserved for exceptional fixes after later numbered
     commits already exist or are immutable; they are not used for ordinary planning.
+11. Every pending specification must pass `hooks/validate_commit_spec.py` before a
+    delegation package or Commit Preview is produced.
+12. A budget failure is non-waivable. Remaining work becomes a new sequential commit.
+13. An implementor may return `SPLIT_REQUIRED`; Claude drafts the replacement spec and
+    Eran approves it before execution continues.

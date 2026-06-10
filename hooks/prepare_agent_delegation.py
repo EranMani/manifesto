@@ -14,6 +14,8 @@ from codebase_graph import graph_cache_is_stale, write_codebase_graph
 from constraint_dashboard import render_dashboard
 from context_engine import ContextPackageBuilder, load_rules
 from context_telemetry import initialize_telemetry
+from tool_cap_start import initialize_commit_state
+from validate_commit_spec import require_valid_commit_spec
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -143,13 +145,34 @@ def render_brief(
         'Set any array to `null` if you cannot supply path-level detail (e.g. after a context gap).',
         "Claude validates and persists this report before running the verification gate.",
         "",
+        "If the work cannot finish by call 18, also return:",
+        "```json",
+        "{",
+        '  "status": "split_required",',
+        '  "completed_scope": ["atomic behavior completed"],',
+        '  "remaining_scope": ["unfinished behavior"],',
+        '  "reason": "scope_exceeds_budget",',
+        '  "suggested_commit_name": "focused-kebab-name",',
+        '  "suggested_owner": "' + agent + '",',
+        '  "required_files": ["path/to/file.py"],',
+        '  "acceptance_criteria": ["observable result"],',
+        '  "verification_command": "pytest path/to/test.py -q",',
+        f'  "dependencies": ["{commit}"],',
+        '  "tool_calls": 16',
+        "}",
+        "```",
+        "You may propose this split, but you may not edit specs, assign numbers, or continue.",
+        "",
         "## Invocation",
         f"Identity: `{AGENT_FILES.get(agent, 'unknown')}`",
         f"Worklog header: `{WORKLOG_FILES.get(agent, 'unknown')}` (first 50 lines only)",
         f"Commit spec: `{package['spec']}`",
         "",
         "EXECUTION CONSTRAINTS:",
-        "- Total cap: 25 tool uses.",
+        "- One normal implementor invocation for this commit.",
+        "- Total cap: 18 tool uses. Call 19 is mechanically blocked.",
+        "- At call 12, report budget status. By call 16, finish or return SPLIT_REQUIRED.",
+        "- Maximum two context expansions. Expansion 3 is mechanically blocked.",
         "- Initial reads are limited to this brief's selected files.",
         "- Use targeted symbol searches before any additional full-file read.",
         "- No commits. Claude handles staging and commits after Eran's approval.",
@@ -179,6 +202,11 @@ def prepare(
             f"Agent mismatch: project-state expects {expected_agent}, requested {agent}"
         )
 
+    validation = require_valid_commit_spec(
+        repo_root,
+        requested_commit,
+        expected_owner=agent,
+    )
     graph_relative = rules.get("graph", {}).get(
         "cache_path",
         ".context/index/codebase-graph.json",
@@ -188,12 +216,43 @@ def prepare(
     if refreshed:
         write_codebase_graph(repo_root, rules, graph_path)
 
+    live_rules = json.loads(json.dumps(rules))
+    live_budget = live_rules.setdefault("budget", {})
+    live_budget["max_files"] = int(
+        live_budget.get("live_max_files", validation["budget"]["max_context_files"])
+    )
+    live_budget["max_chars_per_file"] = int(
+        live_budget.get("live_max_chars_per_file", 5000)
+    )
+    live_budget["max_total_chars"] = int(
+        live_budget.get(
+            "live_max_total_chars",
+            validation["budget"]["max_context_chars"] + 3000,
+        )
+    )
+    live_budget["reserve_chars"] = int(
+        live_budget.get("live_reserve_chars", 3000)
+    )
     package = ContextPackageBuilder(
         repo_root,
-        rules,
+        live_rules,
         graph_path=graph_path,
         mode="live",
     ).build(commit, agent)
+    budget = package["budget"]
+    required_exclusions = [
+        item
+        for item in package.get("excluded_candidates", [])
+        if item.get("category") in {"primary", "identity", "worklog", "contract", "test"}
+    ]
+    if (
+        budget["selected_files"] > validation["budget"]["max_context_files"]
+        or budget["estimated_selected_chars"] > validation["budget"]["max_context_chars"]
+        or required_exclusions
+    ):
+        raise ValueError(
+            "context package exceeds the validated budget or excludes required candidates"
+        )
     package_path = (
         repo_root / ".context" / "runs" / f"{package['commit']}-{agent}-live.json"
     )
@@ -212,6 +271,18 @@ def prepare(
     )
     brief_path.parent.mkdir(parents=True, exist_ok=True)
     brief_path.write_text(brief, encoding="utf-8")
+    initialize_commit_state(
+        package["commit"],
+        agent,
+        [item["path"] for item in package["files"]],
+        {
+            "max_agent_invocations": validation["budget"]["max_agent_invocations"],
+            "max_tool_calls": validation["budget"]["max_tool_calls"],
+            "max_expansions": validation["budget"]["max_expansions"],
+            "max_implementor_tokens": validation["budget"]["max_implementor_tokens"],
+        },
+        repo_root / "hooks" / "tool_cap.json",
+    )
     initialize_telemetry(package, repo_root)
     render_dashboard(repo_root)
     return package, package_path, brief_path, refreshed

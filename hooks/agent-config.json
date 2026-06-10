@@ -27,6 +27,7 @@
         "ORCHESTRATION.md",
         "AGENTS.md",
         "team-preferences.md",
+        "MULTI_AGENT_WORKFLOW_REDESIGN_ROADMAP.md",
         "commit-specs/",
         ".claude/settings.json",
         ".claude/commands/"
