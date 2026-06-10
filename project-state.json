@@ -94,6 +94,13 @@
       "detail": "CLAUDE.md Step 7b and team-preferences.md both describe '/verify-commit' as a required quality gate. verify_constraints.py checks three things: context block present, no forbidden-path files, tool budget respected. It does NOT check: test results, logic correctness, doc currency, handoff completeness, or whether changes implement the spec. The name and placement in the protocol imply a quality guarantee the tool cannot provide. Either rename it to 'structural-check' and update all references, or document its scope limitations prominently everywhere it is referenced.",
       "priority": "low",
       "opened": "2026-06-09"
+    },
+    {
+      "id": "OI-08",
+      "title": "Host port 5432 conflict blocks DB-touching test/migration runs from the host",
+      "detail": "A native Windows PostgreSQL 18 service (postgresql-x64-18) listens on 0.0.0.0:5432 and intercepts connections meant for the dockerized manifesto-db-1 (also mapped to 5432), so host-side asyncpg/alembic/pytest get InvalidPasswordError against the wrong server. Same issue previously hit C07 (worked around by running migrations inside the Docker container). C26's alembic upgrade/downgrade and pytest run for test_policy_storage.py were skipped for this reason (Eran's call). Fix options: (1) stop/disable postgresql-x64-18, (2) always run DB-touching commands via `docker compose run`/`exec` against the backend container (C07 pattern) — document this as the standard in backend.md, or (3) remap the docker-compose db port. Any future commit with DB-dependent tests (C27 ingestion, C29 RAG pipeline, C31 conversation persistence) will hit this again until resolved.",
+      "priority": "high",
+      "opened": "2026-06-10"
     }
   ],
   "notes": "Architecture review supersedes the original Phase 2 sequence and embedding handoff. Execute C24 next, then parallel C25/C26, C27, parallel C28/C29, C30, parallel C31/C32, C33, and C34. Phase 3 should use graph-aware relational retrieval before considering a separate graph database. See the Phase 2 and Phase 3 design reviews in commit-specs/.",

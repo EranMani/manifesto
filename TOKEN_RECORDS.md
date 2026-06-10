@@ -87,6 +87,8 @@ The delta column is the signal — positive means over budget, negative means un
 | C25 | llm-service-impl (gate) | Sage | haiku | 34,189 | 14 | +19,189 ⚠️ | 1 HIGH finding — raw provider content in exception messages (5 sites). Not a hard block by Sage's own criteria (no CVE/secret/auth bypass). Fixed inline: logger.error() receives raw content, exceptions raise generic messages. 45 tests still pass. PASS WITH COMMENTS |
 | C20 | login-page (gate) | Viktor | haiku | 23,704 | 0 | +8,704 ⚠️ | Batch wave C16–C20; reported 3 BLOCKs — Claude reviewed and dismissed all 3: (1) "needs localStorage hydration" contradicts documented standard (frontend.md: in-memory only), (2) "atob() crash uncaught" factually wrong — call is inside the existing try/catch, (3) "role validation gap" is fail-closed by Viktor's own analysis, not an auth bypass. Recorded as PASS WITH COMMENTS; deferred items logged (no persistence — by design, deriveNameFromEmail edge cases — already D24, stub services return 500 — expected) |
 | C20 | login-page (gate) | Mira | haiku | 17,893 | 0 | +2,893 ⚠️ | Advisory: flagged deriveNameFromEmail producing fragmented names for unusual email formats (e.g. "a.b.c.d@..." → "A B C D"); same concern already captured in D24 (placeholder pending backend name claim) — cross-linked, no new action |
+| C26 | rag-storage-hardening (pass 1) | Rex | sonnet | 53,445 | 25 | -6,555 ✅ | Wrote 0002_rag_storage_hardening.py migration + edited policy.py models (status lifecycle, provenance, idempotency constraint, search_vector+GIN, HNSW index, ready-state trigger). Hit 25-tool cap before tests. Constraints: context ✅ · forbidden ✅ · budget ⚠️ (at cap) |
+| C26 | rag-storage-hardening (pass 2) | Rex | sonnet | 49,142 | 26 | -10,858 ✅ | Continuation: wrote test_policy_storage.py (7 tests covering all acceptance criteria). Alembic upgrade/downgrade + pytest blocked by host port-5432 conflict (native Windows Postgres vs Docker); hit tool cap mid-diagnosis. Constraints: context ✅ · forbidden ✅ · budget ⚠️ (1 over cap) |
 
 ---
 
@@ -122,6 +124,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C22 | 34,661 | 1 (Aria) | none | Aria 42% under target; 12 tool uses; single-file fix to loginApi request format (C21 contract-mismatch fix-commit); tsc clean; gate: PASS |
 | C24 | 37,486 | 1 (Rex) | none | Rex 38% under target; 26 tool uses (1 over cap); config.py + pyproject.toml + uv.lock; all 4 acceptance criteria pass; no gate wave at C24 |
 | C25 | 110,379 | 1 (Nova) | Viktor 25,044 + Sage 34,189 | Nova 15% under target; 26 tool uses (at cap); 3 orchestrator corrections + 5 Sage fixes inline; 45/45 tests pass; gate wave: Viktor PASS (2 false-positive blocks dismissed); Sage PASS (1 HIGH finding fixed inline) |
+| C26 | 102,587 | 2 (Rex) | none | Rex required 2 invocations (51 tool uses combined, both near/at the 25 cap) — schema work was larger than the 3-edit estimate. Migration + model edits reviewed and accepted by orchestrator. Live alembic upgrade/downgrade + pytest deferred — blocked by a host port-5432 conflict between native Windows Postgres and Docker (logged as OI-08); Eran approved skipping live verification for this commit. No gate wave at C26 (next Viktor wave is C30). |
 
 ---
 

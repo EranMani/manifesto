@@ -41,7 +41,8 @@
         "backend/seed.py",
         "backend/pyproject.toml",
         "backend/alembic.ini",
-        "backend/uv.lock"
+        "backend/uv.lock",
+        "backend/tests/"
       ]
     },
     "adam.stockagent@gmail.com": {
@@ -77,7 +78,8 @@
         "backend/app/services/llm.py",
         "backend/app/services/rag_policy.py",
         "backend/app/services/rag_logistics.py",
-        "backend/app/services/ingestion.py"
+        "backend/app/services/ingestion.py",
+        "backend/tests/services/"
       ]
     }
   }

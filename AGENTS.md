@@ -35,7 +35,7 @@ To add an agent: write their identity file to `.claude/agents/[name].md` and add
 ## Domain Boundaries
 
 ### Rex — Backend
-**Owns:** `backend/app/`, `backend/alembic/`, `backend/seed.py`, `backend/pyproject.toml`, `backend/Dockerfile`
+**Owns:** `backend/app/`, `backend/alembic/`, `backend/seed.py`, `backend/pyproject.toml`, `backend/Dockerfile`, `backend/tests/` (except `backend/tests/services/`, Nova's)
 **Does not touch:** `frontend/`, `docker-compose.yml` (Adam's), nginx config
 
 ### Adam — DevOps
@@ -48,7 +48,7 @@ To add an agent: write their identity file to `.claude/agents/[name].md` and add
 **Does not touch:** `backend/` (Rex's)
 
 ### Nova — AI/ML Engineer
-**Owns:** `backend/app/services/llm.py`, `backend/app/services/rag_policy.py`, `backend/app/services/rag_logistics.py`, `backend/app/services/ingestion.py`
+**Owns:** `backend/app/services/llm.py`, `backend/app/services/rag_policy.py`, `backend/app/services/rag_logistics.py`, `backend/app/services/ingestion.py`, `backend/tests/services/`
 **Does not touch:** `backend/app/api/` (Rex's routes), `backend/app/models/` (Rex's models), `backend/alembic/` (Rex's migrations), `frontend/` (Aria's)
 **Note:** If a route needs a new service method or signature change, Nova raises a cross-domain finding to Rex — does not edit route files directly.
 

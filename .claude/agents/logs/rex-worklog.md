@@ -5,9 +5,9 @@
 ---
 
 ## Current State
-*Last updated: Commit 24 (fix) · 2026-06-09*
+*Last updated: Commit 26 · 2026-06-10*
 
-**Last completed:** Commit 24 `llm-runtime-config` ✅ (post-session fix applied by orchestrator)
+**Last completed:** Commit 26 `rag-storage-hardening` ✅ (pending Eran approval/commit)
 **Currently active:** none
 **Blocked by:** none
 **Incoming fix commits:** none
@@ -20,6 +20,8 @@
 - → Aria (C20): Login credentials for frontend testing: `admin@manifesto.local` / `admin123`.
 - → Nova (C25): Settings are fully validated. Read from `app.core.config.settings`. Fields available: OPENAI_API_KEY, OPENAI_CHAT_MODEL (default: "gpt-4o-mini"), OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL (default: "llama3.2"), EMBEDDING_PROVIDER (Literal["ollama","openai"], default: "ollama"), EMBEDDING_MODEL (default: "nomic-embed-text"), EMBEDDING_DIMENSIONS (always 768), LLM_CONNECT_TIMEOUT, LLM_READ_TIMEOUT, LLM_TOTAL_TIMEOUT, LLM_MAX_RETRIES. Direct deps: openai>=1.30.0, httpx>=0.27.0, tiktoken>=0.7.0 — all locked in uv.lock. EMBEDDING_MODEL has no per-provider auto-default: OpenAI deployments must set EMBEDDING_MODEL=text-embedding-3-small explicitly.
 - → Adam (next DevOps config commit): Mirror these non-secret env var names into `.env.example`: OPENAI_CHAT_MODEL, OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, EMBEDDING_PROVIDER, EMBEDDING_MODEL, EMBEDDING_DIMENSIONS, LLM_CONNECT_TIMEOUT, LLM_READ_TIMEOUT, LLM_TOTAL_TIMEOUT, LLM_MAX_RETRIES. Do not expose OPENAI_API_KEY default value.
+- → Nova (C27/C29): `policy_documents`/`policy_chunks` are hardened (C26). Retrieve only `status='ready'` documents matching the active embedding profile (`embedding_provider`, `embedding_model`, `embedding_dimensions`); the persisted `policy_chunks.embedding` column is `VECTOR(768)`. A DB trigger blocks `status='ready'` while any chunk has a null embedding — ingestion must populate all chunk embeddings before flipping the document to `ready`.
+- → Rex (C28/C31): API and persistence schemas built on the hardened policy schema may expose safe status/profile metadata (`status`, `embedding_provider`, `embedding_model`, `chunk_count`, timestamps) but never `embedding`, chunk `content`, or `error_message` internals to external callers.
 
 **Note on C10:** Written directly by Claude (orchestrator) — pre-invocation check confirmed exact file/line/content known. No Rex agent spawned. All test gates passed via live server.
 
@@ -29,8 +31,9 @@
 **Key Interfaces I Own (for teammates):**
 - `backend/app/main.py` — FastAPI app entry point; `GET /` returns `{"status": "ok"}`; routers appended at bottom comment
 - `backend/pyproject.toml` — all backend dependencies; uses `asyncpg` driver per Adam's C01 handoff
-- Folder structure: `app/`, `app/api/`, `app/api/v1/`, `app/core/`, `app/models/`, `app/schemas/`, `app/services/`, `app/dependencies.py`
+- Folder structure: `app/`, `app/api/`, `app/api/v1/`, `app/models/`, `app/schemas/`, `app/services/`, `app/dependencies.py`
 - Virtual environment at `backend/.venv` — created by `uv sync`
+- `backend/app/models/policy.py` (C26) — `PolicyDocument` (status lifecycle pending/processing/ready/failed, sha256+profile idempotency key, provenance fields) and `PolicyChunk` (VECTOR(768) embedding, generated `search_vector` TSVECTOR, unique `(document_id, chunk_index)`, JSONB `metadata_`/`metadata` column). Migration `0002_rag_storage_hardening.py` adds HNSW cosine index + ready-state trigger.
 
 **Archive Reference:**
 No archived sessions yet.
@@ -69,6 +72,7 @@ Your next commit is now: Commit 24 `llm-runtime-config`.
 | 11 | C14: product-routes | ✅ Done | Written directly by Claude; shipment_id FK validated on POST; added_by set from current_user.id; full CRUD (GET list, GET by id, POST, PUT, DELETE); all test gates passed |
 | 12 | C23: pgvector-migration | ✅ Done | Investigated spec'd migration file — entire pgvector/policy schema already present in 0001_initial.py (lines 101-141, dated 2026-06-05); wrote nothing, no commit, recorded as done-by-prior-work per D28 |
 | 13 | C24: llm-runtime-config | ✅ Done | Added validated LLM/embedding settings to config.py; added openai, httpx, tiktoken to pyproject.toml; uv sync succeeded. Post-session fix (orchestrator): EMBEDDING_MODEL changed to Optional[str]=None with provider-aware resolver validator — OpenAI deployments now default to text-embedding-3-small, never silently nomic-embed-text. Added pytest + 17 persistent tests (all pass). |
+| 14 | C26: rag-storage-hardening | ✅ Done | New migration 0002_rag_storage_hardening.py: VECTOR(1536)->VECTOR(768) with fail-loud guard if non-null embeddings exist, HNSW cosine index replacing IVFFlat, generated search_vector TSVECTOR + GIN index, idempotency unique constraint on (sha256, embedding_provider, embedding_model, embedding_dimensions), unique (document_id, chunk_index), trigger blocking status='ready' while any chunk embedding is null. policy.py models updated to match. test_policy_storage.py written covering all 7 acceptance scenarios. Live alembic upgrade/downgrade + pytest run blocked by environment (see Session 14 note) — verification deferred, code reviewed by orchestrator. |
 
 ---
 
@@ -313,3 +317,31 @@ Tool usage: reads=3, writes=1, total=4
 - → Aria (C19): Admin page at `/admin` renders a user list. Backend returns `UserRead` schema — fields: id, name, email, role, is_active, created_at. Routes: `GET /api/v1/admin/users`, `POST /api/v1/admin/users`, `PUT /api/v1/admin/users/{id}`. All require `Authorization: Bearer <admin-token>` header.
 
 Tool usage: reads=6, writes=3, total=9
+
+---
+
+## Session 14 — Commit 26: `rag-storage-hardening`
+*2026-06-10*
+
+**Approach:** Two agent invocations (each hit the 25-tool cap) plus orchestrator follow-up. Phase 1 reads covered backend.md, this worklog header, alembic env.py, 0001_initial.py (excerpt), PHASE-2-RAG-ARCHITECTURE-REVIEW.md, models/policy.py, models/__init__.py, core/database.py, core/config.py, pyproject.toml, conftest.py, test_llm.py, docker-compose.yml. Phase 2 wrote the migration, model edits, and test file.
+
+**Files created:**
+- `backend/alembic/versions/0002_rag_storage_hardening.py` — additive migration: policy_documents gains original_filename/content_type/byte_size/sha256/status (CHECK pending|processing|ready|failed)/embedding_provider/embedding_model/embedding_dimensions/error_message/chunk_count/updated_at + unique (sha256, embedding_provider, embedding_model, embedding_dimensions); policy_chunks gains token_count/page_number/section/metadata JSONB, generated search_vector TSVECTOR + GIN index, unique (document_id, chunk_index); embedding column VECTOR(1536)->VECTOR(768) (fails loudly if non-null embeddings exist), IVFFlat index replaced with HNSW cosine (m=16, ef_construction=64); trigger `policy_document_ready_requires_embeddings` blocks status='ready' while any chunk embedding is null. downgrade() reverses all of the above with a symmetric guard on the vector type change.
+- `backend/tests/models/test_policy_storage.py` (+ `__init__.py`) — covers: duplicate checksum/profile rejected (IntegrityError), duplicate (document_id, chunk_index) rejected, ready-status rejected when a chunk has a null embedding (trigger), ready-status succeeds when all chunks embedded, search_vector full-text query, HNSW index used in EXPLAIN for cosine ORDER BY, invalid status rejected by CHECK constraint.
+
+**Files updated:**
+- `backend/app/models/policy.py` — PolicyDocument and PolicyChunk extended to match the migration; `metadata_` Python attribute mapped to the `metadata` JSONB column (SQLAlchemy reserves `metadata`); `search_vector` mapped via `Computed(..., persisted=True)` (read-only generated column).
+
+**Test gate results — DEFERRED:**
+- `alembic upgrade head` / `downgrade` / pytest run against the dockerized Postgres could not be executed from the host. Root cause (found by orchestrator): the host's port 5432 is double-bound — a native Windows PostgreSQL 18 service (`postgresql-x64-18`) listens on `0.0.0.0:5432` and intercepts host->localhost connections ahead of Docker's forwarder for `manifesto-db-1`, so host-side asyncpg gets `InvalidPasswordError` against the wrong server. This is the same class of issue noted in Session 04 (C07), where the workaround was to run migrations *inside* the Docker container/network instead of from the host. Stopping the native service requires admin rights not available in this session.
+- Eran's decision: skip live verification for C26: code reviewed by orchestrator (migration logic, model mapping, trigger, constraints all checked against the spec and against 0001_initial.py for conflicts) and accepted as the gate. Logged as a new open issue for a future commit to either run backend container tests (C07-style) by default, or resolve the port conflict.
+
+**Decisions made:**
+- `embedding_provider`/`embedding_model`/`embedding_dimensions`/`sha256` left nullable (additive migration over existing rows with no backfill); idempotency unique constraint therefore relies on ingestion (C27) always populating these before insert — documented as a handoff constraint, not enforced at the DB level for legacy NULL rows.
+- Used a `BEFORE INSERT OR UPDATE OF status` trigger rather than a CHECK constraint for the "ready requires non-null chunk embeddings" rule, since CHECK constraints can't reference other rows/tables.
+
+**Handoffs out:**
+- → Nova (C27/C29): retrieve only `status='ready'` documents matching the active embedding profile (`embedding_provider`, `embedding_model`, `embedding_dimensions`); `policy_chunks.embedding` is `VECTOR(768)`. The ready-state trigger requires every chunk embedding to be non-null before a document can be marked `ready`.
+- → Rex (C28/C31): expose only safe status/profile metadata via API/persistence schemas — never `embedding`, chunk `content`, or `error_message`.
+
+Tool usage: reads=18, writes=4, total=51 (combined across two capped invocations, with read overlap)
