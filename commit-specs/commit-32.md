@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - hooks/constraint_dashboard.py
 initial_context:
-  - commit-specs/commit-32.md
   - hooks/constraint_dashboard.py
   - hooks/tests/test_context_telemetry.py
-  - commit-specs/commit-31.md
 forbidden:
   - backend/app/
   - frontend/src/

@@ -46,9 +46,7 @@ execution_budget:
 primary_files:
   - backend/tests/models/test_policy_storage.py
 initial_context:
-  - commit-specs/commit-35.md
   - backend/tests/models/test_policy_storage.py
-  - commit-specs/commit-34.md
 forbidden:
   - frontend/
   - hooks/

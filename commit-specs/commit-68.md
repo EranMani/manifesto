@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - frontend/src/components/chat/StreamingMessage.tsx
 initial_context:
-  - commit-specs/commit-68.md
   - frontend/src/components/chat/StreamingMessage.tsx
   - frontend/src/components/chat/StreamingMessage.test.tsx
-  - commit-specs/commit-67.md
 forbidden:
   - backend/
   - hooks/

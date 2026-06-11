@@ -46,9 +46,7 @@ execution_budget:
 primary_files:
   - scripts/test_backend.ps1
 initial_context:
-  - commit-specs/commit-34.md
   - scripts/test_backend.ps1
-  - commit-specs/commit-32.md
 forbidden:
   - backend/app/
   - frontend/src/

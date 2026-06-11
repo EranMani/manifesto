@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - backend/app/services/conversation.py
 initial_context:
-  - commit-specs/commit-59.md
   - backend/app/services/conversation.py
   - backend/tests/api/test_chat_persistence.py
-  - commit-specs/commit-58.md
 forbidden:
   - frontend/
   - hooks/

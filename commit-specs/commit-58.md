@@ -47,11 +47,9 @@ primary_files:
   - backend/alembic/versions/0004_message_citations.py
   - backend/app/models/message_citation.py
 initial_context:
-  - commit-specs/commit-58.md
   - backend/alembic/versions/0004_message_citations.py
   - backend/app/models/message_citation.py
   - backend/tests/models/test_message_citations.py
-  - commit-specs/commit-57.md
 forbidden:
   - frontend/
   - hooks/

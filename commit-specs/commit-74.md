@@ -47,11 +47,9 @@ primary_files:
   - frontend/src/components/chat/Citations.tsx
   - frontend/src/components/chat/StreamingMessage.tsx
 initial_context:
-  - commit-specs/commit-74.md
   - frontend/src/components/chat/Citations.tsx
   - frontend/src/components/chat/StreamingMessage.tsx
   - frontend/src/components/chat/Citations.test.tsx
-  - commit-specs/commit-73.md
 forbidden:
   - backend/
   - hooks/

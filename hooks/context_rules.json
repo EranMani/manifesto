@@ -142,18 +142,17 @@
         "frontend/src/pages/ChatPolicy.tsx"
       ],
       "include": [
-        "commit-specs/commit-54.md",
         "backend/app/schemas/chat.py"
       ]
     }
   ],
   "budget": {
     "max_files": 14,
-    "max_chars_per_file": 6000,
+    "max_chars_per_file": 3900,
     "max_total_chars": 30000,
     "reserve_chars": 6000,
     "live_max_files": 6,
-    "live_max_chars_per_file": 5000,
+    "live_max_chars_per_file": 3900,
     "live_max_total_chars": 18000,
     "live_reserve_chars": 3000
   }

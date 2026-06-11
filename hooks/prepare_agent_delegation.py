@@ -109,7 +109,12 @@ def render_brief(
     agent = package["agent"]
     commit = package["commit"]
     title = spec.splitlines()[0].lstrip("# ").strip()
-    what = compact_lines(section(spec, "What"), 6)
+    objective = compact_lines(
+        section(spec, "What") or section(spec, "Primary Behavior"),
+        6,
+    )
+    contract = compact_lines(section(spec, "Contract"), 12)
+    discovery = compact_lines(section(spec, "Discovery Notes"), 12)
     done = compact_lines(section(spec, "Done When"), 12)
     handoffs = relevant_handoffs(state, agent)
     primary = [item for item in package["files"] if item["category"] == "primary"]
@@ -124,10 +129,21 @@ def render_brief(
         f"~{package['budget']['estimated_selected_chars']} estimated characters",
         "",
         "## Objective",
-        *what,
+        *(objective or ["- Follow the commit specification's Primary Behavior."]),
+        "",
+        "## Authoritative Contract",
+        *(contract or ["- Follow the commit specification's Contract section."]),
+    ]
+    if discovery:
+        lines.extend([
+            "",
+            "## Authoritative Discovery Notes",
+            *discovery,
+        ])
+    lines.extend([
         "",
         "## Primary Work",
-    ]
+    ])
     for item in primary:
         lines.append(
             f"- `{item['path']}` — {'; '.join(item['reasons'])}; "

@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - backend/app/services/rag_policy.py
 initial_context:
-  - commit-specs/commit-40.md
   - backend/app/services/rag_policy.py
   - backend/tests/services/test_rag_policy.py
-  - commit-specs/commit-39.md
 forbidden:
   - backend/app/api/
   - backend/app/models/

@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - hooks/context_metrics.py
 initial_context:
-  - commit-specs/commit-31.md
   - hooks/context_metrics.py
   - hooks/tests/test_context_telemetry.py
-  - commit-specs/commit-30.md
 forbidden:
   - backend/app/
   - frontend/src/

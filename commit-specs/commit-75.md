@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - frontend/src/pages/ChatPolicy.tsx
 initial_context:
-  - commit-specs/commit-75.md
   - frontend/src/pages/ChatPolicy.tsx
   - frontend/src/pages/ChatPolicy.integration.test.tsx
-  - commit-specs/commit-74.md
 forbidden:
   - backend/
   - hooks/

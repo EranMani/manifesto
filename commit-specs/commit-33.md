@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - backend/app/api/v1/documents.py
 initial_context:
-  - commit-specs/commit-33.md
   - backend/app/api/v1/documents.py
   - backend/tests/api/test_documents.py
-  - commit-specs/commit-28.md
 forbidden:
   - frontend/
   - hooks/

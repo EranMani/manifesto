@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - frontend/src/api/chat.ts
 initial_context:
-  - commit-specs/commit-66.md
   - frontend/src/api/chat.ts
   - frontend/src/api/chat.test.ts
-  - commit-specs/commit-65.md
 forbidden:
   - backend/
   - hooks/

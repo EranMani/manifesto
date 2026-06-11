@@ -46,7 +46,6 @@ execution_budget:
 primary_files:
   - hooks/context_telemetry.py
 initial_context:
-  - commit-specs/commit-30.md
   - hooks/context_telemetry.py
   - hooks/tests/test_telemetry_scopes.py
 forbidden:

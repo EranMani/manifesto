@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - frontend/src/api/conversations.ts
 initial_context:
-  - commit-specs/commit-71.md
   - frontend/src/api/conversations.ts
   - frontend/src/api/conversations.test.ts
-  - commit-specs/commit-70.md
 forbidden:
   - backend/
   - hooks/

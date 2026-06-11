@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - backend/tests/services/fixtures/policy_rag_evaluation.json
 initial_context:
-  - commit-specs/commit-50.md
   - backend/tests/services/fixtures/policy_rag_evaluation.json
   - backend/tests/services/test_rag_policy_evaluation.py
-  - commit-specs/commit-49.md
 forbidden:
   - backend/app/api/
   - backend/app/models/

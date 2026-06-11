@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - frontend/src/components/chat/usePolicyChat.ts
 initial_context:
-  - commit-specs/commit-67.md
   - frontend/src/components/chat/usePolicyChat.ts
   - frontend/src/components/chat/usePolicyChat.test.tsx
-  - commit-specs/commit-66.md
 forbidden:
   - backend/
   - hooks/

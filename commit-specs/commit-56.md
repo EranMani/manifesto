@@ -46,7 +46,6 @@ execution_budget:
 primary_files:
   - backend/app/api/v1/chat.py
 initial_context:
-  - commit-specs/commit-56.md
   - backend/app/api/v1/chat.py
   - backend/tests/api/test_chat_policy.py
   - backend/app/services/rag_policy.py

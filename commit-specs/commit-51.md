@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - backend/tests/services/policy_rag_evaluation.py
 initial_context:
-  - commit-specs/commit-51.md
   - backend/tests/services/policy_rag_evaluation.py
   - backend/tests/services/test_rag_policy_evaluation.py
-  - commit-specs/commit-50.md
 forbidden:
   - backend/app/api/
   - backend/app/models/

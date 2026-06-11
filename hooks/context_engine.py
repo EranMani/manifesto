@@ -484,7 +484,11 @@ class ContextPackageBuilder:
                         f"cross-domain bridge: {bridge.get('name', 'unnamed')}",
                     )
 
-        expansion_anchors = [
+        explicit_change_context = any(
+            path.split(" (", 1)[0] in change_files
+            for path in context["tier0"]
+        )
+        expansion_anchors = [] if explicit_change_context else [
             path for path, item in selected.items()
             if item.category == "primary" and path in self.graph
         ]

@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - scripts/smoke_policy_chat.ps1
 initial_context:
-  - commit-specs/commit-76.md
   - scripts/smoke_policy_chat.ps1
   - SMOKE_TEST_RESULTS.md
-  - commit-specs/commit-75.md
 forbidden:
   - backend/app/
   - frontend/src/

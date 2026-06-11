@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - backend/app/schemas/chat.py
 initial_context:
-  - commit-specs/commit-54.md
   - backend/app/schemas/chat.py
   - backend/tests/api/test_chat_policy.py
-  - commit-specs/commit-53.md
 forbidden:
   - frontend/
   - hooks/

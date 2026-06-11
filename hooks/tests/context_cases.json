@@ -59,8 +59,7 @@
     "required": [
       "frontend/src/api/chat.ts",
       "frontend/src/api/client.ts",
-      "backend/app/schemas/chat.py",
-      "commit-specs/commit-54.md"
+      "backend/app/schemas/chat.py"
     ],
     "irrelevant": [
       "backend/app/models/product.py"

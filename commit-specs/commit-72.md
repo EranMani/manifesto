@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - frontend/src/components/chat/ConversationSidebar.tsx
 initial_context:
-  - commit-specs/commit-72.md
   - frontend/src/components/chat/ConversationSidebar.tsx
   - frontend/src/components/chat/ConversationSidebar.test.tsx
-  - commit-specs/commit-71.md
 forbidden:
   - backend/
   - hooks/

@@ -47,11 +47,9 @@ primary_files:
   - backend/alembic/versions/0003_message_stream_state.py
   - backend/app/models/message.py
 initial_context:
-  - commit-specs/commit-57.md
   - backend/alembic/versions/0003_message_stream_state.py
   - backend/app/models/message.py
   - backend/tests/models/test_message_stream_state.py
-  - commit-specs/commit-56.md
 forbidden:
   - frontend/
   - hooks/

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -71,6 +72,55 @@ tier0:
 """
         parsed = _parse_context_block(spec)
         self.assertEqual(parsed["tier0"], ["legacy.md"])
+
+    def test_explicit_change_context_suppresses_graph_expansion(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "commit-specs").mkdir()
+            (root / "src").mkdir()
+            (root / "src" / "primary.py").write_text(
+                "from src import dependency\n",
+                encoding="utf-8",
+            )
+            (root / "src" / "dependency.py").write_text("VALUE = 1\n", encoding="utf-8")
+            (root / "commit-specs" / "commit-01.md").write_text(
+                """
+# Commit 01 - explicit-context
+
+## Context
+
+```yaml
+initial_context:
+  - src/primary.py
+```
+
+## Files To Modify Or Add
+
+| File | Type | Purpose |
+|---|---|---|
+| `src/primary.py` | edit | Update behavior |
+""".strip(),
+                encoding="utf-8",
+            )
+            rules = {
+                "agents": {"rex": {"structural_by_area": {}}},
+                "graph": {"agent_categories": {}, "max_hubs_per_package": 0},
+                "budget": {
+                    "max_files": 6,
+                    "max_chars_per_file": 3900,
+                    "max_total_chars": 18000,
+                    "reserve_chars": 3000,
+                },
+            }
+            builder = ContextPackageBuilder(root, rules, graph_path=None)
+            builder.graph = {"src/primary.py": {"src/dependency.py"}}
+            builder.reverse = {"src/dependency.py": {"src/primary.py"}}
+
+            package = builder.build("1", "rex")
+
+            selected = {item["path"] for item in package["files"]}
+            self.assertIn("src/primary.py", selected)
+            self.assertNotIn("src/dependency.py", selected)
 
     def test_contract_bridge_and_dependency_expansion(self) -> None:
         package = ContextPackageBuilder(FIXTURE_ROOT, self.rules).build("1", "aria")

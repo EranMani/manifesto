@@ -2,6 +2,10 @@
 
 **Assignee:** Aria
 
+## Primary Behavior
+
+Fixture objective.
+
 ## context
 
 ```
@@ -24,3 +28,7 @@ estimated_reads: 1
 | File | Type | Description |
 |---|---|---|
 | `frontend/src/api/auth.ts` | update | Fix login |
+
+## Contract
+
+Fixture contract.

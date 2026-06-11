@@ -47,11 +47,9 @@ primary_files:
   - frontend/src/components/chat/ProviderSelectModal.tsx
   - frontend/src/pages/ChatPolicy.tsx
 initial_context:
-  - commit-specs/commit-70.md
   - frontend/src/components/chat/ProviderSelectModal.tsx
   - frontend/src/pages/ChatPolicy.tsx
   - frontend/src/pages/ChatPolicy.test.tsx
-  - commit-specs/commit-69.md
 forbidden:
   - backend/
   - hooks/

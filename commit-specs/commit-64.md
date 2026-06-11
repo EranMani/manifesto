@@ -47,11 +47,9 @@ primary_files:
   - backend/app/schemas/conversation.py
   - backend/app/api/v1/chat.py
 initial_context:
-  - commit-specs/commit-64.md
   - backend/app/schemas/conversation.py
   - backend/app/api/v1/chat.py
   - backend/tests/api/test_conversations.py
-  - commit-specs/commit-63.md
 forbidden:
   - frontend/
   - hooks/

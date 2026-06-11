@@ -46,9 +46,7 @@ execution_budget:
 primary_files:
   - backend/tests/services/test_ingestion.py
 initial_context:
-  - commit-specs/commit-37.md
   - backend/tests/services/test_ingestion.py
-  - commit-specs/commit-36.md
 forbidden:
   - backend/app/api/
   - backend/app/models/

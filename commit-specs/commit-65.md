@@ -47,11 +47,9 @@ primary_files:
   - frontend/package.json
   - frontend/vite.config.ts
 initial_context:
-  - commit-specs/commit-65.md
   - frontend/package.json
   - frontend/vite.config.ts
   - frontend/src/test/setup.ts
-  - commit-specs/commit-64.md
 forbidden:
   - backend/
   - hooks/

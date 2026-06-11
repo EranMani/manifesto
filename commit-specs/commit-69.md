@@ -46,10 +46,8 @@ execution_budget:
 primary_files:
   - frontend/src/components/chat/MessageInput.tsx
 initial_context:
-  - commit-specs/commit-69.md
   - frontend/src/components/chat/MessageInput.tsx
   - frontend/src/components/chat/MessageInput.test.tsx
-  - commit-specs/commit-68.md
 forbidden:
   - backend/
   - hooks/
