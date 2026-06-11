@@ -14,8 +14,17 @@ from codebase_graph import graph_cache_is_stale, write_codebase_graph
 from constraint_dashboard import render_dashboard
 from context_engine import ContextPackageBuilder, load_rules
 from context_telemetry import initialize_telemetry
+from preflight_commit import evaluate as preflight_evaluate
 from tool_cap_start import initialize_commit_state
 from validate_commit_spec import require_valid_commit_spec, require_valid_pending_graph
+
+
+class PreflightBlocked(Exception):
+    """Raised when C29A's preflight gate returns a non-proceeding result."""
+
+    def __init__(self, result: dict[str, Any]) -> None:
+        super().__init__(result)
+        self.result = result
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -221,6 +230,10 @@ def prepare(
     agent: str,
     force_refresh: bool = False,
 ) -> tuple[dict[str, Any], Path, Path, bool]:
+    preflight_result = preflight_evaluate(repo_root, commit, agent)
+    if not preflight_result.get("proceed"):
+        raise PreflightBlocked(preflight_result)
+
     state_path = repo_root / "project-state.json"
     state = json.loads(state_path.read_text(encoding="utf-8"))
     expected_commit = str(state.get("next_commit", "")).zfill(2)
@@ -336,13 +349,17 @@ def main() -> int:
     parser.add_argument("--force-refresh", action="store_true")
     args = parser.parse_args()
 
-    package, package_path, brief_path, refreshed = prepare(
-        REPO_ROOT,
-        load_rules(args.rules),
-        args.commit,
-        args.agent,
-        args.force_refresh,
-    )
+    try:
+        package, package_path, brief_path, refreshed = prepare(
+            REPO_ROOT,
+            load_rules(args.rules),
+            args.commit,
+            args.agent,
+            args.force_refresh,
+        )
+    except PreflightBlocked as exc:
+        print(json.dumps(exc.result, indent=2))
+        return 1
     print(f"Delegation brief: {brief_path.relative_to(REPO_ROOT)}")
     print(f"Live package: {package_path.relative_to(REPO_ROOT)}")
     print(f"Graph: {'refreshed' if refreshed else 'cache current'}")

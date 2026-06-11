@@ -5,9 +5,9 @@
 ---
 
 ## Current State
-*Last updated: Commit 29A · 2026-06-11*
+*Last updated: Commit 29B · 2026-06-11*
 
-**Last completed:** Commit 29A `preflight-score-engine`
+**Last completed:** Commit 29B `preflight-delegation-gate` (test repair)
 **Currently active:** none
 **Blocked by:** none
 
@@ -42,6 +42,7 @@ No archived sessions yet.
 | 01 | C01: project-scaffold | ✅ Done | asyncpg driver in DATABASE_URL; sh wrapper for git hook on Windows |
 | 21 | C21: integration-smoke | ✅ Done | Full stack verified live; 16 pass / 1 pass-with-deviation / 4 not-verified / 0 fail; created throwaway manager user to test role-based 403 |
 | 29A | C29A: preflight-score-engine | Done | `hooks/preflight_commit.py`: 8 scoring categories (sum=100) + 4 readiness deductions, persists `.context/preflight/C<ID>.json` |
+| 29B | C29B: preflight-delegation-gate | Done (repair) | `hooks/tests/test_prepare_agent_delegation.py`: mocked `preflight_evaluate`, added 2 new tests for `PreflightBlocked` (9/9 pass) |
 
 ---
 
@@ -130,3 +131,25 @@ Tool usage: reads=7, writes=2, total=25 (self-reported tool_calls=13; total refl
 - This worklog entry + Current State header update
 
 **Did not touch:** `backend/`, `frontend/`, `hooks/prepare_agent_delegation.py` (forbidden paths, per spec). Did not run `git commit` (Claude/Eran handle commits).
+
+---
+
+## Session 29B — Commit 29B: `preflight-delegation-gate` (test repair, 2nd/final invocation)
+*2026-06-11*
+
+**Scope:** Repair invocation. Edited only `hooks/tests/test_prepare_agent_delegation.py`. Production code (`hooks/prepare_agent_delegation.py`, `hooks/preflight_commit.py`) was already complete and correct from the prior invocation — not read or edited.
+
+**Changes:**
+- Added module-level constants `_PASSING_PREFLIGHT` and `_BLOCKED_PREFLIGHT` matching the C29A compact preflight result shape.
+- Added `patch("prepare_agent_delegation.preflight_evaluate", ...)` to all 7 existing `with patch(...)` blocks (including wrapping the previously-unpatched `test_prepare_rejects_state_mismatch`), so `prepare()`'s new first-action preflight gate doesn't block existing tests before their own assertions run.
+- Added `test_blocked_preflight_raises_and_writes_no_artifacts`: asserts `PreflightBlocked` is raised with `.result == _BLOCKED_PREFLIGHT` and no `.context/{delegations,runs,telemetry}` side effects when preflight blocks.
+- Added `test_main_handles_blocked_preflight`: asserts `main()` returns `1` and prints `"proceed": false` / `"blocking_violations"` when `prepare()` raises `PreflightBlocked`.
+
+**Commands run:**
+- `python -m pytest -p no:cacheprovider hooks/tests/test_prepare_agent_delegation.py -q` — 9/9 passed
+
+Tool usage: reads=2, writes=2, total=18 (this repair invocation; first invocation was reads=5, writes=2, total=18 with 2/2 expansions used — combined commit total tool_calls=36 across both invocations per `hooks/tool_cap.json`)
+
+**Outcome:** All 9 tests pass (7 existing + 2 new).
+
+**Did not touch:** `backend/`, `frontend/`, `hooks/preflight_commit.py`, `hooks/prepare_agent_delegation.py`. Did not run `git commit`.

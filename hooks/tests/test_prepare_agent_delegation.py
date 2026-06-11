@@ -16,7 +16,34 @@ FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "context_repo"
 sys.path.insert(0, str(HOOKS_DIR))
 
 from context_engine import load_rules  # noqa: E402
-from prepare_agent_delegation import prepare  # noqa: E402
+from prepare_agent_delegation import PreflightBlocked, main, prepare  # noqa: E402
+
+
+_PASSING_PREFLIGHT: dict = {
+    "commit": "1",
+    "score": 100,
+    "owner": "aria",
+    "goal": "test",
+    "files": [],
+    "blocking_violations": [],
+    "warnings": [],
+    "decision_required": False,
+    "proceed": True,
+    "report_path": ".context/preflight/C1.json",
+}
+
+_BLOCKED_PREFLIGHT: dict = {
+    "commit": "1",
+    "score": 40,
+    "owner": "aria",
+    "goal": "test",
+    "files": [],
+    "blocking_violations": ["context package exceeds max_context_chars"],
+    "warnings": [],
+    "decision_required": True,
+    "proceed": False,
+    "report_path": ".context/preflight/C1.json",
+}
 
 
 class PrepareAgentDelegationTests(unittest.TestCase):
@@ -57,6 +84,9 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             ), patch(
                 "prepare_agent_delegation.require_valid_commit_spec",
                 return_value=self._validation(),
+            ), patch(
+                "prepare_agent_delegation.preflight_evaluate",
+                return_value=_PASSING_PREFLIGHT,
             ):
                 package, package_path, brief_path, refreshed = prepare(
                     root,
@@ -101,6 +131,9 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             ), patch(
                 "prepare_agent_delegation.require_valid_commit_spec",
                 return_value=self._validation(),
+            ), patch(
+                "prepare_agent_delegation.preflight_evaluate",
+                return_value=_PASSING_PREFLIGHT,
             ):
                 _package, _package_path, _brief_path, refreshed_again = prepare(
                     root,
@@ -143,6 +176,9 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             ), patch(
                 "prepare_agent_delegation.require_valid_commit_spec",
                 return_value=self._greenfield_validation(),
+            ), patch(
+                "prepare_agent_delegation.preflight_evaluate",
+                return_value=_PASSING_PREFLIGHT,
             ):
                 prepare(root, self.rules, "1", "aria")
 
@@ -170,6 +206,9 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             ), patch(
                 "prepare_agent_delegation.require_valid_commit_spec",
                 return_value=self._greenfield_validation(),
+            ), patch(
+                "prepare_agent_delegation.preflight_evaluate",
+                return_value=_PASSING_PREFLIGHT,
             ):
                 prepare(root, self.rules, "1", "aria", force_refresh=True)
 
@@ -199,6 +238,9 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             ), patch(
                 "prepare_agent_delegation.require_valid_commit_spec",
                 return_value=self._validation(),
+            ), patch(
+                "prepare_agent_delegation.preflight_evaluate",
+                return_value=_PASSING_PREFLIGHT,
             ):
                 _package, _package_path, brief_path, _refreshed = prepare(
                     root,
@@ -235,6 +277,9 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             ), patch(
                 "prepare_agent_delegation.require_valid_commit_spec",
                 return_value=self._greenfield_validation(),
+            ), patch(
+                "prepare_agent_delegation.preflight_evaluate",
+                return_value=_PASSING_PREFLIGHT,
             ):
                 _package, _package_path, brief_path, _refreshed = prepare(
                     root,
@@ -274,6 +319,9 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             ), patch(
                 "prepare_agent_delegation.require_valid_commit_spec",
                 side_effect=ValueError("commit spec validation failed"),
+            ), patch(
+                "prepare_agent_delegation.preflight_evaluate",
+                return_value=_PASSING_PREFLIGHT,
             ):
                 with self.assertRaisesRegex(ValueError, "validation failed"):
                     prepare(root, self.rules, "1", "aria")
@@ -293,8 +341,12 @@ class PrepareAgentDelegationTests(unittest.TestCase):
                 }),
                 encoding="utf-8",
             )
-            with self.assertRaisesRegex(ValueError, "Commit mismatch"):
-                prepare(root, self.rules, "1", "aria")
+            with patch(
+                "prepare_agent_delegation.preflight_evaluate",
+                return_value=_PASSING_PREFLIGHT,
+            ):
+                with self.assertRaisesRegex(ValueError, "Commit mismatch"):
+                    prepare(root, self.rules, "1", "aria")
 
     def test_rejected_pending_graph_writes_no_delegation_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -311,12 +363,55 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             with patch(
                 "prepare_agent_delegation.require_valid_pending_graph",
                 side_effect=ValueError("pending commit graph validation failed"),
+            ), patch(
+                "prepare_agent_delegation.preflight_evaluate",
+                return_value=_PASSING_PREFLIGHT,
             ):
                 with self.assertRaisesRegex(ValueError, "graph validation failed"):
                     prepare(root, self.rules, "1", "aria")
             self.assertFalse((root / ".context" / "delegations").exists())
             self.assertFalse((root / ".context" / "runs").exists())
             self.assertFalse((root / ".context" / "telemetry").exists())
+
+    def test_blocked_preflight_raises_and_writes_no_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            shutil.copytree(FIXTURE_ROOT, root)
+            (root / "project-state.json").write_text(
+                json.dumps({
+                    "next_commit": "1",
+                    "next_commit_assignee": "aria",
+                    "open_handoffs": [],
+                }),
+                encoding="utf-8",
+            )
+            with patch(
+                "prepare_agent_delegation.preflight_evaluate",
+                return_value=_BLOCKED_PREFLIGHT,
+            ):
+                with self.assertRaises(PreflightBlocked) as cm:
+                    prepare(root, self.rules, "1", "aria")
+            self.assertEqual(cm.exception.result, _BLOCKED_PREFLIGHT)
+            self.assertFalse((root / ".context" / "delegations").exists())
+            self.assertFalse((root / ".context" / "runs").exists())
+            self.assertFalse((root / ".context" / "telemetry").exists())
+
+    def test_main_handles_blocked_preflight(self) -> None:
+        with patch(
+            "prepare_agent_delegation.prepare",
+            side_effect=PreflightBlocked(_BLOCKED_PREFLIGHT),
+        ), patch(
+            "sys.argv",
+            ["prepare_agent_delegation.py", "--commit", "1", "--agent", "aria"],
+        ), patch("builtins.print") as mock_print:
+            result = main()
+
+        self.assertEqual(result, 1)
+        output = "\n".join(
+            " ".join(str(arg) for arg in call.args) for call in mock_print.call_args_list
+        )
+        self.assertIn('"proceed": false', output)
+        self.assertIn('"blocking_violations"', output)
 
 
 if __name__ == "__main__":
