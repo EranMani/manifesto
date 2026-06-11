@@ -45,17 +45,21 @@ bootstrap_exception:
   max_implementor_tokens: 55000
   max_total_tokens: 70000
   max_agent_invocations: 1
+  max_estimated_diff_lines: 1200
 ```
 
 This `bootstrap_exception` is the **greenfield-module budget profile**, authorized by Eran
-for C29A only. It does not change the default 18-call/45,000-token profile used for
-ordinary (non-greenfield) commits. `validate_commit_spec.py` validates these fields
-against the greenfield ceilings and returns the merged effective budget; running
+for C29A only. It does not change the default 18-call/45,000-token/350-diff-line profile
+used for ordinary (non-greenfield) commits. `validate_commit_spec.py` validates these
+fields against the greenfield ceilings and returns the merged effective budget; running
 `prepare_agent_delegation.py` propagates that effective budget into `hooks/tool_cap.json`
 automatically — `limits.max_tool_calls` becomes 28, `limits.max_implementor_tokens` 55000,
 `limits.max_total_tokens` 70000, and `limit` 28 (`limits.max_expansions` and
 `limits.max_agent_invocations` are unchanged). No manual `tool_cap.json` editing is
-required or performed.
+required or performed. `max_estimated_diff_lines: 1200` was added retroactively
+(2026-06-11) after C29A's implementation (a from-scratch scoring engine plus its 13-case
+test suite, ~1080 lines) exceeded the locked 350-line cap; `verify_constraints.py`'s
+actual-scope check reads this override from `validate_commit_spec`'s effective budget.
 
 ### Greenfield Invocation Protocol (C29A only)
 

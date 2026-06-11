@@ -222,6 +222,36 @@ class ValidateCommitSpecTests(unittest.TestCase):
         self.assertEqual(result["budget"]["max_total_tokens"], 70000)
         self.assertEqual(result["budget"]["max_agent_invocations"], 1)
 
+    def test_bootstrap_exception_max_estimated_diff_lines_override(self) -> None:
+        override = (
+            "bootstrap_exception:\n"
+            '  reason: "greenfield-module"\n'
+            "  max_tool_calls: 28\n"
+            "  max_expansions: 2\n"
+            "  max_implementor_tokens: 55000\n"
+            "  max_total_tokens: 70000\n"
+            "  max_agent_invocations: 1\n"
+            "  max_estimated_diff_lines: 1200\n"
+        )
+        root = self.make_repo(valid_spec(budget_override=override))
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertEqual(result["status"], "valid")
+        self.assertEqual(result["budget"]["max_estimated_diff_lines"], 1200)
+
+    def test_bootstrap_exception_diff_lines_ceiling_exceeded_fails(self) -> None:
+        override = (
+            "bootstrap_exception:\n"
+            '  reason: "greenfield-module"\n'
+            "  max_estimated_diff_lines: 1201\n"
+        )
+        root = self.make_repo(valid_spec(budget_override=override))
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertEqual(result["status"], "split_required")
+        self.assertIn(
+            "bootstrap_exception_ceiling",
+            {item["rule"] for item in result["violations"]},
+        )
+
     def test_bootstrap_exception_unrecognized_field_fails(self) -> None:
         override = (
             "bootstrap_exception:\n"

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -490,6 +491,160 @@ class TestWarningsRenderAsWarn(unittest.TestCase):
                          f"budget column must be WARN, got {budget_cell!r}")
         self.assertEqual(cells[7], "PASS",
                          "Overall RESULT must still be PASS when all ok=True")
+
+
+# ---------------------------------------------------------------------------
+# Task 7 — Effective greenfield budget usage (C29A follow-up)
+# ---------------------------------------------------------------------------
+
+class TestEffectiveGreenfieldBudgets(unittest.TestCase):
+    """check_phase_budget and check_actual_scope must read the effective budget
+    (bootstrap_exception overrides merged by validate_commit_spec) instead of
+    the hardcoded normal-commit caps, and hooks/tool_cap.json (runtime
+    telemetry) must never count toward unplanned files or diff lines."""
+
+    @staticmethod
+    def _init_repo(root: Path) -> bool:
+        for cmd in (
+            ["git", "init"],
+            ["git", "config", "user.email", "test@manifesto.test"],
+            ["git", "config", "user.name", "Test"],
+        ):
+            if subprocess.run(cmd, capture_output=True, cwd=root).returncode != 0:
+                return False
+        (root / "README.md").write_text("init", encoding="utf-8")
+        for cmd in (
+            ["git", "add", "README.md"],
+            ["git", "commit", "-m", "init"],
+        ):
+            if subprocess.run(cmd, capture_output=True, cwd=root).returncode != 0:
+                return False
+        return True
+
+    def test_effective_phase_budgets_scales_with_max_tool_calls(self):
+        budgets = verify_constraints._effective_phase_budgets({"budget": {"max_tool_calls": 28}})
+        self.assertEqual(budgets["total"], 28)
+        self.assertEqual(budgets["reads"], 16)
+        self.assertEqual(budgets["writes"], 19)
+
+    def test_effective_phase_budgets_default_unchanged(self):
+        budgets = verify_constraints._effective_phase_budgets({"budget": {"max_tool_calls": 18}})
+        self.assertEqual(budgets, verify_constraints.PHASE_BUDGETS)
+
+    def test_check_phase_budget_passes_within_greenfield_total(self):
+        spec_result = {"budget": {"max_tool_calls": 28}}
+        worklog = "## Session 01 — Commit 29A\n\nTool usage: reads=7, writes=2, total=25\n"
+        ok, counts, msg = verify_constraints.check_phase_budget(worklog, "29A", "adam", spec_result)
+        self.assertTrue(ok, msg)
+        self.assertEqual(counts["total"], 25)
+
+    def test_check_phase_budget_fails_normal_total_cap(self):
+        spec_result = {"budget": {"max_tool_calls": 18}}
+        worklog = "## Session 01 — Commit 30\n\nTool usage: reads=7, writes=2, total=25\n"
+        ok, counts, msg = verify_constraints.check_phase_budget(worklog, "30", "adam", spec_result)
+        self.assertFalse(ok)
+        self.assertIn("total=25 exceeds cap of 18", msg)
+
+    def test_check_phase_budget_letter_suffix_skips_session_index_row(self):
+        spec_result = {"budget": {"max_tool_calls": 28}}
+        worklog = (
+            "## Current State\n\n"
+            "**Currently active:** Commit 29A `preflight-score-engine` — pending approval\n\n"
+            "## Session Index\n\n"
+            "| # | Commit | Status |\n"
+            "|---|---|---|\n"
+            "| 29A | C29A: preflight-score-engine | pending |\n\n"
+            "## Session 29A — Commit 29A: `preflight-score-engine`\n\n"
+            "Tool usage: reads=7, writes=2, total=25\n"
+        )
+        ok, counts, msg = verify_constraints.check_phase_budget(worklog, "29A", "adam", spec_result)
+        self.assertTrue(ok, msg)
+        self.assertEqual(counts["total"], 25)
+
+    def test_check_actual_scope_excludes_tool_cap_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if not self._init_repo(root):
+                self.skipTest("git init/commit failed")
+            (root / "hooks").mkdir()
+            (root / "hooks" / "tool_cap.json").write_text("{}", encoding="utf-8")
+            for cmd in (["git", "add", "."], ["git", "commit", "-m", "add tool_cap"]):
+                subprocess.run(cmd, capture_output=True, cwd=root)
+            (root / "hooks" / "tool_cap.json").write_text(
+                json.dumps({"tool_calls": list(range(50))}), encoding="utf-8"
+            )
+
+            spec_result = {
+                "commit": "C29A",
+                "planned_changed_files": ["hooks/new_module.py"],
+                "budget": {"max_changed_files": 4, "max_estimated_diff_lines": 1200},
+            }
+            with patch.object(verify_constraints, "REPO_ROOT", root):
+                changed = verify_constraints.git_files_changed(worktree=True, root=root)
+                ok, counts, msg = verify_constraints.check_actual_scope(spec_result, changed, True, "HEAD")
+
+            self.assertIn("hooks/tool_cap.json", changed)
+            self.assertTrue(ok, msg)
+            self.assertEqual(counts["unplanned_files"], [])
+            self.assertEqual(counts["diff_lines"], 0)
+
+    def test_check_actual_scope_uses_effective_diff_line_cap(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if not self._init_repo(root):
+                self.skipTest("git init/commit failed")
+            (root / "hooks").mkdir()
+            (root / "hooks" / "new_module.py").write_text(
+                "\n".join(f"# line {i}" for i in range(500)), encoding="utf-8"
+            )
+
+            spec_result = {
+                "commit": "C29A",
+                "planned_changed_files": ["hooks/new_module.py"],
+                "budget": {"max_changed_files": 4, "max_estimated_diff_lines": 1200},
+            }
+            with patch.object(verify_constraints, "REPO_ROOT", root):
+                changed = verify_constraints.git_files_changed(worktree=True, root=root)
+                ok, counts, msg = verify_constraints.check_actual_scope(spec_result, changed, True, "HEAD")
+
+            self.assertTrue(ok, msg)
+            self.assertEqual(counts["diff_lines"], 500)
+            self.assertEqual(counts["max_diff_lines"], 1200)
+
+            # The same diff against the locked default (350) must fail.
+            spec_result_default = dict(spec_result, budget={"max_changed_files": 4})
+            with patch.object(verify_constraints, "REPO_ROOT", root):
+                ok2, counts2, msg2 = verify_constraints.check_actual_scope(
+                    spec_result_default, changed, True, "HEAD"
+                )
+            self.assertFalse(ok2, msg2)
+            self.assertEqual(counts2["max_diff_lines"], 350)
+
+    def test_check_actual_scope_treats_agent_worklog_as_planned(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if not self._init_repo(root):
+                self.skipTest("git init/commit failed")
+            (root / "hooks").mkdir()
+            (root / "hooks" / "new_module.py").write_text("# new module\n", encoding="utf-8")
+            (root / ".claude" / "agents" / "logs").mkdir(parents=True)
+            (root / ".claude" / "agents" / "logs" / "adam-worklog.md").write_text(
+                "# Adam worklog\n", encoding="utf-8"
+            )
+
+            spec_result = {
+                "commit": "C29A",
+                "planned_changed_files": ["hooks/new_module.py"],
+                "budget": {"max_changed_files": 4, "max_estimated_diff_lines": 1200},
+            }
+            with patch.object(verify_constraints, "REPO_ROOT", root):
+                changed = verify_constraints.git_files_changed(worktree=True, root=root)
+                ok, counts, msg = verify_constraints.check_actual_scope(
+                    spec_result, changed, True, "HEAD", "adam"
+                )
+
+            self.assertTrue(ok, msg)
+            self.assertEqual(counts["unplanned_files"], [])
 
 
 if __name__ == "__main__":

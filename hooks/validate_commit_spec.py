@@ -33,7 +33,9 @@ GREENFIELD_BUDGET_CEILINGS = {
     "max_total_tokens": 70000,
     "max_agent_invocations": 1,
     "max_changed_files": LOCKED_BUDGET["max_changed_files"],
-    "max_estimated_diff_lines": LOCKED_BUDGET["max_estimated_diff_lines"],
+    # Raised from the locked 350 to permit a from-scratch module plus its full
+    # test suite (authorized for C29A's greenfield bootstrap exception).
+    "max_estimated_diff_lines": 1200,
 }
 
 BOOTSTRAP_EXCEPTION_FIELDS = {"reason", *GREENFIELD_BUDGET_CEILINGS}

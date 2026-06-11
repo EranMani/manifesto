@@ -42,6 +42,31 @@ PHASE_BUDGETS = {
     "total":   18,
 }
 
+# Files written by the harness itself on every invocation, never part of an
+# implementor's planned scope. Excluded from actual_scope's unplanned-files
+# and diff-line accounting.
+RUNTIME_TELEMETRY_FILES = {"hooks/tool_cap.json"}
+
+
+def _effective_phase_budgets(spec_result: dict) -> dict:
+    """Scale reads/writes/total caps to a spec's effective max_tool_calls.
+
+    A bootstrap_exception (e.g. greenfield budget) raises max_tool_calls in the
+    effective budget returned by validate_commit_spec. reads/writes are scaled
+    by the same ratio as the locked default (10/18 and 12/18) so a wider total
+    cap proportionally widens the read/write sub-caps.
+    """
+    effective_total = int((spec_result.get("budget") or {}).get("max_tool_calls", PHASE_BUDGETS["total"]))
+    if effective_total == PHASE_BUDGETS["total"]:
+        return PHASE_BUDGETS
+    scale = effective_total / PHASE_BUDGETS["total"]
+    return {
+        "reads":  round(PHASE_BUDGETS["reads"] * scale),
+        "writes": round(PHASE_BUDGETS["writes"] * scale),
+        "reserve": PHASE_BUDGETS["reserve"],
+        "total":  effective_total,
+    }
+
 # ----------------------------------------------
 # Helpers
 # ----------------------------------------------
@@ -163,7 +188,7 @@ def check_forbidden_paths(spec_text: str, changed_files: list):
 # Check 3 - Phase budget from worklog
 # ----------------------------------------------
 
-def check_phase_budget(worklog_text: str, commit_num: str, agent: str):
+def check_phase_budget(worklog_text: str, commit_num: str, agent: str, spec_result: dict):
     if agent.lower() == "claude":
         return True, {"reads": 0, "writes": 0, "total": 0}, "orchestrator bootstrap: no implementor invocation"
     numeric = re.match(r"\d+", str(commit_num))
@@ -175,10 +200,22 @@ def check_phase_budget(worklog_text: str, commit_num: str, agent: str):
 
     _num_match = re.match(r"(\d+)", commit_num)
     _base = int(_num_match.group(1)) if _num_match else None
-    _int_alts = rf"Commit {_base}|C{_base:02d}|" if _base is not None else ""
+    # Negative lookahead prevents "C29" or "Commit 29" matching as a prefix of a
+    # letter-suffixed commit like "C29A"/"Commit 29A" (e.g. "Commit 290").
+    _alts = []
+    if _base is not None:
+        _alts.append(rf"Commit {_base}(?![A-Za-z0-9])")
+        _alts.append(rf"C{_base:02d}(?![A-Za-z0-9])")
+    _alts.append(rf"Commit {commit_num}(?![A-Za-z0-9])")
+    _alts.append(rf"C{commit_num}(?![A-Za-z0-9])")
+    _alt_pattern = "|".join(_alts)
+    # Anchor to a "## " session heading containing the commit reference, then
+    # capture through the following lines up to the next "## " heading. This
+    # avoids matching earlier non-heading mentions (Current State summary,
+    # Session Index table rows) that precede the real session entry.
     commit_section = re.search(
-        rf"(?:{_int_alts}C{commit_num}).*?(?=\n## |\Z)",
-        worklog_text, re.DOTALL | re.IGNORECASE
+        rf"^##[ \t].*(?:{_alt_pattern}).*$(?:\n(?!## ).*)*",
+        worklog_text, re.MULTILINE | re.IGNORECASE
     )
     section = commit_section.group(0) if commit_section else worklog_text
 
@@ -193,14 +230,15 @@ def check_phase_budget(worklog_text: str, commit_num: str, agent: str):
 
     reads, writes, total = int(match.group(1)), int(match.group(2)), int(match.group(3))
     counts = {"reads": reads, "writes": writes, "total": total}
+    budgets = _effective_phase_budgets(spec_result)
     failures = []
-    if reads  > PHASE_BUDGETS["reads"]:  failures.append(f"reads={reads} exceeds cap of {PHASE_BUDGETS['reads']}")
-    if writes > PHASE_BUDGETS["writes"]: failures.append(f"writes={writes} exceeds cap of {PHASE_BUDGETS['writes']}")
-    if total  > PHASE_BUDGETS["total"]:  failures.append(f"total={total} exceeds cap of {PHASE_BUDGETS['total']}")
+    if reads  > budgets["reads"]:  failures.append(f"reads={reads} exceeds cap of {budgets['reads']}")
+    if writes > budgets["writes"]: failures.append(f"writes={writes} exceeds cap of {budgets['writes']}")
+    if total  > budgets["total"]:  failures.append(f"total={total} exceeds cap of {budgets['total']}")
 
     if failures:
         return False, counts, f"phase budget exceeded: {'; '.join(failures)}"
-    return True, counts, f"budget ok: reads={reads}/{PHASE_BUDGETS['reads']}, writes={writes}/{PHASE_BUDGETS['writes']}, total={total}/{PHASE_BUDGETS['total']}"
+    return True, counts, f"budget ok: reads={reads}/{budgets['reads']}, writes={writes}/{budgets['writes']}, total={total}/{budgets['total']}"
 
 
 def check_spec_validation(commit_num: str, agent: str):
@@ -220,24 +258,22 @@ def check_spec_validation(commit_num: str, agent: str):
     return False, f"commit specification invalid: {detail}", result
 
 
-def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bool, commit_ref: str):
+def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bool, commit_ref: str, agent: str = ""):
     if spec_result.get("legacy"):
         return True, None, "legacy completed commit: actual micro-scope check not applied"
+    changed_files = [f for f in changed_files if f not in RUNTIME_TELEMETRY_FILES]
     planned = set(spec_result.get("planned_changed_files", []))
+    # The implementor's own worklog update is mandated every commit (CLAUDE.md
+    # Post-Commit File Checklist) and is never listed in a spec's
+    # "Files To Modify Or Add" table - treat it as always-planned, not unplanned.
+    if agent:
+        planned.add(f".claude/agents/logs/{agent}-worklog.md")
     unplanned = sorted(path for path in changed_files if path not in planned)
+    # spec_result["budget"] is the effective budget: validate_commit_spec already
+    # merges any bootstrap_exception overrides for max_changed_files and
+    # max_estimated_diff_lines, so no separate regex parse is needed here.
     budget = spec_result.get("budget", {})
-    spec_text = load_spec(spec_result["commit"][1:])
-    bootstrap = re.search(
-        r"bootstrap_exception:.*?max_changed_files:\s*(\d+)",
-        spec_text,
-        re.DOTALL,
-    )
-    max_changed = int(bootstrap.group(1)) if bootstrap else int(budget.get("max_changed_files", 4))
-    bootstrap_diff = re.search(
-        r"bootstrap_exception:.*?max_estimated_diff_lines:\s*(\d+)",
-        spec_text,
-        re.DOTALL,
-    )
+    max_changed = int(budget.get("max_changed_files", 4))
     failures = []
     if len(changed_files) > max_changed:
         failures.append(f"changed_files={len(changed_files)} exceeds cap of {max_changed}")
@@ -251,7 +287,9 @@ def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bo
     diff_lines = 0
     for line in result.stdout.splitlines():
         cells = line.split("\t")
-        if len(cells) >= 2 and cells[0].isdigit() and cells[1].isdigit():
+        if len(cells) >= 3 and cells[0].isdigit() and cells[1].isdigit():
+            if cells[2] in RUNTIME_TELEMETRY_FILES:
+                continue
             diff_lines += int(cells[0]) + int(cells[1])
     if worktree:
         untracked = subprocess.run(
@@ -261,16 +299,15 @@ def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bo
             cwd=REPO_ROOT,
         )
         for relative in untracked.stdout.splitlines():
-            path = REPO_ROOT / relative.strip()
+            relative = relative.strip()
+            if relative in RUNTIME_TELEMETRY_FILES:
+                continue
+            path = REPO_ROOT / relative
             try:
                 diff_lines += len(path.read_text(encoding="utf-8").splitlines())
             except (OSError, UnicodeDecodeError):
-                failures.append(f"cannot count untracked text lines: {relative.strip()}")
-    diff_limit = (
-        int(bootstrap_diff.group(1))
-        if bootstrap_diff
-        else int(budget.get("max_estimated_diff_lines", 350))
-    )
+                failures.append(f"cannot count untracked text lines: {relative}")
+    diff_limit = int(budget.get("max_estimated_diff_lines", 350))
     if diff_lines > diff_limit:
         failures.append(f"diff_lines={diff_lines} exceeds cap of {diff_limit}")
     counts = {
@@ -309,8 +346,8 @@ def main():
     ok0, msg0, spec_result = check_spec_validation(args.commit, args.agent)
     ok1, msg1          = check_context_block(spec_text, args.commit)
     ok2, msg2          = check_forbidden_paths(spec_text, changed)
-    ok3, counts3, msg3 = check_phase_budget(worklog_text, args.commit, args.agent)
-    ok4, counts4, msg4 = check_actual_scope(spec_result, changed, args.worktree, args.ref)
+    ok3, counts3, msg3 = check_phase_budget(worklog_text, args.commit, args.agent, spec_result)
+    ok4, counts4, msg4 = check_actual_scope(spec_result, changed, args.worktree, args.ref, args.agent)
 
     results = {
         "spec_validation": {"pass": ok0, "message": msg0},
