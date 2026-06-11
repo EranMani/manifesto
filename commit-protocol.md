@@ -43,70 +43,69 @@
 | 27 | document-ingestion | nova | ✅ done · 2026-06-10 |
 | 28 | document-upload-routes | rex | ✅ done · 2026-06-10 |
 | 29 | agent-budget-circuit-breaker | claude | ✅ done · 2026-06-10 |
-| 30 | workflow-hook-ownership | claude | pending |
-| 31 | invocation-record-storage | adam | pending |
-| 32 | telemetry-reconciliation | adam | pending |
-| 33 | telemetry-dashboard-ledger | adam | pending |
-| 34 | upload-duplicate-status | rex | pending |
-| 35 | database-test-container-command | adam | pending |
-| 36 | policy-storage-db-url | rex | pending |
-| 37 | ingestion-pgvector-write-integration | nova | pending |
-| 38 | ingestion-status-transaction-integration | nova | pending |
-| 39 | policy-query-embedding | nova | pending |
-| 40 | policy-vector-candidates | nova | pending |
-| 41 | policy-lexical-candidates | nova | pending |
-| 42 | policy-rank-fusion | nova | pending |
-| 43 | policy-result-diversification | nova | pending |
-| 44 | policy-evidence-threshold | nova | pending |
-| 45 | policy-context-budget | nova | pending |
-| 46 | policy-source-labels | nova | pending |
-| 47 | policy-grounded-prompt | nova | pending |
-| 48 | policy-stream-events | nova | pending |
-| 49 | policy-stream-cancellation | nova | pending |
-| 50 | policy-citation-validation | nova | pending |
-| 51 | policy-evaluation-dataset | nova | pending |
-| 52 | policy-retrieval-metrics | nova | pending |
-| 53 | policy-answer-quality-metrics | nova | pending |
-| 54 | policy-runtime-baselines | nova | pending |
-| 55 | policy-chat-request-schema | rex | pending |
-| 56 | policy-chat-sse-route | rex | pending |
-| 57 | policy-chat-stream-errors | rex | pending |
-| 58 | message-stream-state-schema | rex | pending |
-| 59 | message-citation-schema | rex | pending |
-| 60 | conversation-write-service | rex | pending |
-| 61 | chat-stream-persistence | rex | pending |
-| 62 | chat-idempotent-retry | rex | pending |
-| 63 | conversation-send-concurrency | rex | pending |
-| 64 | conversation-list-api | rex | pending |
-| 65 | conversation-history-api | rex | pending |
-| 66 | frontend-test-baseline | aria | pending |
-| 67 | chat-sse-client | aria | pending |
-| 68 | policy-chat-state | aria | pending |
-| 69 | stream-message-rendering | aria | pending |
-| 70 | message-input-cancel | aria | pending |
-| 71 | provider-selection-ui | aria | pending |
-| 72 | conversation-api-client | aria | pending |
-| 73 | conversation-sidebar-list | aria | pending |
-| 74 | conversation-history-navigation | aria | pending |
-| 75 | citations-ui | aria | pending |
-| 76 | policy-chat-ui-integration | aria | pending |
-| 77 | assembled-policy-chat-smoke | adam | pending |
+| 30 | invocation-record-storage | adam | pending |
+| 31 | telemetry-reconciliation | adam | pending |
+| 32 | telemetry-dashboard-ledger | adam | pending |
+| 33 | upload-duplicate-status | rex | pending |
+| 34 | database-test-container-command | adam | pending |
+| 35 | policy-storage-db-url | rex | pending |
+| 36 | ingestion-pgvector-write-integration | nova | pending |
+| 37 | ingestion-status-transaction-integration | nova | pending |
+| 38 | policy-query-embedding | nova | pending |
+| 39 | policy-vector-candidates | nova | pending |
+| 40 | policy-lexical-candidates | nova | pending |
+| 41 | policy-rank-fusion | nova | pending |
+| 42 | policy-result-diversification | nova | pending |
+| 43 | policy-evidence-threshold | nova | pending |
+| 44 | policy-context-budget | nova | pending |
+| 45 | policy-source-labels | nova | pending |
+| 46 | policy-grounded-prompt | nova | pending |
+| 47 | policy-stream-events | nova | pending |
+| 48 | policy-stream-cancellation | nova | pending |
+| 49 | policy-citation-validation | nova | pending |
+| 50 | policy-evaluation-dataset | nova | pending |
+| 51 | policy-retrieval-metrics | nova | pending |
+| 52 | policy-answer-quality-metrics | nova | pending |
+| 53 | policy-runtime-baselines | nova | pending |
+| 54 | policy-chat-request-schema | rex | pending |
+| 55 | policy-chat-sse-route | rex | pending |
+| 56 | policy-chat-stream-errors | rex | pending |
+| 57 | message-stream-state-schema | rex | pending |
+| 58 | message-citation-schema | rex | pending |
+| 59 | conversation-write-service | rex | pending |
+| 60 | chat-stream-persistence | rex | pending |
+| 61 | chat-idempotent-retry | rex | pending |
+| 62 | conversation-send-concurrency | rex | pending |
+| 63 | conversation-list-api | rex | pending |
+| 64 | conversation-history-api | rex | pending |
+| 65 | frontend-test-baseline | aria | pending |
+| 66 | chat-sse-client | aria | pending |
+| 67 | policy-chat-state | aria | pending |
+| 68 | stream-message-rendering | aria | pending |
+| 69 | message-input-cancel | aria | pending |
+| 70 | provider-selection-ui | aria | pending |
+| 71 | conversation-api-client | aria | pending |
+| 72 | conversation-sidebar-list | aria | pending |
+| 73 | conversation-history-navigation | aria | pending |
+| 74 | citations-ui | aria | pending |
+| 75 | policy-chat-ui-integration | aria | pending |
+| 76 | assembled-policy-chat-smoke | adam | pending |
 
 ---
 
 ## Workflow Redesign And Phase 2 Recovery (revised 2026-06-10)
 
-C29 installed enforcement. C30-C77 apply the approved decomposition guide without
+C29 installed enforcement. C30-C76 apply the approved decomposition guide without
 forcing the remaining work into an artificial endpoint.
 
 | Range | Phase | Primary result |
 |---|---|---|
-| C30-C33 | Workflow trust | Assign hook ownership, then separate invocation storage, reconciliation, and dashboard presentation |
-| C34-C38 | Product/test recovery | Repair upload status and establish container, storage, and ingestion database verification |
-| C39-C54 | Policy RAG | Build query, retrieval, ranking, grounding, streaming, citations, and evaluation as independent behaviors |
-| C55-C65 | Backend chat | Freeze request/stream contracts, then add persistence, idempotency, concurrency, and history APIs |
-| C66-C76 | Frontend chat | Establish tests, then add transport, state, rendering, controls, history, citations, and integration coverage |
-| C77 | Assembled verification | Prove the complete policy-chat path through the running stack |
+| C30-C32 | Workflow trust | Separate invocation storage, reconciliation, and dashboard presentation |
+| C33-C37 | Product/test recovery | Repair upload status and establish container, storage, and ingestion database verification |
+| C38-C53 | Policy RAG | Build query, retrieval, ranking, grounding, streaming, citations, and evaluation as independent behaviors |
+| C54-C64 | Backend chat | Freeze request/stream contracts, then add persistence, idempotency, concurrency, and history APIs |
+| C65-C75 | Frontend chat | Establish tests, then add transport, state, rendering, controls, history, citations, and integration coverage |
+| C76 | Assembled verification | Prove the complete policy-chat path through the running stack |
 
 Every row is a planning candidate only until its `commit-specs/commit-NN.md` file passes
 `hooks/validate_commit_spec.py`.
@@ -133,15 +132,15 @@ only when a coherent capability is ready to test.
 
 | After | Type | Eran can test |
 |---|---|---|
-| C33 | Technical | Open the constraint dashboard and inspect separate invocation records, totals, and contradictions |
-| C38 | Technical | Run document upload and ingestion against the real database, including success and rollback paths |
-| C50 | Technical | Exercise the complete policy RAG service contract through focused service tests |
-| C57 | Technical | Call the authenticated policy SSE endpoint and inspect incremental events and public errors |
-| C65 | Technical | Test durable conversations, retries, concurrency rejection, history, and citations through backend APIs |
-| C71 | Application | Open Policy Chat and visually test provider selection, sending, streaming text, stop, and safe retry |
-| C74 | Application | Open Policy Chat and test conversation sidebar navigation, reload, and browser back/forward |
-| C75 | Application | Ask a policy question and visually inspect live and historical citation rendering |
-| C77 | Application | Run the complete upload -> ask -> stream -> reload -> citations workflow in the assembled application |
+| C32 | Technical | Open the constraint dashboard and inspect separate invocation records, totals, and contradictions |
+| C37 | Technical | Run document upload and ingestion against the real database, including success and rollback paths |
+| C49 | Technical | Exercise the complete policy RAG service contract through focused service tests |
+| C56 | Technical | Call the authenticated policy SSE endpoint and inspect incremental events and public errors |
+| C64 | Technical | Test durable conversations, retries, concurrency rejection, history, and citations through backend APIs |
+| C70 | Application | Open Policy Chat and visually test provider selection, sending, streaming text, stop, and safe retry |
+| C73 | Application | Open Policy Chat and test conversation sidebar navigation, reload, and browser back/forward |
+| C74 | Application | Ask a policy question and visually inspect live and historical citation rendering |
+| C76 | Application | Run the complete upload -> ask -> stream -> reload -> citations workflow in the assembled application |
 
 After a milestone commit passes its gates, Claude tells Eran:
 
@@ -164,7 +163,7 @@ A milestone is based on feature readiness, not elapsed commit count. Claude must
 Wave A: 02 ∥ 03   — python-skeleton (Rex) and frontend-scaffold (Aria) touch zero shared files
 Wave A2: 25 ∥ 26  — provider adapters (Nova) and additive storage migration (Rex) share
                      only the frozen embedding profile from C24
-No C30-C77 parallel group is pre-approved. Parallel execution may be proposed only after
+No C30-C76 parallel group is pre-approved. Parallel execution may be proposed only after
 the exact specs validate, ownership is disjoint, and neither commit consumes the other's
 uncommitted contract.
 ```
@@ -195,7 +194,9 @@ Load `commit-specs/commit-XX.md` (active commit only) when executing a step.
     Letter suffixes (`24a`, `24b`) are reserved for exceptional fixes after later numbered
     commits already exist or are immutable; they are not used for ordinary planning.
 11. Every pending specification must pass `hooks/validate_commit_spec.py` before a
-    delegation package or Commit Preview is produced.
+    delegation package or Commit Preview is produced. After creating or renumbering the
+    pending range, the full graph must also pass
+    `python hooks/validate_commit_spec.py --all-pending --json`.
 12. A budget failure is non-waivable. Remaining work becomes a new sequential commit.
 13. An implementor may return `SPLIT_REQUIRED`; Claude drafts the replacement spec and
     Eran approves it before execution continues.

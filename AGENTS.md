@@ -2,7 +2,7 @@
 
 > Cross-agent protocol and roster. Claude reads this at boot.
 > Updated when agents are added or domain boundaries change.
-> Last updated: 2026-06-10 (Human Summary added to Return Contract)
+> Last updated: 2026-06-11 (Adam assigned permanent workflow-hook ownership)
 
 ---
 
@@ -12,7 +12,7 @@
 |---|---|---|---|
 | Orchestrator | Claude | sonnet | Pure orchestration — no code files |
 | Backend Engineer | Rex | sonnet | `backend/` — all Python application code |
-| DevOps Engineer | Adam | sonnet | `Dockerfile`, `docker-compose*.yml`, `.env*.example`, `scripts/` |
+| DevOps Engineer | Adam | sonnet | Infrastructure plus workflow automation under `hooks/` |
 | Frontend Engineer | Aria | sonnet | `frontend/` — all React/TypeScript |
 | AI/ML Engineer | Nova | sonnet | `backend/app/services/llm.py`, `rag_policy.py`, `rag_logistics.py`, `ingestion.py` |
 | Code Reviewer | Viktor | haiku | Cross-domain review — reads any file, touches none |
@@ -39,9 +39,12 @@ To add an agent: write their identity file to `.claude/agents/[name].md` and add
 **Does not touch:** `frontend/`, `docker-compose.yml` (Adam's), nginx config
 
 ### Adam — DevOps
-**Owns:** `docker-compose.yml`, `docker-compose.prod.yml`, `.env.example`, `backend/Dockerfile`, `scripts/`
+**Owns:** `docker-compose.yml`, `docker-compose.prod.yml`, `.env.example`,
+`backend/Dockerfile`, `scripts/`, `hooks/`, and `hooks/tests/`
 **Does not touch:** `backend/app/` (Rex's), `frontend/` (Aria's)
 **Note:** Dockerfile is co-owned — Adam writes it in C01, Rex may add deps via `pyproject.toml` changes. Conflicts route through Claude.
+**Workflow note:** Claude owns orchestration decisions and protocol approval. Adam
+implements and tests workflow automation only from an approved commit specification.
 
 ### Aria — Frontend
 **Owns:** `frontend/src/`, `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tailwind.config.ts`, `frontend/tsconfig.json`, `frontend/index.html`

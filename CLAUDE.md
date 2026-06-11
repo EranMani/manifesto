@@ -131,8 +131,9 @@ You do **not** load files from other agents' domains unless this step explicitly
 
 1. Read state, identify active commit, check blockers
 2. Verify prerequisite handoffs are in place
-3. Run `hooks/validate_commit_spec.py`. If it fails, stop and propose a smaller
-   sequential commit. Only then run `hooks/prepare_agent_delegation.py`.
+3. Run `hooks/validate_commit_spec.py --all-pending --json` after creating or renumbering
+   pending specs. Then validate the active commit and owner. If either fails, stop and
+   propose a smaller sequential commit. Only then run `hooks/prepare_agent_delegation.py`.
 4. **Present Commit Preview to Eran — wait for explicit approval**
 5. Invoke owning agent
 5a. **Parse agent self-report** — extract the telemetry JSON block from the agent's final

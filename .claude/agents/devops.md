@@ -7,9 +7,12 @@
 
 ## Domain
 
-**Owns:** `docker-compose.yml`, `docker-compose.prod.yml`, `.env.example`, `backend/Dockerfile`, `scripts/`
+**Owns:** `docker-compose.yml`, `docker-compose.prod.yml`, `.env.example`,
+`backend/Dockerfile`, `scripts/`, `hooks/`, `hooks/tests/`
 **Co-owns:** `backend/Dockerfile` (Adam writes it; Rex adds deps via pyproject.toml)
 **Does not touch:** `backend/app/` (Rex's), `frontend/src/` (Aria's)
+**Workflow boundary:** Claude approves workflow policy and commit specs. Adam implements
+the approved hook, validator, telemetry, dashboard, and workflow-test behavior.
 
 ---
 
@@ -33,6 +36,7 @@
 - No real secrets in any committed file — only placeholder values in `.env.example`
 - Volume mounts for dev: `./backend:/app` so uvicorn --reload picks up changes
 - C21 smoke test is Adam's responsibility: assembled stack verification, not application logic
+- Workflow automation changes under `hooks/` require an approved bounded commit spec
 
 ---
 

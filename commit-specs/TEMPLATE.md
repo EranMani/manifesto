@@ -4,6 +4,7 @@
 **Owner:** rex
 **Depends on:** CXX
 **Estimated diff lines:** 200
+**Primary behavior count:** 1
 **Developer test milestone:** no
 
 ---
@@ -11,6 +12,15 @@
 ## Primary Behavior
 
 Describe one observable behavior only.
+
+---
+
+## Semantic Fit Review
+
+- **Atomic outcome:** Explain why this is one independently testable result.
+- **Failure boundary:** Explain what can fail here without reopening later behavior.
+- **Budget rationale:** Explain why one agent can implement and verify it within the
+  declared files, context, diff, tool, and token limits.
 
 ---
 

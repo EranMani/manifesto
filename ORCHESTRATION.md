@@ -48,7 +48,9 @@ STEP 2 — Claude reads project-state.json
 └── Checks for open blockers. Blocker exists → surface to Eran and stop.
 
 STEP 3 — Claude validates scope, then builds the live context package
-└── Runs hooks/validate_commit_spec.py for the active commit and owner
+└── After spec generation or renumbering, runs
+    hooks/validate_commit_spec.py --all-pending --json
+    Then runs hooks/validate_commit_spec.py for the active commit and owner
     Validation failure → stop and draft a smaller sequential spec for Eran
     Validation success → run hooks/prepare_agent_delegation.py
     Refreshes the cached graph only when stale

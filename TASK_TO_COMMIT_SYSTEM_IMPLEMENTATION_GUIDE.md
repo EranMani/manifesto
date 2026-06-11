@@ -510,6 +510,7 @@ Use structured data to populate:
 
 - Heading and metadata.
 - Primary Behavior.
+- Semantic Fit Review.
 - Execution Budget.
 - Context.
 - Files To Modify Or Add.
@@ -543,7 +544,7 @@ For every rendered spec:
 1. Write it to an isolated preview workspace.
 2. Run `hooks/validate_commit_spec.py`.
 3. Capture structured JSON output.
-4. Check full-graph consistency.
+4. Run `hooks/validate_commit_spec.py --all-pending --json`.
 5. Compare protocol rows, filenames, headings, owners, dependencies, and state.
 
 Validation output:

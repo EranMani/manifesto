@@ -496,6 +496,17 @@ Create each file from `commit-specs/TEMPLATE.md`.
 
 State one externally observable outcome.
 
+### Semantic Fit Review
+
+Explain:
+
+- Why the outcome is independently testable.
+- Which failure boundary keeps later behavior separate.
+- Why the planned files, context, diff, tests, tools, and tokens credibly fit one
+  invocation.
+
+This review is required even when all numeric limits pass.
+
 ### Execution Budget
 
 Copy the locked values. Never raise them to make a candidate pass.
@@ -587,6 +598,15 @@ For every proposed spec:
 7. Confirm one verification command can prove the behavior.
 8. Present the protocol and specs to Eran.
 9. Continue only after explicit approval.
+
+A complete pending range must also pass:
+
+```powershell
+python hooks/validate_commit_spec.py --all-pending --json
+```
+
+This gate validates every pending spec together, checks dependency references and order,
+and rejects dependency cycles.
 
 A validator pass means the document satisfies machine-checkable structure. It does not
 prove the task is semantically small enough. The planner remains responsible for
@@ -754,6 +774,7 @@ Before presenting a protocol:
 - [ ] Final IDs are sequential integers.
 - [ ] Protocol rows, filenames, headings, and dependencies agree.
 - [ ] Every spec passes `hooks/validate_commit_spec.py`.
+- [ ] The full pending range passes `validate_commit_spec.py --all-pending`.
 - [ ] Human-readable reasons for each split are available.
 - [ ] The plan is marked `awaiting_user` until explicitly approved.
 

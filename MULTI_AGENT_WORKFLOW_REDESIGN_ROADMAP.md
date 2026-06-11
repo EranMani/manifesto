@@ -2,7 +2,8 @@
 
 **Project:** Manifesto
 **Owner:** Eran Mani
-**Status:** C29 completed; pending roadmap re-decomposed as C30-C77 on 2026-06-10
+**Status:** C29 completed; pending roadmap re-decomposed as C30-C76 and planning gates
+strengthened on 2026-06-11
 **Created:** 2026-06-10
 **Evidence window:** Commits C26-C28 and Claude Code Insights through 2026-06-10
 
@@ -146,7 +147,7 @@ the spec names the exact path and explains why generation is unavoidable.
 | Absolute stop | 60,000 total observable commit tokens | Block implementor, repair, and review activity |
 
 The 60,000 total includes implementor, repair, and review usage that the system can
-observe. C31-C32 must improve measurement of orchestrator usage; until then, unknown token
+observe. C30-C31 must improve measurement of orchestrator usage; until then, unknown token
 usage must be displayed as unknown rather than treated as zero.
 
 ---
@@ -286,8 +287,15 @@ pending spec validates against the template.
 - At most four changed files are predicted, after exact generated exceptions.
 - Estimated diff is at most 350 lines.
 - Tests, verification command, prerequisites, and exclusions exist.
+- `Primary behavior count` is exactly one and the behavior section does not declare
+  multiple list outcomes.
+- A Semantic Fit Review explains the atomic outcome, failure boundary, and why the
+  declared scope fits one bounded invocation.
+- Developer milestone metadata is `yes` or `no`; milestone commits contain complete
+  manual test instructions and non-milestones name the next checkpoint.
 - Wildcard file ownership and vague entries such as "related files" are rejected.
 - Dependency references point to existing or planned commits.
+- Full pending validation rejects missing specs, future dependencies, and cycles.
 
 **Output:**
 
@@ -305,6 +313,12 @@ Machine-readable and human-readable results:
     }
   ]
 }
+```
+
+The full pending graph is validated with:
+
+```powershell
+python hooks/validate_commit_spec.py --all-pending --json
 ```
 
 ### 8.3 Agent Hook Circuit Breaker
@@ -424,7 +438,7 @@ breaker so the next oversized commit is stopped rather than merely measured.
 
 **Known regression target:**
 
-C34 must establish:
+C33 must establish:
 
 - New document upload returns HTTP 201.
 - Duplicate identical ready document returns HTTP 200.
@@ -504,7 +518,7 @@ Approved decisions:
 - C29 receives a one-time atomic bootstrap exception.
 - The budget values in Section 5 are locked for the C29 specification.
 - Agents may return `SPLIT_REQUIRED`; Claude drafts the split; Eran approves it.
-- Pending product work will use the sequential C29-C77 roadmap.
+- Pending product work will use the sequential C29-C76 roadmap.
 
 Exit criteria:
 
@@ -542,16 +556,16 @@ Exit criteria:
 
 | Commit | Owner | One primary behavior |
 |---|---|---|
-| C30 `workflow-hook-ownership` | Claude | Assign `hooks/` workflow automation to Adam and align his identity contract |
-| C31 `invocation-record-storage` | Adam | Store each normal, repair, and review invocation as an immutable record |
-| C32 `telemetry-reconciliation` | Adam | Aggregate commit totals and surface contradictions without silently choosing a source |
-| C33 `telemetry-dashboard-ledger` | Adam | Display the invocation ledger, budget state, and contradiction status |
+| C30 `invocation-record-storage` | Adam | Store each normal, repair, and review invocation as an immutable record |
+| C31 `telemetry-reconciliation` | Adam | Aggregate commit totals and surface contradictions without silently choosing a source |
+| C32 `telemetry-dashboard-ledger` | Adam | Display the invocation ledger, budget state, and contradiction status |
 
 Exit criteria:
 
 - C26-C28 can be represented without flattening or overwriting invocations.
 - Contradictory totals are displayed and fail reconciliation checks.
-- `hooks/` has an explicit implementor owner after C29's Claude exception expires.
+- `hooks/` has an explicit Adam-owned implementation boundary after C29's Claude
+  exception expires.
 
 ### Phase 3 - Restore Product And Test Trust
 
@@ -559,11 +573,11 @@ Exit criteria:
 
 | Commit | Owner | One primary behavior |
 |---|---|---|
-| C34 `upload-duplicate-status` | Rex | Return 201 for a new upload and 200 for an identical ready document |
-| C35 `database-test-container-command` | Adam | Provide one reproducible backend test command that resolves the Docker database host |
-| C36 `policy-storage-db-url` | Rex | Make policy-storage tests consume `DATABASE_URL` instead of hardcoded localhost |
-| C37 `ingestion-pgvector-write-integration` | Nova | Prove real document and chunk insertion through pgvector |
-| C38 `ingestion-status-transaction-integration` | Nova | Prove ready/failed transitions and rollback behavior against the database |
+| C33 `upload-duplicate-status` | Rex | Return 201 for a new upload and 200 for an identical ready document |
+| C34 `database-test-container-command` | Adam | Provide one reproducible backend test command that resolves the Docker database host |
+| C35 `policy-storage-db-url` | Rex | Make policy-storage tests consume `DATABASE_URL` instead of hardcoded localhost |
+| C36 `ingestion-pgvector-write-integration` | Nova | Prove real document and chunk insertion through pgvector |
+| C37 `ingestion-status-transaction-integration` | Nova | Prove ready/failed transitions and rollback behavior against the database |
 
 Exit criteria:
 
@@ -577,22 +591,22 @@ Exit criteria:
 
 | Commit | Owner | One primary behavior |
 |---|---|---|
-| C39 `policy-query-embedding` | Nova | Normalize and embed a policy query using the frozen embedding profile |
-| C40 `policy-vector-candidates` | Nova | Fetch profile-filtered vector candidates |
-| C41 `policy-lexical-candidates` | Nova | Fetch lexical candidates with the same policy filters |
-| C42 `policy-rank-fusion` | Nova | Fuse vector and lexical ranks deterministically |
-| C43 `policy-result-diversification` | Nova | Apply document and adjacency diversification to fused results |
-| C44 `policy-evidence-threshold` | Nova | Abstain when retrieved evidence does not meet the minimum threshold |
-| C45 `policy-context-budget` | Nova | Select evidence within a deterministic token budget |
-| C46 `policy-source-labels` | Nova | Assign stable source labels and provenance to selected evidence |
-| C47 `policy-grounded-prompt` | Nova | Construct an injection-resistant prompt from labelled evidence |
-| C48 `policy-stream-events` | Nova | Emit provider-neutral typed generation events |
-| C49 `policy-stream-cancellation` | Nova | Cancel provider work and normalize terminal failure semantics |
-| C50 `policy-citation-validation` | Nova | Accept only citation labels present in the selected evidence |
-| C51 `policy-evaluation-dataset` | Nova | Define the versioned policy evaluation dataset and expected outcomes |
-| C52 `policy-retrieval-metrics` | Nova | Calculate retrieval hit rate and MRR |
-| C53 `policy-answer-quality-metrics` | Nova | Calculate abstention and citation-validity results |
-| C54 `policy-runtime-baselines` | Nova | Record context-size and latency baselines separately from quality metrics |
+| C38 `policy-query-embedding` | Nova | Normalize and embed a policy query using the frozen embedding profile |
+| C39 `policy-vector-candidates` | Nova | Fetch profile-filtered vector candidates |
+| C40 `policy-lexical-candidates` | Nova | Fetch lexical candidates with the same policy filters |
+| C41 `policy-rank-fusion` | Nova | Fuse vector and lexical ranks deterministically |
+| C42 `policy-result-diversification` | Nova | Apply document and adjacency diversification to fused results |
+| C43 `policy-evidence-threshold` | Nova | Abstain when retrieved evidence does not meet the minimum threshold |
+| C44 `policy-context-budget` | Nova | Select evidence within a deterministic token budget |
+| C45 `policy-source-labels` | Nova | Assign stable source labels and provenance to selected evidence |
+| C46 `policy-grounded-prompt` | Nova | Construct an injection-resistant prompt from labelled evidence |
+| C47 `policy-stream-events` | Nova | Emit provider-neutral typed generation events |
+| C48 `policy-stream-cancellation` | Nova | Cancel provider work and normalize terminal failure semantics |
+| C49 `policy-citation-validation` | Nova | Accept only citation labels present in the selected evidence |
+| C50 `policy-evaluation-dataset` | Nova | Define the versioned policy evaluation dataset and expected outcomes |
+| C51 `policy-retrieval-metrics` | Nova | Calculate retrieval hit rate and MRR |
+| C52 `policy-answer-quality-metrics` | Nova | Calculate abstention and citation-validity results |
+| C53 `policy-runtime-baselines` | Nova | Record context-size and latency baselines separately from quality metrics |
 
 Exit criteria:
 
@@ -607,35 +621,35 @@ Exit criteria:
 
 | Commit | Owner | One primary behavior |
 |---|---|---|
-| C55 `policy-chat-request-schema` | Rex | Freeze validated request and typed SSE response schemas |
-| C56 `policy-chat-sse-route` | Rex | Expose authenticated incremental policy streaming |
-| C57 `policy-chat-stream-errors` | Rex | Map pre-stream and mid-stream failures to the frozen public contract |
-| C58 `message-stream-state-schema` | Rex | Persist message idempotency and terminal stream state |
-| C59 `message-citation-schema` | Rex | Persist ordered citation snapshots separately from messages |
-| C60 `conversation-write-service` | Rex | Create owned conversations and persist the initial user message |
-| C61 `chat-stream-persistence` | Rex | Persist assistant completion, cancellation, and failure states |
-| C62 `chat-idempotent-retry` | Rex | Replay a completed client-message retry without another model call |
-| C63 `conversation-send-concurrency` | Rex | Reject overlapping sends for the same conversation predictably |
-| C64 `conversation-list-api` | Rex | Return owner-scoped cursor-paginated policy conversations |
-| C65 `conversation-history-api` | Rex | Return owner-scoped paginated messages with citation snapshots |
+| C54 `policy-chat-request-schema` | Rex | Freeze validated request and typed SSE response schemas |
+| C55 `policy-chat-sse-route` | Rex | Expose authenticated incremental policy streaming |
+| C56 `policy-chat-stream-errors` | Rex | Map pre-stream and mid-stream failures to the frozen public contract |
+| C57 `message-stream-state-schema` | Rex | Persist message idempotency and terminal stream state |
+| C58 `message-citation-schema` | Rex | Persist ordered citation snapshots separately from messages |
+| C59 `conversation-write-service` | Rex | Create owned conversations and persist the initial user message |
+| C60 `chat-stream-persistence` | Rex | Persist assistant completion, cancellation, and failure states |
+| C61 `chat-idempotent-retry` | Rex | Replay a completed client-message retry without another model call |
+| C62 `conversation-send-concurrency` | Rex | Reject overlapping sends for the same conversation predictably |
+| C63 `conversation-list-api` | Rex | Return owner-scoped cursor-paginated policy conversations |
+| C64 `conversation-history-api` | Rex | Return owner-scoped paginated messages with citation snapshots |
 
 ### Phase 6 - Frontend Policy Chat
 
-**Priority:** Normal after C55-C65
+**Priority:** Normal after C54-C64
 
 | Commit | Owner | One primary behavior |
 |---|---|---|
-| C66 `frontend-test-baseline` | Aria | Install and prove the focused frontend component-test command |
-| C67 `chat-sse-client` | Aria | Parse authenticated POST SSE events across arbitrary transport chunks |
-| C68 `policy-chat-state` | Aria | Model typed local chat states and optimistic user messages |
-| C69 `stream-message-rendering` | Aria | Render incremental assistant deltas safely |
-| C70 `message-input-cancel` | Aria | Provide accessible submit, stop, and safe retry controls |
-| C71 `provider-selection-ui` | Aria | Require and lock provider selection for a new conversation |
-| C72 `conversation-api-client` | Aria | Consume typed conversation-list and history contracts |
-| C73 `conversation-sidebar-list` | Aria | Render paginated conversation navigation |
-| C74 `conversation-history-navigation` | Aria | Make URL-selected history race-safe and reloadable |
-| C75 `citations-ui` | Aria | Render completed live and historical citation provenance safely |
-| C76 `policy-chat-ui-integration` | Aria | Prove the complete mocked frontend chat, history, and citations workflow |
+| C65 `frontend-test-baseline` | Aria | Install and prove the focused frontend component-test command |
+| C66 `chat-sse-client` | Aria | Parse authenticated POST SSE events across arbitrary transport chunks |
+| C67 `policy-chat-state` | Aria | Model typed local chat states and optimistic user messages |
+| C68 `stream-message-rendering` | Aria | Render incremental assistant deltas safely |
+| C69 `message-input-cancel` | Aria | Provide accessible submit, stop, and safe retry controls |
+| C70 `provider-selection-ui` | Aria | Require and lock provider selection for a new conversation |
+| C71 `conversation-api-client` | Aria | Consume typed conversation-list and history contracts |
+| C72 `conversation-sidebar-list` | Aria | Render paginated conversation navigation |
+| C73 `conversation-history-navigation` | Aria | Make URL-selected history race-safe and reloadable |
+| C74 `citations-ui` | Aria | Render completed live and historical citation provenance safely |
+| C75 `policy-chat-ui-integration` | Aria | Prove the complete mocked frontend chat, history, and citations workflow |
 
 ### Phase 7 - Assembled Verification
 
@@ -643,7 +657,7 @@ Exit criteria:
 
 | Commit | Owner | One primary behavior |
 |---|---|---|
-| C77 `assembled-policy-chat-smoke` | Adam | Prove upload, ask, stream, reload, and citations through the running stack |
+| C76 `assembled-policy-chat-smoke` | Adam | Prove upload, ask, stream, reload, and citations through the running stack |
 
 Every pending spec must be recreated from `commit-specs/TEMPLATE.md` and validated.
 The sequence may expand again if exact file or test planning cannot retain safety margin.
@@ -655,15 +669,15 @@ coherent checkpoints where Claude must surface a concise testing invitation.
 
 | Milestone | Commit | Readiness |
 |---|---|---|
-| M1 Workflow visibility | C33 | Invocation-ledger dashboard is inspectable |
-| M2 Ingestion database | C38 | Upload and ingestion database behavior is testable |
-| M3 RAG service | C50 | Retrieval, grounding, streaming, and citations are testable as a service |
-| M4 Streaming API | C57 | Authenticated policy SSE is testable through the API |
-| M5 Durable backend | C65 | Persistence, retry, concurrency, and history APIs are testable |
-| M6 Basic visible chat | C71 | Provider selection and live chat controls are testable in the application |
-| M7 Visible history | C74 | Sidebar, reload, and navigation are testable in the application |
-| M8 Visible citations | C75 | Live and historical citations are testable in the application |
-| M9 Complete Phase 2 | C77 | The full assembled policy-chat workflow is testable |
+| M1 Workflow visibility | C32 | Invocation-ledger dashboard is inspectable |
+| M2 Ingestion database | C37 | Upload and ingestion database behavior is testable |
+| M3 RAG service | C49 | Retrieval, grounding, streaming, and citations are testable as a service |
+| M4 Streaming API | C56 | Authenticated policy SSE is testable through the API |
+| M5 Durable backend | C64 | Persistence, retry, concurrency, and history APIs are testable |
+| M6 Basic visible chat | C70 | Provider selection and live chat controls are testable in the application |
+| M7 Visible history | C73 | Sidebar, reload, and navigation are testable in the application |
+| M8 Visible citations | C74 | Live and historical citations are testable in the application |
+| M9 Complete Phase 2 | C76 | The full assembled policy-chat workflow is testable |
 
 Each milestone commit spec must contain exact manual test instructions, expected results,
 and known incomplete behavior. Milestones are readiness-based; no fixed commit interval
@@ -676,16 +690,15 @@ creates one automatically.
 ```mermaid
 flowchart TD
     P0["Phase 0: Approve redesign"] --> C29["C29: Circuit breaker"]
-    C29 --> C30["C30: Hook ownership"]
-    C30 --> WF["C31-C33: Telemetry trust"]
-    WF --> REC["C34-C38: Product and DB recovery"]
-    REC --> RET["C39-C43: Retrieval"]
-    RET --> GRD["C44-C47: Grounding"]
-    GRD --> STR["C48-C50: Streaming and citations"]
-    STR --> EVAL["C51-C54: Evaluation"]
-    EVAL --> API["C55-C65: Backend chat and persistence"]
-    API --> UI["C66-C76: Frontend chat"]
-    UI --> C77["C77: Assembled smoke"]
+    C29 --> WF["C30-C32: Telemetry trust"]
+    WF --> REC["C33-C37: Product and DB recovery"]
+    REC --> RET["C38-C42: Retrieval"]
+    RET --> GRD["C43-C46: Grounding"]
+    GRD --> STR["C47-C49: Streaming and citations"]
+    STR --> EVAL["C50-C53: Evaluation"]
+    EVAL --> API["C54-C64: Backend chat and persistence"]
+    API --> UI["C65-C75: Frontend chat"]
+    UI --> C76["C76: Assembled smoke"]
 ```
 
 No pending parallel group is assumed. Exact validated specs may later propose disjoint
@@ -844,7 +857,7 @@ contradictions.
 | Budget failure policy | Approved: non-waivable |
 | Missing state behavior | Approved: fail closed for continuation |
 | Agent split authority | Approved: proposal only; Claude drafts; Eran approves |
-| Pending roadmap numbering | Revised: C30-C77, with further splitting allowed during exact spec drafting |
+| Pending roadmap numbering | Revised: C30-C76, with further splitting allowed during exact spec drafting |
 | Product freeze | Approved: active through C29 completion |
 
 ---
