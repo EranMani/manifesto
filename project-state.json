@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C29 enforcement is active and C30-C76 are fully specified. C29A (preflight scoring engine) is done. C29B wires it into prepare_agent_delegation.py as a hard gate; C29C adds expandable dashboard visibility for its score and exact Python report. Next: C29B `preflight-delegation-gate`. Before invoking C29B, Claude must manually run `python hooks/preflight_commit.py --commit 29B --agent adam --json` and require score >= 80 with zero blocking_violations (C29A is the last manual-gate exception per commit-protocol.md rule 17).",
+  "tldr": "C29B (preflight-delegation-gate) is done: prepare_agent_delegation.prepare() now hard-gates on preflight_commit.evaluate() before any delegation/telemetry/tool-cap state is created. C29C (dashboard visibility) is NOT yet authorized. Before invoking C29C, OI-12 (tool_cap.json token undercount: recorded 791 vs. authoritative 49,837 subagent_tokens for C29B's repair invocation) must be investigated and a correction proposed to Eran.",
   "phase": 2,
-  "last_completed_commit": "29A",
-  "next_commit": "29B",
-  "next_commit_name": "preflight-delegation-gate",
+  "last_completed_commit": "29B",
+  "next_commit": "29C",
+  "next_commit_name": "preflight-dashboard-details",
   "next_commit_assignee": "adam",
   "status": "phase-2-active",
   "open_handoffs": [
@@ -155,6 +155,14 @@
       "detail": "Same root cause as the fix applied in C28's tests/api/test_documents.py: DB_URL = \"postgresql+asyncpg://manifesto:manifesto@localhost:5432/manifesto\" resolves to the wrong host inside the backend container (should read DATABASE_URL env var, which resolves to db:5432). Currently produces 7 errors when the full suite is run via `docker compose run --rm backend uv run pytest`. Out of scope for C28; apply the same os.environ.get(\"DATABASE_URL\", ...) fix in a future commit.",
       "priority": "medium",
       "opened": "2026-06-10"
+    },
+    {
+      "id": "OI-12",
+      "title": "hooks/tool_cap.json undercounts implementor tokens vs. the Agent tool's <usage> block",
+      "detail": "C29B's repair invocation reported subagent_tokens: 49,837 in the Agent tool's <usage> block, but tool_cap_end.py's extract_tokens() recorded only 791 in known_implementor_tokens/known_total_tokens — a ~63x undercount. Both the per-invocation hard stops (max_implementor_tokens: 45000, max_total_tokens: 60000) and the budget-profile work Eran requested (defining integration/greenfield profiles from telemetry) depend on this number being accurate. Investigate extract_tokens()'s source (likely a stray small 'tokens' field in a tool-call payload, not the Stop-hook's actual usage total) and determine whether enforceable real-time token limits are possible at all from data available to PostToolUse/Stop hooks, or whether token tracking is necessarily post-hoc. Blocks C29C until resolved.",
+      "priority": "high",
+      "opened": "2026-06-11",
+      "deadline": "before C29C invocation"
     }
   ],
   "notes": "The approved task-to-commit decomposition defines C30-C76. C29A (preflight-score-engine) builds and persists deterministic preflight scoring and hard blockers as a standalone script. C29B (preflight-delegation-gate) wires that script into prepare_agent_delegation.py as a hard pre-delegation gate. C29C (preflight-dashboard-details) visualizes each persisted report in the dashboard. C30 and C33 depend on C29C, so every later commit inherits all three prerequisites transitively; runtime delegation also enforces preflight on every commit from C29C onward. C29A is the only full bootstrap exception per commit-protocol.md rule 17 (revised): before invoking C29B, Claude manually runs `python hooks/preflight_commit.py --commit 29B --agent adam --json` and requires score >= 80 with zero blocking_violations; automatic enforcement inside prepare_agent_delegation.py begins after C29B, for C29C onward. C29A's first invocation (2026-06-11) returned SPLIT_REQUIRED after exhausting its 18-call budget on discovery with zero files written; the spec was rewritten to a narrower preflight-score-engine scope and the original combined scope was split into C29A/C29B/C29C (was C29A/C29B). C29A's second invocation (2026-06-11, greenfield budget) completed: hooks/preflight_commit.py (647 lines) + hooks/tests/test_preflight_commit.py (431 lines, 13 tests) committed as 69b3658; verify_constraints all_pass; full hooks suite 120 passed/1 skipped. Adam's token usage for this invocation was lost to context compaction (recorded as '— (lost)' in TOKEN_RECORDS.md).",

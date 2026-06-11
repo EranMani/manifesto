@@ -44,7 +44,7 @@
 | 28 | document-upload-routes | rex | ✅ done · 2026-06-10 |
 | 29 | agent-budget-circuit-breaker | claude | ✅ done · 2026-06-10 |
 | 29A | preflight-score-engine | adam | ✅ done · 2026-06-11 |
-| 29B | preflight-delegation-gate | adam | pending |
+| 29B | preflight-delegation-gate | adam | ✅ done · 2026-06-11 |
 | 29C | preflight-dashboard-details | adam | pending |
 | 30 | invocation-record-storage | adam | pending |
 | 31 | telemetry-reconciliation | adam | pending |
