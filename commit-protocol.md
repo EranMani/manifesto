@@ -43,8 +43,9 @@
 | 27 | document-ingestion | nova | ✅ done · 2026-06-10 |
 | 28 | document-upload-routes | rex | ✅ done · 2026-06-10 |
 | 29 | agent-budget-circuit-breaker | claude | ✅ done · 2026-06-10 |
-| 29A | deterministic-commit-preflight | adam | pending |
-| 29B | preflight-dashboard-details | adam | pending |
+| 29A | preflight-score-engine | adam | pending |
+| 29B | preflight-delegation-gate | adam | pending |
+| 29C | preflight-dashboard-details | adam | pending |
 | 30 | invocation-record-storage | adam | pending |
 | 31 | telemetry-reconciliation | adam | pending |
 | 32 | telemetry-dashboard-ledger | adam | pending |
@@ -97,14 +98,16 @@
 
 ## Workflow Redesign And Phase 2 Recovery (revised 2026-06-10)
 
-C29 installed enforcement. C29A adds a deterministic readiness gate before delegation,
-and C29B exposes its report in the dashboard. C30-C76 apply the approved decomposition
-guide without forcing the remaining work into an artificial endpoint.
+C29 installed enforcement. C29A builds the deterministic readiness scoring engine, C29B
+wires it into `prepare_agent_delegation.py` as a hard gate before delegation, and C29C
+exposes its report in the dashboard. C30-C76 apply the approved decomposition guide
+without forcing the remaining work into an artificial endpoint.
 
 | Range | Phase | Primary result |
 |---|---|---|
-| C29A | Workflow preflight | Score deterministic readiness and block delegation on critical violations |
-| C29B | Preflight visibility | Show confidence and expandable Python diagnostics for each commit |
+| C29A | Workflow preflight | Build, score, and persist the deterministic readiness report |
+| C29B | Workflow preflight | Block delegation on a non-proceeding preflight result |
+| C29C | Preflight visibility | Show confidence and expandable Python diagnostics for each commit |
 | C30-C32 | Workflow trust | Separate invocation storage, reconciliation, and dashboard presentation |
 | C33-C37 | Product/test recovery | Repair upload status and establish container, storage, and ingestion database verification |
 | C38-C53 | Policy RAG | Build query, retrieval, ranking, grounding, streaming, citations, and evaluation as independent behaviors |
@@ -129,6 +132,20 @@ Each pending commit targets:
 
 The sequence may grow again if exact spec drafting reveals a candidate that cannot keep
 this margin.
+
+### Budget Profiles
+
+| Profile | tool calls | implementor tokens | total tokens | expansions | When |
+|---|---|---|---|---|---|
+| Default | 18 | 45,000 | 60,000 | 2 | All commits, unless a greenfield exception is authorized |
+| Greenfield-module | 28 | 55,000 | 70,000 | 2 | Per-commit `bootstrap_exception` override, authorized by Eran, for a commit creating a wholly new module plus its full test suite from scratch with no existing implementation to read or edit |
+
+The greenfield-module profile is opt-in via the spec's `bootstrap_exception` block.
+`validate_commit_spec.py` validates the block's fields against the greenfield ceilings
+and returns the merged effective budget; `prepare_agent_delegation.py` propagates that
+effective budget into `hooks/tool_cap.json` automatically, with no manual editing. It
+does not change the default profile for ordinary commits. First applied to C29A
+(2026-06-11) after a second consecutive zero-code `SPLIT_REQUIRED`.
 
 ### Developer Test Milestones
 
@@ -214,8 +231,12 @@ Load `commit-specs/commit-XX.md` (active commit only) when executing a step.
     deterministic preflight gate. Delegation proceeds only when readiness is at least
     80 and no blocking violation exists. Detailed diagnostics remain on disk; Claude
     reads them only when the gate blocks or a warning requires developer attention.
-17. C29A is the one bootstrap exception because the gate does not exist before its own
-    implementation. C29B and every later implementor delegation must pass preflight.
+17. C29A is the only full bootstrap exception, because the preflight script does not
+    exist before its own implementation. Before invoking C29B, Claude manually runs
+    `python hooks/preflight_commit.py --commit 29B --agent adam --json` and confirms
+    `score >= 80` with zero `blocking_violations`; C29B does not proceed otherwise.
+    Automatic preflight enforcement inside `prepare_agent_delegation.py` begins after
+    C29B is committed, applying to C29C and every later implementor delegation.
     Dashboard rendering is observational and never overrides the Python gate result.
 18. A passing preflight produces a compact approval card containing score/status,
     `Owner: Name (Domain)`, one-sentence goal, every planned file with its action, exact

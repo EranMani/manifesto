@@ -35,6 +35,7 @@ class PrepareAgentDelegationTests(unittest.TestCase):
                 "max_tool_calls": 18,
                 "max_expansions": 2,
                 "max_implementor_tokens": 45000,
+                "max_total_tokens": 60000,
             },
         }
 
@@ -108,6 +109,152 @@ class PrepareAgentDelegationTests(unittest.TestCase):
                     "aria",
                 )
             self.assertFalse(refreshed_again)
+
+    @staticmethod
+    def _greenfield_validation() -> dict:
+        return {
+            "status": "valid",
+            "budget": {
+                "max_context_files": 6,
+                "max_context_chars": 15000,
+                "max_agent_invocations": 1,
+                "max_tool_calls": 28,
+                "max_expansions": 2,
+                "max_implementor_tokens": 55000,
+                "max_total_tokens": 70000,
+            },
+        }
+
+    def test_prepare_propagates_greenfield_budget_without_manual_edit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            shutil.copytree(FIXTURE_ROOT, root)
+            (root / "project-state.json").write_text(
+                json.dumps({
+                    "next_commit": "1",
+                    "next_commit_assignee": "aria",
+                    "open_handoffs": [],
+                }),
+                encoding="utf-8",
+            )
+            with patch(
+                "prepare_agent_delegation.require_valid_pending_graph",
+                return_value={"status": "valid"},
+            ), patch(
+                "prepare_agent_delegation.require_valid_commit_spec",
+                return_value=self._greenfield_validation(),
+            ):
+                prepare(root, self.rules, "1", "aria")
+
+            tool_cap = json.loads(
+                (root / "hooks" / "tool_cap.json").read_text(encoding="utf-8")
+            )
+            expected_limits = {
+                "max_context_files": 6,
+                "max_context_chars": 15000,
+                "max_agent_invocations": 1,
+                "max_tool_calls": 28,
+                "max_expansions": 2,
+                "max_implementor_tokens": 55000,
+                "max_total_tokens": 70000,
+            }
+            for key, value in expected_limits.items():
+                if key in tool_cap["limits"]:
+                    self.assertEqual(tool_cap["limits"][key], value)
+            self.assertEqual(tool_cap["limit"], 28)
+
+            # Regeneration must preserve the same effective budget without manual edits.
+            with patch(
+                "prepare_agent_delegation.require_valid_pending_graph",
+                return_value={"status": "valid"},
+            ), patch(
+                "prepare_agent_delegation.require_valid_commit_spec",
+                return_value=self._greenfield_validation(),
+            ):
+                prepare(root, self.rules, "1", "aria", force_refresh=True)
+
+            tool_cap_again = json.loads(
+                (root / "hooks" / "tool_cap.json").read_text(encoding="utf-8")
+            )
+            for key, value in expected_limits.items():
+                if key in tool_cap_again["limits"]:
+                    self.assertEqual(tool_cap_again["limits"][key], value)
+            self.assertEqual(tool_cap_again["limit"], 28)
+
+    def test_brief_execution_constraints_match_default_budget(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            shutil.copytree(FIXTURE_ROOT, root)
+            (root / "project-state.json").write_text(
+                json.dumps({
+                    "next_commit": "1",
+                    "next_commit_assignee": "aria",
+                    "open_handoffs": [],
+                }),
+                encoding="utf-8",
+            )
+            with patch(
+                "prepare_agent_delegation.require_valid_pending_graph",
+                return_value={"status": "valid"},
+            ), patch(
+                "prepare_agent_delegation.require_valid_commit_spec",
+                return_value=self._validation(),
+            ):
+                _package, _package_path, brief_path, _refreshed = prepare(
+                    root,
+                    self.rules,
+                    "1",
+                    "aria",
+                )
+            brief = brief_path.read_text(encoding="utf-8")
+            self.assertIn("Total cap: 18 tool uses. Call 19 is mechanically blocked.", brief)
+            self.assertIn(
+                "At call 12, report budget status. By call 16, finish or return SPLIT_REQUIRED.",
+                brief,
+            )
+            self.assertIn("Maximum 2 context expansions. Expansion 3 is mechanically blocked.", brief)
+            self.assertIn("Implementor token budget: 45000. Absolute commit token budget: 60000.", brief)
+            self.assertIn("If the work cannot finish by call 18, also return:", brief)
+            self.assertNotIn("By call 6, implementation must have started", brief)
+
+    def test_brief_execution_constraints_match_greenfield_budget(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            shutil.copytree(FIXTURE_ROOT, root)
+            (root / "project-state.json").write_text(
+                json.dumps({
+                    "next_commit": "1",
+                    "next_commit_assignee": "aria",
+                    "open_handoffs": [],
+                }),
+                encoding="utf-8",
+            )
+            with patch(
+                "prepare_agent_delegation.require_valid_pending_graph",
+                return_value={"status": "valid"},
+            ), patch(
+                "prepare_agent_delegation.require_valid_commit_spec",
+                return_value=self._greenfield_validation(),
+            ):
+                _package, _package_path, brief_path, _refreshed = prepare(
+                    root,
+                    self.rules,
+                    "1",
+                    "aria",
+                )
+            brief = brief_path.read_text(encoding="utf-8")
+            self.assertIn("Total cap: 28 tool uses. Call 29 is mechanically blocked.", brief)
+            self.assertIn(
+                "At call 22, report budget status. By call 26, finish or return SPLIT_REQUIRED.",
+                brief,
+            )
+            self.assertIn("Maximum 2 context expansions. Expansion 3 is mechanically blocked.", brief)
+            self.assertIn("Implementor token budget: 55000. Absolute commit token budget: 70000.", brief)
+            self.assertIn("If the work cannot finish by call 28, also return:", brief)
+            self.assertIn(
+                "By call 6, implementation must have started; otherwise call 6 is blocked.",
+                brief,
+            )
 
     def test_rejected_spec_writes_no_delegation_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

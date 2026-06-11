@@ -27,6 +27,20 @@ class ToolCapTests(unittest.TestCase):
             ["backend/app/service.py", "backend/tests/test_service.py"],
         )
 
+    def greenfield_state(self) -> dict:
+        return initialize_commit_state(
+            "C29A",
+            "adam",
+            ["hooks/preflight_commit.py", "hooks/tests/test_preflight_commit.py"],
+            {
+                "max_agent_invocations": 1,
+                "max_tool_calls": 28,
+                "max_expansions": 2,
+                "max_implementor_tokens": 55000,
+                "max_total_tokens": 70000,
+            },
+        )
+
     def test_second_normal_invocation_is_blocked(self) -> None:
         state = self.state()
         start_invocation(state, "rex", "normal")
@@ -61,6 +75,74 @@ class ToolCapTests(unittest.TestCase):
                 warnings[call] = warning
         self.assertIn("budget status", warnings[12])
         self.assertIn("SPLIT_REQUIRED", warnings[16])
+
+    def test_greenfield_call_6_blocks_without_write(self) -> None:
+        state = self.greenfield_state()
+        start_invocation(state, "adam", "normal")
+        for _ in range(5):
+            allowed, _warning = enforce_tool_event(state, "Read", {
+                "file_path": "hooks/preflight_commit.py",
+            })
+            self.assertTrue(allowed)
+        allowed, message = enforce_tool_event(state, "Read", {
+            "file_path": "hooks/preflight_commit.py",
+        })
+        self.assertFalse(allowed)
+        self.assertIn("6", message)
+        self.assertIn("implementation must have started", message)
+
+    def test_greenfield_call_6_allowed_after_write(self) -> None:
+        state = self.greenfield_state()
+        start_invocation(state, "adam", "normal")
+        for _ in range(4):
+            allowed, _warning = enforce_tool_event(state, "Read", {
+                "file_path": "hooks/preflight_commit.py",
+            })
+            self.assertTrue(allowed)
+        allowed, _warning = enforce_tool_event(state, "Write", {
+            "file_path": "hooks/preflight_commit.py",
+        })
+        self.assertTrue(allowed)
+        allowed, _warning = enforce_tool_event(state, "Read", {
+            "file_path": "hooks/preflight_commit.py",
+        })
+        self.assertTrue(allowed)
+
+    def test_greenfield_call_22_and_26_warn(self) -> None:
+        state = self.greenfield_state()
+        start_invocation(state, "adam", "normal")
+        warnings = {}
+        allowed, _warning = enforce_tool_event(state, "Write", {
+            "file_path": "hooks/preflight_commit.py",
+        })
+        self.assertTrue(allowed)
+        for call in range(2, 27):
+            allowed, warning = enforce_tool_event(state, "Read", {
+                "file_path": "hooks/preflight_commit.py",
+            })
+            self.assertTrue(allowed)
+            if warning:
+                warnings[call] = warning
+        self.assertIn("budget status", warnings[22])
+        self.assertIn("SPLIT_REQUIRED", warnings[26])
+
+    def test_greenfield_call_29_is_blocked(self) -> None:
+        state = self.greenfield_state()
+        start_invocation(state, "adam", "normal")
+        allowed, _warning = enforce_tool_event(state, "Write", {
+            "file_path": "hooks/preflight_commit.py",
+        })
+        self.assertTrue(allowed)
+        for _ in range(27):
+            allowed, _warning = enforce_tool_event(state, "Read", {
+                "file_path": "hooks/preflight_commit.py",
+            })
+            self.assertTrue(allowed)
+        allowed, message = enforce_tool_event(state, "Read", {
+            "file_path": "hooks/preflight_commit.py",
+        })
+        self.assertFalse(allowed)
+        self.assertIn("29", message)
 
     def test_third_expansion_is_blocked(self) -> None:
         state = self.state()

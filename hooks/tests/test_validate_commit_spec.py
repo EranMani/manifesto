@@ -197,6 +197,60 @@ class ValidateCommitSpecTests(unittest.TestCase):
         self.assertEqual(result["status"], "split_required")
         self.assertIn("max_tool_calls", {item["rule"] for item in result["violations"]})
 
+    def test_default_effective_budget_includes_max_total_tokens(self) -> None:
+        root = self.make_repo(valid_spec())
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertEqual(result["status"], "valid")
+        self.assertEqual(result["budget"]["max_total_tokens"], 60000)
+
+    def test_bootstrap_exception_overrides_effective_budget(self) -> None:
+        override = (
+            "bootstrap_exception:\n"
+            '  reason: "greenfield-module"\n'
+            "  max_tool_calls: 28\n"
+            "  max_expansions: 2\n"
+            "  max_implementor_tokens: 55000\n"
+            "  max_total_tokens: 70000\n"
+            "  max_agent_invocations: 1\n"
+        )
+        root = self.make_repo(valid_spec(budget_override=override))
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertEqual(result["status"], "valid")
+        self.assertEqual(result["budget"]["max_tool_calls"], 28)
+        self.assertEqual(result["budget"]["max_expansions"], 2)
+        self.assertEqual(result["budget"]["max_implementor_tokens"], 55000)
+        self.assertEqual(result["budget"]["max_total_tokens"], 70000)
+        self.assertEqual(result["budget"]["max_agent_invocations"], 1)
+
+    def test_bootstrap_exception_unrecognized_field_fails(self) -> None:
+        override = (
+            "bootstrap_exception:\n"
+            '  reason: "greenfield-module"\n'
+            "  max_tool_calls: 28\n"
+            "  max_funky_field: 5\n"
+        )
+        root = self.make_repo(valid_spec(budget_override=override))
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertEqual(result["status"], "split_required")
+        self.assertIn(
+            "bootstrap_exception_field",
+            {item["rule"] for item in result["violations"]},
+        )
+
+    def test_bootstrap_exception_ceiling_exceeded_fails(self) -> None:
+        override = (
+            "bootstrap_exception:\n"
+            '  reason: "greenfield-module"\n'
+            "  max_tool_calls: 29\n"
+        )
+        root = self.make_repo(valid_spec(budget_override=override))
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertEqual(result["status"], "split_required")
+        self.assertIn(
+            "bootstrap_exception_ceiling",
+            {item["rule"] for item in result["violations"]},
+        )
+
     def test_missing_not_in_commit_fails(self) -> None:
         spec = valid_spec().split("## Not In This Commit", 1)[0]
         root = self.make_repo(spec)

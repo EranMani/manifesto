@@ -71,13 +71,25 @@ def enforce_tool_event(
     invocation = state["active_invocation"]
     next_call = int(invocation.get("tool_calls", 0)) + 1
     limit = int(state.get("limit", 18))
+    limits = state.get("limits", {})
+    greenfield = int(limits.get("max_tool_calls", 18)) > 18
     if next_call > limit:
         state["stop_reason"] = f"tool_call_limit:{limit}"
         state["status"] = "blocked"
         return False, f"tool call {next_call} exceeds the limit of {limit}"
 
+    if (
+        greenfield
+        and next_call == 6
+        and tool_name not in WRITE_TOOLS
+        and not state.get("write_started")
+        and invocation.get("kind") == "normal"
+    ):
+        state["stop_reason"] = "greenfield_implementation_not_started:6"
+        state["status"] = "blocked"
+        return False, "call 6: implementation must have started (greenfield budget)"
+
     if invocation.get("kind") in {"normal", "repair"}:
-        limits = state.get("limits", {})
         if state.get("known_implementor_tokens", 0) >= limits.get("max_implementor_tokens", 45000):
             state["stop_reason"] = "implementor_token_hard_stop"
             state["status"] = "blocked"
@@ -121,9 +133,13 @@ def enforce_tool_event(
     warning = None
     if next_call in {6, 7, 8} and not state.get("write_started") and invocation.get("kind") == "normal":
         warning = f"call {next_call}: implementation has not started; prepare to split"
-    elif next_call == 12:
+    elif greenfield and next_call == 22:
+        warning = "call 22: report budget status and remaining acceptance criteria"
+    elif greenfield and next_call == 26:
+        warning = "call 26: finish or return SPLIT_REQUIRED"
+    elif not greenfield and next_call == 12:
         warning = "call 12: report budget status and remaining acceptance criteria"
-    elif next_call == 16:
+    elif not greenfield and next_call == 16:
         warning = "call 16: finish by call 18 or return SPLIT_REQUIRED"
     elif next_call == limit:
         warning = f"call {next_call}: final allowed tool call"

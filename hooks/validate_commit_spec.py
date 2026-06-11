@@ -24,6 +24,20 @@ LOCKED_BUDGET = {
     "max_implementor_tokens": 45000,
 }
 
+DEFAULT_MAX_TOTAL_TOKENS = 60000
+
+GREENFIELD_BUDGET_CEILINGS = {
+    "max_tool_calls": 28,
+    "max_expansions": 2,
+    "max_implementor_tokens": 55000,
+    "max_total_tokens": 70000,
+    "max_agent_invocations": 1,
+    "max_changed_files": LOCKED_BUDGET["max_changed_files"],
+    "max_estimated_diff_lines": LOCKED_BUDGET["max_estimated_diff_lines"],
+}
+
+BOOTSTRAP_EXCEPTION_FIELDS = {"reason", *GREENFIELD_BUDGET_CEILINGS}
+
 
 def commit_key(value: str | int) -> str:
     raw = str(value).strip().upper()
@@ -90,6 +104,17 @@ def yaml_ints(block: str, name: str) -> dict[str, int]:
     for key, value in re.findall(r"^\s{2,}([a-z_]+):\s*(\d+)\s*$", match.group(1), re.MULTILINE):
         values[key] = int(value)
     return values
+
+
+def yaml_keys(block: str, name: str) -> list[str]:
+    match = re.search(
+        rf"^\s*{re.escape(name)}:\s*$\n(.*?)(?=^\S|\Z)",
+        block,
+        re.MULTILINE | re.DOTALL,
+    )
+    if not match:
+        return []
+    return re.findall(r"^\s{2,}([a-z_]+):", match.group(1), re.MULTILINE)
 
 
 def yaml_list(block: str, name: str) -> list[str]:
@@ -278,6 +303,25 @@ def validate_commit_spec(
             add_violation(violations, name, f"{name} exceeds locked maximum", value, limit)
 
     bootstrap = yaml_ints(section(text, "Execution Budget"), "bootstrap_exception")
+    bootstrap_keys = yaml_keys(section(text, "Execution Budget"), "bootstrap_exception")
+    for bootstrap_key in bootstrap_keys:
+        if bootstrap_key not in BOOTSTRAP_EXCEPTION_FIELDS:
+            add_violation(
+                violations,
+                "bootstrap_exception_field",
+                f"unrecognized bootstrap_exception field: {bootstrap_key}",
+            )
+    for bootstrap_key, ceiling in GREENFIELD_BUDGET_CEILINGS.items():
+        value = bootstrap.get(bootstrap_key)
+        if value is not None and value > ceiling:
+            add_violation(
+                violations,
+                "bootstrap_exception_ceiling",
+                f"bootstrap_exception.{bootstrap_key} exceeds greenfield ceiling",
+                value,
+                ceiling,
+            )
+
     files = changed_file_rows(text)
     file_limit = bootstrap.get("max_changed_files", LOCKED_BUDGET["max_changed_files"])
     if len(files) > file_limit:
@@ -393,12 +437,18 @@ def validate_commit_spec(
             "non-milestone checkpoint must name the next milestone commit",
         )
 
+    effective_budget = dict(budget)
+    effective_budget.setdefault("max_total_tokens", DEFAULT_MAX_TOTAL_TOKENS)
+    for bootstrap_key in GREENFIELD_BUDGET_CEILINGS:
+        if bootstrap_key in bootstrap:
+            effective_budget[bootstrap_key] = bootstrap[bootstrap_key]
+
     status = "valid" if not violations else "split_required"
     return {
         "status": status,
         "commit": key,
         "owner": owner,
-        "budget": budget,
+        "budget": effective_budget,
         "dependencies": dependencies,
         "planned_changed_files": files,
         "violations": violations,

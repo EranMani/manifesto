@@ -60,11 +60,42 @@ def relevant_handoffs(state: dict[str, Any], agent: str) -> list[dict[str, Any]]
     ]
 
 
+def execution_constraints_lines(budget: dict[str, int]) -> list[str]:
+    tool_calls = budget["max_tool_calls"]
+    expansions = budget["max_expansions"]
+    implementor_tokens = budget["max_implementor_tokens"]
+    total_tokens = budget["max_total_tokens"]
+    greenfield = tool_calls > 18
+    first_checkpoint, second_checkpoint = (22, 26) if greenfield else (12, 16)
+    hard_stop = tool_calls + 1
+    expansion_stop = expansions + 1
+    lines = [
+        "EXECUTION CONSTRAINTS:",
+        "- One normal implementor invocation for this commit.",
+        f"- Total cap: {tool_calls} tool uses. Call {hard_stop} is mechanically blocked.",
+    ]
+    if greenfield:
+        lines.append(
+            "- By call 6, implementation must have started; otherwise call 6 is blocked."
+        )
+    lines.extend([
+        f"- At call {first_checkpoint}, report budget status. By call {second_checkpoint}, "
+        "finish or return SPLIT_REQUIRED.",
+        f"- Maximum {expansions} context expansions. Expansion {expansion_stop} is mechanically blocked.",
+        f"- Implementor token budget: {implementor_tokens}. Absolute commit token budget: {total_tokens}.",
+        "- Initial reads are limited to this brief's selected files.",
+        "- Use targeted symbol searches before any additional full-file read.",
+        "- No commits. Claude handles staging and commits after Eran's approval.",
+    ])
+    return lines
+
+
 def render_brief(
     repo_root: Path,
     package: dict[str, Any],
     spec: str,
     state: dict[str, Any],
+    budget: dict[str, int],
 ) -> str:
     agent = package["agent"]
     commit = package["commit"]
@@ -155,7 +186,7 @@ def render_brief(
         'Set any array to `null` if you cannot supply path-level detail (e.g. after a context gap).',
         "Claude validates and persists this report before running the verification gate.",
         "",
-        "If the work cannot finish by call 18, also return:",
+        f"If the work cannot finish by call {budget['max_tool_calls']}, also return:",
         "```json",
         "{",
         '  "status": "split_required",',
@@ -168,7 +199,7 @@ def render_brief(
         '  "acceptance_criteria": ["observable result"],',
         '  "verification_command": "pytest path/to/test.py -q",',
         f'  "dependencies": ["{commit}"],',
-        '  "tool_calls": 16',
+        f'  "tool_calls": {26 if budget["max_tool_calls"] > 18 else 16}',
         "}",
         "```",
         "You may propose this split, but you may not edit specs, assign numbers, or continue.",
@@ -178,14 +209,7 @@ def render_brief(
         f"Worklog header: `{WORKLOG_FILES.get(agent, 'unknown')}` (first 50 lines only)",
         f"Commit spec: `{package['spec']}`",
         "",
-        "EXECUTION CONSTRAINTS:",
-        "- One normal implementor invocation for this commit.",
-        "- Total cap: 18 tool uses. Call 19 is mechanically blocked.",
-        "- At call 12, report budget status. By call 16, finish or return SPLIT_REQUIRED.",
-        "- Maximum two context expansions. Expansion 3 is mechanically blocked.",
-        "- Initial reads are limited to this brief's selected files.",
-        "- Use targeted symbol searches before any additional full-file read.",
-        "- No commits. Claude handles staging and commits after Eran's approval.",
+        *execution_constraints_lines(budget),
     ])
     return "\n".join(lines).strip() + "\n"
 
@@ -276,6 +300,7 @@ def prepare(
         package,
         spec_path.read_text(encoding="utf-8"),
         state,
+        validation["budget"],
     )
     brief_path = (
         repo_root / ".context" / "delegations" / f"{package['commit']}-{agent}.md"
@@ -294,6 +319,7 @@ def prepare(
             "max_tool_calls": validation["budget"]["max_tool_calls"],
             "max_expansions": validation["budget"]["max_expansions"],
             "max_implementor_tokens": validation["budget"]["max_implementor_tokens"],
+            "max_total_tokens": validation["budget"]["max_total_tokens"],
         },
         repo_root / "hooks" / "tool_cap.json",
     )
