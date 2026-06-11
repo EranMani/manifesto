@@ -15,18 +15,40 @@ WRITE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 PATH_KEYS = ("file_path", "path")
 
 
-def tool_path(tool_input: dict[str, Any]) -> str:
+def normalize_path(path: str, repo_root: Path | None = None) -> str:
+    normalized = str(path).strip().replace("\\", "/")
+    if repo_root is not None:
+        root = repo_root.resolve().as_posix().rstrip("/")
+        if normalized.casefold() == root.casefold():
+            return ""
+        prefix = root + "/"
+        if normalized.casefold().startswith(prefix.casefold()):
+            normalized = normalized[len(prefix):]
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    return normalized
+
+
+def tool_path(
+    tool_input: dict[str, Any],
+    repo_root: Path | None = None,
+) -> str:
     for key in PATH_KEYS:
         value = tool_input.get(key)
         if value:
-            return str(value).replace("\\", "/").lstrip("./")
+            return normalize_path(str(value), repo_root)
     return ""
 
 
-def selected(path: str, selected_paths: list[str]) -> bool:
-    normalized = path.replace("\\", "/").lstrip("./")
+def selected(
+    path: str,
+    selected_paths: list[str],
+    repo_root: Path | None = None,
+) -> bool:
+    normalized = normalize_path(path, repo_root)
     return any(
-        normalized == allowed or normalized.startswith(allowed.rstrip("/") + "/")
+        normalized == normalize_path(allowed, repo_root)
+        or normalized.startswith(normalize_path(allowed, repo_root).rstrip("/") + "/")
         for allowed in selected_paths
     )
 
@@ -35,13 +57,14 @@ def enforce_tool_event(
     state: dict[str, Any],
     tool_name: str,
     tool_input: dict[str, Any],
+    repo_root: Path | None = None,
 ) -> tuple[bool, str | None]:
     if not state.get("active") or not state.get("active_invocation"):
         return True, None
     if tool_name == "Agent":
         return True, None
 
-    path = tool_path(tool_input)
+    path = tool_path(tool_input, repo_root)
     if path.endswith("hooks/tool_cap.json") or path == "hooks/tool_cap.json":
         return True, None
 
@@ -67,14 +90,18 @@ def enforce_tool_event(
     if tool_name in WRITE_TOOLS:
         if invocation.get("kind") == "repair":
             allowed = (state.get("repair_authorization") or {}).get("allowed_files", [])
-            if path and not selected(path, allowed):
+            if path and not selected(path, allowed, repo_root):
                 state["stop_reason"] = f"repair_path_not_authorized:{path}"
                 state["status"] = "blocked"
                 return False, f"repair write is outside authorized files: {path}"
         state["write_started"] = True
 
     expansion_tools = {"Read", "Grep", "Glob"}
-    if tool_name in expansion_tools and path and not selected(path, state.get("selected_paths", [])):
+    if (
+        tool_name in expansion_tools
+        and path
+        and not selected(path, state.get("selected_paths", []), repo_root)
+    ):
         expanded = state.setdefault("expanded_paths", [])
         if path not in expanded:
             next_expansion = len(expanded) + 1
@@ -116,6 +143,7 @@ def main() -> int:
         state,
         str(event.get("tool_name", "")),
         event.get("tool_input") or {},
+        state_path.parent.parent,
     )
     write_state(state_path, state)
     if message:

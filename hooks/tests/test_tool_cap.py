@@ -72,6 +72,33 @@ class ToolCapTests(unittest.TestCase):
         self.assertFalse(allowed)
         self.assertIn("expansion 3", message)
 
+    def test_absolute_selected_path_is_not_an_expansion(self) -> None:
+        root = Path("D:/repo")
+        state = self.state()
+        start_invocation(state, "rex", "normal")
+        allowed, _ = enforce_tool_event(
+            state,
+            "Read",
+            {"file_path": "D:/repo/backend/app/service.py"},
+            root,
+        )
+        self.assertTrue(allowed)
+        self.assertEqual(state["expansions"], 0)
+        self.assertEqual(state["expanded_paths"], [])
+
+    def test_absolute_unselected_path_is_recorded_repo_relative(self) -> None:
+        root = Path("D:/repo")
+        state = self.state()
+        start_invocation(state, "rex", "normal")
+        allowed, _ = enforce_tool_event(
+            state,
+            "Read",
+            {"file_path": "D:/repo/backend/app/other.py"},
+            root,
+        )
+        self.assertTrue(allowed)
+        self.assertEqual(state["expanded_paths"], ["backend/app/other.py"])
+
     def test_one_narrow_repair_is_allowed(self) -> None:
         state = self.state()
         start_invocation(state, "rex", "normal")

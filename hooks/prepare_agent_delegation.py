@@ -285,7 +285,10 @@ def prepare(
     initialize_commit_state(
         package["commit"],
         agent,
-        [item["path"] for item in package["files"]],
+        [
+            *[item["path"] for item in package["files"]],
+            AGENT_FILES[agent],
+        ],
         {
             "max_agent_invocations": validation["budget"]["max_agent_invocations"],
             "max_tool_calls": validation["budget"]["max_tool_calls"],

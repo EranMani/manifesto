@@ -86,6 +86,13 @@ class PrepareAgentDelegationTests(unittest.TestCase):
                 item for item in package["files"] if item["category"] == "worklog"
             )
             self.assertEqual(worklog["read_strategy"], "first 50 lines only")
+            tool_cap = json.loads(
+                (root / "hooks" / "tool_cap.json").read_text(encoding="utf-8")
+            )
+            self.assertIn(
+                ".claude/agents/frontend.md",
+                tool_cap["selected_paths"],
+            )
 
             with patch(
                 "prepare_agent_delegation.require_valid_pending_graph",
