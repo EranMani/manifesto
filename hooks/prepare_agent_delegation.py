@@ -15,7 +15,7 @@ from constraint_dashboard import render_dashboard
 from context_engine import ContextPackageBuilder, load_rules
 from context_telemetry import initialize_telemetry
 from tool_cap_start import initialize_commit_state
-from validate_commit_spec import require_valid_commit_spec
+from validate_commit_spec import require_valid_commit_spec, require_valid_pending_graph
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -212,6 +212,7 @@ def prepare(
             f"Agent mismatch: project-state expects {expected_agent}, requested {agent}"
         )
 
+    require_valid_pending_graph(repo_root)
     validation = require_valid_commit_spec(
         repo_root,
         requested_commit,

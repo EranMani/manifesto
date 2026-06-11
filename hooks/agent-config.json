@@ -14,7 +14,6 @@
     ".gitignore",
     "README.md",
     ".claude/agents/logs/",
-    "hooks/",
     "backend/DOMAIN_MAP.md",
     "frontend/DOMAIN_MAP.md",
     "claude_usage_data/"
@@ -29,7 +28,10 @@
         "AGENTS.md",
         "team-preferences.md",
         "MULTI_AGENT_WORKFLOW_REDESIGN_ROADMAP.md",
+        "TASK_TO_COMMIT_PROTOCOL_GUIDE.md",
+        "TASK_TO_COMMIT_SYSTEM_IMPLEMENTATION_GUIDE.md",
         "commit-specs/",
+        ".claude/agents/",
         ".claude/settings.json",
         ".claude/commands/"
       ]
@@ -56,6 +58,7 @@
         ".env.example",
         "backend/Dockerfile",
         "scripts/",
+        "hooks/",
         "SMOKE_TEST_RESULTS.md"
       ]
     },

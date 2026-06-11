@@ -51,6 +51,9 @@ class PrepareAgentDelegationTests(unittest.TestCase):
                 encoding="utf-8",
             )
             with patch(
+                "prepare_agent_delegation.require_valid_pending_graph",
+                return_value={"status": "valid"},
+            ), patch(
                 "prepare_agent_delegation.require_valid_commit_spec",
                 return_value=self._validation(),
             ):
@@ -85,6 +88,9 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             self.assertEqual(worklog["read_strategy"], "first 50 lines only")
 
             with patch(
+                "prepare_agent_delegation.require_valid_pending_graph",
+                return_value={"status": "valid"},
+            ), patch(
                 "prepare_agent_delegation.require_valid_commit_spec",
                 return_value=self._validation(),
             ):
@@ -109,6 +115,9 @@ class PrepareAgentDelegationTests(unittest.TestCase):
                 encoding="utf-8",
             )
             with patch(
+                "prepare_agent_delegation.require_valid_pending_graph",
+                return_value={"status": "valid"},
+            ), patch(
                 "prepare_agent_delegation.require_valid_commit_spec",
                 side_effect=ValueError("commit spec validation failed"),
             ):
@@ -132,6 +141,28 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "Commit mismatch"):
                 prepare(root, self.rules, "1", "aria")
+
+    def test_rejected_pending_graph_writes_no_delegation_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            shutil.copytree(FIXTURE_ROOT, root)
+            (root / "project-state.json").write_text(
+                json.dumps({
+                    "next_commit": "1",
+                    "next_commit_assignee": "aria",
+                    "open_handoffs": [],
+                }),
+                encoding="utf-8",
+            )
+            with patch(
+                "prepare_agent_delegation.require_valid_pending_graph",
+                side_effect=ValueError("pending commit graph validation failed"),
+            ):
+                with self.assertRaisesRegex(ValueError, "graph validation failed"):
+                    prepare(root, self.rules, "1", "aria")
+            self.assertFalse((root / ".context" / "delegations").exists())
+            self.assertFalse((root / ".context" / "runs").exists())
+            self.assertFalse((root / ".context" / "telemetry").exists())
 
 
 if __name__ == "__main__":

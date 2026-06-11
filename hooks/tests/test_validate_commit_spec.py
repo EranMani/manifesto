@@ -12,26 +12,41 @@ from pathlib import Path
 HOOKS_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HOOKS_DIR))
 
-from validate_commit_spec import validate_commit_spec  # noqa: E402
+from validate_commit_spec import validate_commit_spec, validate_pending_graph  # noqa: E402
 
 
 def valid_spec(
     *,
+    commit: int = 30,
+    name: str = "small-change",
+    depends_on: str = "C29",
     budget_override: str = "",
     extra_files: str = "",
     owner: str = "rex",
+    milestone: str = "no",
+    checkpoint: str = "**Next milestone:** C31.",
+    primary_behavior: str = "Implement one small behavior.",
+    behavior_count: str = "1",
 ) -> str:
     return f"""\
-# Commit 30 - `small-change` - Rex
+# Commit {commit} - `{name}` - Rex
 
 **Phase:** Test
 **Owner:** {owner}
-**Depends on:** C29
+**Depends on:** {depends_on}
 **Estimated diff lines:** 120
+**Primary behavior count:** {behavior_count}
+**Developer test milestone:** {milestone}
 
 ## Primary Behavior
 
-Implement one small behavior.
+{primary_behavior}
+
+## Semantic Fit Review
+
+- **Atomic outcome:** One independently testable result.
+- **Failure boundary:** Failure does not reopen deferred work.
+- **Budget rationale:** Two files and one focused command fit one invocation.
 
 ## Execution Budget
 
@@ -69,6 +84,10 @@ forbidden:
 | `test_app.py` | edit | tests |
 {extra_files}
 
+## Contract
+
+Input and output behavior are exact.
+
 ## Environment Prerequisites
 
 - Python available.
@@ -83,9 +102,22 @@ python -m pytest test_app.py -q
 
 - Happy path and rejection path.
 
+## Done When
+
+- [ ] The behavior is implemented.
+- [ ] The verification command passes.
+
+## Developer Test Checkpoint
+
+{checkpoint}
+
 ## Not In This Commit
 
 - Deferred behavior.
+
+## Return Contract
+
+Return the required Human Summary and telemetry.
 """
 
 
@@ -99,6 +131,7 @@ class ValidateCommitSpecTests(unittest.TestCase):
         (root / "commit-protocol.md").write_text(
             "| # | Name | Assignee | Status |\n"
             "|---|---|---|---|\n"
+            "| 29 | completed | rex | done |\n"
             f"| 30 | small-change | {owner} | pending |\n",
             encoding="utf-8",
         )
@@ -107,6 +140,43 @@ class ValidateCommitSpecTests(unittest.TestCase):
                 "next_commit": "30",
                 "next_commit_name": "small-change",
                 "next_commit_assignee": owner,
+            }),
+            encoding="utf-8",
+        )
+        return root
+
+    def make_graph_repo(
+        self,
+        specs: dict[int, str],
+        rows: list[tuple[int, str, str]],
+    ) -> Path:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        (root / "commit-specs").mkdir()
+        for commit, spec in specs.items():
+            (root / "commit-specs" / f"commit-{commit:02d}.md").write_text(
+                spec,
+                encoding="utf-8",
+            )
+        protocol = [
+            "| # | Name | Assignee | Status |",
+            "|---|---|---|---|",
+            "| 29 | completed | rex | done |",
+        ]
+        protocol.extend(
+            f"| {commit} | {name} | {owner} | pending |"
+            for commit, name, owner in rows
+        )
+        (root / "commit-protocol.md").write_text(
+            "\n".join(protocol) + "\n",
+            encoding="utf-8",
+        )
+        (root / "project-state.json").write_text(
+            json.dumps({
+                "next_commit": str(rows[0][0]),
+                "next_commit_name": rows[0][1],
+                "next_commit_assignee": rows[0][2],
             }),
             encoding="utf-8",
         )
@@ -145,6 +215,132 @@ class ValidateCommitSpecTests(unittest.TestCase):
         root = self.make_repo(valid_spec(extra_files=rows))
         result = validate_commit_spec(root, "30", "rex")
         self.assertIn("max_changed_files", {item["rule"] for item in result["violations"]})
+
+    def test_primary_behavior_count_must_be_one(self) -> None:
+        root = self.make_repo(valid_spec(behavior_count="2"))
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertIn(
+            "primary_behavior_count",
+            {item["rule"] for item in result["violations"]},
+        )
+
+    def test_semantic_fit_review_requires_all_fields(self) -> None:
+        spec = valid_spec().replace(
+            "- **Budget rationale:** Two files and one focused command fit one invocation.\n",
+            "",
+        )
+        root = self.make_repo(spec)
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertIn(
+            "semantic_fit_review",
+            {item["rule"] for item in result["violations"]},
+        )
+
+    def test_multiple_primary_behavior_items_require_split(self) -> None:
+        root = self.make_repo(
+            valid_spec(primary_behavior="- First behavior.\n- Second behavior.")
+        )
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertIn(
+            "primary_behavior_structure",
+            {item["rule"] for item in result["violations"]},
+        )
+
+    def test_milestone_requires_manual_test_fields(self) -> None:
+        root = self.make_repo(
+            valid_spec(
+                milestone="yes",
+                checkpoint="**Ready now:** Dashboard is visible.",
+            )
+        )
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertIn(
+            "developer_test_checkpoint",
+            {item["rule"] for item in result["violations"]},
+        )
+
+    def test_complete_milestone_passes(self) -> None:
+        checkpoint = """\
+**Ready now:** Dashboard is visible.
+**How to test:** Run the server and open `/dashboard`.
+**Expected result:** Invocation rows are visible.
+**Still incomplete:** Product UI work."""
+        root = self.make_repo(valid_spec(milestone="yes", checkpoint=checkpoint))
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertEqual(result["status"], "valid")
+
+    def test_missing_dependency_fails(self) -> None:
+        root = self.make_repo(valid_spec(depends_on="C99"))
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertIn(
+            "dependency_missing",
+            {item["rule"] for item in result["violations"]},
+        )
+
+    def test_placeholder_dependency_fails(self) -> None:
+        root = self.make_repo(valid_spec(depends_on="CXX"))
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertIn(
+            "dependency_format",
+            {item["rule"] for item in result["violations"]},
+        )
+
+    def test_changed_file_outside_owner_domain_fails(self) -> None:
+        root = self.make_repo(valid_spec())
+        (root / "hooks").mkdir()
+        (root / "hooks" / "agent-config.json").write_text(
+            json.dumps({
+                "universal_allowed": [],
+                "agents": {
+                    "rex@example.com": {
+                        "name": "Rex",
+                        "domains": ["backend/"],
+                    },
+                },
+            }),
+            encoding="utf-8",
+        )
+        result = validate_commit_spec(root, "30", "rex")
+        self.assertIn(
+            "file_ownership",
+            {item["rule"] for item in result["violations"]},
+        )
+
+    def test_valid_pending_graph_passes(self) -> None:
+        specs = {
+            30: valid_spec(commit=30, name="first", depends_on="C29"),
+            31: valid_spec(
+                commit=31,
+                name="second",
+                depends_on="C30",
+                checkpoint="**Next milestone:** C32.",
+            ),
+        }
+        root = self.make_graph_repo(
+            specs,
+            [(30, "first", "rex"), (31, "second", "rex")],
+        )
+        result = validate_pending_graph(root)
+        self.assertEqual(result["status"], "valid")
+
+    def test_pending_graph_rejects_future_dependency_and_cycle(self) -> None:
+        specs = {
+            30: valid_spec(commit=30, name="first", depends_on="C31"),
+            31: valid_spec(
+                commit=31,
+                name="second",
+                depends_on="C30",
+                checkpoint="**Next milestone:** C32.",
+            ),
+        }
+        root = self.make_graph_repo(
+            specs,
+            [(30, "first", "rex"), (31, "second", "rex")],
+        )
+        result = validate_pending_graph(root)
+        rules = {item["rule"] for item in result["violations"]}
+        self.assertIn("dependency_order", rules)
+        self.assertIn("dependency_cycle", rules)
 
 
 if __name__ == "__main__":

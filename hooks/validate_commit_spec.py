@@ -99,16 +99,51 @@ def changed_file_rows(text: str) -> list[str]:
     return re.findall(r"^\|\s*`([^`]+)`\s*\|", files, re.MULTILINE)
 
 
-def protocol_entry(repo_root: Path, key: str) -> tuple[str, str] | None:
+def dependency_keys(text: str) -> list[str]:
+    value = metadata_value(text, "Depends on")
+    if not value or value.strip().lower() in {"none", "n/a"}:
+        return []
+    return [commit_key(item) for item in re.findall(r"\bC?(\d+)\b", value, re.IGNORECASE)]
+
+
+def protocol_entries(repo_root: Path) -> dict[str, dict[str, str]]:
     path = repo_root / "commit-protocol.md"
     if not path.exists():
-        return None
-    number = str(int(key[1:]))
+        return {}
+    entries: dict[str, dict[str, str]] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         cells = [cell.strip() for cell in line.split("|") if cell.strip()]
-        if len(cells) >= 3 and cells[0] in {number, key[1:]}:
-            return cells[1], cells[2].lower()
-    return None
+        if len(cells) < 4 or not cells[0].isdigit():
+            continue
+        key = commit_key(cells[0])
+        entries[key] = {
+            "name": cells[1],
+            "owner": normalized_owner(cells[2]) or "",
+            "status": cells[3].lower(),
+        }
+    return entries
+
+
+def owner_paths(repo_root: Path, owner: str | None) -> tuple[list[str], list[str]] | None:
+    path = repo_root / "hooks" / "agent-config.json"
+    if not path.exists() or not owner:
+        return None
+    try:
+        config = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    universal = config.get("universal_allowed", [])
+    for agent in config.get("agents", {}).values():
+        if str(agent.get("name", "")).lower() == owner:
+            return universal, agent.get("domains", [])
+    return universal, []
+
+
+def protocol_entry(repo_root: Path, key: str) -> tuple[str, str] | None:
+    entry = protocol_entries(repo_root).get(key)
+    if not entry:
+        return None
+    return entry["name"], entry["owner"]
 
 
 def add_violation(
@@ -185,8 +220,39 @@ def validate_commit_spec(
     else:
         add_violation(violations, "protocol_entry", f"{key} is missing from commit-protocol.md")
 
-    if not section(text, "Primary Behavior"):
+    primary_behavior = section(text, "Primary Behavior")
+    if not primary_behavior:
         add_violation(violations, "primary_behavior", "missing Primary Behavior section")
+    behavior_count = metadata_value(text, "Primary behavior count")
+    if behavior_count != "1":
+        add_violation(
+            violations,
+            "primary_behavior_count",
+            "Primary behavior count must be exactly 1",
+            behavior_count,
+            "1",
+        )
+    behavior_items = re.findall(r"^\s*(?:[-*]|\d+\.)\s+", primary_behavior, re.MULTILINE)
+    if len(behavior_items) > 1:
+        add_violation(
+            violations,
+            "primary_behavior_structure",
+            "Primary Behavior contains multiple list items; split independently testable outcomes",
+            len(behavior_items),
+            1,
+        )
+    semantic_fit = section(text, "Semantic Fit Review")
+    for label in ("Atomic outcome", "Failure boundary", "Budget rationale"):
+        if not re.search(
+            rf"^\s*[-*]?\s*\*\*{re.escape(label)}:\*\*\s*\S",
+            semantic_fit,
+            re.MULTILINE,
+        ):
+            add_violation(
+                violations,
+                "semantic_fit_review",
+                f"Semantic Fit Review is missing a non-empty '{label}' field",
+            )
 
     budget = yaml_ints(section(text, "Execution Budget"), "execution_budget")
     for name, limit in LOCKED_BUDGET.items():
@@ -204,6 +270,44 @@ def validate_commit_spec(
     for path in files:
         if any(char in path for char in "*?[]") or "related" in path.lower():
             add_violation(violations, "exact_file_paths", f"non-exact file entry: {path}")
+    allowed_paths = owner_paths(repo_root, owner)
+    if allowed_paths:
+        universal, owned = allowed_paths
+        for path in files:
+            if not any(
+                path == allowed or path.startswith(allowed)
+                for allowed in [*universal, *owned]
+            ):
+                add_violation(
+                    violations,
+                    "file_ownership",
+                    f"{owner} does not own planned file {path}",
+                )
+
+    entries = protocol_entries(repo_root)
+    dependency_value = metadata_value(text, "Depends on")
+    dependencies = dependency_keys(text)
+    if not dependency_value:
+        add_violation(violations, "dependencies", "missing Depends on metadata")
+    elif (
+        dependency_value.strip().lower() not in {"none", "n/a"}
+        and not dependencies
+    ):
+        add_violation(
+            violations,
+            "dependency_format",
+            "Depends on must contain concrete commit IDs or 'None'",
+            dependency_value,
+        )
+    for dependency in dependencies:
+        if dependency == key:
+            add_violation(violations, "dependency_self", f"{key} cannot depend on itself")
+        elif dependency not in entries:
+            add_violation(
+                violations,
+                "dependency_missing",
+                f"{dependency} is missing from commit-protocol.md",
+            )
 
     context = section(text, "Context")
     primary_files = yaml_list(context, "primary_files")
@@ -235,9 +339,14 @@ def validate_commit_spec(
             )
 
     required_sections = {
+        "contract": "Contract",
+        "semantic_fit_review": "Semantic Fit Review",
         "verification_command": "Verification Command",
         "environment_prerequisites": "Environment Prerequisites",
+        "done_when": "Done When",
+        "developer_test_checkpoint": "Developer Test Checkpoint",
         "not_in_commit": "Not In This Commit",
+        "return_contract": "Return Contract",
     }
     for rule, heading_name in required_sections.items():
         if not section(text, heading_name):
@@ -245,15 +354,112 @@ def validate_commit_spec(
     if not (section(text, "Required Tests") or section(text, "Focused Tests")):
         add_violation(violations, "focused_tests", "missing Required Tests or Focused Tests section")
 
+    milestone = (metadata_value(text, "Developer test milestone") or "").lower()
+    checkpoint = section(text, "Developer Test Checkpoint")
+    if milestone not in {"yes", "no"}:
+        add_violation(
+            violations,
+            "developer_test_milestone",
+            "Developer test milestone metadata must be yes or no",
+            milestone or None,
+        )
+    elif milestone == "yes":
+        for label in ("Ready now", "How to test", "Expected result", "Still incomplete"):
+            if not re.search(rf"^\s*[-*]?\s*\*\*{re.escape(label)}:\*\*\s*\S", checkpoint, re.MULTILINE):
+                add_violation(
+                    violations,
+                    "developer_test_checkpoint",
+                    f"milestone checkpoint is missing a non-empty '{label}' field",
+                )
+    elif not re.search(r"^\s*[-*]?\s*\*\*Next milestone:\*\*\s*\S", checkpoint, re.MULTILINE):
+        add_violation(
+            violations,
+            "developer_test_checkpoint",
+            "non-milestone checkpoint must name the next milestone commit",
+        )
+
     status = "valid" if not violations else "split_required"
     return {
         "status": status,
         "commit": key,
         "owner": owner,
         "budget": budget,
+        "dependencies": dependencies,
         "planned_changed_files": files,
         "violations": violations,
     }
+
+
+def validate_pending_graph(repo_root: Path) -> dict[str, Any]:
+    entries = protocol_entries(repo_root)
+    pending = {
+        key: entry
+        for key, entry in entries.items()
+        if "pending" in entry["status"] or "active" in entry["status"]
+    }
+    violations: list[dict[str, Any]] = []
+    results: dict[str, dict[str, Any]] = {}
+    graph: dict[str, list[str]] = {}
+
+    for key, entry in sorted(pending.items()):
+        result = validate_commit_spec(repo_root, key, entry["owner"])
+        results[key] = result
+        if result["status"] != "valid":
+            add_violation(
+                violations,
+                "pending_spec_invalid",
+                f"{key} failed commit-spec validation",
+                [item["rule"] for item in result["violations"]],
+            )
+        dependencies = result.get("dependencies", [])
+        graph[key] = [dependency for dependency in dependencies if dependency in pending]
+        for dependency in dependencies:
+            if dependency in pending and int(dependency[1:]) >= int(key[1:]):
+                add_violation(
+                    violations,
+                    "dependency_order",
+                    f"{key} depends on non-earlier pending commit {dependency}",
+                )
+
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(node: str, path: list[str]) -> None:
+        if node in visiting:
+            cycle_start = path.index(node) if node in path else 0
+            cycle = path[cycle_start:] + [node]
+            add_violation(
+                violations,
+                "dependency_cycle",
+                "pending dependency graph contains a cycle",
+                cycle,
+            )
+            return
+        if node in visited:
+            return
+        visiting.add(node)
+        for dependency in graph.get(node, []):
+            visit(dependency, path + [node])
+        visiting.remove(node)
+        visited.add(node)
+
+    for key in graph:
+        visit(key, [])
+
+    return {
+        "status": "valid" if not violations else "split_required",
+        "pending_commits": sorted(pending),
+        "spec_results": results,
+        "violations": violations,
+    }
+
+
+def require_valid_pending_graph(repo_root: Path) -> dict[str, Any]:
+    result = validate_pending_graph(repo_root)
+    if result["status"] != "valid":
+        messages = "; ".join(item["message"] for item in result["violations"])
+        raise ValueError(f"pending commit graph validation failed: {messages}")
+    return result
 
 
 def require_valid_commit_spec(
@@ -270,15 +476,22 @@ def require_valid_commit_spec(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--commit", required=True)
+    parser.add_argument("--commit")
+    parser.add_argument("--all-pending", action="store_true")
     parser.add_argument("--owner")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
-    result = validate_commit_spec(REPO_ROOT, args.commit, args.owner)
+    if args.all_pending:
+        result = validate_pending_graph(REPO_ROOT)
+    elif args.commit:
+        result = validate_commit_spec(REPO_ROOT, args.commit, args.owner)
+    else:
+        parser.error("provide --commit or --all-pending")
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        print(f"{result['commit']}: {result['status']}")
+        subject = result.get("commit", "pending graph")
+        print(f"{subject}: {result['status']}")
         for violation in result["violations"]:
             print(f"- {violation['rule']}: {violation['message']}")
     return 0 if result["status"] == "valid" else 1
