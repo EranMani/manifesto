@@ -5,10 +5,10 @@
 ---
 
 ## Current State
-*Last updated: Commit 21 · 2026-06-07*
+*Last updated: Commit 29A · 2026-06-11*
 
 **Last completed:** Commit 21 `integration-smoke` ✅ (verification commit — no app code touched)
-**Currently active:** none
+**Currently active:** Commit 29A `preflight-score-engine` — implementation complete, pending approval (not yet committed)
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
@@ -41,6 +41,7 @@ No archived sessions yet.
 |---|--------|--------|--------------|
 | 01 | C01: project-scaffold | ✅ Done | asyncpg driver in DATABASE_URL; sh wrapper for git hook on Windows |
 | 21 | C21: integration-smoke | ✅ Done | Full stack verified live; 16 pass / 1 pass-with-deviation / 4 not-verified / 0 fail; created throwaway manager user to test role-based 403 |
+| 29A | C29A: preflight-score-engine | 🔶 Pending approval | New `hooks/preflight_commit.py` module: 8 hard scoring categories (sum=100, all-or-nothing) + 4 non-blocking readiness deductions, persists `.context/preflight/C<ID>.json` |
 
 ---
 
@@ -89,3 +90,43 @@ No archived sessions yet.
 - This worklog entry + Current State header update
 
 **Did not touch:** `backend/app/`, `frontend/src/`, `backend/alembic/` (verification only, per spec). Did not run `git commit` (Claude/Eran handle commits).
+
+---
+
+## Session 29A — Commit 29A: `preflight-score-engine`
+*2026-06-11*
+
+**Approach:** Greenfield bootstrap-exception invocation (re-run after a prior zero-code SPLIT_REQUIRED). Read the commit spec, the existing worklog, and `validate_commit_spec.py` and `context_engine.py` for the scoring/budget conventions to follow, then implemented `hooks/preflight_commit.py` and its test suite, and verified with pytest and a live `--commit C29B --agent adam` dry run.
+
+**Reads:**
+- `hooks/preflight_commit.py` (own output, re-read during iteration)
+- `.claude/agents/logs/adam-worklog.md`
+- `commit-specs/commit-29a.md`
+- `hooks/validate_commit_spec.py`
+- `hooks/context_engine.py`
+- Grep `hooks/validate_commit_spec.py` for `^def |^class `
+- Grep `hooks/context_engine.py` for `class ContextPackageBuilder|def build|def load_rules|chars|excluded_candidates|unresolved|budget`
+
+**Writes:**
+- `hooks/preflight_commit.py` (new) — `evaluate(repo_root, commit, agent) -> dict`, 8 hard scoring categories (sum=100, all-or-nothing), 4 non-blocking readiness deductions, persists `.context/preflight/C<ID>.json`
+- `hooks/tests/test_preflight_commit.py` (new) — 13 tests covering determinism, all readiness deductions, hard violations, and host-executable resolution for C33/C65/C76 verification commands
+
+**Commands run:**
+- `python -m pytest -p no:cacheprovider hooks/tests/test_preflight_commit.py -q` — 13 passed
+- `python hooks/preflight_commit.py --commit C29B --agent adam`
+- `python hooks/preflight_commit.py --commit C29B --agent adam --json`
+- `git status --short`
+- `git diff hooks/tool_cap.json`
+
+**Context expansions (2/2 used):** `commit-specs/commit-29a.md`, `hooks/context_engine.py` — both required to confirm the spec's exact scoring categories and the existing context-budget/scoring conventions to mirror.
+
+Tool usage: reads=7, writes=2, total=25 (self-reported tool_calls=13; total reflects the harness-tracked count in `hooks/tool_cap.json`, within the greenfield cap of 28)
+
+**Outcome:** All 13 focused tests pass. `hooks/preflight_commit.py` implements the full C29A scoring contract. Orchestrator review found one logic bug in `_goal_from_primary_behavior` (multi-line Primary Behavior paragraphs were truncated to the first line) — corrected by Claude post-review; documented as an orchestrator correction, not part of Adam's reported work.
+
+**Deliverables:**
+- `hooks/preflight_commit.py` (new, 647 lines)
+- `hooks/tests/test_preflight_commit.py` (new, 431 lines)
+- This worklog entry + Current State header update
+
+**Did not touch:** `backend/`, `frontend/`, `hooks/prepare_agent_delegation.py` (forbidden paths, per spec). Did not run `git commit` (Claude/Eran handle commits).
