@@ -744,6 +744,204 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "date": "2026-06-11",
+      "commit": "C29A",
+      "agent": "adam",
+      "tokens": 0,
+      "package": {
+        "budget_utilization_percent": null
+      },
+      "telemetry": {
+        "agent": {
+          "source": "self_report",
+          "status": "available",
+          "tool_calls": 13,
+          "read_paths": [
+            "hooks/preflight_commit.py",
+            ".claude/agents/logs/adam-worklog.md",
+            "commit-specs/commit-29a.md",
+            "hooks/validate_commit_spec.py",
+            "hooks/context_engine.py"
+          ],
+          "write_paths": [
+            "hooks/preflight_commit.py",
+            "hooks/tests/test_preflight_commit.py"
+          ],
+          "searches": [
+            {
+              "tool": "Grep",
+              "path": "hooks/validate_commit_spec.py",
+              "query": "^def |^class "
+            },
+            {
+              "tool": "Grep",
+              "path": "hooks/context_engine.py",
+              "query": "class ContextPackageBuilder|def build|def load_rules|chars|excluded_candidates|unresolved|budget"
+            }
+          ],
+          "commands": [
+            "python -m pytest -p no:cacheprovider hooks/tests/test_preflight_commit.py -q",
+            "python hooks/preflight_commit.py --commit C29B --agent adam",
+            "python hooks/preflight_commit.py --commit C29B --agent adam --json",
+            "git status --short",
+            "git diff hooks/tool_cap.json"
+          ],
+          "expansions": [
+            "commit-specs/commit-29a.md",
+            "hooks/context_engine.py"
+          ]
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "tool_calls": 133,
+          "read_paths": [
+            "hooks/verify_constraints.py",
+            "hooks/validate_commit_spec.py",
+            ".context/telemetry/C29A-adam-self-report.json",
+            "hooks/context_telemetry.py",
+            "hooks/tests/test_validate_commit_spec.py",
+            "hooks/tests/test_verify_constraints.py",
+            "backend/app/core/config.py",
+            ".claude/agents/logs/adam-worklog.md"
+          ],
+          "write_paths": [
+            "hooks/verify_constraints.py",
+            "hooks/validate_commit_spec.py",
+            "commit-specs/commit-29A.md",
+            "hooks/tests/test_validate_commit_spec.py",
+            "hooks/tests/test_verify_constraints.py",
+            ".claude/agents/logs/adam-worklog.md"
+          ],
+          "searches": [
+            {
+              "tool": "Grep",
+              "path": "backend/app",
+              "query": "Settings"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/app",
+              "query": "Settings"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/app",
+              "query": "Settings"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/app",
+              "query": "Settings"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/app",
+              "query": "Settings"
+            },
+            {
+              "tool": "Grep",
+              "path": "backend/app",
+              "query": "Settings"
+            }
+          ],
+          "commands": [
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python hooks/verify_constraints.py --commit C29A --agent adam --worktree --",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python hooks/verify_constraints.py --commit 29A --agent adam --worktree --n",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git diff --stat; echo ---; git diff --numstat -- hooks/preflight_commit.py ",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"tool_cap\\|actual_scope\\|diff_lines\\|unplanned\\|gitignore\" hooks/ve",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"changed_files\\s*=\\|tool_cap\\|def get_changed\" hooks/verify_constra",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"def git_files_changed\" -A 15 hooks/verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git log --oneline -- hooks/tool_cap.json | head -5; echo ---; git show HEAD",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git diff .gitignore | head -30",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; file .gitignore; git diff .gitignore | cat -A | head -20",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python -c \"\nimport pathlib\np = pathlib.Path('.gitignore')\ndata = p.read_byt",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git diff .gitignore | cat -A | head -20",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git config core.autocrlf; python -c \"\ndata = open('.gitignore','rb').read()",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git checkout -- .gitignore && python -c \"\ndata = open('.gitignore','rb').re",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python -c \"\ndata = open('.gitignore','rb').read()\nold = b'.context/telemetr",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; rm -rf .context/preflight; git status --short; python hooks/verify_constrai",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"def check_phase_budget\" -A 25 hooks/verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"PHASE_BUDGETS\" -A4 hooks/verify_constraints.py | head -6",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"bootstrap_exception\\|greenfield\\|budget\\|max_estimated_diff_lines\\",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; cat hooks/tool_cap.json; echo ---; ls .context/telemetry/ 2>/dev/null; echo",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; find .context/telemetry -type f 2>/dev/null; echo ---; grep -n \"ACTIVE_PATH",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; ls hooks/tests/ | grep -i \"valid\\|verify\"",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"GREENFIELD_BUDGET_CEILINGS\\|max_estimated_diff_lines\\|bootstrap_ex",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"^class \\|^def \\|tool_cap\\|check_actual_scope\\|check_phase_budget\\|",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python -c \"\nimport ast\nsrc = open('hooks/verify_constraints.py').read()\ntre",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python -m pytest -p no:cacheprovider hooks/tests/test_validate_commit_spec.",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -rn \"check_actual_scope\\|check_phase_budget\\|_effective_phase_budgets\"",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python -m pytest -p no:cacheprovider hooks/tests/ -q 2>&1 | tail -40",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git stash && python -m pytest -p no:cacheprovider hooks/tests/test_context_",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python -m pytest -p no:cacheprovider hooks/tests/ -q 2>&1 | tail -10",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python -m pytest -p no:cacheprovider hooks/tests/test_preflight_commit.py -",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; head -45 .claude/agents/logs/adam-worklog.md",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; wc -l .claude/agents/logs/adam-worklog.md; sed -n '46,200p' .claude/agents/",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python hooks/verify_constraints.py --commit 29A --agent adam --worktree --n",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"Tool usage\" -A2 -B2 hooks/verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"Tool usage\\|def check_phase_budget\\|def load_worklog\\|re.search\\|r",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; sed -n '191,220p' hooks/verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; sed -n '195,210p' hooks/verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python hooks/verify_constraints.py --commit 29A --agent adam --worktree --n",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python3 -c \"\nimport re\ntext = open('.claude/agents/logs/adam-worklog.md', e",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python3 -c \"\nimport re\ntext = open('.claude/agents/logs/adam-worklog.md', e",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"check_phase_budget\\|Tool usage\\|## Session\\|worklog_text\" hooks/te",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"check_phase_budget\" -A4 hooks/tests/test_verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python hooks/verify_constraints.py --commit 29A --agent adam --worktree --n",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python3 -c \"\nimport re\ntext = open('.claude/agents/logs/adam-worklog.md', e",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; sed -n '191,225p' hooks/verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python hooks/verify_constraints.py --commit 29A --agent adam --worktree --n",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python -m pytest -p no:cacheprovider hooks/tests/ -q 2>&1 | tail -15",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git status --short",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n -A8 \"Files To Modify Or Add\" commit-specs/commit-29a.md",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"planned_changed_files\\|worklog\\|RUNTIME_TELEMETRY\" hooks/verify_co",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; sed -n '430,460p' hooks/validate_commit_spec.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"legacy\" hooks/validate_commit_spec.py hooks/verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; sed -n '230,265p' hooks/verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; grep -n \"check_actual_scope\" -B2 -A2 hooks/verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; sed -n '548,610p' hooks/tests/test_verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; sed -n '610,630p' hooks/tests/test_verify_constraints.py",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python -m pytest -p no:cacheprovider hooks/tests/ -q 2>&1 | tail -6",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python hooks/verify_constraints.py --commit 29A --agent adam --worktree --n",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git diff --stat -- hooks/validate_commit_spec.py hooks/verify_constraints.p",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git diff --stat -- hooks/preflight_commit.py hooks/tests/test_preflight_com",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git show --format=\"%H%n%s%n%n%b\" -s 004096e; echo \"---\"; git show --format=",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git add hooks/validate_commit_spec.py hooks/verify_constraints.py hooks/tes",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; GIT_MESSAGE=$(cat <<'EOF'\nfix(workflow): scope C29A actual-scope checks to ",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git add .gitignore && GIT_MESSAGE=$(cat <<'EOF'\nchore: ignore generated pre",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; git checkout HEAD -- hooks/tool_cap.json && git status --short",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python hooks/verify_constraints.py --commit 29A --agent adam --worktree --n",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python -m pytest -p no:cacheprovider hooks/tests/ -q 2>&1 | tail -4",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; ls .context/telemetry/ 2>/dev/null; cat .context/telemetry/C29A-orchestrato",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; cat .context/telemetry/orchestrator-active.json",
+            "cd /d/AI/_My_Projects/manifesto 2>/dev/null; python hooks/context_telemetry.py --stop-orchestrator C29A 2>&1 | tail -10"
+          ]
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": 2,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": 2
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          ".claude/agents/logs/adam-worklog.md",
+          "hooks/preflight_commit.py",
+          "hooks/tests/test_preflight_commit.py"
+        ]
+      },
+      "result": "PASS"
     }
   ]
 }
