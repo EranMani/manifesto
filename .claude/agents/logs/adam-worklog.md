@@ -7,8 +7,8 @@
 ## Current State
 *Last updated: Commit 29A · 2026-06-11*
 
-**Last completed:** Commit 21 `integration-smoke` ✅ (verification commit — no app code touched)
-**Currently active:** Commit 29A `preflight-score-engine` — implementation complete, pending approval (not yet committed)
+**Last completed:** Commit 29A `preflight-score-engine`
+**Currently active:** none
 **Blocked by:** none
 
 **Open Handoffs — Outbound:**
@@ -41,7 +41,7 @@ No archived sessions yet.
 |---|--------|--------|--------------|
 | 01 | C01: project-scaffold | ✅ Done | asyncpg driver in DATABASE_URL; sh wrapper for git hook on Windows |
 | 21 | C21: integration-smoke | ✅ Done | Full stack verified live; 16 pass / 1 pass-with-deviation / 4 not-verified / 0 fail; created throwaway manager user to test role-based 403 |
-| 29A | C29A: preflight-score-engine | 🔶 Pending approval | New `hooks/preflight_commit.py` module: 8 hard scoring categories (sum=100, all-or-nothing) + 4 non-blocking readiness deductions, persists `.context/preflight/C<ID>.json` |
+| 29A | C29A: preflight-score-engine | Done | `hooks/preflight_commit.py`: 8 scoring categories (sum=100) + 4 readiness deductions, persists `.context/preflight/C<ID>.json` |
 
 ---
 

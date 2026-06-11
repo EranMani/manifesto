@@ -47,7 +47,6 @@ execution_budget:
 primary_files:
   - hooks/prepare_agent_delegation.py
 initial_context:
-  - hooks/preflight_commit.py
   - hooks/tests/test_prepare_agent_delegation.py
 forbidden:
   - backend/
