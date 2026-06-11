@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C29 enforcement is active. Planning prerequisites now include permanent Adam ownership of hooks, milestone validation, one-behavior declarations, and a full pending dependency-graph gate. The remaining Phase 2 roadmap is C30-C76. Next: C30 `invocation-record-storage`; existing C30-C34 spec files are stale and delegation remains blocked until all pending specs are rewritten and validated.",
+  "tldr": "C29 enforcement is active and C30-C76 are fully specified. C29A adds the deterministic preflight gate; C29B adds expandable dashboard visibility for its score and exact Python report. Next: C29A `deterministic-commit-preflight`.",
   "phase": 2,
   "last_completed_commit": "29",
-  "next_commit": "30",
-  "next_commit_name": "invocation-record-storage",
+  "next_commit": "29A",
+  "next_commit_name": "deterministic-commit-preflight",
   "next_commit_assignee": "adam",
   "status": "phase-2-active",
   "open_handoffs": [
@@ -157,6 +157,6 @@
       "opened": "2026-06-10"
     }
   ],
-  "notes": "The approved task-to-commit decomposition now defines C30-C76. C30-C32 restore telemetry trust; C33-C37 restore product and database-test trust; C38-C53 build policy RAG; C54-C64 build backend chat and persistence; C65-C75 build frontend chat; C76 verifies the assembled stack. Developer test milestones identify technical checkpoints and visible application checkpoints. Existing C30-C34 specs are stale and all pending specs must pass individual and full-graph validation before delegation.",
+  "notes": "The approved task-to-commit decomposition defines C30-C76. C29A is the bootstrap insertion that implements deterministic preflight scoring and hard blockers. C29B visualizes each persisted report in the dashboard. C30 and C33 depend on C29B, so every later commit inherits both prerequisites transitively; runtime delegation also enforces preflight on every commit from C29B onward.",
   "historical_notes": "C23 (`pgvector-migration`, Rex) resolved 2026-06-08 with NO git commit — investigation (Rex, on Eran's instruction to invoke him despite the scope already looking thin) found the entire pgvector/policy schema (extension, both tables, FKs, ivfflat index) already present in `0001_initial.py` lines 101-141, dated 2026-06-05 alongside the C06 model commit (`f712343`). Verified live: `alembic current` = 0001_initial (head), pgvector v0.8.2 active, tables/FKs/index/ORM mapping all correct. Writing a new migration would have duplicated DDL or falsified history; downgrading would have torn down the entire schema. Full record in DECISIONS.md D28. commit-protocol.md C23 marked done-by-prior-work; pointer advanced straight to C24 (Nova). Nova handoff re: VECTOR(1536) vs Ollama 768-dim recorded in open_handoffs above — must be resolved before C25 ingestion begins. || C22 committed 2026-06-07 (47bca18) — loginApi fixed to send JSON {email, password}, verified clean (tsc + network-level contract check by Claude). Eran then manually click-through-verified all 4 remaining browser checks: (1) /login form renders correctly, (2) admin login (admin@manifesto.local/admin123) redirects to /dashboard, (3) /dashboard shows 'Coming soon' placeholder, (4) manager login (manager.smoke@manifesto.local/manager123) navigating to /admin redirects away — to /login specifically. Item 4 initially looked surprising (redirecting an authenticated user to the login page), but Claude confirmed via ProtectedRoute.tsx (lines 12-18) that both the no-token AND wrong-role paths intentionally redirect to /login — documented by Aria in her C18 worklog. Logged as D25 (UX trade-off noted for possible Phase 2+ refinement, not a blocker). All C21 SMOKE_TEST_RESULTS.md items now resolved — Phase 1 formally closed 2026-06-07. Adam's throwaway manager user (manager.smoke@manifesto.local/manager123) remains in the dev DB as a useful fixture for future role-based testing. Phase 2 replan applied same day: C23-C32 added per manifesto-spec.md §Phase 2 (Policy RAG). Nova activated — identity file at .claude/agents/ai-engineer.md, first commit is C24. Sequence: C23(Rex) → C24(Nova) → {C25(Nova), C26(Rex)} → C27(Nova) → C28(Rex) → {C29(Rex), C30(Aria)} → C31(Aria) → C32(Aria). Viktor's next batch wave lands at C25 (every-5th-commit cadence continues from C20)."
 }

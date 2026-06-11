@@ -1,129 +1,122 @@
-# Commit 30 — `policy-chat-routes` · Rex
+# Commit 30 - `invocation-record-storage` - Adam
 
-**Phase:** 2C — Streaming Policy API
-**Assignee:** Rex (Backend)
-**Depends on:** C29 (rag-policy-pipeline)
-
-**Viktor + Sage + Mira wave runs on this commit (C30 batch review; authenticated streaming route with user input).**
+**Phase:** Workflow Trust
+**Owner:** adam
+**Depends on:** C29B
+**Estimated diff lines:** 200
+**Primary behavior count:** 1
+**Developer test milestone:** no
 
 ---
 
-## context
+## Primary Behavior
 
+Store each normal, repair, and review invocation as a separate immutable telemetry record.
+
+---
+
+## Semantic Fit Review
+
+- **Atomic outcome:** One storage contract: append one invocation without flattening prior records.
+- **Failure boundary:** Aggregation and dashboard rendering remain separate.
+- **Budget rationale:** 2 exact changed file(s), 3 initial context file(s), and one focused verification command fit one bounded invocation.
+
+---
+
+## Execution Budget
+
+```yaml
+execution_budget:
+  max_primary_files: 2
+  max_changed_files: 4
+  max_context_files: 6
+  max_context_chars: 15000
+  max_estimated_diff_lines: 350
+  max_agent_invocations: 1
+  max_tool_calls: 18
+  max_expansions: 2
+  max_implementor_tokens: 45000
 ```
-tier0:
-  - .claude/agents/backend.md (Current State header only — first 50 lines)
 
-tier1:
-  - backend/app/api/v1/chat.py          # existing registered 501 stubs
-  - backend/app/services/rag_policy.py  # C29 event contract
-  - backend/app/dependencies.py         # get_current_user
-  - backend/app/main.py                 # existing chat router registration
+---
 
-tier2:
-  - manifesto-spec.md (§6 Policy RAG, §7 role-based routing)
+## Context
 
+```yaml
+primary_files:
+  - hooks/context_telemetry.py
+initial_context:
+  - commit-specs/commit-30.md
+  - hooks/context_telemetry.py
+  - hooks/tests/test_telemetry_scopes.py
 forbidden:
-  - frontend/
-  - backend/app/services/
-  - backend/app/models/
-  - backend/alembic/
-
-estimated_reads: 5
-estimated_edits: 3   # chat.py, schema, route/SSE tests
-fits_single_agent: true
+  - backend/app/
+  - frontend/src/
 ```
 
 ---
 
-## What
+## Files To Modify Or Add
 
-Expose the policy pipeline through a versioned, cancellation-aware SSE contract for every
-authenticated role. Persistence remains C31.
-
----
-
-## Files to Create / Change
-
-| File | Type | Description |
+| File | Type | Purpose |
 |---|---|---|
-| `backend/app/api/v1/chat.py` | edit | Replace policy stub with versioned SSE endpoint |
-| `backend/app/schemas/chat.py` | new | Request and typed stream-event schemas |
-| `backend/tests/api/test_chat_policy.py` | new | Role, stream framing, failure, and cancellation tests |
-
-Do not create a competing router when `/api/v1/chat` is already registered.
+| `hooks/context_telemetry.py` | edit | Persist immutable invocation records |
+| `hooks/tests/test_telemetry_scopes.py` | edit | Prove append-only invocation storage |
 
 ---
 
-## Request Contract
+## Contract
 
-`POST /api/v1/chat/policy`
+Store each normal, repair, and review invocation as a separate immutable telemetry record.
 
-```json
-{
-  "message": "What is the leave policy?",
-  "provider": "ollama",
-  "client_message_id": "uuid"
-}
+The implementation must preserve prior committed contracts, use provider-neutral or typed
+interfaces where applicable, and expose no unrelated behavior.
+
+---
+
+## Environment Prerequisites
+
+- Python hook test environment.
+
+---
+
+## Verification Command
+
+```powershell
+pytest -p no:cacheprovider hooks/tests/test_telemetry_scopes.py -q
 ```
 
-Validate provider with a literal/enum, trim and bound message size, reject empty input,
-and accept no client-supplied history. Until C31, history is empty; after C31 it is loaded
-server-side from the owned conversation.
-
 ---
 
-## SSE v1 Contract
+## Focused Tests
 
-Every event has an explicit name and one JSON `data:` payload:
-
-- `meta`: schema version, request ID, provider, and nullable conversation/message IDs
-- `delta`: incremental `{ "text": "..." }`
-- `sources`: `{ "sources": [structured source objects] }`
-- `done`: finish reason and usage fields when available
-- `error`: stable public error code, retryable flag, and request ID
-
-The server sends UTF-8 SSE frames separated by a blank line. It may send comment
-heartbeats during long provider pauses. Headers include `Cache-Control: no-cache,
-no-transform` and `X-Accel-Buffering: no`.
-
-Exactly one terminal `done` or `error` event is emitted when the socket is writable.
-Raw exceptions, prompts, document text, API keys, and provider payloads are never exposed.
-
----
-
-## Reliability
-
-- Start the stream only after authentication and request validation succeed.
-- Detect disconnects and cancel retrieval/provider work promptly.
-- Do not retry after any `delta` was emitted.
-- Do not hold a database transaction or session operation open while waiting on model
-  tokens.
-- Map normalized provider failures to stable public codes and structured logs.
-
----
-
-## Test Gate
-
-- Role matrix, invalid provider/message, event ordering, JSON escaping, Unicode, multiline
-  content, heartbeats, pre-stream failure, mid-stream failure, and disconnect cancellation.
-- Verify deltas arrive before completion using an async test client; a buffered single
-  response does not pass.
-- Contract snapshot for every SSE event schema.
+- Normal, repair, and review records append independently.
+- Finalization cannot overwrite a prior invocation.
 
 ---
 
 ## Done When
 
-- [ ] Employee, manager, and admin can stream policy answers
-- [ ] The browser can parse arbitrary transport chunk boundaries
-- [ ] Source objects contain stable IDs and provenance, not title strings alone
-- [ ] C31 and C32 can build independently against the frozen SSE v1 schema
+- [ ] The primary behavior is implemented exactly as contracted.
+- [ ] The focused verification command passes.
+- [ ] Changed files, diff lines, context, tools, expansions, and tokens remain within budget.
 
 ---
 
-## Handoffs Out
+## Developer Test Checkpoint
 
-→ Rex (C31): extend the frozen request/meta contract with durable IDs and server-loaded history.
+**Next milestone:** C32.
 
-→ Aria (C32): implement the named JSON SSE v1 events exactly; use `fetch`, not `EventSource`.
+---
+
+## Not In This Commit
+
+- Commit aggregation is C31.
+- Dashboard presentation is C32.
+
+---
+
+## Return Contract
+
+Begin with the required Human Summary, then provide structured telemetry. If completion
+is not credible by call 16, stop and return `SPLIT_REQUIRED`.

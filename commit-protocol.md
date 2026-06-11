@@ -43,6 +43,8 @@
 | 27 | document-ingestion | nova | ✅ done · 2026-06-10 |
 | 28 | document-upload-routes | rex | ✅ done · 2026-06-10 |
 | 29 | agent-budget-circuit-breaker | claude | ✅ done · 2026-06-10 |
+| 29A | deterministic-commit-preflight | adam | pending |
+| 29B | preflight-dashboard-details | adam | pending |
 | 30 | invocation-record-storage | adam | pending |
 | 31 | telemetry-reconciliation | adam | pending |
 | 32 | telemetry-dashboard-ledger | adam | pending |
@@ -95,11 +97,14 @@
 
 ## Workflow Redesign And Phase 2 Recovery (revised 2026-06-10)
 
-C29 installed enforcement. C30-C76 apply the approved decomposition guide without
-forcing the remaining work into an artificial endpoint.
+C29 installed enforcement. C29A adds a deterministic readiness gate before delegation,
+and C29B exposes its report in the dashboard. C30-C76 apply the approved decomposition
+guide without forcing the remaining work into an artificial endpoint.
 
 | Range | Phase | Primary result |
 |---|---|---|
+| C29A | Workflow preflight | Score deterministic readiness and block delegation on critical violations |
+| C29B | Preflight visibility | Show confidence and expandable Python diagnostics for each commit |
 | C30-C32 | Workflow trust | Separate invocation storage, reconciliation, and dashboard presentation |
 | C33-C37 | Product/test recovery | Repair upload status and establish container, storage, and ingestion database verification |
 | C38-C53 | Policy RAG | Build query, retrieval, ranking, grounding, streaming, citations, and evaluation as independent behaviors |
@@ -205,3 +210,10 @@ Load `commit-specs/commit-XX.md` (active commit only) when executing a step.
     range before delegation.
 15. When a commit closes a listed Developer Test Milestone, Claude surfaces the milestone
     notice after automated verification and before starting the next commit.
+16. Before `prepare_agent_delegation.py` invokes an implementor, Claude runs the
+    deterministic preflight gate. Delegation proceeds only when readiness is at least
+    80 and no blocking violation exists. Detailed diagnostics remain on disk; Claude
+    reads them only when the gate blocks or a warning requires developer attention.
+17. C29A is the one bootstrap exception because the gate does not exist before its own
+    implementation. C29B and every later implementor delegation must pass preflight.
+    Dashboard rendering is observational and never overrides the Python gate result.

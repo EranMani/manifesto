@@ -1,24 +1,24 @@
-# Commit 32 - `telemetry-dashboard-ledger` - Adam
+# Commit 39 - `policy-vector-candidates` - Nova
 
-**Phase:** Workflow Trust
-**Owner:** adam
-**Depends on:** C31
+**Phase:** Policy RAG
+**Owner:** nova
+**Depends on:** C38
 **Estimated diff lines:** 200
 **Primary behavior count:** 1
-**Developer test milestone:** yes
+**Developer test milestone:** no
 
 ---
 
 ## Primary Behavior
 
-Render the invocation ledger and commit budget state in the constraint dashboard.
+Fetch ready, profile-matched vector candidates.
 
 ---
 
 ## Semantic Fit Review
 
-- **Atomic outcome:** One operator view consumes the reconciled telemetry contract.
-- **Failure boundary:** Telemetry storage and reconciliation are already frozen.
+- **Atomic outcome:** One retrieval channel returns scored candidates.
+- **Failure boundary:** Lexical retrieval and fusion remain later.
 - **Budget rationale:** 2 exact changed file(s), 4 initial context file(s), and one focused verification command fit one bounded invocation.
 
 ---
@@ -44,15 +44,16 @@ execution_budget:
 
 ```yaml
 primary_files:
-  - hooks/constraint_dashboard.py
+  - backend/app/services/rag_policy.py
 initial_context:
-  - commit-specs/commit-32.md
-  - hooks/constraint_dashboard.py
-  - hooks/tests/test_context_telemetry.py
-  - commit-specs/commit-31.md
+  - commit-specs/commit-39.md
+  - backend/app/services/rag_policy.py
+  - backend/tests/services/test_rag_policy.py
+  - commit-specs/commit-38.md
 forbidden:
-  - backend/app/
-  - frontend/src/
+  - backend/app/api/
+  - backend/app/models/
+  - frontend/
 ```
 
 ---
@@ -61,14 +62,14 @@ forbidden:
 
 | File | Type | Purpose |
 |---|---|---|
-| `hooks/constraint_dashboard.py` | edit | Render ledger and budget states |
-| `hooks/tests/test_context_telemetry.py` | edit | Prove dashboard ledger output |
+| `backend/app/services/rag_policy.py` | edit | Fetch ready, profile-matched vector candidates. |
+| `backend/tests/services/test_rag_policy.py` | edit | Prove policy-vector-candidates |
 
 ---
 
 ## Contract
 
-Render the invocation ledger and commit budget state in the constraint dashboard.
+Fetch ready, profile-matched vector candidates.
 
 The implementation must preserve prior committed contracts, use provider-neutral or typed
 interfaces where applicable, and expose no unrelated behavior.
@@ -77,22 +78,22 @@ interfaces where applicable, and expose no unrelated behavior.
 
 ## Environment Prerequisites
 
-- C31 reconciled metric shape available.
+- C37 ingestion database contract and C25 provider-neutral services are available.
 
 ---
 
 ## Verification Command
 
 ```powershell
-pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
+docker compose run --rm backend uv run pytest tests/services/test_rag_policy.py -k vector_candidates -q
 ```
 
 ---
 
 ## Focused Tests
 
-- Separate invocations render.
-- Contradictions and unknown tokens are visible.
+- Cosine ordering is deterministic.
+- Wrong-profile and non-ready documents are excluded.
 
 ---
 
@@ -106,16 +107,13 @@ pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
 
 ## Developer Test Checkpoint
 
-**Ready now:** The invocation-ledger dashboard is ready for inspection.
-**How to test:** Run `python hooks/render_constraint_dashboard.py`, then open `constraint-dashboard.html`.
-**Expected result:** Each invocation appears separately with totals, budget state, and contradiction indicators.
-**Still incomplete:** Product and database recovery work begins in C33.
+**Next milestone:** C49.
 
 ---
 
 ## Not In This Commit
 
-- Product recovery begins C33.
+- Later policy RAG behavior starts C40.
 
 ---
 

@@ -1,9 +1,9 @@
-# Commit 33 - `upload-duplicate-status` - Rex
+# Commit 63 - `conversation-list-api` - Rex
 
-**Phase:** Product And Test Recovery
+**Phase:** Backend Policy Chat
 **Owner:** rex
-**Depends on:** C29B
-**Estimated diff lines:** 200
+**Depends on:** C62
+**Estimated diff lines:** 255
 **Primary behavior count:** 1
 **Developer test milestone:** no
 
@@ -11,15 +11,15 @@
 
 ## Primary Behavior
 
-Return HTTP 201 for a new document and HTTP 200 for an identical ready document.
+Return owner-scoped cursor-paginated policy conversations.
 
 ---
 
 ## Semantic Fit Review
 
-- **Atomic outcome:** One route contract distinguishes creation from idempotent reuse.
-- **Failure boundary:** Ingestion database integration remains C36-C37.
-- **Budget rationale:** 2 exact changed file(s), 4 initial context file(s), and one focused verification command fit one bounded invocation.
+- **Atomic outcome:** One backend contract or persistence behavior is introduced.
+- **Failure boundary:** Later route, persistence, or read behavior remains isolated.
+- **Budget rationale:** 3 exact changed file(s), 5 initial context file(s), and one focused verification command fit one bounded invocation.
 
 ---
 
@@ -44,12 +44,14 @@ execution_budget:
 
 ```yaml
 primary_files:
-  - backend/app/api/v1/documents.py
+  - backend/app/schemas/conversation.py
+  - backend/app/api/v1/chat.py
 initial_context:
-  - commit-specs/commit-33.md
-  - backend/app/api/v1/documents.py
-  - backend/tests/api/test_documents.py
-  - commit-specs/commit-28.md
+  - commit-specs/commit-63.md
+  - backend/app/schemas/conversation.py
+  - backend/app/api/v1/chat.py
+  - backend/tests/api/test_conversations.py
+  - commit-specs/commit-62.md
 forbidden:
   - frontend/
   - hooks/
@@ -61,14 +63,15 @@ forbidden:
 
 | File | Type | Purpose |
 |---|---|---|
-| `backend/app/api/v1/documents.py` | edit | Return branch-specific status codes |
-| `backend/tests/api/test_documents.py` | edit | Regress new and duplicate branches |
+| `backend/app/schemas/conversation.py` | new | Define conversation list contract |
+| `backend/app/api/v1/chat.py` | edit | Implement list endpoint |
+| `backend/tests/api/test_conversations.py` | new | Prove ownership and pagination |
 
 ---
 
 ## Contract
 
-Return HTTP 201 for a new document and HTTP 200 for an identical ready document.
+Return owner-scoped cursor-paginated policy conversations.
 
 The implementation must preserve prior committed contracts, use provider-neutral or typed
 interfaces where applicable, and expose no unrelated behavior.
@@ -77,22 +80,22 @@ interfaces where applicable, and expose no unrelated behavior.
 
 ## Environment Prerequisites
 
-- Docker database is healthy and migrations are applied.
+- Docker database and all prior migrations are available.
 
 ---
 
 ## Verification Command
 
 ```powershell
-docker compose run --rm backend uv run pytest tests/api/test_documents.py -q
+docker compose run --rm backend uv run pytest tests/api/test_conversations.py -k conversation_list -q
 ```
 
 ---
 
 ## Focused Tests
 
-- New upload returns 201.
-- Duplicate ready upload returns 200 without ingestion or a new row.
+- Stable cursor ordering is preserved.
+- Other users' conversations never appear.
 
 ---
 
@@ -106,14 +109,13 @@ docker compose run --rm backend uv run pytest tests/api/test_documents.py -q
 
 ## Developer Test Checkpoint
 
-**Next milestone:** C37.
+**Next milestone:** C64.
 
 ---
 
 ## Not In This Commit
 
-- No ingestion service changes.
-- No response-shape redesign.
+- Message history is C64.
 
 ---
 

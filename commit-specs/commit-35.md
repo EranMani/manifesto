@@ -1,9 +1,9 @@
-# Commit 31 - `telemetry-reconciliation` - Adam
+# Commit 35 - `policy-storage-db-url` - Rex
 
-**Phase:** Workflow Trust
-**Owner:** adam
-**Depends on:** C30
-**Estimated diff lines:** 200
+**Phase:** Product And Test Recovery
+**Owner:** rex
+**Depends on:** C34
+**Estimated diff lines:** 145
 **Primary behavior count:** 1
 **Developer test milestone:** no
 
@@ -11,15 +11,15 @@
 
 ## Primary Behavior
 
-Aggregate commit telemetry while explicitly reporting contradictions and unknown values.
+Make policy-storage tests use DATABASE_URL with a localhost fallback.
 
 ---
 
 ## Semantic Fit Review
 
-- **Atomic outcome:** One reconciliation result is produced from existing immutable records.
-- **Failure boundary:** HTML presentation remains C32.
-- **Budget rationale:** 2 exact changed file(s), 4 initial context file(s), and one focused verification command fit one bounded invocation.
+- **Atomic outcome:** One test configuration defect is corrected.
+- **Failure boundary:** No application database configuration changes.
+- **Budget rationale:** 1 exact changed file(s), 3 initial context file(s), and one focused verification command fit one bounded invocation.
 
 ---
 
@@ -44,15 +44,14 @@ execution_budget:
 
 ```yaml
 primary_files:
-  - hooks/context_metrics.py
+  - backend/tests/models/test_policy_storage.py
 initial_context:
-  - commit-specs/commit-31.md
-  - hooks/context_metrics.py
-  - hooks/tests/test_context_telemetry.py
-  - commit-specs/commit-30.md
+  - commit-specs/commit-35.md
+  - backend/tests/models/test_policy_storage.py
+  - commit-specs/commit-34.md
 forbidden:
-  - backend/app/
-  - frontend/src/
+  - frontend/
+  - hooks/
 ```
 
 ---
@@ -61,14 +60,13 @@ forbidden:
 
 | File | Type | Purpose |
 |---|---|---|
-| `hooks/context_metrics.py` | edit | Aggregate records and contradiction evidence |
-| `hooks/tests/test_context_telemetry.py` | edit | Prove reconciliation and unknown handling |
+| `backend/tests/models/test_policy_storage.py` | edit | Read the container database URL |
 
 ---
 
 ## Contract
 
-Aggregate commit telemetry while explicitly reporting contradictions and unknown values.
+Make policy-storage tests use DATABASE_URL with a localhost fallback.
 
 The implementation must preserve prior committed contracts, use provider-neutral or typed
 interfaces where applicable, and expose no unrelated behavior.
@@ -77,22 +75,22 @@ interfaces where applicable, and expose no unrelated behavior.
 
 ## Environment Prerequisites
 
-- C30 invocation records available.
+- C34 canonical container command available.
 
 ---
 
 ## Verification Command
 
 ```powershell
-pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
+docker compose run --rm backend uv run pytest tests/models/test_policy_storage.py -q
 ```
 
 ---
 
 ## Focused Tests
 
-- Matching sources reconcile.
-- Conflicting or absent totals remain explicit.
+- Container execution resolves db:5432.
+- Host fallback remains available.
 
 ---
 
@@ -106,14 +104,14 @@ pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
 
 ## Developer Test Checkpoint
 
-**Next milestone:** C32.
+**Next milestone:** C37.
 
 ---
 
 ## Not In This Commit
 
-- Dashboard ledger is C32.
-- Historical evidence is not rewritten.
+- No model or migration changes.
+- Full ingestion integration remains C36-C37.
 
 ---
 

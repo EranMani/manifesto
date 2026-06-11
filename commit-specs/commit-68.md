@@ -1,24 +1,24 @@
-# Commit 32 - `telemetry-dashboard-ledger` - Adam
+# Commit 68 - `stream-message-rendering` - Aria
 
-**Phase:** Workflow Trust
-**Owner:** adam
-**Depends on:** C31
+**Phase:** Frontend Policy Chat
+**Owner:** aria
+**Depends on:** C67
 **Estimated diff lines:** 200
 **Primary behavior count:** 1
-**Developer test milestone:** yes
+**Developer test milestone:** no
 
 ---
 
 ## Primary Behavior
 
-Render the invocation ledger and commit budget state in the constraint dashboard.
+Render incremental assistant deltas as safe text.
 
 ---
 
 ## Semantic Fit Review
 
-- **Atomic outcome:** One operator view consumes the reconciled telemetry contract.
-- **Failure boundary:** Telemetry storage and reconciliation are already frozen.
+- **Atomic outcome:** One frontend transport, state, component, or integration outcome is introduced.
+- **Failure boundary:** Later visual or data behavior remains independently testable.
 - **Budget rationale:** 2 exact changed file(s), 4 initial context file(s), and one focused verification command fit one bounded invocation.
 
 ---
@@ -44,15 +44,15 @@ execution_budget:
 
 ```yaml
 primary_files:
-  - hooks/constraint_dashboard.py
+  - frontend/src/components/chat/StreamingMessage.tsx
 initial_context:
-  - commit-specs/commit-32.md
-  - hooks/constraint_dashboard.py
-  - hooks/tests/test_context_telemetry.py
-  - commit-specs/commit-31.md
+  - commit-specs/commit-68.md
+  - frontend/src/components/chat/StreamingMessage.tsx
+  - frontend/src/components/chat/StreamingMessage.test.tsx
+  - commit-specs/commit-67.md
 forbidden:
-  - backend/app/
-  - frontend/src/
+  - backend/
+  - hooks/
 ```
 
 ---
@@ -61,14 +61,14 @@ forbidden:
 
 | File | Type | Purpose |
 |---|---|---|
-| `hooks/constraint_dashboard.py` | edit | Render ledger and budget states |
-| `hooks/tests/test_context_telemetry.py` | edit | Prove dashboard ledger output |
+| `frontend/src/components/chat/StreamingMessage.tsx` | new | Render typed assistant state |
+| `frontend/src/components/chat/StreamingMessage.test.tsx` | new | Prove incremental safe rendering |
 
 ---
 
 ## Contract
 
-Render the invocation ledger and commit budget state in the constraint dashboard.
+Render incremental assistant deltas as safe text.
 
 The implementation must preserve prior committed contracts, use provider-neutral or typed
 interfaces where applicable, and expose no unrelated behavior.
@@ -77,22 +77,23 @@ interfaces where applicable, and expose no unrelated behavior.
 
 ## Environment Prerequisites
 
-- C31 reconciled metric shape available.
+- C65 test baseline for C66 and later.
+- Backend contracts through C64 are frozen.
 
 ---
 
 ## Verification Command
 
 ```powershell
-pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
+cd frontend; npm test -- --run src/components/chat/StreamingMessage.test.tsx
 ```
 
 ---
 
 ## Focused Tests
 
-- Separate invocations render.
-- Contradictions and unknown tokens are visible.
+- Deltas appear incrementally.
+- HTML-like content remains text.
 
 ---
 
@@ -106,16 +107,13 @@ pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
 
 ## Developer Test Checkpoint
 
-**Ready now:** The invocation-ledger dashboard is ready for inspection.
-**How to test:** Run `python hooks/render_constraint_dashboard.py`, then open `constraint-dashboard.html`.
-**Expected result:** Each invocation appears separately with totals, budget state, and contradiction indicators.
-**Still incomplete:** Product and database recovery work begins in C33.
+**Next milestone:** C70.
 
 ---
 
 ## Not In This Commit
 
-- Product recovery begins C33.
+- Input and cancellation controls are C69.
 
 ---
 

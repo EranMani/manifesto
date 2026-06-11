@@ -47,7 +47,9 @@ To add an agent: write their identity file to `.claude/agents/[name].md` and add
 implements and tests workflow automation only from an approved commit specification.
 
 ### Aria — Frontend
-**Owns:** `frontend/src/`, `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tailwind.config.ts`, `frontend/tsconfig.json`, `frontend/index.html`
+**Owns:** `frontend/src/`, `frontend/package.json`, `frontend/package-lock.json`,
+`frontend/vite.config.ts`, `frontend/tailwind.config.ts`, `frontend/tsconfig.json`,
+`frontend/index.html`
 **Does not touch:** `backend/` (Rex's)
 
 ### Nova — AI/ML Engineer

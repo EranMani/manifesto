@@ -12,12 +12,12 @@ from pathlib import Path
 HOOKS_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HOOKS_DIR))
 
-from validate_commit_spec import validate_commit_spec, validate_pending_graph  # noqa: E402
+from validate_commit_spec import commit_key, validate_commit_spec, validate_pending_graph  # noqa: E402
 
 
 def valid_spec(
     *,
-    commit: int = 30,
+    commit: int | str = 30,
     name: str = "small-change",
     depends_on: str = "C29",
     budget_override: str = "",
@@ -147,15 +147,16 @@ class ValidateCommitSpecTests(unittest.TestCase):
 
     def make_graph_repo(
         self,
-        specs: dict[int, str],
-        rows: list[tuple[int, str, str]],
+        specs: dict[int | str, str],
+        rows: list[tuple[int | str, str, str]],
     ) -> Path:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
         (root / "commit-specs").mkdir()
         for commit, spec in specs.items():
-            (root / "commit-specs" / f"commit-{commit:02d}.md").write_text(
+            filename = f"commit-{commit_key(commit)[1:].lower()}.md"
+            (root / "commit-specs" / filename).write_text(
                 spec,
                 encoding="utf-8",
             )
@@ -322,6 +323,24 @@ class ValidateCommitSpecTests(unittest.TestCase):
         )
         result = validate_pending_graph(root)
         self.assertEqual(result["status"], "valid")
+
+    def test_pending_graph_accepts_letter_suffixed_insertion(self) -> None:
+        specs = {
+            "29A": valid_spec(
+                commit="29A",
+                name="preflight",
+                depends_on="C29",
+                owner="adam",
+            ),
+            30: valid_spec(commit=30, name="first", depends_on="C29A"),
+        }
+        root = self.make_graph_repo(
+            specs,
+            [("29A", "preflight", "adam"), (30, "first", "rex")],
+        )
+        result = validate_pending_graph(root)
+        self.assertEqual(result["status"], "valid")
+        self.assertEqual(result["pending_commits"], ["C29A", "C30"])
 
     def test_pending_graph_rejects_future_dependency_and_cycle(self) -> None:
         specs = {

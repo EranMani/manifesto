@@ -29,9 +29,21 @@ def commit_key(value: str | int) -> str:
     raw = str(value).strip().upper()
     if raw.startswith("C"):
         raw = raw[1:]
-    if not raw.isdigit():
-        raise ValueError(f"commit identifier must be an integer, got {value!r}")
-    return f"C{int(raw):02d}"
+    match = re.fullmatch(r"(\d+)([A-Z]?)", raw)
+    if not match:
+        raise ValueError(
+            f"commit identifier must be an integer with an optional letter suffix, got {value!r}"
+        )
+    return f"C{int(match.group(1)):02d}{match.group(2)}"
+
+
+def commit_order(value: str | int) -> tuple[int, int]:
+    key = commit_key(value)
+    match = re.fullmatch(r"C(\d+)([A-Z]?)", key)
+    if not match:
+        raise ValueError(f"invalid canonical commit identifier {key!r}")
+    suffix = match.group(2)
+    return int(match.group(1)), 0 if not suffix else ord(suffix) - ord("A") + 1
 
 
 def section(text: str, heading: str) -> str:
@@ -103,7 +115,10 @@ def dependency_keys(text: str) -> list[str]:
     value = metadata_value(text, "Depends on")
     if not value or value.strip().lower() in {"none", "n/a"}:
         return []
-    return [commit_key(item) for item in re.findall(r"\bC?(\d+)\b", value, re.IGNORECASE)]
+    return [
+        commit_key(item)
+        for item in re.findall(r"\bC?\d+[A-Z]?\b", value, re.IGNORECASE)
+    ]
 
 
 def protocol_entries(repo_root: Path) -> dict[str, dict[str, str]]:
@@ -113,7 +128,7 @@ def protocol_entries(repo_root: Path) -> dict[str, dict[str, str]]:
     entries: dict[str, dict[str, str]] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         cells = [cell.strip() for cell in line.split("|") if cell.strip()]
-        if len(cells) < 4 or not cells[0].isdigit():
+        if len(cells) < 4 or not re.fullmatch(r"\d+[A-Za-z]?", cells[0]):
             continue
         key = commit_key(cells[0])
         entries[key] = {
@@ -173,7 +188,7 @@ def validate_commit_spec(
             {"rule": "commit_identifier", "message": str(exc)}
         ]}
 
-    spec_path = repo_root / "commit-specs" / f"commit-{key[1:]}.md"
+    spec_path = repo_root / "commit-specs" / f"commit-{key[1:].lower()}.md"
     violations: list[dict[str, Any]] = []
     if not spec_path.exists():
         add_violation(violations, "spec_exists", f"missing {spec_path.relative_to(repo_root)}")
@@ -401,7 +416,7 @@ def validate_pending_graph(repo_root: Path) -> dict[str, Any]:
     results: dict[str, dict[str, Any]] = {}
     graph: dict[str, list[str]] = {}
 
-    for key, entry in sorted(pending.items()):
+    for key, entry in sorted(pending.items(), key=lambda item: commit_order(item[0])):
         result = validate_commit_spec(repo_root, key, entry["owner"])
         results[key] = result
         if result["status"] != "valid":
@@ -414,7 +429,7 @@ def validate_pending_graph(repo_root: Path) -> dict[str, Any]:
         dependencies = result.get("dependencies", [])
         graph[key] = [dependency for dependency in dependencies if dependency in pending]
         for dependency in dependencies:
-            if dependency in pending and int(dependency[1:]) >= int(key[1:]):
+            if dependency in pending and commit_order(dependency) >= commit_order(key):
                 add_violation(
                     violations,
                     "dependency_order",
@@ -448,7 +463,7 @@ def validate_pending_graph(repo_root: Path) -> dict[str, Any]:
 
     return {
         "status": "valid" if not violations else "split_required",
-        "pending_commits": sorted(pending),
+        "pending_commits": sorted(pending, key=commit_order),
         "spec_results": results,
         "violations": violations,
     }

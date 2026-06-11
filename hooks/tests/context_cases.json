@@ -40,12 +40,11 @@
   },
   {
     "name": "policy-chat-route",
-    "commit": "30",
+    "commit": "55",
     "agent": "rex",
     "required": [
       "backend/app/api/v1/chat.py",
       "backend/app/services/rag_policy.py",
-      "backend/app/dependencies.py",
       "backend/app/main.py"
     ],
     "irrelevant": [
@@ -55,14 +54,13 @@
   },
   {
     "name": "policy-chat-ui",
-    "commit": "32",
+    "commit": "66",
     "agent": "aria",
     "required": [
-      "frontend/src/pages/ChatPolicy.tsx",
+      "frontend/src/api/chat.ts",
       "frontend/src/api/client.ts",
-      "frontend/src/store/auth.ts",
-      "frontend/src/App.tsx",
-      "commit-specs/commit-30.md"
+      "backend/app/schemas/chat.py",
+      "commit-specs/commit-54.md"
     ],
     "irrelevant": [
       "backend/app/models/product.py"

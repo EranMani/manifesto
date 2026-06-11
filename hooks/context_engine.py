@@ -29,6 +29,16 @@ def normalize_repo_path(value: str) -> str:
     return normalized
 
 
+def normalize_commit_number(value: str | int) -> str:
+    raw = str(value).strip().upper()
+    if raw.startswith("C"):
+        raw = raw[1:]
+    match = re.fullmatch(r"(\d+)([A-Z]?)", raw)
+    if not match:
+        raise ValueError(f"invalid commit identifier {value!r}")
+    return f"{int(match.group(1)):02d}{match.group(2)}"
+
+
 def safe_repo_path(repo_root: Path, relative: str) -> Path | None:
     normalized = normalize_repo_path(relative)
     parts = Path(normalized).parts
@@ -240,8 +250,9 @@ def _parse_list_block(spec: str, key: str) -> list[str]:
 def _parse_context_block(spec: str) -> dict[str, list[str]]:
     block_match = re.search(r"## context\s*```(.*?)```", spec, re.DOTALL | re.IGNORECASE)
     block = block_match.group(1) if block_match else ""
+    initial_context = _parse_list_block(block, "initial_context")
     return {
-        "tier0": _parse_list_block(block, "tier0"),
+        "tier0": initial_context or _parse_list_block(block, "tier0"),
         "tier1": _parse_list_block(block, "tier1"),
         "tier2": _parse_list_block(block, "tier2"),
         "forbidden": _parse_list_block(block, "forbidden"),
@@ -407,7 +418,12 @@ class ContextPackageBuilder:
         )
 
     def build(self, commit: str, agent: str) -> dict[str, Any]:
-        spec_path = self.repo_root / "commit-specs" / f"commit-{str(commit).zfill(2)}.md"
+        commit_number = normalize_commit_number(commit)
+        spec_path = (
+            self.repo_root
+            / "commit-specs"
+            / f"commit-{commit_number.lower()}.md"
+        )
         if not spec_path.is_file():
             raise FileNotFoundError(f"Commit spec not found: {spec_path}")
         spec = spec_path.read_text(encoding="utf-8")
@@ -588,7 +604,7 @@ class ContextPackageBuilder:
         return {
             "schema_version": 2,
             "mode": self.mode,
-            "commit": f"C{str(commit).zfill(2)}",
+            "commit": f"C{commit_number}",
             "agent": agent,
             "task_kind": infer_task_kind(spec, change_files),
             "spec": spec_path.relative_to(self.repo_root).as_posix(),

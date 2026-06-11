@@ -105,6 +105,7 @@
     "adam": {
       "worklog": ".claude/agents/logs/adam-worklog.md",
       "read_domains": [
+        "hooks/",
         "backend/Dockerfile",
         "docker-compose",
         "scripts/",
@@ -141,7 +142,7 @@
         "frontend/src/pages/ChatPolicy.tsx"
       ],
       "include": [
-        "commit-specs/commit-30.md",
+        "commit-specs/commit-54.md",
         "backend/app/schemas/chat.py"
       ]
     }

@@ -1,8 +1,8 @@
-# Commit 32 - `telemetry-dashboard-ledger` - Adam
+# Commit 76 - `assembled-policy-chat-smoke` - Adam
 
-**Phase:** Workflow Trust
+**Phase:** Assembled Verification
 **Owner:** adam
-**Depends on:** C31
+**Depends on:** C75
 **Estimated diff lines:** 200
 **Primary behavior count:** 1
 **Developer test milestone:** yes
@@ -11,14 +11,14 @@
 
 ## Primary Behavior
 
-Render the invocation ledger and commit budget state in the constraint dashboard.
+Prove upload, ask, stream, reload, and citations through the assembled application stack.
 
 ---
 
 ## Semantic Fit Review
 
-- **Atomic outcome:** One operator view consumes the reconciled telemetry contract.
-- **Failure boundary:** Telemetry storage and reconciliation are already frozen.
+- **Atomic outcome:** One smoke workflow verifies integration without adding product behavior.
+- **Failure boundary:** Feature defects become new owner-specific commits rather than smoke-script fixes.
 - **Budget rationale:** 2 exact changed file(s), 4 initial context file(s), and one focused verification command fit one bounded invocation.
 
 ---
@@ -44,12 +44,12 @@ execution_budget:
 
 ```yaml
 primary_files:
-  - hooks/constraint_dashboard.py
+  - scripts/smoke_policy_chat.ps1
 initial_context:
-  - commit-specs/commit-32.md
-  - hooks/constraint_dashboard.py
-  - hooks/tests/test_context_telemetry.py
-  - commit-specs/commit-31.md
+  - commit-specs/commit-76.md
+  - scripts/smoke_policy_chat.ps1
+  - SMOKE_TEST_RESULTS.md
+  - commit-specs/commit-75.md
 forbidden:
   - backend/app/
   - frontend/src/
@@ -61,14 +61,14 @@ forbidden:
 
 | File | Type | Purpose |
 |---|---|---|
-| `hooks/constraint_dashboard.py` | edit | Render ledger and budget states |
-| `hooks/tests/test_context_telemetry.py` | edit | Prove dashboard ledger output |
+| `scripts/smoke_policy_chat.ps1` | new | Automate assembled Phase 2 smoke |
+| `SMOKE_TEST_RESULTS.md` | edit | Record commands and expected evidence |
 
 ---
 
 ## Contract
 
-Render the invocation ledger and commit budget state in the constraint dashboard.
+Prove upload, ask, stream, reload, and citations through the assembled application stack.
 
 The implementation must preserve prior committed contracts, use provider-neutral or typed
 interfaces where applicable, and expose no unrelated behavior.
@@ -77,22 +77,22 @@ interfaces where applicable, and expose no unrelated behavior.
 
 ## Environment Prerequisites
 
-- C31 reconciled metric shape available.
+- Docker stack, Ollama model, and browser access available.
 
 ---
 
 ## Verification Command
 
 ```powershell
-pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
+powershell -ExecutionPolicy Bypass -File scripts/smoke_policy_chat.ps1
 ```
 
 ---
 
 ## Focused Tests
 
-- Separate invocations render.
-- Contradictions and unknown tokens are visible.
+- Upload a policy, ask a question, observe streaming, reload history, and inspect citations.
+- Failures identify the owning boundary without hiding them.
 
 ---
 
@@ -106,16 +106,17 @@ pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
 
 ## Developer Test Checkpoint
 
-**Ready now:** The invocation-ledger dashboard is ready for inspection.
-**How to test:** Run `python hooks/render_constraint_dashboard.py`, then open `constraint-dashboard.html`.
-**Expected result:** Each invocation appears separately with totals, budget state, and contradiction indicators.
-**Still incomplete:** Product and database recovery work begins in C33.
+**Ready now:** The complete Phase 2 policy-chat workflow is ready.
+**How to test:** Run `scripts/smoke_policy_chat.ps1`, then repeat upload -> ask -> stream -> reload -> citations in the browser.
+**Expected result:** The assembled stack completes the full workflow with durable history and citations.
+**Still incomplete:** No Phase 2 policy-chat behavior remains.
 
 ---
 
 ## Not In This Commit
 
-- Product recovery begins C33.
+- No product fixes.
+- No Phase 3 logistics work.
 
 ---
 

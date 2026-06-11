@@ -1,24 +1,24 @@
-# Commit 32 - `telemetry-dashboard-ledger` - Adam
+# Commit 50 - `policy-evaluation-dataset` - Nova
 
-**Phase:** Workflow Trust
-**Owner:** adam
-**Depends on:** C31
+**Phase:** Policy RAG
+**Owner:** nova
+**Depends on:** C49
 **Estimated diff lines:** 200
 **Primary behavior count:** 1
-**Developer test milestone:** yes
+**Developer test milestone:** no
 
 ---
 
 ## Primary Behavior
 
-Render the invocation ledger and commit budget state in the constraint dashboard.
+Define a versioned policy evaluation dataset with expected retrieval and answer outcomes.
 
 ---
 
 ## Semantic Fit Review
 
-- **Atomic outcome:** One operator view consumes the reconciled telemetry contract.
-- **Failure boundary:** Telemetry storage and reconciliation are already frozen.
+- **Atomic outcome:** One offline evaluation artifact or metric is introduced.
+- **Failure boundary:** Other metric families remain separate.
 - **Budget rationale:** 2 exact changed file(s), 4 initial context file(s), and one focused verification command fit one bounded invocation.
 
 ---
@@ -44,15 +44,16 @@ execution_budget:
 
 ```yaml
 primary_files:
-  - hooks/constraint_dashboard.py
+  - backend/tests/services/fixtures/policy_rag_evaluation.json
 initial_context:
-  - commit-specs/commit-32.md
-  - hooks/constraint_dashboard.py
-  - hooks/tests/test_context_telemetry.py
-  - commit-specs/commit-31.md
+  - commit-specs/commit-50.md
+  - backend/tests/services/fixtures/policy_rag_evaluation.json
+  - backend/tests/services/test_rag_policy_evaluation.py
+  - commit-specs/commit-49.md
 forbidden:
-  - backend/app/
-  - frontend/src/
+  - backend/app/api/
+  - backend/app/models/
+  - frontend/
 ```
 
 ---
@@ -61,14 +62,14 @@ forbidden:
 
 | File | Type | Purpose |
 |---|---|---|
-| `hooks/constraint_dashboard.py` | edit | Render ledger and budget states |
-| `hooks/tests/test_context_telemetry.py` | edit | Prove dashboard ledger output |
+| `backend/tests/services/fixtures/policy_rag_evaluation.json` | new | Versioned evaluation cases |
+| `backend/tests/services/test_rag_policy_evaluation.py` | new | Validate dataset schema |
 
 ---
 
 ## Contract
 
-Render the invocation ledger and commit budget state in the constraint dashboard.
+Define a versioned policy evaluation dataset with expected retrieval and answer outcomes.
 
 The implementation must preserve prior committed contracts, use provider-neutral or typed
 interfaces where applicable, and expose no unrelated behavior.
@@ -77,22 +78,22 @@ interfaces where applicable, and expose no unrelated behavior.
 
 ## Environment Prerequisites
 
-- C31 reconciled metric shape available.
+- C49 validated policy RAG service available.
 
 ---
 
 ## Verification Command
 
 ```powershell
-pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
+docker compose run --rm backend uv run pytest tests/services/test_rag_policy_evaluation.py -k dataset -q
 ```
 
 ---
 
 ## Focused Tests
 
-- Separate invocations render.
-- Contradictions and unknown tokens are visible.
+- Every case has query, expected sources, and answerability.
+- Invalid or duplicate case IDs fail.
 
 ---
 
@@ -106,16 +107,13 @@ pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
 
 ## Developer Test Checkpoint
 
-**Ready now:** The invocation-ledger dashboard is ready for inspection.
-**How to test:** Run `python hooks/render_constraint_dashboard.py`, then open `constraint-dashboard.html`.
-**Expected result:** Each invocation appears separately with totals, budget state, and contradiction indicators.
-**Still incomplete:** Product and database recovery work begins in C33.
+**Next milestone:** C56.
 
 ---
 
 ## Not In This Commit
 
-- Product recovery begins C33.
+- Metric calculations are C51-C53.
 
 ---
 

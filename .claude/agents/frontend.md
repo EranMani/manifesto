@@ -7,7 +7,9 @@
 
 ## Domain
 
-**Owns:** `frontend/src/`, `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tailwind.config.ts`, `frontend/tsconfig.json`, `frontend/index.html`
+**Owns:** `frontend/src/`, `frontend/package.json`, `frontend/package-lock.json`,
+`frontend/vite.config.ts`, `frontend/tailwind.config.ts`, `frontend/tsconfig.json`,
+`frontend/index.html`
 **Does not touch:** `backend/` (Rex's)
 
 ---

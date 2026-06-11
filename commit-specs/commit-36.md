@@ -1,9 +1,9 @@
-# Commit 34 - `database-test-container-command` - Adam
+# Commit 36 - `ingestion-pgvector-write-integration` - Nova
 
 **Phase:** Product And Test Recovery
-**Owner:** adam
-**Depends on:** C32
-**Estimated diff lines:** 200
+**Owner:** nova
+**Depends on:** C35
+**Estimated diff lines:** 145
 **Primary behavior count:** 1
 **Developer test milestone:** no
 
@@ -11,15 +11,15 @@
 
 ## Primary Behavior
 
-Provide one reproducible container command for the full backend test suite.
+Verify real ingestion writes deterministic policy chunks and embeddings to pgvector.
 
 ---
 
 ## Semantic Fit Review
 
-- **Atomic outcome:** One script standardizes environment startup and the test command.
-- **Failure boundary:** Individual failing tests are repaired later.
-- **Budget rationale:** 2 exact changed file(s), 3 initial context file(s), and one focused verification command fit one bounded invocation.
+- **Atomic outcome:** One integration path proves successful database insertion.
+- **Failure boundary:** Terminal failure and rollback behavior remain C37.
+- **Budget rationale:** 1 exact changed file(s), 3 initial context file(s), and one focused verification command fit one bounded invocation.
 
 ---
 
@@ -44,14 +44,15 @@ execution_budget:
 
 ```yaml
 primary_files:
-  - scripts/test_backend.ps1
+  - backend/tests/services/test_ingestion.py
 initial_context:
-  - commit-specs/commit-34.md
-  - scripts/test_backend.ps1
-  - commit-specs/commit-32.md
+  - commit-specs/commit-36.md
+  - backend/tests/services/test_ingestion.py
+  - commit-specs/commit-35.md
 forbidden:
-  - backend/app/
-  - frontend/src/
+  - backend/app/api/
+  - backend/app/models/
+  - frontend/
 ```
 
 ---
@@ -60,14 +61,13 @@ forbidden:
 
 | File | Type | Purpose |
 |---|---|---|
-| `scripts/test_backend.ps1` | new | Run backend tests against the Docker database |
-| `README.md` | edit | Document the canonical command |
+| `backend/tests/services/test_ingestion.py` | edit | Replace skipped insertion placeholder with a real database test |
 
 ---
 
 ## Contract
 
-Provide one reproducible container command for the full backend test suite.
+Verify real ingestion writes deterministic policy chunks and embeddings to pgvector.
 
 The implementation must preserve prior committed contracts, use provider-neutral or typed
 interfaces where applicable, and expose no unrelated behavior.
@@ -76,22 +76,22 @@ interfaces where applicable, and expose no unrelated behavior.
 
 ## Environment Prerequisites
 
-- Docker Desktop and Compose available.
+- Docker database, migrations, and fake embedding vectors available.
 
 ---
 
 ## Verification Command
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/test_backend.ps1 -CollectOnly
+docker compose run --rm backend uv run pytest tests/services/test_ingestion.py -k pgvector_write -q
 ```
 
 ---
 
 ## Focused Tests
 
-- Database hostname resolves inside the backend container.
-- The script propagates pytest failure.
+- Document and chunks persist.
+- Chunk order, provenance, and vector dimensions match.
 
 ---
 
@@ -111,8 +111,8 @@ powershell -ExecutionPolicy Bypass -File scripts/test_backend.ps1 -CollectOnly
 
 ## Not In This Commit
 
-- OI-11 repair is C35.
-- Ingestion integration is C36-C37.
+- No ingestion algorithm changes.
+- Failure transactions are C37.
 
 ---
 

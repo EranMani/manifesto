@@ -18,6 +18,7 @@ from context_engine import (  # noqa: E402
     _parse_context_block,
     build_dependency_graph,
     load_rules,
+    normalize_commit_number,
     safe_repo_path,
 )
 
@@ -29,6 +30,9 @@ class ContextEngineUnitTests(unittest.TestCase):
 
     def test_rejects_path_escape(self) -> None:
         self.assertIsNone(safe_repo_path(FIXTURE_ROOT, "../outside.py"))
+
+    def test_normalizes_letter_suffixed_commit(self) -> None:
+        self.assertEqual(normalize_commit_number("c29a"), "29A")
 
     def test_resolves_python_and_typescript_imports(self) -> None:
         graph = build_dependency_graph(FIXTURE_ROOT, self.rules)
@@ -45,7 +49,7 @@ class ContextEngineUnitTests(unittest.TestCase):
         spec = """
 ## context
 ```
-tier0:
+initial_context:
   - first.md
   - second.md
 forbidden:
@@ -56,6 +60,17 @@ forbidden:
         parsed = _parse_context_block(spec)
         self.assertEqual(parsed["tier0"], ["first.md", "second.md"])
         self.assertEqual(parsed["forbidden"], ["backend/", "frontend/"])
+
+    def test_context_parser_accepts_legacy_tier0_key(self) -> None:
+        spec = """
+## context
+```
+tier0:
+  - legacy.md
+```
+"""
+        parsed = _parse_context_block(spec)
+        self.assertEqual(parsed["tier0"], ["legacy.md"])
 
     def test_contract_bridge_and_dependency_expansion(self) -> None:
         package = ContextPackageBuilder(FIXTURE_ROOT, self.rules).build("1", "aria")

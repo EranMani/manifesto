@@ -1,24 +1,24 @@
-# Commit 32 - `telemetry-dashboard-ledger` - Adam
+# Commit 72 - `conversation-sidebar-list` - Aria
 
-**Phase:** Workflow Trust
-**Owner:** adam
-**Depends on:** C31
+**Phase:** Frontend Policy Chat
+**Owner:** aria
+**Depends on:** C71
 **Estimated diff lines:** 200
 **Primary behavior count:** 1
-**Developer test milestone:** yes
+**Developer test milestone:** no
 
 ---
 
 ## Primary Behavior
 
-Render the invocation ledger and commit budget state in the constraint dashboard.
+Render paginated policy conversation navigation.
 
 ---
 
 ## Semantic Fit Review
 
-- **Atomic outcome:** One operator view consumes the reconciled telemetry contract.
-- **Failure boundary:** Telemetry storage and reconciliation are already frozen.
+- **Atomic outcome:** One frontend transport, state, component, or integration outcome is introduced.
+- **Failure boundary:** Later visual or data behavior remains independently testable.
 - **Budget rationale:** 2 exact changed file(s), 4 initial context file(s), and one focused verification command fit one bounded invocation.
 
 ---
@@ -44,15 +44,15 @@ execution_budget:
 
 ```yaml
 primary_files:
-  - hooks/constraint_dashboard.py
+  - frontend/src/components/chat/ConversationSidebar.tsx
 initial_context:
-  - commit-specs/commit-32.md
-  - hooks/constraint_dashboard.py
-  - hooks/tests/test_context_telemetry.py
-  - commit-specs/commit-31.md
+  - commit-specs/commit-72.md
+  - frontend/src/components/chat/ConversationSidebar.tsx
+  - frontend/src/components/chat/ConversationSidebar.test.tsx
+  - commit-specs/commit-71.md
 forbidden:
-  - backend/app/
-  - frontend/src/
+  - backend/
+  - hooks/
 ```
 
 ---
@@ -61,14 +61,14 @@ forbidden:
 
 | File | Type | Purpose |
 |---|---|---|
-| `hooks/constraint_dashboard.py` | edit | Render ledger and budget states |
-| `hooks/tests/test_context_telemetry.py` | edit | Prove dashboard ledger output |
+| `frontend/src/components/chat/ConversationSidebar.tsx` | new | Render list, paging, loading, and empty states |
+| `frontend/src/components/chat/ConversationSidebar.test.tsx` | new | Prove list and pagination behavior |
 
 ---
 
 ## Contract
 
-Render the invocation ledger and commit budget state in the constraint dashboard.
+Render paginated policy conversation navigation.
 
 The implementation must preserve prior committed contracts, use provider-neutral or typed
 interfaces where applicable, and expose no unrelated behavior.
@@ -77,22 +77,23 @@ interfaces where applicable, and expose no unrelated behavior.
 
 ## Environment Prerequisites
 
-- C31 reconciled metric shape available.
+- C65 test baseline for C66 and later.
+- Backend contracts through C64 are frozen.
 
 ---
 
 ## Verification Command
 
 ```powershell
-pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
+cd frontend; npm test -- --run src/components/chat/ConversationSidebar.test.tsx
 ```
 
 ---
 
 ## Focused Tests
 
-- Separate invocations render.
-- Contradictions and unknown tokens are visible.
+- Empty, loading, error, and list states render.
+- Pagination preserves stable ordering.
 
 ---
 
@@ -106,16 +107,13 @@ pytest -p no:cacheprovider hooks/tests/test_context_telemetry.py -q
 
 ## Developer Test Checkpoint
 
-**Ready now:** The invocation-ledger dashboard is ready for inspection.
-**How to test:** Run `python hooks/render_constraint_dashboard.py`, then open `constraint-dashboard.html`.
-**Expected result:** Each invocation appears separately with totals, budget state, and contradiction indicators.
-**Still incomplete:** Product and database recovery work begins in C33.
+**Next milestone:** C73.
 
 ---
 
 ## Not In This Commit
 
-- Product recovery begins C33.
+- URL history navigation is C73.
 
 ---
 
