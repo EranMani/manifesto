@@ -1,6 +1,36 @@
 {
+  "schema_version": 2,
+  "commit": "C29A",
+  "agent": "adam",
+  "status": "prepared",
   "active": false,
-  "agent": null,
+  "invocation_count": 0,
+  "repair_invocation_count": 0,
+  "review_invocations": [],
+  "active_invocation": null,
   "count": 0,
-  "limit": 25
+  "limit": 28,
+  "tool_calls": 0,
+  "expansions": 0,
+  "expanded_paths": [],
+  "selected_paths": [
+    ".claude/agents/devops.md",
+    ".claude/agents/logs/adam-worklog.md",
+    "hooks/preflight_commit.py",
+    "hooks/tests/test_preflight_commit.py",
+    "hooks/validate_commit_spec.py"
+  ],
+  "write_started": false,
+  "known_implementor_tokens": 0,
+  "known_total_tokens": 0,
+  "limits": {
+    "max_agent_invocations": 1,
+    "max_tool_calls": 28,
+    "max_expansions": 2,
+    "max_implementor_tokens": 55000,
+    "max_total_tokens": 70000
+  },
+  "repair_authorization": null,
+  "stop_reason": null,
+  "prepared_at": "2026-06-11T11:19:46+00:00"
 }
