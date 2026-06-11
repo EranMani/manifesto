@@ -50,6 +50,7 @@ claude_usage_data/
 .context/index/
 .context/delegations/
 .context/telemetry/
+.context/preflight/
 
 # Hook runtime state
 hooks/tool_cap.json
