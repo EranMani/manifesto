@@ -12,7 +12,7 @@
 |---|---|---|---|
 | Orchestrator | Claude | sonnet | Pure orchestration — no code files |
 | Backend Engineer | Rex | sonnet | `backend/` — all Python application code |
-| DevOps Engineer | Adam | sonnet | Infrastructure plus workflow automation under `hooks/` |
+| DevOps Engineer | Adam | sonnet | Infrastructure plus workflow automation under `hooks/` (except `hooks/agent-config.json`, `hooks/tool_cap_end.py`, and `hooks/tests/test_tool_cap.py`, a narrow Claude/orchestrator exception for the agent identity registry and token telemetry) |
 | Frontend Engineer | Aria | sonnet | `frontend/` — all React/TypeScript |
 | AI/ML Engineer | Nova | sonnet | `backend/app/services/llm.py`, `rag_policy.py`, `rag_logistics.py`, `ingestion.py` |
 | Code Reviewer | Viktor | haiku | Cross-domain review — reads any file, touches none |

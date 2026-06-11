@@ -284,8 +284,15 @@ commit-specs/            ← per-commit full specs (load active commit only)
 project-state.json       ← machine-readable project state
 .claude/settings.json    ← hook configuration
 .claude/commands/        ← all slash commands
-hooks/                   ← pre/post commit scripts
+hooks/agent-config.json           ← agent identity/domain registry (narrow exception)
+hooks/tool_cap_end.py             ← orchestrator token-accounting (narrow exception)
+hooks/tests/test_tool_cap.py      ← its test file (narrow exception)
 ```
+
+`hooks/` as a whole is Adam's domain (DevOps workflow automation, per AGENTS.md). The
+three files above are a narrow, explicitly listed exception in `hooks/agent-config.json`
+itself for orchestrator-owned identity registry and token telemetry — not a general
+claim on `hooks/`.
 
 You do not own any application source code. If you find yourself editing a
 `backend/` or `frontend/` file, stop — you are in the wrong domain.

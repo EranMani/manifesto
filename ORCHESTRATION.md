@@ -235,6 +235,21 @@ tradeoff before the tool call, then records the result in the worklog.
 The absolute observable commit stop is 60k tokens across implementation, repair, and
 review. Missing token data remains unknown and cannot authorize continuation.
 
+**Token budgets are post-hoc, cross-invocation circuit breakers — not real-time
+limits.** `tool_cap_end.py` runs once, via `PostToolUse`/`matcher: "Agent"`, after a
+subagent invocation has already finished and all of its tokens are spent. A "hard
+stop at 45k" therefore cannot interrupt the agent that crosses it; it blocks the
+*next* invocation for that commit (e.g. refuses an unauthorized repair once
+`known_implementor_tokens` already meets the threshold). Tool-call and expansion caps
+remain real-time (enforced on `PreToolUse` within the running invocation) — only token
+caps are necessarily post-hoc.
+
+`max_total_tokens` covers only the token usage the harness reports for Agent-tool
+invocations (`<usage>subagent_tokens>` — input, output, and both cache fields summed).
+It does not separately measure the orchestrator's own token usage for that commit. If
+orchestrator usage needs to be bounded too, it must be measured and recorded
+independently — `known_total_tokens` is not a whole-commit total.
+
 When a session approaches 80% of context capacity:
 1. Trigger `/archive-worklog` for any agent with >3 completed sessions
 2. Compress context packages to Tier 0 + Tier 1 only

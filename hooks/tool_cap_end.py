@@ -23,7 +23,13 @@ def extract_tokens(payload: Any) -> int | None:
             input_tokens = usage.get("input_tokens")
             output_tokens = usage.get("output_tokens")
             if isinstance(input_tokens, int) and isinstance(output_tokens, int):
-                return input_tokens + output_tokens
+                cache_creation = usage.get("cache_creation_input_tokens", 0)
+                cache_read = usage.get("cache_read_input_tokens", 0)
+                if not isinstance(cache_creation, int) or isinstance(cache_creation, bool):
+                    cache_creation = 0
+                if not isinstance(cache_read, int) or isinstance(cache_read, bool):
+                    cache_read = 0
+                return input_tokens + output_tokens + cache_creation + cache_read
         for value in payload.values():
             found = extract_tokens(value)
             if found is not None:

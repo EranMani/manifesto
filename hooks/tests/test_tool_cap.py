@@ -10,7 +10,7 @@ from pathlib import Path
 HOOKS_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HOOKS_DIR))
 
-from tool_cap_end import close_invocation  # noqa: E402
+from tool_cap_end import close_invocation, extract_tokens  # noqa: E402
 from tool_cap_enforce import enforce_tool_event  # noqa: E402
 from tool_cap_start import (  # noqa: E402
     authorize_repair,
@@ -231,6 +231,31 @@ class ToolCapTests(unittest.TestCase):
         state["known_implementor_tokens"] = 45000
         with self.assertRaisesRegex(ValueError, "hard stop"):
             authorize_repair(state, "pytest x", "failure", ["x.py"], 100)
+
+    def test_extract_tokens_includes_cache_tokens(self) -> None:
+        # C29B repair invocation: harness reported subagent_tokens: 49837, but the
+        # prior input_tokens + output_tokens formula recorded only 791 (OI-12).
+        usage = {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 1038,
+            "cache_read_input_tokens": 48008,
+            "output_tokens": 789,
+        }
+        payload = {"message": {"usage": usage}}
+        self.assertEqual(extract_tokens(payload), 49837)
+
+    def test_close_invocation_records_full_usage_total(self) -> None:
+        state = self.state()
+        start_invocation(state, "rex", "normal")
+        usage = {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 1038,
+            "cache_read_input_tokens": 48008,
+            "output_tokens": 789,
+        }
+        close_invocation(state, extract_tokens({"message": {"usage": usage}}))
+        self.assertEqual(state["known_implementor_tokens"], 49837)
+        self.assertEqual(state["known_total_tokens"], 49837)
 
 
 if __name__ == "__main__":
