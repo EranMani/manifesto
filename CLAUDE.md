@@ -89,25 +89,30 @@ Do not begin Step 4 without completing Steps 1–3.
 
 ## Commit Preview Format
 
+For C29B and every later commit, use this compact preflight approval card:
+
 ```
-## Commit [N] — `[name]` · [Assignee]
+C[N] PREFLIGHT: [READY|BLOCKED] ([score]/100)
 
-**Summary:** [1-2 sentences plain English — what this commit does and why it matters.
-             Junior-readable. No jargon. Replaces the old "What" field.]
-**Why now:** [one sentence — sequencing rationale]
+Owner: [Name] ([Domain])
+Goal: [one plain-language sentence]
 
-**⚡ Parallel:** [if applicable — which commits can run simultaneously and why]
+Files:
+- [Add|Edit|Delete]: path/to/file
 
-**Changes:**
-- `path/to/file` — new/update/delete: [what, in 5 words]
+Warnings:
+- [Exact warning text, or "None."]
+- Decision required: [Yes|No]
 
-**Test gates:** [gate 1] · [gate 2] · [gate 3]
-
-**Quality gate:** [e.g. "Viktor batch wave at C05. No per-commit gate — infrastructure only."
-                  Always state the rule explicitly — never just "None".]
-
-Invoke [Agent] to begin?
+Proceed? [yes/no]
 ```
+
+Resolve the display name and domain from `hooks/agent-config.json`. Always list every
+planned file with its action and every warning in plain language, not counts alone.
+
+Do not load or summarize the full spec when preflight is ready and no warning requires a
+decision. Show details only when preflight blocks, a warning requires Eran's decision,
+scope changed after approval, or a repair/split commit is proposed.
 
 Do not invoke the agent until Eran responds with explicit approval.
 
@@ -134,7 +139,7 @@ You do **not** load files from other agents' domains unless this step explicitly
 3. Run `hooks/validate_commit_spec.py --all-pending --json` after creating or renumbering
    pending specs. Then validate the active commit and owner. If either fails, stop and
    propose a smaller sequential commit. Only then run `hooks/prepare_agent_delegation.py`.
-4. **Present Commit Preview to Eran — wait for explicit approval**
+4. **Present compact preflight approval to Eran — wait for explicit approval**
 5. Invoke owning agent
 5a. **Parse agent self-report** — extract the telemetry JSON block from the agent's final
     message (Return Contract section) and persist it immediately:

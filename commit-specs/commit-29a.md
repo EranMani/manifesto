@@ -78,8 +78,14 @@ It writes details to `.context/preflight/C<ID>.json` and prints compact JSON:
 {
   "commit": "C30",
   "score": 92,
+  "owner": {"id": "adam", "name": "Adam", "domain": "DevOps"},
+  "goal": "Store separate invocation telemetry records.",
+  "files": [
+    {"action": "edit", "path": "hooks/context_telemetry.py"}
+  ],
   "blocking_violations": [],
   "warnings": ["Docker availability was not confirmed"],
+  "decision_required": false,
   "proceed": true,
   "report_path": ".context/preflight/C30.json"
 }
@@ -106,6 +112,27 @@ These conditions block regardless of score:
 Warnings may reduce the score without independently blocking. Claude receives only the
 compact result on a passing run. A blocked report explains each failed check, deduction,
 and repair direction without invoking an LLM.
+
+The compact result supplies the full approval-card data without requiring Claude to read
+the detailed report: owner ID, display name, domain from `agent-config.json`, one-sentence
+goal, every planned file with `add`, `edit`, or `delete`, exact warning text, and
+`decision_required`.
+
+```text
+C30 PREFLIGHT: READY (92/100)
+
+Owner: Adam (DevOps)
+Goal: Store separate invocation telemetry records.
+
+Files:
+- Edit: hooks/context_telemetry.py
+
+Warnings:
+- Docker availability was not confirmed.
+- Decision required: No
+
+Proceed? [yes/no]
+```
 
 `prepare_agent_delegation.py` calls the preflight API before initializing telemetry,
 tool-cap state, or the delegation brief. A blocked result exits without those side
@@ -135,6 +162,7 @@ pytest -p no:cacheprovider hooks/tests/test_preflight_commit.py hooks/tests/test
 - A hard violation blocks even when the score remains at least 80.
 - Identical inputs produce identical scores and findings.
 - Detailed diagnostics persist while stdout remains compact.
+- Compact output contains owner name/domain, goal, file actions, and exact warnings.
 - Blocked preflight creates no delegation, telemetry, or tool-cap state.
 
 ---

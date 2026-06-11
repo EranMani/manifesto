@@ -217,3 +217,7 @@ Load `commit-specs/commit-XX.md` (active commit only) when executing a step.
 17. C29A is the one bootstrap exception because the gate does not exist before its own
     implementation. C29B and every later implementor delegation must pass preflight.
     Dashboard rendering is observational and never overrides the Python gate result.
+18. A passing preflight produces a compact approval card containing score/status,
+    `Owner: Name (Domain)`, one-sentence goal, every planned file with its action, exact
+    warning text, and whether a decision is required. Claude loads detailed diagnostics
+    only for a blocked result, decision-required warning, changed scope, or split/repair.

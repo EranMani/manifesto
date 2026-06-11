@@ -58,8 +58,12 @@ STEP 3 — Claude validates scope, then builds the live context package
     boundaries, handoffs, acceptance criteria, and expansion triggers
 
 STEP 3.5 — Claude presents the Commit Preview to Eran
-└── Structured card: what, why now, files to touch, test gates
-    Asks: "Invoke [Agent] to begin?"
+└── For C29B onward, shows only: readiness score/status, owner with domain,
+    one-sentence goal, every planned file with Add/Edit/Delete action, exact warning
+    text, and whether a warning requires Eran's decision.
+    Full diagnostics appear only for BLOCKED results, decision-required warnings,
+    changed scope, or repair/split proposals.
+    Asks: "Proceed? [yes/no]"
     Eran must respond with explicit approval before Step 4 runs.
 
 STEP 4 — Pre-invocation check (mandatory)
@@ -351,7 +355,7 @@ No agent can propose a replan that expands their own domain scope.
 These cannot be overridden by any agent or any instruction:
 
 1. One commit per protocol step — no combining
-2. Eran approves the Commit Preview before any agent is invoked — no exceptions
+2. Eran approves the compact preflight card before any agent is invoked — no exceptions
 3. Eran approves the commit after quality gates — no exceptions
 4. Tests pass before approval surfaces — no bypassing the gate
 5. Viktor reviews every 5th commit — no skipping
