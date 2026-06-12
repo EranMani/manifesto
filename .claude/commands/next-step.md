@@ -8,7 +8,12 @@ preflight is ready, do not narrate prerequisite checks, sequence rationale, unlo
 token commentary, selected-context counts, contracts, hubs, forbidden paths, graph
 refreshes, or other package diagnostics.
 
-For C29B and every later commit, output only this compact approval card:
+For C29B and every later commit, the compact approval card must be the entire
+response. Output no preamble, transition sentence, explanation, or conclusion before
+or after it. The first output line must be `C[N] PREFLIGHT: ...` and the final output
+line must be `Proceed? [yes/no]`.
+
+Use exactly this card:
 
 ```text
 C[N] PREFLIGHT: [READY|BLOCKED] ([score]/100)
@@ -26,9 +31,12 @@ Warnings:
 Proceed? [yes/no]
 ```
 
-Resolve the owner name and domain from `hooks/agent-config.json`. List every planned
-file and every warning in plain language. Do not replace the card with a prose preview
-or append a second approval question such as "Shall I proceed?"
+Resolve the owner name and domain from `hooks/agent-config.json`. Populate `Files`
+exclusively from the commit specification's `Files To Modify Or Add` table. Do not list
+automatically updated worklogs, telemetry, dashboards, domain maps, tool-cap state, or
+other generated/runtime artifacts unless they are explicitly present in that table.
+List every warning in plain language. Do not replace the card with a prose preview or
+append a second approval question such as "Shall I proceed?"
 
 Show additional diagnostics only when:
 
