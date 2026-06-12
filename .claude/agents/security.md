@@ -71,7 +71,7 @@ Mitigation: [specific, actionable fix]
 
 ## Execution Constraints
 
-- Max tool uses: 25
+- Max tool uses: 18
 - Read only security-relevant files — never the full diff
 - Prompt must be under 200 words before the diff
 

@@ -49,6 +49,15 @@ CLAUDE_EMAIL = "claude@anthropic.com"
 DIRECT_EXECUTION_MARKER = "Execution: Claude-direct"
 
 
+class DirectExecutionResolutionError(Exception):
+    """Raised when an Execution: Claude-direct commit cannot resolve its
+    commit ID, spec file, or Files To Modify Or Add table.
+
+    This must hard-fail the commit rather than silently fall back to the
+    general domain-boundary check.
+    """
+
+
 def run(cmd):
     return subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
 
@@ -84,14 +93,24 @@ def check_commit_message_format(msg):
 
 
 def planned_files_for_commit(git_root: Path, msg: str) -> set[str]:
+    """Resolve the Files To Modify Or Add table for an Execution: Claude-direct commit.
+
+    Raises DirectExecutionResolutionError if the marker is present but the
+    commit ID, spec file, or Files table cannot be resolved.
+    """
     if DIRECT_EXECUTION_MARKER.lower() not in msg.lower():
         return set()
     match = re.search(r"(?:^|\n)\s*[Cc]ommit\s+#0*(\d{1,3}[a-zA-Z]?)", msg)
     if not match:
-        return set()
-    spec_path = git_root / "commit-specs" / f"commit-{match.group(1).lower()}.md"
+        raise DirectExecutionResolutionError(
+            f"'{DIRECT_EXECUTION_MARKER}' present but no 'Commit #NN' line found in the commit message."
+        )
+    commit_id = match.group(1).lower()
+    spec_path = git_root / "commit-specs" / f"commit-{commit_id}.md"
     if not spec_path.is_file():
-        return set()
+        raise DirectExecutionResolutionError(
+            f"'{DIRECT_EXECUTION_MARKER}' present but commit-specs/commit-{commit_id}.md does not exist."
+        )
     content = spec_path.read_text(encoding="utf-8")
     section_match = re.search(
         r"^## Files To Modify Or Add\s*$\n(.*?)(?=^##\s+|\Z)",
@@ -99,8 +118,17 @@ def planned_files_for_commit(git_root: Path, msg: str) -> set[str]:
         re.MULTILINE | re.DOTALL | re.IGNORECASE,
     )
     if not section_match:
-        return set()
-    return set(re.findall(r"\|\s*`([^`]+)`\s*\|", section_match.group(1)))
+        raise DirectExecutionResolutionError(
+            f"'{DIRECT_EXECUTION_MARKER}' present but commit-specs/commit-{commit_id}.md has no "
+            f"'## Files To Modify Or Add' section."
+        )
+    files = set(re.findall(r"\|\s*`([^`]+)`\s*\|", section_match.group(1)))
+    if not files:
+        raise DirectExecutionResolutionError(
+            f"'{DIRECT_EXECUTION_MARKER}' present but commit-specs/commit-{commit_id}.md's "
+            f"'## Files To Modify Or Add' section has no file rows."
+        )
+    return files
 
 
 def check_domain_boundaries(staged, agent_email, config, direct_allowed=None):
@@ -227,7 +255,10 @@ def main():
                     text=True,
                 ).stdout.strip()
             )
-            direct_allowed = planned_files_for_commit(git_root, msg)
+            try:
+                direct_allowed = planned_files_for_commit(git_root, msg)
+            except DirectExecutionResolutionError as e:
+                errors.append(str(e))
         errors.extend(
             check_domain_boundaries(
                 staged,

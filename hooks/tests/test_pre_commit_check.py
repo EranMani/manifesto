@@ -5,11 +5,14 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 
 HOOKS_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HOOKS_DIR))
 
 from pre_commit_check import (  # noqa: E402
+    DirectExecutionResolutionError,
     check_domain_boundaries,
     planned_files_for_commit,
 )
@@ -79,3 +82,62 @@ def test_claude_direct_requires_explicit_marker(tmp_path: Path) -> None:
     allowed = planned_files_for_commit(tmp_path, "fix(example): implement\n\nCommit #30")
 
     assert allowed == set()
+
+
+def test_claude_direct_without_commit_number_hard_fails(tmp_path: Path) -> None:
+    _write_spec(tmp_path)
+    message = "fix(example): implement behavior\n\nExecution: Claude-direct"
+
+    with pytest.raises(DirectExecutionResolutionError, match="Commit #NN"):
+        planned_files_for_commit(tmp_path, message)
+
+
+def test_claude_direct_with_missing_spec_hard_fails(tmp_path: Path) -> None:
+    _write_spec(tmp_path)
+    message = "fix(example): implement behavior\n\nCommit #99\nExecution: Claude-direct"
+
+    with pytest.raises(DirectExecutionResolutionError, match="commit-99.md does not exist"):
+        planned_files_for_commit(tmp_path, message)
+
+
+def test_claude_direct_with_missing_files_table_hard_fails(tmp_path: Path) -> None:
+    specs = tmp_path / "commit-specs"
+    specs.mkdir()
+    (specs / "commit-31.md").write_text(
+        """
+# Commit 31 - example
+
+## Contract
+
+No Files To Modify Or Add section here.
+""".strip(),
+        encoding="utf-8",
+    )
+    message = "fix(example): implement behavior\n\nCommit #31\nExecution: Claude-direct"
+
+    with pytest.raises(DirectExecutionResolutionError, match="Files To Modify Or Add"):
+        planned_files_for_commit(tmp_path, message)
+
+
+def test_claude_direct_with_empty_files_table_hard_fails(tmp_path: Path) -> None:
+    specs = tmp_path / "commit-specs"
+    specs.mkdir()
+    (specs / "commit-32.md").write_text(
+        """
+# Commit 32 - example
+
+## Files To Modify Or Add
+
+| File | Type | Purpose |
+|---|---|---|
+
+## Contract
+
+Example.
+""".strip(),
+        encoding="utf-8",
+    )
+    message = "fix(example): implement behavior\n\nCommit #32\nExecution: Claude-direct"
+
+    with pytest.raises(DirectExecutionResolutionError, match="no file rows"):
+        planned_files_for_commit(tmp_path, message)

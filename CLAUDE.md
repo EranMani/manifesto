@@ -174,6 +174,10 @@ You do **not** load files from other agents' domains unless this step explicitly
     Run `git diff --check` and `git diff --stat` — review every changed line.
 7b. Run `/verify-commit` — always, before any notification or approval prompt, without
     exception. If it fails: stop, fix, re-run. Never notify before it passes.
+    `/verify-commit` checks structural compliance only (context block present, no
+    forbidden-path files, tool budget respected) — it does not verify test results,
+    logic correctness, or spec conformance. Step 6a/6b's independent inspection is
+    what verifies correctness; passing `/verify-commit` is not a substitute.
 7c. **Close orchestrator scope** — immediately after /verify-commit passes:
     ```
     python hooks/context_telemetry.py --stop-orchestrator CNN

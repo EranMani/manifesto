@@ -124,9 +124,12 @@ Opus   (never):            Banned — too expensive for any use
 
 ## Universal Tool Use Cap — All Agents
 
-**25 tool uses maximum per agent invocation. No exceptions.**
+**18 tool uses maximum per agent invocation. Call 19 is mechanically blocked.**
 
-If an agent hits 25 and is not done, it stops and reports. Claude does not re-invoke to continue.
+The only exception is the greenfield-module budget (28 tool uses), opt-in via a spec's
+`bootstrap_exception` block and authorized by Eran — see commit-protocol.md "Budget Profiles".
+
+If an agent hits its cap and is not done, it stops and reports. Claude does not re-invoke to continue.
 
 ---
 
@@ -142,7 +145,8 @@ tradeoff; the expansion and outcome are recorded in the worklog.
 
 ```
 EXECUTION CONSTRAINTS:
-- Max tool uses: 25. Plan reads upfront. Batch writes. Hit 25 → stop and report.
+- Max tool uses: 18 (28 only under an authorized greenfield bootstrap_exception). Plan reads
+  upfront. Batch writes. Hit the cap → stop and report.
 - Two phases only: Phase 1 — all reads. Phase 2 — all writes. No reads in Phase 2.
 - Do not re-read any file already read this session.
 - Worklog: one write at task completion only.
@@ -158,7 +162,7 @@ EXECUTION CONSTRAINTS:
 
 ```
 EXECUTION CONSTRAINTS:
-- Max tool uses: 25. Work from the diff. Do NOT read files speculatively.
+- Max tool uses: 18. Work from the diff. Do NOT read files speculatively.
 - Only Read a file if a specific diff line is ambiguous — max 15 lines per targeted read.
 ```
 
@@ -223,6 +227,10 @@ STEP C — DIFF AND BOUNDARY REVIEW
 STEP D — /verify-commit
   Always, without exception. If it fails: stop, fix, re-run.
   Never proceed to notification before this passes.
+  /verify-commit checks structural compliance only (context block present, no
+  forbidden-path files, tool budget respected) — it does not verify test results,
+  logic correctness, or spec conformance. STEP A's independent logic inspection is
+  what verifies correctness; passing /verify-commit is not a substitute.
 
 STEP D.5 — CLOSE ORCHESTRATOR SCOPE (immediately after STEP D passes)
   Run: python hooks/context_telemetry.py --stop-orchestrator CNN

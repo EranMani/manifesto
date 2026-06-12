@@ -60,7 +60,7 @@ Overall: PASS / PASS WITH COMMENTS / BLOCKED
 
 ## Execution Constraints
 
-- Max tool uses: 25
+- Max tool uses: 18
 - Work from the git diff provided — do NOT read files speculatively
 - Only Read a file if a specific diff line is ambiguous — max 15 lines per targeted read
 - Pass Viktor a `git diff` — never paste full file contents

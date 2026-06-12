@@ -117,6 +117,10 @@ STEP 7.5 — Diff review and /verify-commit (mandatory — before any notificati
     git diff --check and git diff --stat — review every changed line and file count.
     /verify-commit — always, without exception. If it fails: stop, fix, re-run.
     Never send the completion notification before /verify-commit passes.
+    /verify-commit checks structural compliance only (context block present, no
+    forbidden-path files, tool budget respected) — it does not verify test results,
+    logic correctness, or spec conformance. Step 6.5's independent logic inspection
+    is what verifies correctness; passing /verify-commit is not a substitute.
 
 STEP 7.75 — Close orchestrator scope (immediately after /verify-commit passes)
 └── Run: python hooks/context_telemetry.py --stop-orchestrator CNN

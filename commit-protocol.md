@@ -133,6 +133,12 @@ Each pending commit targets:
 The sequence may grow again if exact spec drafting reveals a candidate that cannot keep
 this margin.
 
+`hooks/validate_commit_spec.py` already enforces these numeric limits against
+`LOCKED_BUDGET` (`max_primary_files`, `max_context_files`, `max_changed_files`,
+`max_estimated_diff_lines`, and the execution budget's tool-call/token caps) when run
+per rule 11. A spec that exceeds this envelope fails validation before any delegation
+package or Commit Preview is produced — no separate envelope check is needed.
+
 ### Budget Profiles
 
 | Profile | tool calls | implementor tokens | total tokens | expansions | When |
