@@ -9,6 +9,19 @@ preflight is ready, do not narrate prerequisite checks, sequence rationale, unlo
 token commentary, selected-context counts, contracts, hubs, forbidden paths, graph
 refreshes, or other package diagnostics.
 
+Choose the execution route before rendering the card:
+
+- Default: `Claude (direct)`.
+- Delegate only when at least one concrete justification applies: specialist uncertainty
+  that Claude cannot resolve from selected context, independent implementation is needed
+  for risk control, or the task is a clearly bounded specialist unit whose expected value
+  exceeds invocation overhead.
+- Never delegate workflow/governance changes, mechanical wiring, narrow repairs, known
+  exact edits, or tests that Claude can implement directly.
+- A domain owner is not automatically the executor.
+- Record the justification in the card whenever execution is delegated. Without a
+  written justification, execution remains Claude-direct.
+
 For C29B and every later commit, the compact approval card must be the entire
 response. Output no preamble, transition sentence, explanation, or conclusion before
 or after it. The first output line must be `C[N] PREFLIGHT: ...` and the final output
@@ -20,6 +33,7 @@ Use exactly this card:
 C[N] PREFLIGHT: [READY|BLOCKED] ([score]/100)
 
 Owner: [Name] ([Domain])
+Executor: [Claude (direct)|Agent name (delegated)]
 Goal: [one plain-language sentence]
 
 Files:
@@ -27,6 +41,7 @@ Files:
 
 Warnings:
 - [Exact warning text, or "None."]
+- Delegation justification: [Reason, or "Not delegated."]
 - Decision required: [Yes|No]
 
 Proceed? [yes/no]
@@ -47,7 +62,11 @@ Show additional diagnostics only when:
 - a split or repair invocation is proposed; or
 - Eran explicitly asks for details.
 
-Do not start work until Eran explicitly approves. After approval, rerun the command
-without `--preview` to activate tool-cap state and telemetry, then invoke the owning
-agent with the generated delegation brief verbatim. Do not duplicate full file contents
-in the invocation prompt.
+Do not start work until Eran explicitly approves. After approval:
+
+- Claude-direct: implement only the files in `Files To Modify Or Add`; do not activate
+  agent tool-cap state.
+- Delegated: rerun the command without `--preview` to activate tool-cap state and
+  telemetry, then invoke the named agent with the generated delegation brief verbatim.
+
+Do not duplicate full file contents in an invocation prompt.

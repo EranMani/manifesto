@@ -45,6 +45,8 @@ COMMIT_MSG_PATTERN = re.compile(
 COAUTHORED_PATTERN = re.compile(
     r"Co-Authored-By:\s+\S+\s+<([^>]+)>", re.IGNORECASE
 )
+CLAUDE_EMAIL = "claude@anthropic.com"
+DIRECT_EXECUTION_MARKER = "Execution: Claude-direct"
 
 
 def run(cmd):
@@ -81,7 +83,27 @@ def check_commit_message_format(msg):
     return []
 
 
-def check_domain_boundaries(staged, agent_email, config):
+def planned_files_for_commit(git_root: Path, msg: str) -> set[str]:
+    if DIRECT_EXECUTION_MARKER.lower() not in msg.lower():
+        return set()
+    match = re.search(r"(?:^|\n)\s*[Cc]ommit\s+#0*(\d{1,3}[a-zA-Z]?)", msg)
+    if not match:
+        return set()
+    spec_path = git_root / "commit-specs" / f"commit-{match.group(1).lower()}.md"
+    if not spec_path.is_file():
+        return set()
+    content = spec_path.read_text(encoding="utf-8")
+    section_match = re.search(
+        r"^## Files To Modify Or Add\s*$\n(.*?)(?=^##\s+|\Z)",
+        content,
+        re.MULTILINE | re.DOTALL | re.IGNORECASE,
+    )
+    if not section_match:
+        return set()
+    return set(re.findall(r"\|\s*`([^`]+)`\s*\|", section_match.group(1)))
+
+
+def check_domain_boundaries(staged, agent_email, config, direct_allowed=None):
     agents = config.get("agents", {})
     universal = config.get("universal_allowed", [])
     agent_cfg = agents.get(agent_email)
@@ -91,10 +113,12 @@ def check_domain_boundaries(staged, agent_email, config):
             f"  Known agents: {list(agents.keys())}"
         ]
     allowed = agent_cfg.get("domains", [])
+    exact_allowed = set(direct_allowed or [])
     violations = [
         f for f in staged
         if not any(f == u or f.startswith(u) for u in universal)
         and not any(f == a or f.startswith(a) for a in allowed)
+        and f not in exact_allowed
     ]
     if violations:
         name = agent_cfg.get("name", agent_email)
@@ -194,7 +218,24 @@ def main():
 
     agent_email = detect_agent_email(msg)
     if agent_email:
-        errors.extend(check_domain_boundaries(staged, agent_email, config))
+        direct_allowed = set()
+        if agent_email.lower() == CLAUDE_EMAIL:
+            git_root = Path(
+                subprocess.run(
+                    ["git", "rev-parse", "--show-toplevel"],
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip()
+            )
+            direct_allowed = planned_files_for_commit(git_root, msg)
+        errors.extend(
+            check_domain_boundaries(
+                staged,
+                agent_email,
+                config,
+                direct_allowed=direct_allowed,
+            )
+        )
     else:
         warnings.append(
             "No Co-Authored-By trailer found.\n"

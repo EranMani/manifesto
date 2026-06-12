@@ -242,3 +242,10 @@ Load `commit-specs/commit-XX.md` (active commit only) when executing a step.
     `Owner: Name (Domain)`, one-sentence goal, every planned file with its action, exact
     warning text, and whether a decision is required. Claude loads detailed diagnostics
     only for a blocked result, decision-required warning, changed scope, or split/repair.
+19. Claude-direct execution is the default after approval. The card names the executor.
+    Delegation requires a written justification based on unresolved specialist
+    uncertainty, independent implementation needed for risk control, or a clearly
+    bounded specialist unit whose expected value exceeds invocation overhead. Domain
+    ownership alone is insufficient. Claude-direct commits include
+    `Execution: Claude-direct` and are mechanically limited to the active spec's
+    `Files To Modify Or Add` table.

@@ -2,7 +2,7 @@
 
 > Claude reads this file at every session boot, immediately after project-state.json.
 > These preferences tune agent behavior for this project and Team Lead.
-> Last updated: 2026-06-09
+> Last updated: 2026-06-12
 
 ---
 
@@ -36,6 +36,17 @@ Public-facing:     internal tool (future AWS deployment)
 4. NEVER SPAWN AN AGENT FOR A KNOWN EDIT.
    If the exact file, line, and new content are already known → use Edit directly.
    Agent overhead = 10–30k tokens. Edit = ~200 tokens.
+
+5. CLAUDE-DIRECT IS THE DEFAULT EXECUTION ROUTE.
+   Domain ownership does not require an agent invocation. Delegate only when a written
+   justification identifies unresolved specialist uncertainty, independent implementation
+   needed for risk control, or a clearly bounded specialist unit whose expected value
+   exceeds invocation overhead. Workflow/governance changes, mechanical wiring, narrow
+   repairs, known exact edits, and straightforward tests stay Claude-direct.
+
+   Claude-direct work is limited to the active approved commit spec's
+   `Files To Modify Or Add` table. The approval card names the executor and shows
+   `Delegation justification: Not delegated.` when Claude executes directly.
 
 5. DEBATES AND DECISIONS GO INTO DECISIONS.md IMMEDIATELY.
    Eran reads DECISIONS.md to build his understanding of the process.

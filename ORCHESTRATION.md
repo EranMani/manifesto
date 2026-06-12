@@ -61,20 +61,21 @@ STEP 3 — Claude validates scope, then builds the live context package
 
 STEP 3.5 — Claude presents the Commit Preview to Eran
 └── For C29B onward, shows only: readiness score/status, owner with domain,
-    one-sentence goal, every planned file with Add/Edit/Delete action, exact warning
-    text, and whether a warning requires Eran's decision.
+    executor, one-sentence goal, every planned file with Add/Edit/Delete action, exact
+    warning text, delegation justification, and whether a warning requires Eran's decision.
     Full diagnostics appear only for BLOCKED results, decision-required warnings,
     changed scope, or repair/split proposals.
     Asks: "Proceed? [yes/no]"
     Eran must respond with explicit approval before Step 4 runs.
 
 STEP 4 — Pre-invocation check (mandatory)
-└── "Do I already know the exact file, line, and content to change?"
-    YES → use Edit directly. Do NOT invoke an agent.
-          Agent overhead = 10–30k tokens. Edit = ~200 tokens.
-    NO  → rerun hooks/prepare_agent_delegation.py without --preview to activate
-          tool-cap state and telemetry, then invoke the agent with the generated
-          delegation brief verbatim.
+└── Claude-direct is the default execution route.
+    Delegate only with an approved written justification: unresolved specialist
+    uncertainty, independent implementation required for risk control, or a clearly
+    bounded specialist unit whose expected value exceeds invocation overhead.
+    Claude-direct → edit only files listed in the active commit spec.
+    Delegated → rerun hooks/prepare_agent_delegation.py without --preview to activate
+                tool-cap state and telemetry, then invoke the named agent.
 
 STEP 5 — Agent executes
 └── One normal invocation, maximum 18 tool calls and two expansions.
@@ -128,7 +129,8 @@ STEP 8 — Quality gate wave (parallel where triggered)
     Sage:   conditional (auth, secrets, user input) — Haiku
     Mira:   conditional (user-facing behavior) — Haiku
 
-    Blocking finding → owning agent fixes in a NEW commit (no gate-fix passes)
+    Blocking finding → a NEW commit using the standard Claude-direct-default routing
+                       (no gate-fix passes)
     Viktor Hard Block → routes directly to Eran
 
 STEP 9 — Records update (mandatory before notification)
@@ -152,7 +154,9 @@ STEP 11 — Eran's approval
 
 STEP 12 — Claude commits on Eran's behalf
 └── CLAUDE_COMMIT=1 git commit with Co-Authored-By trailer.
-    Co-Authored-By email read from hooks/agent-config.json at commit time —
+    Claude-direct commits include `Execution: Claude-direct` and credit Claude.
+    Delegated commits credit the actual implementor. Co-Authored-By email is read from
+    hooks/agent-config.json at commit time —
     never recalled from memory. Memory entries are convenience only.
     pre_commit_check.py runs (domain boundary, message format).
     Commit message must include "Commit #NN" and What/Why block.
@@ -182,9 +186,9 @@ STEP 14 — Claude presents next Commit Preview
 
 ### Scope-stop path
 
-When an implementor returns `SPLIT_REQUIRED`, Claude stops the invocation and inspects
-whether the completed subset is atomic and safe. Claude does not finish oversized
-application work directly. Claude drafts and validates the next sequential micro-commit,
+When a delegated implementor returns `SPLIT_REQUIRED`, Claude stops the invocation and
+inspects whether the completed subset is atomic and safe. Claude does not finish work
+outside the approved file list. Claude drafts and validates the next sequential micro-commit,
 then presents the disposition and proposed split to Eran.
 
 Budget failures cannot be waived, accepted as documented overflow, or reset by another
@@ -387,7 +391,7 @@ No agent can propose a replan that expands their own domain scope.
 These cannot be overridden by any agent or any instruction:
 
 1. One commit per protocol step — no combining
-2. Eran approves the compact preflight card before any agent is invoked — no exceptions
+2. Eran approves the compact preflight card before implementation or delegation — no exceptions
 3. Eran approves the commit after quality gates — no exceptions
 4. Tests pass before approval surfaces — no bypassing the gate
 5. Viktor reviews every 5th commit — no skipping

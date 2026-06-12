@@ -2,7 +2,7 @@
 
 > Cross-agent protocol and roster. Claude reads this at boot.
 > Updated when agents are added or domain boundaries change.
-> Last updated: 2026-06-11 (Adam assigned permanent workflow-hook ownership)
+> Last updated: 2026-06-12 (Claude-direct execution is the default route)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Role | Name | Model | Domain |
 |---|---|---|---|
-| Orchestrator | Claude | sonnet | Pure orchestration — no code files |
+| Orchestrator / Default Implementor | Claude | sonnet | Direct execution by default, limited to the active approved commit spec |
 | Backend Engineer | Rex | sonnet | `backend/` — all Python application code |
 | DevOps Engineer | Adam | sonnet | Infrastructure plus workflow automation under `hooks/` (except `hooks/agent-config.json`, `hooks/tool_cap_end.py`, and `hooks/tests/test_tool_cap.py`, a narrow Claude/orchestrator exception for the agent identity registry and token telemetry) |
 | Frontend Engineer | Aria | sonnet | `frontend/` — all React/TypeScript |
@@ -76,14 +76,31 @@ implements and tests workflow automation only from an approved commit specificat
 
 All agent-to-agent communication routes through Claude. No direct agent-to-agent contact.
 
+### Execution Routing
+
+Claude is the default implementor after Eran approves the compact preflight card. The
+named domain owner remains accountable for domain boundaries and may be consulted or
+delegated to, but ownership does not force an invocation.
+
+Claude delegates only with a written justification: unresolved specialist uncertainty,
+independent implementation needed for risk control, or a clearly bounded specialist unit
+whose expected value exceeds invocation overhead. Workflow/governance changes,
+mechanical wiring, narrow repairs, exact known edits, and straightforward tests remain
+Claude-direct.
+
+Claude-direct edits are mechanically limited to the active commit specification's
+`Files To Modify Or Add` table. A direct commit records `Execution: Claude-direct` and
+uses Claude's Co-Authored-By identity. Delegated commits use the implementing agent's
+identity.
+
 ### Live Context Delegation
 
-Before every implementor invocation, Claude runs:
+Only when the approved execution route is delegated, Claude runs:
 
 `python hooks/prepare_agent_delegation.py --commit <N> --agent <agent-id>`
 
 Claude passes the generated `.context/delegations/C<NN>-<agent>.md` brief to the
-owning agent. It defines primary work, supporting contracts, boundaries, relevant hubs,
+named delegated agent. It defines primary work, supporting contracts, boundaries, relevant hubs,
 acceptance criteria, and the initial read budget.
 
 Agents read listed files first and do not scan directories. Additional context is allowed
