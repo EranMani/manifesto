@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from pathlib import Path
 from typing import Any
 
-from context_metrics import load_metrics
+from context_metrics import load_metrics, reconcile_invocation_records
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -290,6 +291,105 @@ def _is_expansion_free(record: dict[str, Any]) -> bool | None:
     return exp == 0
 
 
+def _commit_spec_path(repo_root: Path, commit: str) -> Path | None:
+    match = re.fullmatch(r"C(\d+)([A-Z]?)", commit.upper())
+    if not match:
+        return None
+    number, suffix = match.groups()
+    return repo_root / "commit-specs" / f"commit-{int(number):02d}{suffix.lower()}.md"
+
+
+def load_commit_max_tool_calls(repo_root: Path, commit: str) -> int | None:
+    """Read execution_budget.max_tool_calls from the commit's spec, if available."""
+    path = _commit_spec_path(repo_root, commit)
+    if path is None or not path.is_file():
+        return None
+    text = path.read_text(encoding="utf-8", errors="replace")
+    match = re.search(r"^\s*max_tool_calls:\s*(\d+)\s*$", text, re.MULTILINE)
+    return int(match.group(1)) if match else None
+
+
+def discover_invocation_keys(repo_root: Path) -> list[tuple[str, str]]:
+    """Find every (commit, agent) pair with persisted invocation records."""
+    inv_dir = repo_root / ".context" / "telemetry" / "invocations"
+    if not inv_dir.is_dir():
+        return []
+    keys: set[tuple[str, str]] = set()
+    for path in inv_dir.glob("C*-*.json"):
+        match = re.match(r"^(C\d+[A-Z]?)-([a-z0-9_]+)-", path.name)
+        if match:
+            keys.add((match.group(1), match.group(2)))
+
+    def sort_key(item: tuple[str, str]) -> tuple[int, str, str]:
+        commit, agent = item
+        match = re.fullmatch(r"C(\d+)([A-Z]?)", commit.upper())
+        number, suffix = match.groups() if match else ("0", "")
+        return (int(number), suffix, agent)
+
+    return sorted(keys, key=sort_key)
+
+
+def _invocation_status_badge(status: str) -> str:
+    good: bool | None
+    if status in {"reconciled"}:
+        good = True
+    elif status in {"self_report_only", "hooks_only"}:
+        good = None
+    else:
+        good = False
+    return badge(status.replace("_", " "), good)
+
+
+def render_invocation_ledger(repo_root: Path) -> tuple[str, str]:
+    """Render per-invocation rows and per-commit budget summary rows."""
+    keys = discover_invocation_keys(repo_root)
+    if not keys:
+        empty = '<tr><td colspan="7" class="empty">No invocation records found yet.</td></tr>'
+        return empty, empty
+
+    rows = ""
+    summary_rows = ""
+    for commit, agent in keys:
+        result = reconcile_invocation_records(commit, agent, repo_root)
+        for invocation in result["invocations"]:
+            label = f"{invocation['kind']} #{invocation['index']}"
+            rows += (
+                "<tr>"
+                f"<td>{badge(commit)}</td>"
+                f"<td>{html.escape(agent.title())}</td>"
+                f"<td>{html.escape(label)}</td>"
+                f"<td>{metric_value(invocation['self_report_tool_calls'])}</td>"
+                f"<td>{metric_value(invocation['hooks_tool_calls'])}</td>"
+                f"<td>{_invocation_status_badge(invocation['status'])}</td>"
+                f"<td>{metric_value(invocation['tool_calls'])}</td>"
+                "</tr>"
+            )
+
+        max_calls = load_commit_max_tool_calls(repo_root, commit)
+        total = result["total_tool_calls"]
+        if not result["total_tool_calls_complete"]:
+            budget_state = badge("incomplete", False)
+        elif max_calls is None:
+            budget_state = badge("no budget", None)
+        elif total <= max_calls:
+            budget_state = badge("within budget", True)
+        else:
+            budget_state = badge("over budget", False)
+        summary_rows += (
+            "<tr>"
+            f"<td>{badge(commit)}</td>"
+            f"<td>{html.escape(agent.title())}</td>"
+            f"<td>{total}</td>"
+            f"<td>{metric_value(max_calls)}</td>"
+            f"<td>{budget_state}</td>"
+            f"<td>{len(result['contradictions'])}</td>"
+            f"<td>{len(result['unknown'])}</td>"
+            "</tr>"
+        )
+
+    return rows, summary_rows
+
+
 def badge(value: str, good: bool | None = None) -> str:
     if good is None:
         css = "neutral"
@@ -458,6 +558,7 @@ def render_dashboard(
     metrics = load_metrics(repo_root / "CONTEXT_METRICS.json").get("records", [])
     prepared = load_prepared_package(repo_root)
     graph_data = build_graph_view_data(repo_root)
+    ledger_rows, ledger_summary_rows = render_invocation_ledger(repo_root)
 
     total = len(constraint_rows)
     passed = sum(row[7].upper() == "PASS" for row in constraint_rows)
@@ -635,6 +736,13 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
 <div class="table-wrap"><table><thead><tr><th>Commit</th><th>Score / status</th><th>Blocking</th><th>Warnings</th><th>Goal</th></tr></thead>
 <tbody>{preflight_html}</tbody></table></div>
 <p class="legend">NOT RUN = no .context/preflight/C&lt;ID&gt;.json report exists yet. INVALID REPORT = the report file could not be parsed. The dashboard never recalculates scores or overrides the persisted proceed decision.</p></section>
+<section><div class="section-head"><div><h2>Invocation ledger</h2>
+<p>Each recorded invocation, reconciled across self-report and hooks telemetry, with the commit's tool-call budget state.</p></div></div>
+<div class="table-wrap"><table><thead><tr><th>Commit</th><th>Agent</th><th>Invocation</th><th>Self-report</th><th>Hooks</th><th>Status</th><th>Tool calls</th></tr></thead>
+<tbody>{ledger_rows}</tbody></table></div>
+<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Commit</th><th>Agent</th><th>Total tool calls</th><th>Budget</th><th>Budget state</th><th>Contradictions</th><th>Unknown</th></tr></thead>
+<tbody>{ledger_summary_rows}</tbody></table></div>
+<p class="legend">Status: reconciled = self-report and hooks agree. self report only / hooks only = one source missing. contradiction = sources disagree (excluded from the total). The fourth status (neither source reported tool_calls) is excluded from the total and marks the commit's budget state "incomplete".</p></section>
 </main>
 <main id="graph" class="tab-panel">
 <section><div class="section-head"><div><h2>Codebase context graph</h2>

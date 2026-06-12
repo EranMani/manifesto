@@ -15,7 +15,11 @@ sys.path.insert(0, str(HOOKS_DIR))
 
 import context_telemetry  # noqa: E402
 import context_metrics  # noqa: E402
-from constraint_dashboard import build_graph_view_data, render_dashboard  # noqa: E402
+from constraint_dashboard import (  # noqa: E402
+    build_graph_view_data,
+    render_dashboard,
+    render_invocation_ledger,
+)
 from context_metrics import upsert_metric  # noqa: E402
 from tool_cap_start import normalize_agent_name  # noqa: E402
 
@@ -519,6 +523,84 @@ class PreflightDashboardTests(unittest.TestCase):
             render_dashboard(root, root / "constraint-dashboard.html")
 
             self.assertEqual(report_path.read_text(encoding="utf-8"), original)
+
+
+class InvocationLedgerDashboardTests(unittest.TestCase):
+    def _write_record(self, root: Path, name: str, payload: dict) -> None:
+        path = root / ".context" / "telemetry" / "invocations" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+    def _write_spec(self, root: Path, name: str, max_tool_calls: int) -> None:
+        path = root / "commit-specs" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            "## Execution Budget\n\n"
+            "```yaml\n"
+            "execution_budget:\n"
+            "  max_primary_files: 2\n"
+            f"  max_tool_calls: {max_tool_calls}\n"
+            "```\n",
+            encoding="utf-8",
+        )
+
+    def test_separate_invocations_render_with_budget_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._write_record(root, "C31-adam-normal-self-report-1.json", {
+                "commit": "C31", "agent": "adam", "kind": "normal",
+                "record_type": "self-report", "tool_calls": 5,
+            })
+            self._write_record(root, "C31-adam-normal-hooks-1.json", {
+                "commit": "C31", "agent": "adam", "kind": "normal",
+                "record_type": "hooks", "tools": {"total": 5},
+            })
+            self._write_spec(root, "commit-31.md", max_tool_calls=18)
+
+            rows, summary_rows = render_invocation_ledger(root)
+
+            self.assertIn("normal #1", rows)
+            self.assertIn('<span class="badge good">reconciled</span>', rows)
+            self.assertIn("<td>5</td>", rows)
+            self.assertIn("<td>5</td>", summary_rows)
+            self.assertIn("<td>18</td>", summary_rows)
+            self.assertIn('<span class="badge good">within budget</span>', summary_rows)
+
+            document = render_dashboard(root, root / "constraint-dashboard.html")
+            self.assertIn("Invocation ledger", document)
+            self.assertIn("normal #1", document)
+
+    def test_contradictions_and_unknown_are_visible(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._write_record(root, "C31-adam-normal-self-report-1.json", {
+                "commit": "C31", "agent": "adam", "kind": "normal",
+                "record_type": "self-report", "tool_calls": 3,
+            })
+            self._write_record(root, "C31-adam-normal-hooks-1.json", {
+                "commit": "C31", "agent": "adam", "kind": "normal",
+                "record_type": "hooks", "tools": {"total": 7},
+            })
+            self._write_record(root, "C31-adam-repair-self-report-1.json", {
+                "commit": "C31", "agent": "adam", "kind": "repair",
+                "record_type": "self-report", "tool_calls": None,
+            })
+            self._write_spec(root, "commit-31.md", max_tool_calls=18)
+
+            rows, summary_rows = render_invocation_ledger(root)
+
+            self.assertIn('<span class="badge bad">contradiction</span>', rows)
+            self.assertIn('<span class="badge bad">unknown</span>', rows)
+            self.assertIn("repair #1", rows)
+            self.assertIn('<span class="badge bad">incomplete</span>', summary_rows)
+            self.assertIn("<td>1</td><td>1</td></tr>", summary_rows)
+
+    def test_no_invocation_records_renders_empty_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            rows, summary_rows = render_invocation_ledger(root)
+            self.assertIn("No invocation records found yet.", rows)
+            self.assertIn("No invocation records found yet.", summary_rows)
 
 
 if __name__ == "__main__":
