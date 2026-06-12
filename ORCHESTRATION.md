@@ -192,6 +192,29 @@ STEP 14 — Claude presents next Commit Preview
     Eran defers → Claude holds. No agent invoked until approval.
 ```
 
+### Claude-Direct Authorization (authoritative)
+
+Claude-direct does not grant Claude broad domain ownership. An explicit
+`Execution: Claude-direct` marker grants narrow, commit-specific authorization only
+for the exact files listed in `Files To Modify Or Add`.
+
+`validate_commit_spec.py` validates this planned authorization at spec-validation time
+(STEP 3): every file in `Files To Modify Or Add` must already belong to the commit
+owner's domain in `hooks/agent-config.json`, regardless of who executes the commit.
+The approval card's `Executor: Claude (direct)` line (STEP 3.5) is Eran's authorization
+for that route.
+
+At commit time the message must carry both `Execution: Claude-direct` and
+`Commit #NN`. `pre_commit_check.py` enforces the staged-file authorization and fails
+closed: it resolves commit ID -> spec file -> `Files To Modify Or Add` table from those
+two fields and treats that table as Claude's exact allowed-file set for the commit. A
+missing marker resolution, missing spec, or missing/empty table raises
+`DirectExecutionResolutionError` and hard-fails the commit (exit 2) — it never falls
+back to a broader domain check. Claude edits only files in that table.
+
+CLAUDE.md and `.claude/commands/next-step.md` reference this section rather than
+restating it.
+
 ### Scope-stop path
 
 When a delegated implementor returns `SPLIT_REQUIRED`, Claude stops the invocation and

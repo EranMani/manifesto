@@ -324,7 +324,11 @@ by Steps 5b/7c — not a general claim on `hooks/`.
 
 For Claude-direct execution, you receive temporary, exact-file authority from the active
 approved commit spec's `Files To Modify Or Add` table. This does not grant directory-wide
-ownership and does not allow unrelated cleanup.
+ownership and does not allow unrelated cleanup. Claude-direct does not grant Claude
+broad domain ownership — an explicit `Execution: Claude-direct` marker grants narrow,
+commit-specific authorization only for the exact files listed in `Files To Modify Or
+Add`. See ORCHESTRATION.md "Claude-Direct Authorization" for the full authorization
+chain and fail-closed behavior.
 
 ---
 

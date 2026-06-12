@@ -62,11 +62,34 @@ Show additional diagnostics only when:
 - a split or repair invocation is proposed; or
 - Eran explicitly asks for details.
 
-Do not start work until Eran explicitly approves. After approval:
+Claude-direct authorization follows ORCHESTRATION.md "Claude-Direct Authorization"
+(authoritative): Claude-direct does not grant Claude broad domain ownership — an
+explicit `Execution: Claude-direct` marker grants narrow, commit-specific authorization
+only for the exact files in `Files To Modify Or Add`. `validate_commit_spec.py`
+validates this planned authorization at spec-validation time; `pre_commit_check.py`
+enforces the staged-file authorization at commit time and fails closed. The eventual
+commit message must carry `Execution: Claude-direct` + `Commit #NN` so
+`pre_commit_check.py` can resolve the exact allowed-file set.
 
-- Claude-direct: implement only the files in `Files To Modify Or Add`; do not activate
-  agent tool-cap state.
+Do not start work until Eran explicitly approves. After approval, follow the full
+commit-loop lifecycle (ORCHESTRATION.md §2 STEPS 4-14, §3 circuit breaker):
+
+- Claude-direct: inspect the selected files before editing, then implement only the
+  approved files in `Files To Modify Or Add`. Do not activate agent tool-cap state.
 - Delegated: rerun the command without `--preview` to activate tool-cap state and
   telemetry, then invoke the named agent with the generated delegation brief verbatim.
+
+Then, regardless of route:
+
+- Run the spec's verification command and perform logic inspection against the commit
+  contract — passing tests alone are not sufficient.
+- Apply the orchestrator debugging circuit breaker: stop after 2 failed
+  repair/verification cycles or 25 orchestrator tool calls, and request Eran's approval
+  before continuing.
+- Run `/verify-commit`.
+- Present changed files, verification results, deviations, warnings, and remaining work
+  to Eran.
+- Wait for Eran's explicit commit approval. Commit only after approval.
+- Advance project state and report the next commit.
 
 Do not duplicate full file contents in an invocation prompt.
