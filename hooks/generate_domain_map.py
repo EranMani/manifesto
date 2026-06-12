@@ -112,7 +112,10 @@ def find_entry_points(graph: dict[str, list[str]]) -> list[str]:
     return [f for f in graph if f not in all_imported and graph[f]]
 
 
-def write_domain_map(output_path: Path, domain_name: str, graph: dict[str, list[str]]) -> None:
+LAST_UPDATED_RE = re.compile(r"^> Last updated: .+$", re.MULTILINE)
+
+
+def write_domain_map(output_path: Path, domain_name: str, graph: dict[str, list[str]]) -> bool:
     """Write the DOMAIN_MAP.md file."""
     hubs = find_hubs(graph)
     entries = find_entry_points(graph)
@@ -164,8 +167,21 @@ def write_domain_map(output_path: Path, domain_name: str, graph: dict[str, list[
             imp_str = "—"
         lines.append(f"| `{module}` | {imp_str} |")
 
-    output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    content = "\n".join(lines) + "\n"
+    if output_path.is_file():
+        existing = output_path.read_text(encoding="utf-8")
+        if LAST_UPDATED_RE.sub("> Last updated: <date>", existing) == LAST_UPDATED_RE.sub(
+            "> Last updated: <date>", content
+        ):
+            print(
+                f">> {output_path.relative_to(output_path.parent.parent)} unchanged "
+                f"({len(graph)} modules mapped)"
+            )
+            return False
+
+    output_path.write_text(content, encoding="utf-8")
     print(f">> {output_path.relative_to(output_path.parent.parent)} updated ({len(graph)} modules mapped)")
+    return True
 
 
 def main() -> int:
