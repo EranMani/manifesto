@@ -1,34 +1,43 @@
-Read `project-state.json` to find the current_commit. Then read `commit-protocol.md` for the full spec of that step. Then read the Current State Header of the owning agent's worklog. Then read the Current State Headers of any agents whose output this step depends on.
+Read `project-state.json` to identify the next pending commit and owner. Check its
+dependencies, open handoffs, and unresolved quality-gate findings. Then run:
 
-Execute in this order:
+`python hooks/prepare_agent_delegation.py --commit <N> --agent <agent-id>`
 
-1. **Identify the step** — state the commit number, name, and assignee clearly.
+The generated preflight result and delegation package are internal preparation. When
+preflight is ready, do not narrate prerequisite checks, sequence rationale, unlocks,
+token commentary, selected-context counts, contracts, hubs, forbidden paths, graph
+refreshes, or other package diagnostics.
 
-2. **Check prerequisites** — verify all required handoffs are in place.
-   - Check `project-state.json` open_handoffs for any addressed to the owning agent.
-   - If any required handoff is unactioned: stop and tell the Team Lead what is blocking.
+For C29B and every later commit, output only this compact approval card:
 
-3. **Check quality gate results** — if the previous commit has unresolved Viktor concerns
-   or Sage findings, surface them before proceeding.
+```text
+C[N] PREFLIGHT: [READY|BLOCKED] ([score]/100)
 
-4. **Brief the Team Lead** — in 3–5 bullet points:
-   - What this step builds
-   - Why it comes at this point in the sequence
-   - What it unlocks for the steps that follow
-   - Any token budget considerations for this invocation
+Owner: [Name] ([Domain])
+Goal: [one plain-language sentence]
 
-5. **Prepare the live context package** — run:
-   `python hooks/prepare_agent_delegation.py --commit <N> --agent <agent-id>`
-   Read only the generated `.context/delegations/C<NN>-<agent>.md` brief.
-   State the selected file count, estimated characters, primary files, contracts,
-   relevant hubs, forbidden edits, expansion triggers, and graph refresh status.
+Files:
+- [Add|Edit|Delete]: path/to/file
 
-6. **Ask for approval** — end with exactly:
+Warnings:
+- [Exact warning text, or "None."]
+- Decision required: [Yes|No]
 
-> Ready to begin **[commit name]** (Commit [N], assigned to [Agent]).
-> Shall I proceed?
+Proceed? [yes/no]
+```
 
-Do not start any work until the Team Lead confirms.
+Resolve the owner name and domain from `hooks/agent-config.json`. List every planned
+file and every warning in plain language. Do not replace the card with a prose preview
+or append a second approval question such as "Shall I proceed?"
 
-After approval, invoke the owning agent with the generated delegation brief verbatim.
-Do not duplicate full file contents in the invocation prompt.
+Show additional diagnostics only when:
+
+- preflight is blocked;
+- a warning requires Eran's decision;
+- approved scope changed;
+- a split or repair invocation is proposed; or
+- Eran explicitly asks for details.
+
+Do not start work until Eran explicitly approves. After approval, invoke the owning
+agent with the generated delegation brief verbatim. Do not duplicate full file contents
+in the invocation prompt.
