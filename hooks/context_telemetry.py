@@ -84,6 +84,69 @@ def _commit_key(commit: str) -> str:
     return commit if str(commit).upper().startswith("C") else f"C{str(commit).zfill(2)}"
 
 
+def _resolve_invocation_kind(repo_root: Path) -> str:
+    """Read the relevant invocation's kind (normal/repair/review) from tool_cap.json.
+
+    Prefers the still-open active_invocation (finalize_telemetry runs while it is
+    set). Falls back to the most recently closed invocation (record_agent_self_report
+    runs after tool_cap_end has already moved active_invocation into the
+    invocations history).
+    """
+    cap_path = repo_root / "hooks" / "tool_cap.json"
+    try:
+        cap = json.loads(cap_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return "normal"
+    invocation = cap.get("active_invocation")
+    if not invocation:
+        history = cap.get("invocations") or []
+        invocation = history[-1] if history else {}
+    kind = invocation.get("kind")
+    return kind if kind in {"normal", "repair", "review"} else "normal"
+
+
+def _next_invocation_record_path(
+    repo_root: Path, commit: str, agent: str, kind: str, record_type: str
+) -> Path:
+    """Return the next unused immutable record path for this invocation."""
+    inv_dir = repo_root / ".context" / "telemetry" / "invocations"
+    inv_dir.mkdir(parents=True, exist_ok=True)
+    commit_key = _commit_key(commit)
+    seq = 1
+    while True:
+        path = inv_dir / f"{commit_key}-{agent.lower()}-{kind}-{record_type}-{seq}.json"
+        if not path.exists():
+            return path
+        seq += 1
+
+
+def _write_invocation_record(
+    repo_root: Path,
+    commit: str,
+    agent: str,
+    kind: str,
+    record_type: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Persist one immutable record for a normal, repair, or review invocation.
+
+    Each call appends a new file (never overwrites a prior one), so the full
+    history of invocations for a commit/agent/kind is preserved for C31's
+    aggregation.
+    """
+    path = _next_invocation_record_path(repo_root, commit, agent, kind, record_type)
+    record = {
+        "commit": _commit_key(commit),
+        "agent": agent.lower(),
+        "kind": kind,
+        "record_type": record_type,
+        "recorded_at": utc_now(),
+        **payload,
+    }
+    path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    return record
+
+
 def initialize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     """Open an orchestrator telemetry scope for post-agent review and verification."""
     scope = {
@@ -184,6 +247,7 @@ def record_agent_self_report(
     agent: str,
     report: dict[str, Any],
     repo_root: Path = REPO_ROOT,
+    invocation_kind: str | None = None,
 ) -> dict[str, Any]:
     """Validate and persist a structured telemetry report returned by an agent."""
     _validate_self_report(report)
@@ -211,6 +275,9 @@ def record_agent_self_report(
     output = repo_root / ".context" / "telemetry" / f"{commit_key}-{agent.lower()}-self-report.json"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
+
+    kind = invocation_kind or _resolve_invocation_kind(repo_root)
+    _write_invocation_record(repo_root, commit, agent, kind, "self-report", scope)
     return scope
 
 
@@ -337,6 +404,9 @@ def finalize_telemetry() -> dict[str, Any] | None:
         / f"{telemetry['commit']}-{telemetry['agent']}.json"
     )
     output.write_text(json.dumps(telemetry, indent=2) + "\n", encoding="utf-8")
+
+    kind = _resolve_invocation_kind(REPO_ROOT)
+    _write_invocation_record(REPO_ROOT, telemetry["commit"], telemetry["agent"], kind, "hooks", telemetry)
     return telemetry
 
 
@@ -358,6 +428,12 @@ def main() -> int:
         nargs=3,
         metavar=("COMMIT", "AGENT", "JSON"),
         help="Persist an agent's structured self-report: COMMIT AGENT '{...}'",
+    )
+    parser.add_argument(
+        "--invocation-kind",
+        choices=["normal", "repair", "review"],
+        default=None,
+        help="Override the invocation kind for --agent-report (default: read from tool_cap.json)",
     )
     args = parser.parse_args()
 
@@ -388,7 +464,7 @@ def main() -> int:
             print(f"ERROR: invalid JSON for agent report: {exc}", file=sys.stderr)
             return 1
         try:
-            record_agent_self_report(commit, agent, report)
+            record_agent_self_report(commit, agent, report, invocation_kind=args.invocation_kind)
         except ValueError as exc:
             print(f"ERROR: malformed agent report: {exc}", file=sys.stderr)
             return 1

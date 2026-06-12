@@ -432,5 +432,96 @@ class TestUnknownExpansionNotCountedExpansionFree(unittest.TestCase):
             self.assertNotIn("unknown", doc)
 
 
+# ---------------------------------------------------------------------------
+# Scenario 7 — Invocation record storage (C30)
+# ---------------------------------------------------------------------------
+
+class TestInvocationRecordStorage(unittest.TestCase):
+    _REPORT = {
+        "tool_calls": 5,
+        "read_paths": ["a.py"],
+        "write_paths": [],
+        "searches": [],
+        "commands": [],
+        "expansions": [],
+    }
+
+    def test_normal_repair_review_records_append_independently(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            context_telemetry.record_agent_self_report(
+                "30", "adam", self._REPORT, root, invocation_kind="normal"
+            )
+            context_telemetry.record_agent_self_report(
+                "30", "adam", self._REPORT, root, invocation_kind="repair"
+            )
+            context_telemetry.record_agent_self_report(
+                "30", "viktor", self._REPORT, root, invocation_kind="review"
+            )
+
+            inv_dir = root / ".context" / "telemetry" / "invocations"
+            self.assertTrue((inv_dir / "C30-adam-normal-self-report-1.json").is_file())
+            self.assertTrue((inv_dir / "C30-adam-repair-self-report-1.json").is_file())
+            self.assertTrue((inv_dir / "C30-viktor-review-self-report-1.json").is_file())
+
+    def test_repeated_self_report_does_not_overwrite_prior_record(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            context_telemetry.record_agent_self_report(
+                "30", "adam", {**self._REPORT, "tool_calls": 3}, root, invocation_kind="normal"
+            )
+            context_telemetry.record_agent_self_report(
+                "30", "adam", {**self._REPORT, "tool_calls": 9}, root, invocation_kind="normal"
+            )
+
+            inv_dir = root / ".context" / "telemetry" / "invocations"
+            first = json.loads((inv_dir / "C30-adam-normal-self-report-1.json").read_text(encoding="utf-8"))
+            second = json.loads((inv_dir / "C30-adam-normal-self-report-2.json").read_text(encoding="utf-8"))
+            self.assertEqual(first["tool_calls"], 3)
+            self.assertEqual(second["tool_calls"], 9)
+
+    def test_finalize_does_not_overwrite_prior_invocation_record(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            active = root / ".context" / "telemetry" / "active.json"
+            active.parent.mkdir(parents=True)
+            cap_path = root / "hooks" / "tool_cap.json"
+            cap_path.parent.mkdir(parents=True)
+            cap_path.write_text(
+                json.dumps({"active": True, "agent": "adam", "active_invocation": {"kind": "normal"}}),
+                encoding="utf-8",
+            )
+            telemetry = {
+                "schema_version": 1,
+                "commit": "C30",
+                "agent": "adam",
+                "status": "running",
+                "started_at": "2026-06-12T00:00:00+00:00",
+                "ended_at": None,
+                "selected_paths": [],
+                "forbidden_paths": [],
+                "package": {},
+                "tools": {"total": 0, "reads": 0, "searches": 0, "writes": 0, "tests_or_commands": 0},
+                "selected_read_paths": [],
+                "outside_read_paths": [],
+                "search_events": [],
+                "write_paths": [],
+            }
+
+            with (
+                patch.object(context_telemetry, "REPO_ROOT", root),
+                patch.object(context_telemetry, "ACTIVE_PATH", active),
+            ):
+                active.write_text(json.dumps(telemetry), encoding="utf-8")
+                context_telemetry.finalize_telemetry()
+
+                active.write_text(json.dumps(telemetry), encoding="utf-8")
+                context_telemetry.finalize_telemetry()
+
+            inv_dir = root / ".context" / "telemetry" / "invocations"
+            self.assertTrue((inv_dir / "C30-adam-normal-hooks-1.json").is_file())
+            self.assertTrue((inv_dir / "C30-adam-normal-hooks-2.json").is_file())
+
+
 if __name__ == "__main__":
     unittest.main()
