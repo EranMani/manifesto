@@ -54,6 +54,7 @@ def close_invocation(state: dict[str, Any], tokens: int | None = None) -> dict[s
             state["known_implementor_tokens"] = int(state.get("known_implementor_tokens", 0)) + tokens
     state.setdefault("invocations", []).append(invocation)
     kind = invocation.get("kind", "unknown")
+    agent = invocation.get("agent")
     state["active"] = False
     state["active_invocation"] = None
     state["count"] = 0
@@ -61,9 +62,11 @@ def close_invocation(state: dict[str, Any], tokens: int | None = None) -> dict[s
     limits = state.get("limits", {})
     if state.get("known_implementor_tokens", 0) >= limits.get("max_implementor_tokens", 45000):
         state["stop_reason"] = "implementor_token_hard_stop"
+        state["stop_scope"] = {"commit": state.get("commit"), "agent": agent, "kind": kind}
         state["status"] = "blocked"
     if state.get("known_total_tokens", 0) >= limits.get("max_total_tokens", 60000):
         state["stop_reason"] = "absolute_commit_token_stop"
+        state["stop_scope"] = {"commit": state.get("commit"), "agent": agent, "kind": kind}
         state["status"] = "blocked"
     return state
 

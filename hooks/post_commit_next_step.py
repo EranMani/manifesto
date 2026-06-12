@@ -125,29 +125,37 @@ def find_next_pending(commits: list[dict], done_set: set[str]) -> dict | None:
     return None
 
 
+RUNTIME_FLAG = ROOT / ".context" / "runtime" / "last_protocol_commit.flag"
+
+
 def main() -> int:
     today = date.today().isoformat()
     last_message = get_last_commit_message()
     commit_number = extract_commit_number_from_message(last_message)
 
-    # ── Step 1: Update commit-protocol.md ────────────────────────────────────
-    if PROTOCOL_FILE.exists():
-        protocol_text = PROTOCOL_FILE.read_text(encoding="utf-8")
-        commits = parse_commit_index(protocol_text)
+    # No commit step marker (e.g. a `chore(state)` sweep) — nothing to advance.
+    if not commit_number:
+        return 0
 
-        if commit_number:
-            updated_protocol = update_protocol_status(protocol_text, commit_number, today)
-            if updated_protocol != protocol_text:
-                PROTOCOL_FILE.write_text(updated_protocol, encoding="utf-8")
-                print(f">> commit-protocol.md: Commit {commit_number} marked done - {today}")
-            else:
-                print(f"[WARN] commit-protocol.md: Could not find 'pending' row for commit {commit_number}. Update manually.")
-        else:
-            print("[WARN] post_commit: Could not detect commit step number from message. commit-protocol.md not updated.")
-            commits = parse_commit_index(protocol_text)
-    else:
-        print("[WARN] post_commit: commit-protocol.md not found. Skipping protocol update.")
-        commits = []
+    if not PROTOCOL_FILE.exists():
+        return 0
+
+    # ── Step 1: Update commit-protocol.md ────────────────────────────────────
+    protocol_text = PROTOCOL_FILE.read_text(encoding="utf-8")
+    updated_protocol = update_protocol_status(protocol_text, commit_number, today)
+    if updated_protocol == protocol_text:
+        # commit_number present but no matching pending row — nothing advanced.
+        return 0
+
+    PROTOCOL_FILE.write_text(updated_protocol, encoding="utf-8")
+    print(f">> commit-protocol.md: Commit {commit_number} marked done - {today}")
+
+    # Consume-once signal for generate_domain_map.py: only regenerate domain
+    # maps after a real protocol step advances.
+    RUNTIME_FLAG.parent.mkdir(parents=True, exist_ok=True)
+    RUNTIME_FLAG.write_text(commit_number, encoding="utf-8")
+
+    commits = parse_commit_index(updated_protocol)
 
     # ── Step 2: Derive next pending from protocol (read-only — no state file write) ──
     # project-state.json is maintained by Claude (the orchestrator) with full quality
@@ -157,13 +165,12 @@ def main() -> int:
 
     # ── Step 3: Print next step ───────────────────────────────────────────────
     print()
-    if commit_number:
-        committed = next((c for c in commits if c["number"] == commit_number), None)
-        if committed:
-            print(f"[OK] Commit {commit_number} `{committed['name']}` complete. "
-                  f"Assignee: {committed['assignee'].title()}")
-        else:
-            print(f"[OK] Commit {commit_number} complete.")
+    committed = next((c for c in commits if c["number"] == commit_number), None)
+    if committed:
+        print(f"[OK] Commit {commit_number} `{committed['name']}` complete. "
+              f"Assignee: {committed['assignee'].title()}")
+    else:
+        print(f"[OK] Commit {commit_number} complete.")
 
     if next_commit:
         print()

@@ -187,6 +187,12 @@ def write_domain_map(output_path: Path, domain_name: str, graph: dict[str, list[
 def main() -> int:
     root = git_root()
 
+    # Only regenerate after a real protocol step advances (flag written by
+    # post_commit_next_step.py). Absent flag means nothing changed; skip the scan.
+    flag_path = root / ".context" / "runtime" / "last_protocol_commit.flag"
+    if not flag_path.exists():
+        return 0
+
     # Rex's domain: backend/app/
     backend_domain = root / "backend" / "app"
     if backend_domain.exists():
@@ -199,6 +205,9 @@ def main() -> int:
         graph = build_ts_map(frontend_domain)
         write_domain_map(root / "frontend" / "DOMAIN_MAP.md", "Aria — frontend/src/", graph)
 
+    # Generation succeeded -- consume the flag. If anything above raised,
+    # the flag is retained so the next post-commit run retries.
+    flag_path.unlink()
     return 0
 
 

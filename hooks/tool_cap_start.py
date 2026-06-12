@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -15,6 +16,7 @@ SCHEMA_VERSION = 2
 IMPLEMENTORS = {"rex", "adam", "aria", "nova"}
 REVIEWERS = {"viktor", "sage", "quinn", "mira", "ryan"}
 REVIEW_LIMITS = {"viktor": 15, "sage": 15, "quinn": 15, "mira": 10, "ryan": 5}
+EXPLORE_LIMIT = 15
 DEFAULT_LIMITS = {
     "max_agent_invocations": 1,
     "max_tool_calls": 18,
@@ -103,6 +105,7 @@ def initialize_commit_state(
         "limits": budget,
         "repair_authorization": None,
         "stop_reason": None,
+        "stop_scope": None,
         "prepared_at": utc_now(),
     }
     if path is not None:
@@ -151,12 +154,28 @@ def start_invocation(
     limits = state.get("limits", DEFAULT_LIMITS)
     if state.get("active"):
         raise ValueError("another invocation is already active")
-    if state.get("stop_reason"):
-        raise ValueError(f"commit is stopped: {state['stop_reason']}")
+
+    stop_reason = state.get("stop_reason")
+    if stop_reason:
+        scope = state.get("stop_scope")
+        if scope is None:
+            # Legacy state predating stop_scope: never block review/explore
+            # activity, but a matching implementor retry must still fail safely.
+            if kind in {"normal", "repair"} and agent == state.get("agent"):
+                raise ValueError(f"commit is stopped: {stop_reason}")
+        elif (
+            scope.get("commit") == state.get("commit")
+            and scope.get("agent") == agent
+            and scope.get("kind") == kind
+        ):
+            raise ValueError(f"commit is stopped: {stop_reason}")
+
     if state.get("known_total_tokens", 0) >= limits["max_total_tokens"]:
         raise ValueError("absolute commit token stop reached")
 
-    if kind == "normal":
+    if kind == "explore":
+        limit = EXPLORE_LIMIT
+    elif kind == "normal":
         if agent not in IMPLEMENTORS:
             raise ValueError(f"{agent} is not an implementor")
         if agent != state.get("agent"):
@@ -211,6 +230,45 @@ def invocation_kind(agent: str, tool_input: dict[str, Any]) -> str:
     return "repair" if "[repair]" in text or "repair invocation" in text else "normal"
 
 
+def resolve_invocation(tool_input: dict[str, Any]) -> tuple[str, str]:
+    """Resolve (agent, kind) for an Agent-tool invocation.
+
+    `subagent_type` is authoritative when it directly names a known
+    implementor or reviewer (via aliases). `Explore` is always treated as
+    an unmanaged "explore" kind, regardless of description/prompt content.
+    A generic or unrecognized `subagent_type` (e.g. "general-purpose")
+    requires the description/prompt to mention exactly one known agent
+    name; zero or multiple matches resolve to "unknown" so the invocation
+    fails safely rather than receiving an unbounded bypass.
+    """
+    raw_subagent = str(tool_input.get("subagent_type") or "").strip().lower()
+
+    if raw_subagent == "explore":
+        return "explore", "explore"
+
+    direct = normalize_agent_name(raw_subagent)
+    if direct in IMPLEMENTORS:
+        return direct, invocation_kind(direct, tool_input)
+    if direct in REVIEWERS:
+        return direct, "review"
+
+    text = " ".join(
+        str(tool_input.get(key, ""))
+        for key in ("description", "prompt", "task")
+    )
+    candidates = {
+        name
+        for name in (IMPLEMENTORS | REVIEWERS)
+        if re.search(rf"\b{re.escape(name)}\b", text, re.IGNORECASE)
+    }
+    if len(candidates) != 1:
+        return "unknown", "normal"
+    agent = next(iter(candidates))
+    if agent in REVIEWERS:
+        return agent, "review"
+    return agent, invocation_kind(agent, tool_input)
+
+
 def main() -> int:
     try:
         root = git_root()
@@ -224,21 +282,15 @@ def main() -> int:
 
     event = read_stdin()
     tool_input = event.get("tool_input") or {}
-    agent = normalize_agent_name(
-        tool_input.get("subagent_type")
-        or tool_input.get("description", "").split(" ", 1)[0]
-        or "unknown"
-    )
-    kind = invocation_kind(agent, tool_input)
+    agent, kind = resolve_invocation(tool_input)
     try:
         start_invocation(state, agent, kind)
-        write_state(state_path, state)
     except ValueError as exc:
-        state["stop_reason"] = str(exc)
-        state["status"] = "blocked"
-        write_state(state_path, state)
+        # Rejected invocations never modify state — a stale stop_reason
+        # must not compound across repeated rejected attempts.
         sys.stderr.write(f"CIRCUIT BREAKER: {exc}\n")
         return 2
+    write_state(state_path, state)
     return 0
 
 

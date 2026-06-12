@@ -310,6 +310,12 @@ project-state.json       ← machine-readable project state
 hooks/agent-config.json           ← agent identity/domain registry (narrow exception)
 hooks/tool_cap_end.py             ← orchestrator token-accounting (narrow exception)
 hooks/tests/test_tool_cap.py      ← its test file (narrow exception)
+hooks/tool_cap_start.py           ← orchestrator invocation/budget gating (narrow exception)
+hooks/tool_cap_enforce.py         ← orchestrator tool-cap enforcement (narrow exception)
+hooks/post_commit_next_step.py    ← orchestrator post-commit protocol advance (narrow exception)
+hooks/generate_domain_map.py      ← orchestrator domain-map regeneration (narrow exception)
+hooks/tests/test_post_commit_next_step.py ← its test file (narrow exception)
+hooks/tests/test_generate_domain_map.py ← its test file (narrow exception)
 hooks/pre_commit_check.py         ← commit-gate hook enforcing this protocol (narrow exception)
 hooks/tests/test_pre_commit_check.py ← its test file (narrow exception)
 hooks/context_telemetry.py        ← dual-scope telemetry capture/persistence (narrow exception)
@@ -319,11 +325,13 @@ hooks/tests/test_verify_constraints.py ← its test file (narrow exception)
 ```
 
 `hooks/` as a whole is Adam's domain (DevOps workflow automation, per AGENTS.md). The
-nine files above are a narrow, explicitly listed exception in `hooks/agent-config.json`
+files above are a narrow, explicitly listed exception in `hooks/agent-config.json`
 itself for orchestrator-owned identity registry, token telemetry, the commit-gate
 hook that enforces this protocol, the orchestrator-scope telemetry capture used
-by Steps 5b/7c, and the quality-gate verification script used by Step 7b — not a
-general claim on `hooks/`.
+by Steps 5b/7c, the quality-gate verification script used by Step 7b, the tool-cap
+invocation/budget-gating and enforcement scripts, and the post-commit protocol-advance
+and domain-map-regeneration scripts that drive the commit loop's automated state
+transitions — not a general claim on `hooks/`.
 
 For Claude-direct execution, you receive temporary, exact-file authority from the active
 approved commit spec's `Files To Modify Or Add` table. This does not grant directory-wide
