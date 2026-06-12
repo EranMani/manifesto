@@ -21,7 +21,11 @@ These rules are here because they were violated in real sessions. They are non-n
      GIT_MESSAGE="<msg>" CLAUDE_COMMIT=1 git commit -m "<msg>"
    Always include Co-Authored-By trailers for the agent who did the work.
    Co-Authored-By names must be single-word (D10). Emails from agent-config.json.
-   A block_agent_commit.py hook enforces this — CLAUDE_COMMIT=1 is the orchestrator bypass.
+   A block_agent_commit.py hook enforces this — CLAUDE_COMMIT=1 is the orchestrator bypass
+   for THAT hook only. The separate pre_commit_check.py git hook does not treat
+   CLAUDE_COMMIT=1 as a bypass — domain boundary, commit-spec, and message-format checks
+   still run on every CLAUDE_COMMIT=1 commit. ERAN_COMMIT=1 is the only env var that
+   bypasses pre_commit_check.py entirely, reserved for Eran committing manually.
 
 3. WHEN UPDATING ANY GOVERNANCE FILE, UPDATE ALL OF THEM IN THE SAME PASS.
    Changing a rule? It may need to land in: CLAUDE.md, team-preferences.md, AGENTS.md,
@@ -236,7 +240,8 @@ You do **not** load files from other agents' domains unless this step explicitly
     CLAUDE_COMMIT=1 git commit -m "..." && python hooks/verify_constraints.py --commit NN --agent NAME --tokens N
     ```
     Three steps after approval, always in this order:
-    1. git commit ��� lands the commit with ERAN_COMMIT=1 bypass
+    1. git commit — CLAUDE_COMMIT=1 bypasses block_agent_commit.py only; pre_commit_check.py
+       still runs domain boundary, commit-spec table, and message-format checks on this commit
     2. verify_constraints.py — updates CONSTRAINT_LOG.md, CONTEXT_METRICS.json,
        and constraint-dashboard.html
     Pass --tokens 0 for Claude direct writes. Pass actual token count for agent invocations.
@@ -305,12 +310,14 @@ project-state.json       ← machine-readable project state
 hooks/agent-config.json           ← agent identity/domain registry (narrow exception)
 hooks/tool_cap_end.py             ← orchestrator token-accounting (narrow exception)
 hooks/tests/test_tool_cap.py      ← its test file (narrow exception)
+hooks/pre_commit_check.py         ← commit-gate hook enforcing this protocol (narrow exception)
+hooks/tests/test_pre_commit_check.py ← its test file (narrow exception)
 ```
 
 `hooks/` as a whole is Adam's domain (DevOps workflow automation, per AGENTS.md). The
-three files above are a narrow, explicitly listed exception in `hooks/agent-config.json`
-itself for orchestrator-owned identity registry and token telemetry — not a general
-claim on `hooks/`.
+five files above are a narrow, explicitly listed exception in `hooks/agent-config.json`
+itself for orchestrator-owned identity registry, token telemetry, and the commit-gate
+hook that enforces this protocol — not a general claim on `hooks/`.
 
 For Claude-direct execution, you receive temporary, exact-file authority from the active
 approved commit spec's `Files To Modify Or Add` table. This does not grant directory-wide

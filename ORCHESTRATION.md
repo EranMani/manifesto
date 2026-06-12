@@ -163,6 +163,10 @@ STEP 12 — Claude commits on Eran's behalf
     hooks/agent-config.json at commit time —
     never recalled from memory. Memory entries are convenience only.
     pre_commit_check.py runs (domain boundary, message format).
+    CLAUDE_COMMIT=1 bypasses block_agent_commit.py only — it is NOT a bypass for
+    pre_commit_check.py, which still validates this commit fully. ERAN_COMMIT=1
+    is the only full bypass of pre_commit_check.py, reserved for Eran committing
+    manually.
     Commit message must include "Commit #NN" and What/Why block.
 
 STEP 13 — verify_constraints + post-commit doc sweep (mandatory)

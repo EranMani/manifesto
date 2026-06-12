@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -16,6 +19,9 @@ from pre_commit_check import (  # noqa: E402
     check_domain_boundaries,
     planned_files_for_commit,
 )
+
+
+PRE_COMMIT_CHECK = HOOKS_DIR / "pre_commit_check.py"
 
 
 CONFIG = {
@@ -141,3 +147,133 @@ Example.
 
     with pytest.raises(DirectExecutionResolutionError, match="no file rows"):
         planned_files_for_commit(tmp_path, message)
+
+
+def test_claude_domain_includes_pre_commit_check_exception() -> None:
+    """hooks/agent-config.json must list pre_commit_check.py and its test file as
+    Claude's narrow exception inside Adam's hooks/ domain (CLAUDE.md "Files You Own")."""
+    config = json.loads((HOOKS_DIR / "agent-config.json").read_text(encoding="utf-8"))
+    domains = config["agents"]["claude@anthropic.com"]["domains"]
+
+    assert "hooks/pre_commit_check.py" in domains
+    assert "hooks/tests/test_pre_commit_check.py" in domains
+
+
+# --- End-to-end bypass-env-var regression tests --------------------------------
+
+
+def _init_repo(tmp_path: Path, config: dict) -> Path:
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=tmp_path, check=True)
+    (tmp_path / "hooks").mkdir()
+    (tmp_path / "hooks" / "agent-config.json").write_text(json.dumps(config), encoding="utf-8")
+    return tmp_path
+
+
+def _stage(repo: Path, rel_path: str, content: str = "x") -> None:
+    target = repo / rel_path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content, encoding="utf-8")
+    subprocess.run(["git", "add", rel_path], cwd=repo, check=True)
+
+
+def _run_check(repo: Path, message: str, env_overrides: dict) -> subprocess.CompletedProcess[str]:
+    env = dict(os.environ)
+    env.pop("ERAN_COMMIT", None)
+    env.pop("CLAUDE_COMMIT", None)
+    env["GIT_MESSAGE"] = message
+    env.update(env_overrides)
+    return subprocess.run(
+        [sys.executable, str(PRE_COMMIT_CHECK)],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+
+DOMAIN_VIOLATION_CONFIG = {
+    "initialized": True,
+    "universal_allowed": ["project-state.json"],
+    "agents": {
+        "claude@anthropic.com": {
+            "name": "Claude",
+            "domains": ["CLAUDE.md"],
+        }
+    },
+}
+
+DOMAIN_VIOLATION_MESSAGE = (
+    "fix(workflow): edit unrelated hooks file\n\n"
+    "Co-Authored-By: Claude <claude@anthropic.com>"
+)
+
+
+def test_claude_commit_env_does_not_bypass_validation(tmp_path: Path) -> None:
+    """CLAUDE_COMMIT=1 must not skip pre_commit_check.py — a domain violation
+    still hard-fails the commit."""
+    repo = _init_repo(tmp_path, DOMAIN_VIOLATION_CONFIG)
+    _stage(repo, "hooks/unrelated_script.py")
+
+    result = _run_check(repo, DOMAIN_VIOLATION_MESSAGE, {"CLAUDE_COMMIT": "1"})
+
+    assert result.returncode == 2
+    assert "Domain boundary violation" in result.stdout
+
+
+def test_eran_commit_env_bypasses_validation(tmp_path: Path) -> None:
+    """ERAN_COMMIT=1 is the only full bypass — the same domain violation passes."""
+    repo = _init_repo(tmp_path, DOMAIN_VIOLATION_CONFIG)
+    _stage(repo, "hooks/unrelated_script.py")
+
+    result = _run_check(repo, DOMAIN_VIOLATION_MESSAGE, {"ERAN_COMMIT": "1"})
+
+    assert result.returncode == 0
+    assert "ERAN_COMMIT=1" in result.stdout
+
+
+def test_valid_claude_direct_commit_passes_normally(tmp_path: Path) -> None:
+    """A CLAUDE_COMMIT=1 commit whose staged files match the spec's
+    'Files To Modify Or Add' table passes full validation."""
+    config = {
+        "initialized": True,
+        "universal_allowed": ["project-state.json"],
+        "agents": {
+            "claude@anthropic.com": {
+                "name": "Claude",
+                "domains": ["CLAUDE.md"],
+            }
+        },
+    }
+    repo = _init_repo(tmp_path, config)
+    (repo / "commit-specs").mkdir()
+    (repo / "commit-specs" / "commit-50.md").write_text(
+        """
+# Commit 50 - example
+
+## Files To Modify Or Add
+
+| File | Type | Purpose |
+|---|---|---|
+| `backend/app/example.py` | edit | Implement behavior |
+
+## Contract
+
+Example.
+""".strip(),
+        encoding="utf-8",
+    )
+    _stage(repo, "backend/app/example.py")
+
+    message = (
+        "fix(example): implement behavior here\n\n"
+        "Commit #50\n\n"
+        "Execution: Claude-direct\n\n"
+        "Co-Authored-By: Claude <claude@anthropic.com>"
+    )
+
+    result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
+
+    assert result.returncode == 0
+    assert "Pre-commit check passed" in result.stdout

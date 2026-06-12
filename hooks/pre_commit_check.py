@@ -8,6 +8,12 @@ Runs before every `git commit`. Validates:
   4. The active commit spec has a valid Changes table (required by email notification)
 
 Exit 0 = allow. Exit 2 = hard block.
+
+Bypass env vars (intentionally different scopes — do not conflate):
+  ERAN_COMMIT=1   Full bypass of THIS hook. Reserved for Eran committing manually.
+  CLAUDE_COMMIT=1 Bypasses block_agent_commit.py only (lets the orchestrator run
+                  `git commit` at all). It is NOT checked here — a CLAUDE_COMMIT=1
+                  commit still goes through every check in this file.
 """
 
 import subprocess

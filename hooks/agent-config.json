@@ -36,7 +36,9 @@
         ".claude/commands/",
         "hooks/agent-config.json",
         "hooks/tool_cap_end.py",
-        "hooks/tests/test_tool_cap.py"
+        "hooks/tests/test_tool_cap.py",
+        "hooks/pre_commit_check.py",
+        "hooks/tests/test_pre_commit_check.py"
       ]
     },
     "rex.stockagent@gmail.com": {
