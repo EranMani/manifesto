@@ -12,7 +12,7 @@
 |---|---|---|---|
 | Orchestrator / Default Implementor | Claude | sonnet | Direct execution by default, limited to the active approved commit spec |
 | Backend Engineer | Rex | sonnet | `backend/` — all Python application code |
-| DevOps Engineer | Adam | sonnet | Infrastructure plus workflow automation under `hooks/` (except `hooks/agent-config.json`, `hooks/tool_cap_end.py`, `hooks/tests/test_tool_cap.py`, `hooks/pre_commit_check.py`, `hooks/tests/test_pre_commit_check.py`, `hooks/context_telemetry.py`, and `hooks/tests/test_context_telemetry.py` — a narrow Claude/orchestrator exception for the agent identity registry, token telemetry capture/persistence, and the commit-gate hook that enforces this protocol) |
+| DevOps Engineer | Adam | sonnet | Infrastructure plus workflow automation under `hooks/` (except `hooks/agent-config.json`, `hooks/tool_cap_end.py`, `hooks/tests/test_tool_cap.py`, `hooks/pre_commit_check.py`, `hooks/tests/test_pre_commit_check.py`, `hooks/context_telemetry.py`, `hooks/tests/test_context_telemetry.py`, `hooks/verify_constraints.py`, and `hooks/tests/test_verify_constraints.py` — a narrow Claude/orchestrator exception for the agent identity registry, token telemetry capture/persistence, the commit-gate hook that enforces this protocol, and the quality-gate verification script) |
 | Frontend Engineer | Aria | sonnet | `frontend/` — all React/TypeScript |
 | AI/ML Engineer | Nova | sonnet | `backend/app/services/llm.py`, `rag_policy.py`, `rag_logistics.py`, `ingestion.py` |
 | Code Reviewer | Viktor | haiku | Cross-domain review — reads any file, touches none |

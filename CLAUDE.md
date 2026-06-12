@@ -314,13 +314,16 @@ hooks/pre_commit_check.py         ← commit-gate hook enforcing this protocol (
 hooks/tests/test_pre_commit_check.py ← its test file (narrow exception)
 hooks/context_telemetry.py        ← dual-scope telemetry capture/persistence (narrow exception)
 hooks/tests/test_context_telemetry.py ← its test file (narrow exception)
+hooks/verify_constraints.py       ← quality-gate verification script (narrow exception)
+hooks/tests/test_verify_constraints.py ← its test file (narrow exception)
 ```
 
 `hooks/` as a whole is Adam's domain (DevOps workflow automation, per AGENTS.md). The
-seven files above are a narrow, explicitly listed exception in `hooks/agent-config.json`
+nine files above are a narrow, explicitly listed exception in `hooks/agent-config.json`
 itself for orchestrator-owned identity registry, token telemetry, the commit-gate
-hook that enforces this protocol, and the orchestrator-scope telemetry capture used
-by Steps 5b/7c — not a general claim on `hooks/`.
+hook that enforces this protocol, the orchestrator-scope telemetry capture used
+by Steps 5b/7c, and the quality-gate verification script used by Step 7b — not a
+general claim on `hooks/`.
 
 For Claude-direct execution, you receive temporary, exact-file authority from the active
 approved commit spec's `Files To Modify Or Add` table. This does not grant directory-wide

@@ -188,9 +188,13 @@ def check_forbidden_paths(spec_text: str, changed_files: list):
 # Check 3 - Phase budget from worklog
 # ----------------------------------------------
 
-def check_phase_budget(worklog_text: str, commit_num: str, agent: str, spec_result: dict):
-    if agent.lower() == "claude":
-        return True, {"reads": 0, "writes": 0, "total": 0}, "orchestrator bootstrap: no implementor invocation"
+def check_phase_budget(worklog_text: str, commit_num: str, agent: str, spec_result: dict, execution: str = "delegated"):
+    if execution == "claude-direct" or agent.lower() == "claude":
+        return True, {"reads": 0, "writes": 0, "total": 0}, (
+            "Claude-direct execution: owner agent worklog not inspected and the "
+            "18-call implementor limit does not apply; the orchestrator debugging "
+            "circuit breaker (CLAUDE.md D37) applies instead"
+        )
     numeric = re.match(r"\d+", str(commit_num))
     legacy = bool(numeric and int(numeric.group(0)) <= 28)
     if not worklog_text:
@@ -217,7 +221,17 @@ def check_phase_budget(worklog_text: str, commit_num: str, agent: str, spec_resu
         rf"^##[ \t].*(?:{_alt_pattern}).*$(?:\n(?!## ).*)*",
         worklog_text, re.MULTILINE | re.IGNORECASE
     )
-    section = commit_section.group(0) if commit_section else worklog_text
+    if not commit_section:
+        if legacy:
+            return True, None, "WARN: legacy commit has no structured tool-usage evidence"
+        # Delegated execution requires an exact commit-session match. Do not fall
+        # back to scanning the whole worklog - that risks matching an unrelated
+        # historical "Tool usage" line from a different commit's session.
+        return False, None, (
+            f"no '## ... Commit {commit_num} ...' session found in {agent}'s "
+            f"worklog - delegated execution requires an exact commit-session match"
+        )
+    section = commit_section.group(0)
 
     match = re.search(
         r"[Tt]ool usage[:\s]+reads?\s*=\s*(\d+)[,\s]+writes?\s*=\s*(\d+)[,\s]+total\s*=\s*(\d+)",
@@ -329,7 +343,13 @@ def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bo
 def main():
     parser = argparse.ArgumentParser(description="Verify agent constraints for a commit.")
     parser.add_argument("--commit",  required=True, help="Commit number, e.g. 08")
-    parser.add_argument("--agent",   required=True, help="Agent name, e.g. rex, aria, adam")
+    parser.add_argument("--agent",   required=True, help="Commit owner agent name, e.g. rex, aria, adam")
+    parser.add_argument(
+        "--execution", choices=["claude-direct", "delegated"], default="delegated",
+        help="Who executed this commit: 'claude-direct' (no implementor invocation, "
+             "owner worklog not inspected) or 'delegated' (--agent's worklog must "
+             "contain an exact commit-session match). Default: delegated.",
+    )
     parser.add_argument("--tokens",  type=int, default=None, help="Token count for this commit (optional)")
     parser.add_argument("--ref",        default="HEAD", help="Git ref to check (default: HEAD)")
     parser.add_argument("--worktree",   action="store_true", help="Check working-tree changes vs HEAD instead of a committed ref")
@@ -346,7 +366,7 @@ def main():
     ok0, msg0, spec_result = check_spec_validation(args.commit, args.agent)
     ok1, msg1          = check_context_block(spec_text, args.commit)
     ok2, msg2          = check_forbidden_paths(spec_text, changed)
-    ok3, counts3, msg3 = check_phase_budget(worklog_text, args.commit, args.agent, spec_result)
+    ok3, counts3, msg3 = check_phase_budget(worklog_text, args.commit, args.agent, spec_result, args.execution)
     ok4, counts4, msg4 = check_actual_scope(spec_result, changed, args.worktree, args.ref, args.agent)
 
     results = {
@@ -361,12 +381,12 @@ def main():
 
     if args.json:
         print(json.dumps({
-            "commit": args.commit, "agent": args.agent,
+            "commit": args.commit, "agent": args.agent, "execution": args.execution,
             "tokens": args.tokens, "all_pass": all_pass, "checks": results
         }, indent=2))
     else:
         status = lambda ok, msg: ("WARN" if msg and msg.startswith("WARN") else ("PASS" if ok else "FAIL"))
-        print(f"\n-- Constraint Verification: C{args.commit.zfill(2)} ({args.agent}) --\n")
+        print(f"\n-- Constraint Verification: C{args.commit.zfill(2)} ({args.agent}, {args.execution}) --\n")
         print(f"  [0] Commit spec      [{status(ok0, msg0)}] {msg0}")
         print(f"  [1] Context block    [{status(ok1, msg1)}] {msg1}")
         print(f"  [2] Forbidden paths  [{status(ok2, msg2)}] {msg2}")

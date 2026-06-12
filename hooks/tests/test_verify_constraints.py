@@ -545,6 +545,43 @@ class TestEffectiveGreenfieldBudgets(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("total=25 exceeds cap of 18", msg)
 
+    def test_check_phase_budget_claude_direct_skips_owner_worklog(self):
+        """Claude-direct execution: owner agent (adam) has no C30 session in their
+        worklog at all - an unrelated C29A session with total=25 must not cause a
+        failure, and the worklog must not be inspected against the 18-call cap."""
+        spec_result = {"budget": {"max_tool_calls": 18}}
+        worklog = "## Session 29A — Commit 29A\n\nTool usage: reads=7, writes=2, total=25\n"
+        ok, counts, msg = verify_constraints.check_phase_budget(
+            worklog, "30", "adam", spec_result, execution="claude-direct"
+        )
+        self.assertTrue(ok, msg)
+        self.assertIn("Claude-direct", msg)
+
+    def test_check_phase_budget_delegated_with_correct_session_passes(self):
+        spec_result = {"budget": {"max_tool_calls": 18}}
+        worklog = (
+            "## Session 29A — Commit 29A\n\nTool usage: reads=7, writes=2, total=25\n\n"
+            "## Session 30 — Commit 30\n\nTool usage: reads=8, writes=4, total=12\n"
+        )
+        ok, counts, msg = verify_constraints.check_phase_budget(
+            worklog, "30", "adam", spec_result, execution="delegated"
+        )
+        self.assertTrue(ok, msg)
+        self.assertEqual(counts["total"], 12)
+
+    def test_check_phase_budget_delegated_missing_session_fails_without_fallback(self):
+        """If --agent's worklog has no C30 session, delegated execution must fail
+        clearly rather than matching an unrelated commit's "Tool usage" line."""
+        spec_result = {"budget": {"max_tool_calls": 18}}
+        worklog = "## Session 29A — Commit 29A\n\nTool usage: reads=7, writes=2, total=25\n"
+        ok, counts, msg = verify_constraints.check_phase_budget(
+            worklog, "30", "adam", spec_result, execution="delegated"
+        )
+        self.assertFalse(ok)
+        self.assertIsNone(counts)
+        self.assertIn("30", msg)
+        self.assertNotIn("25", msg)
+
     def test_check_phase_budget_letter_suffix_skips_session_index_row(self):
         spec_result = {"budget": {"max_tool_calls": 28}}
         worklog = (

@@ -41,7 +41,9 @@
         "hooks/pre_commit_check.py",
         "hooks/tests/test_pre_commit_check.py",
         "hooks/context_telemetry.py",
-        "hooks/tests/test_context_telemetry.py"
+        "hooks/tests/test_context_telemetry.py",
+        "hooks/verify_constraints.py",
+        "hooks/tests/test_verify_constraints.py"
       ]
     },
     "rex.stockagent@gmail.com": {
