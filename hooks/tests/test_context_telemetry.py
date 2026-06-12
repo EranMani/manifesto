@@ -172,6 +172,61 @@ class ContextTelemetryTests(unittest.TestCase):
             )
 
 
+class ReconcileInvocationRecordsTests(unittest.TestCase):
+    def _write_record(self, root: Path, name: str, payload: dict) -> None:
+        path = root / ".context" / "telemetry" / "invocations" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+    def test_matching_sources_reconcile(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._write_record(root, "C31-adam-normal-self-report-1.json", {
+                "commit": "C31", "agent": "adam", "kind": "normal",
+                "record_type": "self-report", "tool_calls": 5,
+            })
+            self._write_record(root, "C31-adam-normal-hooks-1.json", {
+                "commit": "C31", "agent": "adam", "kind": "normal",
+                "record_type": "hooks", "tools": {"total": 5},
+            })
+
+            result = context_metrics.reconcile_invocation_records("31", "adam", root)
+
+            self.assertEqual(result["total_tool_calls"], 5)
+            self.assertTrue(result["total_tool_calls_complete"])
+            self.assertEqual(result["contradictions"], [])
+            self.assertEqual(result["unknown"], [])
+            self.assertEqual(result["invocations"][0]["status"], "reconciled")
+
+    def test_conflicting_and_absent_totals_remain_explicit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            # Conflicting tool_calls between self-report and hooks.
+            self._write_record(root, "C31-adam-normal-self-report-1.json", {
+                "commit": "C31", "agent": "adam", "kind": "normal",
+                "record_type": "self-report", "tool_calls": 3,
+            })
+            self._write_record(root, "C31-adam-normal-hooks-1.json", {
+                "commit": "C31", "agent": "adam", "kind": "normal",
+                "record_type": "hooks", "tools": {"total": 7},
+            })
+            # A repair invocation with no hooks record at all (C30 case).
+            self._write_record(root, "C31-adam-repair-self-report-1.json", {
+                "commit": "C31", "agent": "adam", "kind": "repair",
+                "record_type": "self-report", "tool_calls": None,
+            })
+
+            result = context_metrics.reconcile_invocation_records("31", "adam", root)
+
+            self.assertEqual(result["total_tool_calls"], 0)
+            self.assertFalse(result["total_tool_calls_complete"])
+            self.assertEqual(len(result["contradictions"]), 1)
+            self.assertEqual(result["contradictions"][0]["self_report_tool_calls"], 3)
+            self.assertEqual(result["contradictions"][0]["hooks_tool_calls"], 7)
+            self.assertEqual(len(result["unknown"]), 1)
+            self.assertEqual(result["unknown"][0]["kind"], "repair")
+
+
 class ConstraintDashboardTests(unittest.TestCase):
     def test_renders_phase_b_metrics_and_prepared_package(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

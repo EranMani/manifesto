@@ -11,6 +11,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 METRICS_PATH = REPO_ROOT / "CONTEXT_METRICS.json"
+INVOCATIONS_DIRNAME = Path(".context") / "telemetry" / "invocations"
 
 
 def _load_json(path: Path) -> dict[str, Any] | None:
@@ -18,6 +19,10 @@ def _load_json(path: Path) -> dict[str, Any] | None:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
+
+
+def _commit_key(commit: str) -> str:
+    return commit if str(commit).upper().startswith("C") else f"C{str(commit).zfill(2)}"
 
 
 def load_metrics(path: Path = METRICS_PATH) -> dict[str, Any]:
@@ -218,6 +223,99 @@ def build_metric_record(
             "changed_files": sorted(changed_files),
         },
         "result": "PASS" if all(item["pass"] for item in results.values()) else "FAIL",
+    }
+
+
+def load_invocation_records(
+    commit: str, agent: str, repo_root: Path = REPO_ROOT
+) -> list[dict[str, Any]]:
+    """Load every immutable C30 invocation record for a commit/agent, oldest first."""
+    inv_dir = repo_root / INVOCATIONS_DIRNAME
+    if not inv_dir.is_dir():
+        return []
+    commit_key = _commit_key(commit)
+    prefix = f"{commit_key}-{agent.lower()}-"
+    records = []
+    for path in sorted(inv_dir.glob(f"{prefix}*.json")):
+        record = _load_json(path)
+        if record is not None:
+            records.append(record)
+    return records
+
+
+def reconcile_invocation_records(
+    commit: str, agent: str, repo_root: Path = REPO_ROOT
+) -> dict[str, Any]:
+    """Aggregate immutable invocation records for a commit/agent.
+
+    Pairs each kind's self-report records with its hooks records in
+    recording order to reconstruct one entry per invocation, then sums
+    tool_calls across invocations. Any disagreement between a self-report
+    and its paired hooks record is reported as a contradiction rather than
+    silently picking one source; any invocation missing tool_calls from
+    both sources is reported as unknown rather than counted as zero.
+    """
+    records = load_invocation_records(commit, agent, repo_root)
+    by_kind: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    for record in records:
+        kind = record.get("kind", "normal")
+        record_type = record.get("record_type", "unknown")
+        by_kind.setdefault(kind, {}).setdefault(record_type, []).append(record)
+
+    invocations: list[dict[str, Any]] = []
+    contradictions: list[dict[str, Any]] = []
+    unknown: list[dict[str, Any]] = []
+    total_tool_calls = 0
+
+    for kind in sorted(by_kind):
+        self_reports = by_kind[kind].get("self-report", [])
+        hooks = by_kind[kind].get("hooks", [])
+        for index in range(max(len(self_reports), len(hooks))):
+            self_report = self_reports[index] if index < len(self_reports) else None
+            hook = hooks[index] if index < len(hooks) else None
+            self_calls = self_report.get("tool_calls") if self_report else None
+            hook_calls = hook.get("tools", {}).get("total") if hook else None
+
+            entry: dict[str, Any] = {
+                "kind": kind,
+                "index": index + 1,
+                "self_report_tool_calls": self_calls,
+                "hooks_tool_calls": hook_calls,
+            }
+
+            if self_calls is not None and hook_calls is not None:
+                if self_calls == hook_calls:
+                    entry["tool_calls"] = self_calls
+                    entry["status"] = "reconciled"
+                    total_tool_calls += self_calls
+                else:
+                    entry["tool_calls"] = None
+                    entry["status"] = "contradiction"
+                    contradictions.append(dict(entry))
+            elif self_calls is not None:
+                entry["tool_calls"] = self_calls
+                entry["status"] = "self_report_only"
+                total_tool_calls += self_calls
+            elif hook_calls is not None:
+                entry["tool_calls"] = hook_calls
+                entry["status"] = "hooks_only"
+                total_tool_calls += hook_calls
+            else:
+                entry["tool_calls"] = None
+                entry["status"] = "unknown"
+                unknown.append(dict(entry))
+
+            invocations.append(entry)
+
+    return {
+        "commit": _commit_key(commit),
+        "agent": agent.lower(),
+        "invocation_count": len(invocations),
+        "invocations": invocations,
+        "total_tool_calls": total_tool_calls,
+        "total_tool_calls_complete": not contradictions and not unknown,
+        "contradictions": contradictions,
+        "unknown": unknown,
     }
 
 
