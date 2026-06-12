@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C30 (invocation-record-storage) is done: hooks/context_telemetry.py now persists each normal/repair/review invocation's self-report and hooks payload as a separate immutable .context/telemetry/invocations/CNN-agent-kind-type-N.json record, never overwriting prior records. Claude-direct (Eran-approved), 14/14 focused tests pass, full suite 152 passed/19 subtests. A separate bounded workflow fix (commit f87ef56) added an --execution {claude-direct,delegated} flag to verify_constraints.py so the phase-budget check distinguishes commit owner from actual executor. C31 (telemetry-reconciliation) is next.",
+  "tldr": "C31 (telemetry-reconciliation) is done: hooks/context_metrics.py adds load_invocation_records() and reconcile_invocation_records(), which pair C30's immutable per-invocation self-report and hooks records by kind/index, sum tool_calls, and explicitly report contradictions (mismatched totals) and unknowns (no data from either source) plus a total_tool_calls_complete flag. Claude-direct (Eran-approved), 13/13 focused tests pass, full suite 154 passed/19 subtests. C32 (telemetry-dashboard-ledger) is next.",
   "phase": 2,
-  "last_completed_commit": "30",
-  "next_commit": "31",
-  "next_commit_name": "telemetry-reconciliation",
+  "last_completed_commit": "31",
+  "next_commit": "32",
+  "next_commit_name": "telemetry-dashboard-ledger",
   "next_commit_assignee": "adam",
   "status": "phase-2-active",
   "open_handoffs": [
