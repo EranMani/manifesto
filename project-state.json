@@ -92,7 +92,7 @@
     {
       "id": "OI-03",
       "title": "Orchestrator post-session token costs untracked",
-      "detail": "TOKEN_RECORDS.md tracks per-invocation token counts for implementor and reviewer agents. Claude's own orchestration tokens (boot, verification passes, correction rounds, commit writing) are never measured or included in session totals. True cost per commit is understated. Add an 'orchestrator' row to TOKEN_RECORDS schema and instrument it.",
+      "detail": "TOKEN_RECORDS.md tracks per-invocation token counts for implementor and reviewer agents. Claude's own orchestration tokens (boot, verification passes, correction rounds, commit writing) are never measured or included in session totals. True cost per commit is understated. Add an 'orchestrator' row to TOKEN_RECORDS schema and instrument it. Feasibility note (2026-06-13): Claude Code's session transcript (transcript_path, available to hooks) carries a `usage` block per assistant turn, including the orchestrator's own (input_tokens + output_tokens + cache_creation_input_tokens + cache_read_input_tokens). A Stop-hook could sum these across the orchestrator's turns for a commit, excluding Agent/Task subagent turns (already captured via tool_cap). Main tradeoff: the transcript format is not a stable public API, so this would be somewhat brittle and requires a new hook plus schema fields in TOKEN_RECORDS.md and CONTEXT_METRICS.json.",
       "priority": "low",
       "opened": "2026-06-09"
     },
