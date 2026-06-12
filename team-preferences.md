@@ -255,6 +255,22 @@ STEP G — REQUEST APPROVAL
 
 ---
 
+## Orchestrator Debugging Circuit Breaker (D37)
+
+```
+During orchestrator-led debugging or repair work (diagnosing a failing test, a
+hook/telemetry defect, repairing corrupted state, etc.):
+- Stop after 2 failed repair/verification cycles OR 25 orchestrator tool calls
+  (self-monitored via .context/telemetry/orchestrator-active.json's tool_calls
+  counter — no new enforcement hook).
+- On hitting either limit: report the blocker, the evidence gathered, and a
+  minimal proposed correction. Continue only after Eran's explicit approval.
+- Does not apply to the normal STEP A0(b)-D.5 post-agent verification sequence
+  when it proceeds without repeated failures.
+```
+
+---
+
 ## Post-Commit File Checklist (Claude's responsibility — no exceptions)
 
 After every agent completes work, before presenting the next Commit Preview,

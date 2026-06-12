@@ -279,6 +279,25 @@ It does not separately measure the orchestrator's own token usage for that commi
 orchestrator usage needs to be bounded too, it must be measured and recorded
 independently — `known_total_tokens` is not a whole-commit total.
 
+### Orchestrator Debugging Circuit Breaker (instruction-level, D37)
+
+The orchestrator's own token usage is unbounded by `tool_cap_end.py` (see above), so
+debugging/repair sessions can run away without any enforcement hook noticing. This is
+an instruction-level rule for Claude's own conduct — no new hook is built for it.
+
+During orchestrator-led debugging or repair work (investigating a failing test,
+diagnosing a telemetry/hook defect, repairing corrupted state, etc.):
+
+- Stop after **2 failed repair/verification cycles** OR **25 orchestrator tool calls**
+  (tracked via the existing `.context/telemetry/orchestrator-active.json` `tool_calls`
+  counter — self-monitored, no new hook).
+- On hitting either limit: report the blocker, the evidence gathered so far, and a
+  minimal proposed correction.
+- Continue only after Eran's explicit approval.
+
+This does not apply to the normal Step A–G post-agent verification sequence when it
+is proceeding without repeated failures — only to open-ended debugging loops.
+
 When a session approaches 80% of context capacity:
 1. Trigger `/archive-worklog` for any agent with >3 completed sessions
 2. Compress context packages to Tier 0 + Tier 1 only

@@ -80,6 +80,10 @@ def initialize_telemetry(
     return telemetry
 
 
+def _commit_key(commit: str) -> str:
+    return commit if str(commit).upper().startswith("C") else f"C{str(commit).zfill(2)}"
+
+
 def initialize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     """Open an orchestrator telemetry scope for post-agent review and verification."""
     scope = {
@@ -100,16 +104,27 @@ def initialize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> d
 
 
 def finalize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> dict[str, Any] | None:
-    """Close the orchestrator scope and write a permanent commit-keyed file."""
+    """Close the orchestrator scope and write a permanent commit-keyed file.
+
+    Returns None — and writes nothing — if no scope is active, or the active
+    scope belongs to a different commit. The latter happens when
+    --start-orchestrator was never called for `commit`: a stale "completed"
+    scope from a previous commit would otherwise be re-stamped with a new
+    ended_at and persisted under the new commit's filename, duplicating the
+    previous commit's tool-call history under the wrong commit (see OI-13).
+    """
     path = repo_root / ".context" / "telemetry" / "orchestrator-active.json"
     try:
         scope = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
+    commit_key = _commit_key(commit)
+    scope_commit_key = _commit_key(scope.get("commit", ""))
+    if scope_commit_key.upper() != commit_key.upper():
+        return None
     scope["status"] = "completed"
     scope["ended_at"] = utc_now()
     path.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
-    commit_key = commit if str(commit).upper().startswith("C") else f"C{str(commit).zfill(2)}"
     output = repo_root / ".context" / "telemetry" / f"{commit_key}-orchestrator.json"
     output.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
     return scope
@@ -355,7 +370,14 @@ def main() -> int:
         return 0
 
     if args.stop_orchestrator:
-        finalize_orchestrator_scope(args.stop_orchestrator)
+        scope = finalize_orchestrator_scope(args.stop_orchestrator)
+        if scope is None:
+            print(
+                f"WARNING: no active orchestrator scope for {args.stop_orchestrator} "
+                "(was --start-orchestrator called for this commit?). "
+                "No orchestrator telemetry file was written.",
+                file=sys.stderr,
+            )
         return 0
 
     if args.agent_report:

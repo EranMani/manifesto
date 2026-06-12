@@ -130,6 +130,47 @@ class ContextTelemetryTests(unittest.TestCase):
         self.assertEqual(normalize_agent_name("frontend"), "aria")
         self.assertEqual(normalize_agent_name("ai-engineer"), "nova")
 
+    def test_finalize_orchestrator_scope_returns_none_when_no_active_scope(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = context_telemetry.finalize_orchestrator_scope("C30", root)
+            self.assertIsNone(result)
+            self.assertFalse(
+                (root / ".context" / "telemetry" / "C30-orchestrator.json").exists()
+            )
+
+    def test_finalize_orchestrator_scope_rejects_stale_commit(self) -> None:
+        """OI-13 regression: a scope opened for one commit must not be
+        re-stamped and persisted under a later commit's filename when
+        --start-orchestrator was never called for that later commit."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            context_telemetry.initialize_orchestrator_scope("C29A", root)
+            first = context_telemetry.finalize_orchestrator_scope("C29A", root)
+            self.assertIsNotNone(first)
+            self.assertTrue(
+                (root / ".context" / "telemetry" / "C29A-orchestrator.json").exists()
+            )
+
+            # No --start-orchestrator C29B call: orchestrator-active.json is
+            # still the completed C29A scope.
+            second = context_telemetry.finalize_orchestrator_scope("C29B", root)
+            self.assertIsNone(second)
+            self.assertFalse(
+                (root / ".context" / "telemetry" / "C29B-orchestrator.json").exists()
+            )
+
+    def test_finalize_orchestrator_scope_accepts_matching_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            context_telemetry.initialize_orchestrator_scope("C30", root)
+            result = context_telemetry.finalize_orchestrator_scope("C30", root)
+            self.assertIsNotNone(result)
+            self.assertEqual(result["status"], "completed")
+            self.assertTrue(
+                (root / ".context" / "telemetry" / "C30-orchestrator.json").exists()
+            )
+
 
 class ConstraintDashboardTests(unittest.TestCase):
     def test_renders_phase_b_metrics_and_prepared_package(self) -> None:

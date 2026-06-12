@@ -38,7 +38,9 @@
         "hooks/tool_cap_end.py",
         "hooks/tests/test_tool_cap.py",
         "hooks/pre_commit_check.py",
-        "hooks/tests/test_pre_commit_check.py"
+        "hooks/tests/test_pre_commit_check.py",
+        "hooks/context_telemetry.py",
+        "hooks/tests/test_context_telemetry.py"
       ]
     },
     "rex.stockagent@gmail.com": {

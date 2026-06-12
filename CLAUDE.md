@@ -312,12 +312,15 @@ hooks/tool_cap_end.py             ← orchestrator token-accounting (narrow exce
 hooks/tests/test_tool_cap.py      ← its test file (narrow exception)
 hooks/pre_commit_check.py         ← commit-gate hook enforcing this protocol (narrow exception)
 hooks/tests/test_pre_commit_check.py ← its test file (narrow exception)
+hooks/context_telemetry.py        ← dual-scope telemetry capture/persistence (narrow exception)
+hooks/tests/test_context_telemetry.py ← its test file (narrow exception)
 ```
 
 `hooks/` as a whole is Adam's domain (DevOps workflow automation, per AGENTS.md). The
-five files above are a narrow, explicitly listed exception in `hooks/agent-config.json`
-itself for orchestrator-owned identity registry, token telemetry, and the commit-gate
-hook that enforces this protocol — not a general claim on `hooks/`.
+seven files above are a narrow, explicitly listed exception in `hooks/agent-config.json`
+itself for orchestrator-owned identity registry, token telemetry, the commit-gate
+hook that enforces this protocol, and the orchestrator-scope telemetry capture used
+by Steps 5b/7c — not a general claim on `hooks/`.
 
 For Claude-direct execution, you receive temporary, exact-file authority from the active
 approved commit spec's `Files To Modify Or Add` table. This does not grant directory-wide
@@ -376,6 +379,19 @@ decision, and tradeoff. The worklog records every expansion and outcome.
     narrowly bounded, or already understood.
 11. Budget failures are non-waivable. Unfinished work becomes a new numbered commit.
 12. An implementor may return `SPLIT_REQUIRED`; Claude drafts the spec and Eran approves it.
+
+---
+
+## Orchestrator Debugging Circuit Breaker (D37)
+
+During orchestrator-led debugging or repair work (diagnosing a failing test, a
+hook/telemetry defect, repairing corrupted state, etc.): stop after 2 failed
+repair/verification cycles OR 25 orchestrator tool calls (self-monitored via
+`.context/telemetry/orchestrator-active.json`'s `tool_calls` counter — no new
+enforcement hook). On hitting either limit, report the blocker, the evidence
+gathered, and a minimal proposed correction, then wait for Eran's explicit
+approval before continuing. Does not apply to the normal Step 5b–7c
+post-agent verification sequence when it proceeds without repeated failures.
 
 ---
 

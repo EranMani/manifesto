@@ -1113,4 +1113,74 @@ fragility (Nova, low priority, no deadline).
 
 ---
 
+## D37 — Pre-C30 Telemetry Integrity Fix: Orchestrator Scope Cross-Commit Duplication (OI-13)
+
+**Date:** 2026-06-12
+
+### What was found
+
+C29A and C29B's orchestrator telemetry (`CONTEXT_METRICS.json` and
+`.context/telemetry/C29B-orchestrator.json`) were byte-identical (133 tool
+calls, identical read/write/search/command lists), both internally stamped
+`"commit": "C29A"`.
+
+### Root cause (persistence layer)
+
+`finalize_orchestrator_scope()` in `hooks/context_telemetry.py` had no check
+that the active scope in `orchestrator-active.json` actually belonged to the
+commit being finalized. `--start-orchestrator C29B` was never called (a
+process-discipline lapse). When `--stop-orchestrator C29B` ran, it picked up
+the stale "completed" C29A scope, re-stamped `ended_at`, and persisted it as
+`C29B-orchestrator.json` — duplicating C29A's history under C29B's name and
+corrupting the C29B record in `CONTEXT_METRICS.json`.
+
+C29C's orchestrator record (201 tool calls, `"commit": "C29C"`, distinct
+`started_at`) was checked and confirmed genuine — not part of this defect.
+
+### Fix
+
+- `hooks/context_telemetry.py`: added `_commit_key()` helper; rewrote
+  `finalize_orchestrator_scope()` to compare the active scope's commit against
+  the requested commit (case-insensitive, `C`-prefix normalized) and return
+  `None` — writing nothing — on mismatch or missing scope. `main()`'s
+  `--stop-orchestrator` branch now prints a stderr warning when `None` is
+  returned, explaining that `--start-orchestrator` may not have been called.
+- `hooks/tests/test_context_telemetry.py`: added 3 regression tests —
+  no-active-scope returns `None`/writes nothing, stale-commit (the exact
+  C29A→C29B scenario) is rejected and writes nothing, and the matching-commit
+  happy path still succeeds. 11/11 pass.
+- `CONTEXT_METRICS.json`: repaired the C29B record's `telemetry.orchestrator`
+  block from the duplicated C29A data to `status: "unavailable"` with all
+  arrays `null` (matching the existing convention used by other commits with
+  no orchestrator telemetry, e.g. C24).
+- Deleted the stale, gitignored `.context/telemetry/C29B-orchestrator.json`
+  (confirmed false duplicate of `C29A-orchestrator.json`).
+
+### Remaining limitation — NOT repaired (collection layer, separate issue)
+
+C29A's and C29C's token totals (`TOKEN_RECORDS.md`, marked "—") are genuinely
+lost and **not** deterministically repairable:
+- C29A: Adam's `<usage>` self-report block was not captured before
+  session-context compaction.
+- C29C: `hooks/tool_cap.json` (a single mutable file, not commit-keyed) was
+  not updated for that invocation and currently reflects C29B's data.
+
+Per the "preserve historical records unless a deterministic repair is
+possible" constraint, both remain recorded as lost. No code change addresses
+this — it is a collection-timing issue distinct from the persistence bug fixed
+above. Future work, if desired, would need to make `tool_cap.json` commit-keyed
+or capture self-reports before any compaction point.
+
+### Orchestrator Debugging Circuit Breaker (new instruction-level rule)
+
+Added to `ORCHESTRATION.md`, `CLAUDE.md`, and `team-preferences.md`: during
+orchestrator-led debugging/repair work, stop after 2 failed repair/verification
+cycles OR 25 orchestrator tool calls (tracked via the existing
+`orchestrator-active.json` `tool_calls` counter — no new hook). On hitting
+either limit, report the blocker, the evidence gathered, and a minimal proposed
+correction, then wait for Eran's approval before continuing. This is guidance
+for Claude's own conduct, not an enforced gate.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
