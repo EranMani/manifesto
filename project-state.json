@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C31 (telemetry-reconciliation) is done: hooks/context_metrics.py adds load_invocation_records() and reconcile_invocation_records(), which pair C30's immutable per-invocation self-report and hooks records by kind/index, sum tool_calls, and explicitly report contradictions (mismatched totals) and unknowns (no data from either source) plus a total_tool_calls_complete flag. Claude-direct (Eran-approved), 13/13 focused tests pass, full suite 154 passed/19 subtests. C32 (telemetry-dashboard-ledger) is next.",
+  "tldr": "C32 (telemetry-dashboard-ledger) is done: hooks/constraint_dashboard.py adds render_invocation_ledger() (plus discover_invocation_keys(), load_commit_max_tool_calls(), _invocation_status_badge()), rendering each C31-reconciled invocation as its own row (self-report vs hooks tool_calls, status badge) and a per-commit budget summary against execution_budget.max_tool_calls, with within/over budget and incomplete states. Claude-direct (Eran-approved), 16/16 focused tests pass, full hooks suite 157 passed/19 subtests. C33 (upload-duplicate-status, Rex) is next.",
   "phase": 2,
-  "last_completed_commit": "31",
-  "next_commit": "32",
-  "next_commit_name": "telemetry-dashboard-ledger",
-  "next_commit_assignee": "adam",
+  "last_completed_commit": "32",
+  "next_commit": "33",
+  "next_commit_name": "upload-duplicate-status",
+  "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
     {
