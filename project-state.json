@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C29C (preflight-dashboard-details) is done: constraint_dashboard.py now has a 'Preflight readiness' section with per-commit score badges (READY/WARNING/BLOCKED/NOT RUN/INVALID REPORT) and an expandable detail panel (breakdown, violations, warnings, files, context package, escaped raw JSON); preflight_commit.py refreshes the dashboard after persisting each report. C30 (invocation-record-storage) is next.",
+  "tldr": "C30 (invocation-record-storage) is done: hooks/context_telemetry.py now persists each normal/repair/review invocation's self-report and hooks payload as a separate immutable .context/telemetry/invocations/CNN-agent-kind-type-N.json record, never overwriting prior records. Claude-direct (Eran-approved), 14/14 focused tests pass, full suite 152 passed/19 subtests. A separate bounded workflow fix (commit f87ef56) added an --execution {claude-direct,delegated} flag to verify_constraints.py so the phase-budget check distinguishes commit owner from actual executor. C31 (telemetry-reconciliation) is next.",
   "phase": 2,
-  "last_completed_commit": "29C",
-  "next_commit": "30",
-  "next_commit_name": "invocation-record-storage",
+  "last_completed_commit": "30",
+  "next_commit": "31",
+  "next_commit_name": "telemetry-reconciliation",
   "next_commit_assignee": "adam",
   "status": "phase-2-active",
   "open_handoffs": [

@@ -46,7 +46,7 @@
 | 29A | preflight-score-engine | adam | ✅ done · 2026-06-11 |
 | 29B | preflight-delegation-gate | adam | ✅ done · 2026-06-11 |
 | 29C | preflight-dashboard-details | adam | ✅ done · 2026-06-12 |
-| 30 | invocation-record-storage | adam | pending |
+| 30 | invocation-record-storage | adam | ✅ done · 2026-06-12 |
 | 31 | telemetry-reconciliation | adam | pending |
 | 32 | telemetry-dashboard-ledger | adam | pending |
 | 33 | upload-duplicate-status | rex | pending |
