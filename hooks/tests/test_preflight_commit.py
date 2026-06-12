@@ -258,6 +258,16 @@ def test_proceed_true_when_score_high(tmp_path, monkeypatch):
     assert full["hard_points"] == 100
     assert set(full["categories"]) == set(pf.HARD_CATEGORY_POINTS)
 
+    # Persisted reports must stay small: validate_pending_graph's per-commit
+    # spec_results for every pending commit must not be embedded verbatim.
+    report_bytes = report_path.read_text(encoding="utf-8").encode("utf-8")
+    assert len(report_bytes) < 20_000
+
+    graph_evidence = full["categories"]["pending_graph_validity"]["evidence"]
+    assert "spec_results" not in graph_evidence
+    assert graph_evidence["active_commit_spec_result"]["commit"] == "C30"
+    assert full["raw_validators"]["validate_pending_graph"] == graph_evidence
+
 
 def test_non_blocking_deductions_drop_score_below_80(tmp_path, monkeypatch):
     """All hard categories pass, but enough readiness deductions push score < 80

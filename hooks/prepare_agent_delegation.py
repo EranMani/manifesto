@@ -180,6 +180,8 @@ def render_brief(
         "- Keep expansion inside owned paths unless reporting a cross-domain finding.",
         "- Stop exploring once the acceptance criteria are supported.",
         "- Record decisions, corrections, handoffs, tradeoffs, and context expansions in the worklog.",
+        "- Generated artifacts under `.context/` (preflight reports, run packages, telemetry) are "
+        "targeted-read-only: grep for the specific key or field you need, never Read the whole file.",
     ])
     if package["expansion_triggers"]:
         lines.extend(["", "## Known Expansion Triggers"])

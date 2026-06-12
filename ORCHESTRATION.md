@@ -229,6 +229,19 @@ for unresolved symbols, missing contracts, failing tests, or contradictory imple
 evidence. Every expansion states its reason, exact query/path, expected decision, and
 tradeoff before the tool call, then records the result in the worklog.
 
+Generated artifacts under `.context/` (preflight reports, run packages, telemetry) are
+targeted-read-only: an agent that needs a specific field greps for it rather than reading
+the whole file. Any generated JSON whose size exceeds the configured
+`max_chars_per_file` (see `hooks/context_rules.json`) must never be fully read — this
+applies to ad-hoc expansion reads, not just delegation-package files.
+
+A normal invocation that exhausts its tool-call budget on discovery and reports
+`SPLIT_REQUIRED` with zero files written is a process violation, not a normal split.
+Claude records this distinctly in the agent self-report (e.g. note
+`"process_violation": "zero_code_discovery_exhaustion"` alongside the telemetry) so the
+dashboard and TOKEN_RECORDS.md can distinguish "split because the scope was genuinely
+two commits" from "split because discovery alone overran the budget."
+
 ### Token budget targets
 
 | Agent type | Target per invocation |

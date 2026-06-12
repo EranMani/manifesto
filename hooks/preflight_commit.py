@@ -142,10 +142,27 @@ def _eval_specification_validity(repo_root: Path, commit: str, agent: str) -> di
     return {"passed": passed, "evidence": result}
 
 
-def _eval_pending_graph_validity(repo_root: Path) -> dict[str, Any]:
+def _trim_pending_graph_evidence(evidence: dict[str, Any], key: str) -> dict[str, Any]:
+    """Reduce validate_pending_graph's evidence to the active commit's entry.
+
+    validate_pending_graph() returns a full validate_commit_spec result for every
+    pending commit in spec_results, which balloons the persisted preflight report
+    (tens of KB) without being relevant to any single commit's readiness.
+    """
+    spec_results = evidence.get("spec_results", {})
+    return {
+        "status": evidence.get("status"),
+        "pending_commit_count": len(evidence.get("pending_commits", [])),
+        "violation_count": len(evidence.get("violations", [])),
+        "violations": evidence.get("violations", []),
+        "active_commit_spec_result": spec_results.get(key),
+    }
+
+
+def _eval_pending_graph_validity(repo_root: Path, key: str) -> dict[str, Any]:
     result = vcs.validate_pending_graph(repo_root)
     passed = result.get("status") == "valid"
-    return {"passed": passed, "evidence": result}
+    return {"passed": passed, "evidence": _trim_pending_graph_evidence(result, key)}
 
 
 def _eval_ownership_match(
@@ -474,7 +491,7 @@ def evaluate(repo_root: Path, commit: str, agent: str) -> dict[str, Any]:
 
     # --- Hard categories ---
     spec_validity = _eval_specification_validity(repo_root, commit, agent)
-    graph_validity = _eval_pending_graph_validity(repo_root)
+    graph_validity = _eval_pending_graph_validity(repo_root, key)
     ownership = _eval_ownership_match(repo_root, commit, spec_owner)
     scope_compliance = _eval_scope_forbidden_compliance(repo_root, files, spec_owner, forbidden)
     spec_validation_budget = (spec_validity["evidence"] or {}).get("budget") or {}
