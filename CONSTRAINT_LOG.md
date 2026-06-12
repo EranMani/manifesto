@@ -46,3 +46,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-12 | C30 | adam | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-12 | C31 | adam | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-12 | C32 | adam | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
+| 2026-06-12 | C33 | rex | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |

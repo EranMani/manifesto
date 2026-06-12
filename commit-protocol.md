@@ -48,8 +48,8 @@
 | 29C | preflight-dashboard-details | adam | ✅ done · 2026-06-12 |
 | 30 | invocation-record-storage | adam | ✅ done · 2026-06-12 |
 | 31 | telemetry-reconciliation | adam | ✅ done · 2026-06-12 |
-| 32 | telemetry-dashboard-ledger | adam | pending |
-| 33 | upload-duplicate-status | rex | pending |
+| 32 | telemetry-dashboard-ledger | adam | ✅ done · 2026-06-12 |
+| 33 | upload-duplicate-status | rex | ✅ done · 2026-06-13 |
 | 34 | database-test-container-command | adam | pending |
 | 35 | policy-storage-db-url | rex | pending |
 | 36 | ingestion-pgvector-write-integration | nova | pending |

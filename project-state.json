@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C32 (telemetry-dashboard-ledger) is done: hooks/constraint_dashboard.py adds render_invocation_ledger() (plus discover_invocation_keys(), load_commit_max_tool_calls(), _invocation_status_badge()), rendering each C31-reconciled invocation as its own row (self-report vs hooks tool_calls, status badge) and a per-commit budget summary against execution_budget.max_tool_calls, with within/over budget and incomplete states. Claude-direct (Eran-approved), 16/16 focused tests pass, full hooks suite 157 passed/19 subtests. C33 (upload-duplicate-status, Rex) is next.",
+  "tldr": "C33 (upload-duplicate-status) is done: backend/app/api/v1/documents.py now returns HTTP 200 (instead of 201) for an idempotent duplicate upload of an already-ready document via response.status_code = status.HTTP_200_OK on that branch; new uploads remain 201. test_duplicate_upload_is_idempotent updated to assert 200. Claude-direct (Eran-approved), 16/16 tests pass. C34 (database-test-container-command, Adam) is next.",
   "phase": 2,
-  "last_completed_commit": "32",
-  "next_commit": "33",
-  "next_commit_name": "upload-duplicate-status",
-  "next_commit_assignee": "rex",
+  "last_completed_commit": "33",
+  "next_commit": "34",
+  "next_commit_name": "database-test-container-command",
+  "next_commit_assignee": "adam",
   "status": "phase-2-active",
   "open_handoffs": [
     {
