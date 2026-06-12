@@ -340,7 +340,7 @@ class TestUploadSuccessAndIdempotency:
         finally:
             docs_mod.hashlib.sha256 = original_sha256
 
-        assert resp.status_code == 201
+        assert resp.status_code == 200
         body = resp.json()
         assert body["id"] == existing.id
         assert body["title"] == "Existing Ready Doc"

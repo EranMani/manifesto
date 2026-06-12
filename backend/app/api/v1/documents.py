@@ -15,7 +15,7 @@ import logging
 import re
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -207,6 +207,7 @@ def _to_read_model(doc: PolicyDocument) -> DocumentRead:
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=DocumentUploadResponse)
 async def upload_document(
+    response: Response,
     file: UploadFile = File(...),
     title: str = Form(...),
     current_user: User = Depends(require_role(*_UPLOAD_ROLES)),
@@ -284,6 +285,7 @@ async def upload_document(
     )
     existing_doc = existing.scalars().first()
     if existing_doc is not None:
+        response.status_code = status.HTTP_200_OK
         return DocumentUploadResponse.model_validate(_document_payload(existing_doc))
 
     document = PolicyDocument(
