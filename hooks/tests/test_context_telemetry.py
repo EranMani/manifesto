@@ -302,5 +302,128 @@ class ConstraintDashboardTests(unittest.TestCase):
             )
 
 
+def _preflight_report(
+    commit: str,
+    score: int,
+    proceed: bool,
+    blocking_violations: list[str],
+    warnings: list[str],
+    goal: str = "Build <widget> & stuff",
+) -> dict:
+    return {
+        "compact": {
+            "commit": commit,
+            "score": score,
+            "owner": {"id": "adam", "name": "Adam", "domain": "DevOps"},
+            "goal": goal,
+            "files": [{"action": "edit", "path": "hooks/x.py"}],
+            "blocking_violations": blocking_violations,
+            "warnings": warnings,
+            "decision_required": bool(warnings),
+            "proceed": proceed,
+            "report_path": f".context/preflight/{commit}.json",
+        },
+        "hard_points": 100,
+        "total_deductions": 100 - score,
+        "categories": {
+            "specification_validity": {
+                "points_awarded": 15,
+                "points_possible": 15,
+                "passed": True,
+                "evidence": {},
+            },
+        },
+        "deductions": {
+            "readiness": {"points": 100 - score, "warnings": warnings},
+        },
+        "raw_validators": {},
+        "context_package": {"selected_files": 4, "estimated_chars": 14889},
+        "dependencies": ["C49"],
+        "verification_command": "pytest hooks/tests/test_x.py -q",
+    }
+
+
+class PreflightDashboardTests(unittest.TestCase):
+    def test_ready_warning_blocked_render_with_distinct_labels(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            preflight_dir = root / ".context" / "preflight"
+            preflight_dir.mkdir(parents=True)
+            (preflight_dir / "C50.json").write_text(
+                json.dumps(_preflight_report("C50", 95, True, [], [])),
+                encoding="utf-8",
+            )
+            (preflight_dir / "C51.json").write_text(
+                json.dumps(_preflight_report(
+                    "C51", 70, False, [], ["Context expansion warning: extra read"]
+                )),
+                encoding="utf-8",
+            )
+            (preflight_dir / "C52.json").write_text(
+                json.dumps(_preflight_report(
+                    "C52", 40, False,
+                    ["specification_validity: commit specification failed validation"],
+                    [],
+                )),
+                encoding="utf-8",
+            )
+
+            document = render_dashboard(root, root / "constraint-dashboard.html")
+
+            self.assertIn("Preflight readiness", document)
+            self.assertIn('<span class="badge good">READY (95/100)</span>', document)
+            self.assertIn('<span class="badge neutral">WARNING (70/100)</span>', document)
+            self.assertIn('<span class="badge bad">BLOCKED (40/100)</span>', document)
+
+    def test_row_expansion_exposes_breakdown_and_escaped_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            preflight_dir = root / ".context" / "preflight"
+            preflight_dir.mkdir(parents=True)
+            report = _preflight_report("C50", 95, True, [], [])
+            (preflight_dir / "C50.json").write_text(json.dumps(report), encoding="utf-8")
+
+            document = render_dashboard(root, root / "constraint-dashboard.html")
+
+            self.assertIn('<details class="preflight-raw">', document)
+            self.assertIn("Score breakdown", document)
+            self.assertIn("specification_validity", document)
+            self.assertIn("pytest hooks/tests/test_x.py -q", document)
+            # The raw report is rendered verbatim, with HTML-sensitive
+            # characters in the goal escaped rather than executed.
+            self.assertIn("Build &lt;widget&gt; &amp; stuff", document)
+
+    def test_missing_and_malformed_reports_degrade_safely(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+
+            # No .context/preflight directory at all.
+            document = render_dashboard(root, root / "constraint-dashboard.html")
+            self.assertIn("No preflight reports have been generated yet.", document)
+
+            # A report file that exists but is not valid JSON / lacks "compact".
+            preflight_dir = root / ".context" / "preflight"
+            preflight_dir.mkdir(parents=True)
+            (preflight_dir / "C53.json").write_text("not json", encoding="utf-8")
+
+            document = render_dashboard(root, root / "constraint-dashboard.html")
+            self.assertIn("INVALID REPORT", document)
+            self.assertIn('<span class="badge bad">invalid-report</span>', document)
+
+    def test_dashboard_rendering_never_changes_persisted_report(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            preflight_dir = root / ".context" / "preflight"
+            preflight_dir.mkdir(parents=True)
+            report_path = preflight_dir / "C50.json"
+            original = json.dumps(_preflight_report("C50", 95, True, [], []), indent=2, sort_keys=True)
+            report_path.write_text(original, encoding="utf-8")
+
+            render_dashboard(root, root / "constraint-dashboard.html")
+            render_dashboard(root, root / "constraint-dashboard.html")
+
+            self.assertEqual(report_path.read_text(encoding="utf-8"), original)
+
+
 if __name__ == "__main__":
     unittest.main()

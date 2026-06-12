@@ -5,9 +5,9 @@
 ---
 
 ## Current State
-*Last updated: Commit 29B · 2026-06-11*
+*Updated: Commit 29C · 2026-06-12*
 
-**Last completed:** Commit 29B `preflight-delegation-gate` (test repair)
+**Last completed:** Commit 29C `preflight-dashboard-details`
 **Currently active:** none
 **Blocked by:** none
 
@@ -43,6 +43,7 @@ No archived sessions yet.
 | 21 | C21: integration-smoke | ✅ Done | Full stack verified live; 16 pass / 1 pass-with-deviation / 4 not-verified / 0 fail; created throwaway manager user to test role-based 403 |
 | 29A | C29A: preflight-score-engine | Done | `hooks/preflight_commit.py`: 8 scoring categories (sum=100) + 4 readiness deductions, persists `.context/preflight/C<ID>.json` |
 | 29B | C29B: preflight-delegation-gate | Done (repair) | `hooks/tests/test_prepare_agent_delegation.py`: mocked `preflight_evaluate`, added 2 new tests for `PreflightBlocked` (9/9 pass) |
+| 29C | C29C: preflight-dashboard-details | Done | New "Preflight readiness" section: score badges, detail panel, refresh on persist |
 
 ---
 
@@ -153,3 +154,41 @@ Tool usage: reads=2, writes=2, total=18 (this repair invocation; first invocatio
 **Outcome:** All 9 tests pass (7 existing + 2 new).
 
 **Did not touch:** `backend/`, `frontend/`, `hooks/preflight_commit.py`, `hooks/prepare_agent_delegation.py`. Did not run `git commit`.
+
+---
+
+## Session 29C — Commit 29C: `preflight-dashboard-details`
+*2026-06-12*
+
+**Scope:** Display each commit's deterministic preflight score and an expandable
+report-detail panel in the constraint dashboard, per `commit-specs/commit-29c.md`.
+
+**Completed by Adam (this invocation):**
+
+Tool usage: reads=9, writes=5, total=18
+- `hooks/constraint_dashboard.py`: `load_preflight_reports`, `_preflight_status`,
+  `_preflight_score_badge`, `_preflight_detail_html`, `render_preflight_rows` — score
+  badges (READY/WARNING/BLOCKED), breakdown, violations, warnings, planned files,
+  context package, dependencies, verification command, escaped raw JSON, plus CSS.
+  Computed `preflight_html` in `render_dashboard()`.
+
+**Returned `SPLIT_REQUIRED`** at the 18-call cap with non-empty `completed_scope` (real
+code, not zero-code exhaustion). Remaining: template placement, row-expansion toggle,
+dashboard refresh wiring, focused tests, worklog entry.
+**Completed by Claude (correction, per Eran's direction — do not re-invoke Adam,
+do not discard his work):**
+- Rewrote `_preflight_status`/`_preflight_score_badge` to take the `entry` dict so a
+  malformed-but-existing report renders `INVALID REPORT`, distinct from `NOT RUN`.
+- Added the "Preflight readiness" `<section>` to `render_dashboard()` (after
+  "Constraint history"), with `preflight_html` and a NOT RUN/INVALID REPORT legend.
+- Added an inline `onclick` row-expansion toggle in `render_preflight_rows`.
+- `hooks/preflight_commit.py`: refreshes `constraint-dashboard.html` (try/except,
+  observational) after persisting each `.context/preflight/C<ID>.json` report.
+- `hooks/tests/test_context_telemetry.py`: added `PreflightDashboardTests` —
+  READY/WARNING/BLOCKED badges, row-expansion + escaped raw JSON, missing/malformed
+  report handling, and dashboard render never mutating the persisted report.
+
+**Commands run:** `pytest -p no:cacheprovider hooks -q` — 134/135 passed, 19 subtests
+(1 pre-existing failure, `test_records_selected_reads_and_expansions`, unrelated).
+**Outcome:** Separate "Preflight readiness" section, not integrated into "Context
+Efficiency" (per Eran's direction). New tests pass. Did not touch `backend/`, `frontend/`.

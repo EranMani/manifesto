@@ -602,6 +602,13 @@ def evaluate(repo_root: Path, commit: str, agent: str) -> dict[str, Any]:
     report_path_abs.parent.mkdir(parents=True, exist_ok=True)
     report_path_abs.write_text(json.dumps(full_report, indent=2, sort_keys=True), encoding="utf-8")
 
+    try:
+        import constraint_dashboard
+
+        constraint_dashboard.render_dashboard(repo_root)
+    except Exception:  # noqa: BLE001
+        pass  # dashboard refresh is observational; never block the preflight decision
+
     return compact
 
 

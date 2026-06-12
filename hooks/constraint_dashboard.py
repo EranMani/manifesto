@@ -49,6 +49,23 @@ def load_json(path: Path) -> dict[str, Any] | None:
         return None
 
 
+def load_preflight_reports(repo_root: Path) -> list[dict[str, Any]]:
+    preflight_dir = repo_root / ".context" / "preflight"
+    results: list[dict[str, Any]] = []
+    if not preflight_dir.is_dir():
+        return results
+    for path in sorted(preflight_dir.glob("C*.json")):
+        commit = path.stem
+        try:
+            report = json.loads(path.read_text(encoding="utf-8"))
+            valid = isinstance(report, dict) and "compact" in report
+        except (OSError, json.JSONDecodeError):
+            report = None
+            valid = False
+        results.append({"commit": commit, "report": report if valid else None, "valid": valid})
+    return results
+
+
 def load_commit_spec_summary(repo_root: Path, relative_path: str | None) -> dict[str, str]:
     if not relative_path:
         return {}
@@ -294,6 +311,144 @@ def metric_value(value: Any, suffix: str = "") -> str:
     return f"{value}{suffix}"
 
 
+def _preflight_status(entry: dict[str, Any]) -> str:
+    if not entry["valid"]:
+        return "INVALID REPORT"
+    compact = entry["report"].get("compact")
+    if not isinstance(compact, dict):
+        return "INVALID REPORT"
+    if compact.get("proceed"):
+        return "READY"
+    if compact.get("blocking_violations"):
+        return "BLOCKED"
+    return "WARNING"
+
+
+def _preflight_score_badge(entry: dict[str, Any]) -> str:
+    status = _preflight_status(entry)
+    if status == "INVALID REPORT":
+        return badge(status.lower().replace(" ", "-"), False)
+    compact = entry["report"].get("compact", {})
+    score = compact.get("score", "-")
+    good: bool | None = True if status == "READY" else (None if status == "WARNING" else False)
+    return badge(f"{status} ({score}/100)", good)
+
+
+def _preflight_detail_html(commit: str, entry: dict[str, Any]) -> str:
+    """Render the expandable detail panel for one commit's preflight report."""
+    report = entry["report"]
+    if report is None:
+        reason = "A preflight report file exists for this commit but could not be parsed as valid JSON, or is missing the expected 'compact' section."
+        return f'<div class="preflight-detail"><p class="empty">{html.escape(reason)}</p></div>'
+
+    compact = report.get("compact", {})
+    categories = report.get("categories", {})
+    deductions = report.get("deductions", {})
+
+    category_rows = ""
+    for name, cat in categories.items():
+        category_rows += (
+            "<tr>"
+            f"<td>{html.escape(name)}</td>"
+            f"<td>{metric_value(cat.get('points_awarded'))} / {metric_value(cat.get('points_possible'))}</td>"
+            f"<td>{badge('pass' if cat.get('passed') else 'fail', cat.get('passed'))}</td>"
+            "</tr>"
+        )
+
+    deduction_rows = ""
+    for name, ded in deductions.items():
+        warnings_text = "; ".join(ded.get("warnings", [])) or "None"
+        deduction_rows += (
+            "<tr>"
+            f"<td>{html.escape(name)}</td>"
+            f"<td>{metric_value(ded.get('points'))}</td>"
+            f"<td>{html.escape(warnings_text)}</td>"
+            "</tr>"
+        )
+
+    blocking_html = ""
+    for violation in compact.get("blocking_violations", []):
+        rule, _, repair = violation.partition(": ")
+        blocking_html += (
+            f"<li><strong>{html.escape(rule)}</strong> — {html.escape(repair or violation)}</li>"
+        )
+    if not blocking_html:
+        blocking_html = "<li>None.</li>"
+
+    warning_html = "".join(f"<li>{html.escape(w)}</li>" for w in compact.get("warnings", [])) or "<li>None.</li>"
+
+    files_html = "".join(
+        f"<li>{html.escape(f.get('action', '-').capitalize())}: {html.escape(f.get('path', '-'))}</li>"
+        for f in compact.get("files", [])
+    ) or "<li>None.</li>"
+
+    context_package = report.get("context_package")
+    package_summary = "No context package recorded."
+    if isinstance(context_package, dict):
+        package_summary = (
+            f"{metric_value(context_package.get('selected_files'))} files selected, "
+            f"{metric_value(context_package.get('estimated_chars'))} estimated chars."
+        )
+
+    dependencies = ", ".join(report.get("dependencies", [])) or "None"
+    verification_command = report.get("verification_command", "") or "None"
+    report_path = compact.get("report_path", "-")
+
+    raw_json = html.escape(json.dumps(report, indent=2, sort_keys=True))
+
+    return (
+        '<div class="preflight-detail">'
+        '<div class="preflight-grid">'
+        '<div><h4>Score breakdown</h4>'
+        f'<table><thead><tr><th>Category</th><th>Points</th><th>Status</th></tr></thead>'
+        f'<tbody>{category_rows}</tbody></table>'
+        f'<table><thead><tr><th>Deduction</th><th>Points lost</th><th>Warnings</th></tr></thead>'
+        f'<tbody>{deduction_rows}</tbody></table></div>'
+        '<div><h4>Blocking violations</h4><ul>' + blocking_html + '</ul>'
+        '<h4>Warnings</h4><ul>' + warning_html + '</ul></div>'
+        '<div><h4>Planned files</h4><ul>' + files_html + '</ul>'
+        f'<h4>Context package</h4><p>{html.escape(package_summary)}</p>'
+        f'<h4>Dependencies</h4><p>{html.escape(dependencies)}</p>'
+        f'<h4>Verification command</h4><pre>{html.escape(verification_command)}</pre>'
+        f'<p class="legend">Report: {html.escape(report_path)}</p></div>'
+        '</div>'
+        '<details class="preflight-raw"><summary>Exact persisted report (JSON)</summary>'
+        f'<pre>{raw_json}</pre></details>'
+        '</div>'
+    )
+
+
+def render_preflight_rows(repo_root: Path) -> str:
+    """Render the preflight readiness table rows with expandable details."""
+    reports = load_preflight_reports(repo_root)
+    if not reports:
+        return '<tr><td colspan="5" class="empty">No preflight reports have been generated yet.</td></tr>'
+
+    rows = ""
+    for entry in reports:
+        commit = entry["commit"]
+        report = entry["report"]
+        compact = (report or {}).get("compact", {}) if report else {}
+        blocking = len(compact.get("blocking_violations", []))
+        warnings = len(compact.get("warnings", []))
+        goal = compact.get("goal", "-")
+        row_id = f"preflight-{html.escape(commit)}"
+        rows += (
+            f'<tr class="preflight-row" data-target="{row_id}" '
+            f'onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden">'
+            f"<td>{badge(commit)}</td>"
+            f"<td>{_preflight_score_badge(entry)}</td>"
+            f"<td>{metric_value(blocking if report else None)}</td>"
+            f"<td>{metric_value(warnings if report else None)}</td>"
+            f"<td>{html.escape(goal) if goal else '-'}</td>"
+            "</tr>"
+            f'<tr class="preflight-detail-row" id="{row_id}" hidden>'
+            f'<td colspan="5">{_preflight_detail_html(commit, entry)}</td>'
+            "</tr>"
+        )
+    return rows
+
+
 def render_dashboard(
     repo_root: Path = REPO_ROOT,
     output_path: Path | None = None,
@@ -378,6 +533,8 @@ def render_dashboard(
             'verified live delegation.</td></tr>'
         )
 
+    preflight_html = render_preflight_rows(repo_root)
+
     constraint_html = ""
     for row in constraint_rows:
         token = row[3] if row[3] not in {"-", "0"} else "-"
@@ -416,6 +573,14 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
 .graph-commit-summary{display:none;position:absolute;z-index:2;left:12px;top:12px;width:310px;max-height:540px;overflow:auto;padding:16px 18px;border:1px solid #334155;border-radius:9px;background:#0f172aee;color:#dbeafe;box-shadow:0 8px 24px #02061755}.graph-commit-summary.visible{display:block}.graph-commit-summary h3{font-size:14px;margin:0 0 7px}.graph-commit-summary p{margin:5px 0;color:#cbd5e1;font-size:11px;line-height:1.5}.commit-meta{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0}.commit-meta span{padding:2px 6px;border-radius:999px;background:#1e293b;color:#bfdbfe;font-size:9px}.commit-files{margin:6px 0 0;padding-left:18px;font-size:11px;line-height:1.45;word-break:break-word}.commit-file-link{color:#7dd3fc;text-decoration:none;border-bottom:1px dotted #38bdf8}.commit-file-link:hover,.commit-file-link:focus{color:#e0f2fe;border-bottom-style:solid;outline:none}
 .overlay-key{display:inline-flex;align-items:center;gap:4px}.overlay-mark{width:13px;height:13px;border:2px solid;border-radius:4px}.graph-status{position:absolute;left:10px;bottom:8px;color:#b8c2d3;background:#111827cc;padding:4px 7px;border-radius:5px;font-size:11px;pointer-events:none}
 @media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}.prepared-grid{grid-template-columns:1fr}.graph-controls{grid-template-columns:1fr 1fr}.graph-stage{height:560px}}
+.preflight-row{cursor:pointer}.preflight-row:hover td{background:#eef3fb}.preflight-detail-row td{padding:0;border-top:0}
+.preflight-detail{padding:14px 16px;background:#f9fbfd;border-top:1px solid #edf1f5}
+.preflight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.preflight-grid h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#69778e}
+.preflight-grid ul{margin:0 0 10px;padding-left:18px;font-size:12px}.preflight-grid table{width:100%;margin-bottom:10px;font-size:12px}
+.preflight-grid pre{white-space:pre-wrap;word-break:break-word;background:#fff;border:1px solid #e3e9f1;border-radius:6px;padding:8px;font-size:11px;margin:0 0 8px}
+.preflight-raw{margin-top:10px}.preflight-raw pre{max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#cbd5e1;border-radius:8px;padding:12px;font-size:11px}
+.preflight-raw summary{cursor:pointer;font-size:12px;color:#2457c5;font-weight:600}
 """
     if measured:
         ef_label = f"{expansion_free}/{measured}"
@@ -465,6 +630,11 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
 <div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>Agent</th><th>Tokens</th>
 <th>Context</th><th>Forbidden</th><th>Budget</th><th>Result</th></tr></thead>
 <tbody>{constraint_html}</tbody></table></div></section>
+<section><div class="section-head"><div><h2>Preflight readiness</h2>
+<p>Deterministic Python preflight scores per commit. Click a row to inspect the full report.</p></div></div>
+<div class="table-wrap"><table><thead><tr><th>Commit</th><th>Score / status</th><th>Blocking</th><th>Warnings</th><th>Goal</th></tr></thead>
+<tbody>{preflight_html}</tbody></table></div>
+<p class="legend">NOT RUN = no .context/preflight/C&lt;ID&gt;.json report exists yet. INVALID REPORT = the report file could not be parsed. The dashboard never recalculates scores or overrides the persisted proceed decision.</p></section>
 </main>
 <main id="graph" class="tab-panel">
 <section><div class="section-head"><div><h2>Codebase context graph</h2>
