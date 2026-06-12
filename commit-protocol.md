@@ -50,6 +50,8 @@
 | 31 | telemetry-reconciliation | adam | ✅ done · 2026-06-12 |
 | 32 | telemetry-dashboard-ledger | adam | ✅ done · 2026-06-12 |
 | 33 | upload-duplicate-status | rex | ✅ done · 2026-06-13 |
+| 33A | verify-constraints-ref-fix | claude | pending |
+| 33B | finalize-commit-pipeline | claude | pending |
 | 34 | database-test-container-command | adam | pending |
 | 35 | policy-storage-db-url | rex | pending |
 | 36 | ingestion-pgvector-write-integration | nova | pending |
@@ -102,6 +104,13 @@ C29 installed enforcement. C29A builds the deterministic readiness scoring engin
 wires it into `prepare_agent_delegation.py` as a hard gate before delegation, and C29C
 exposes its report in the dashboard. C30-C76 apply the approved decomposition guide
 without forcing the remaining work into an artificial endpoint.
+
+C33A and C33B are an exceptional insertion (Rule 10 letter-suffix convention, no
+renumbering of C34-C76) closing two determinism gaps found while finishing C33: C33A
+fixes `verify_constraints.py`'s ref resolution so a re-run after a later commit lands
+diffs the correct primary commit, and C33B adds `hooks/finalize_commit.py` plus a
+fail-closed `pre_commit_check.py` gate so the verify -> dashboard -> notify-flag
+sequence runs deterministically before any primary commit can land.
 
 | Range | Phase | Primary result |
 |---|---|---|

@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C33 (upload-duplicate-status) is done: backend/app/api/v1/documents.py now returns HTTP 200 (instead of 201) for an idempotent duplicate upload of an already-ready document via response.status_code = status.HTTP_200_OK on that branch; new uploads remain 201. test_duplicate_upload_is_idempotent updated to assert 200. Claude-direct (Eran-approved), 16/16 tests pass. C34 (database-test-container-command, Adam) is next.",
+  "tldr": "C33 (upload-duplicate-status) is done: backend/app/api/v1/documents.py now returns HTTP 200 (instead of 201) for an idempotent duplicate upload of an already-ready document via response.status_code = status.HTTP_200_OK on that branch; new uploads remain 201. test_duplicate_upload_is_idempotent updated to assert 200. Claude-direct (Eran-approved), 16/16 tests pass. Replanned (2026-06-13): C33A/C33B inserted before C34 (Rule 10 letter-suffix, no renumbering of C34-C76) to fix verify_constraints.py's ref-resolution bug and add a deterministic finalize-commit pipeline + pre-commit gate. C33A (verify-constraints-ref-fix, claude) is next.",
   "phase": 2,
   "last_completed_commit": "33",
-  "next_commit": "34",
-  "next_commit_name": "database-test-container-command",
-  "next_commit_assignee": "adam",
+  "next_commit": "33A",
+  "next_commit_name": "verify-constraints-ref-fix",
+  "next_commit_assignee": "claude",
   "status": "phase-2-active",
   "open_handoffs": [
     {
@@ -71,6 +71,13 @@
       "summary": "Replaced the preliminary C30-C43 roadmap with bounded behavior candidates, then finalized the pending range as C30-C76 after permanent hook ownership made the planned ownership commit redundant. Each pending row represents one owner and one observable behavior across workflow telemetry, recovery, policy RAG, backend chat, frontend chat, and assembled verification.",
       "agents_activated": [],
       "files_updated": ["commit-protocol.md", "MULTI_AGENT_WORKFLOW_REDESIGN_ROADMAP.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-13",
+      "trigger": "Eran requested a deterministic finalize-commit pipeline before C34, closing two gaps surfaced finishing C33: the completion-notify email step was skipped entirely, and a verify_constraints.py re-run after C33's chore commit diffed the wrong ref and corrupted CONTEXT_METRICS.json (manually repaired).",
+      "summary": "Inserted C33A (verify-constraints-ref-fix) and C33B (finalize-commit-pipeline) between C33 (done) and C34 (pending), using the Rule 10 letter-suffix convention so C34-C76 keep their existing numbers (option a — no renumbering). C33A fixes verify_constraints.py's ref resolution to target the correct primary commit instead of defaulting to HEAD. C33B adds hooks/finalize_commit.py (verify -> conditional dashboard render -> notify-flag write -> finalize marker, fixed order) and a pre_commit_check.py fail-closed gate requiring a fresh .context/finalize/CNN.json marker before a primary commit can land, exempting chore/doc-sweep/state commits. Both owned by Claude under the orchestrator hooks exception.",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "commit-specs/commit-33A.md", "commit-specs/commit-33B.md", "project-state.json"]
     }
   ],
   "rollback_history": [],

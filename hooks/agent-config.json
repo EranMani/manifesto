@@ -57,7 +57,10 @@
         "hooks/context_metrics.py",
         "hooks/tests/test_context_metrics.py",
         "hooks/constraint_dashboard.py",
-        "hooks/tests/test_constraint_dashboard.py"
+        "hooks/tests/test_constraint_dashboard.py",
+        "hooks/finalize_commit.py",
+        "hooks/tests/test_finalize_commit.py",
+        ".context/finalize/"
       ]
     },
     "rex.stockagent@gmail.com": {
