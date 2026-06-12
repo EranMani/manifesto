@@ -135,11 +135,16 @@ If an agent hits its cap and is not done, it stops and reports. Claude does not 
 
 ## Execution Constraints — Include Verbatim in Every Invocation
 
-Before invoking an implementor, Claude must run
+`hooks/prepare_agent_delegation.py` is invoked only on the delegated path. Before
+invoking an implementor, Claude must run
 `python hooks/prepare_agent_delegation.py --commit NN --agent NAME` and pass the generated
 brief verbatim. Agents begin with the selected files and do not scan directories.
 Additional context requires a stated reason, exact query/path, expected decision, and
 tradeoff; the expansion and outcome are recorded in the worklog.
+
+Claude-direct (the default) does not run `prepare_agent_delegation.py` at all. Its
+readiness check is `python hooks/preflight_commit.py --direct --commit NN --agent OWNER`
+— lean, ephemeral, no context package, no telemetry, no dashboard.
 
 ### Implementors (Rex, Adam, Aria)
 
@@ -282,9 +287,13 @@ Claude must verify and update ALL of the following files as applicable:
                           handoffs, update notes.
 
 □ TOKEN_RECORDS.md     — ALWAYS: add one row per agent invocation to Commit Log,
-□ CONTEXT_METRICS.json — ALWAYS: updated by verify_constraints from live telemetry
-□ constraint-dashboard.html — ALWAYS: regenerated with constraint + context metrics
                           add one row to Session Totals.
+□ CONTEXT_METRICS.json — ALWAYS: updated by verify_constraints from live telemetry.
+                          Pass --execution claude-direct (forces tokens: null) or
+                          --execution delegated --tokens N for delegated invocations.
+□ constraint-dashboard.html — opt-in only: regenerated via verify_constraints
+                          --render-dashboard, used manually or during the
+                          five-commit Viktor review wave — not every commit.
 
 □ DECISIONS.md         — if any non-obvious design choice was made this commit.
 
@@ -441,3 +450,4 @@ Add commit-specific items where the spec has known sharp edges.
 | 2026-06-06 | Added mandatory git status clean step to Post-Commit Checklist | Files were accumulating as unstaged/untracked across sessions — chore commit is now a required final step of every commit loop. |
 | 2026-06-09 | Added Orchestrator Post-Agent Verification Protocol (Steps A–G) | C24 session: orchestrator presented a buggy commit without logic inspection; notified before /verify-commit passed; accepted tests that mirrored a bug rather than enforcing the contract; guessed agent email. 15 behavior corrections recorded across CLAUDE.md, ORCHESTRATION.md, and team-preferences.md. |
 | 2026-06-09 | Added dual-scope telemetry steps A0 and D.5 to Verification Protocol | Agent and orchestrator activity must be recorded separately per commit. A0 persists agent self-report and opens orchestrator scope. D.5 closes it after /verify-commit so verify_constraints.py can write the complete dual-scope record. See D31. |
+| 2026-06-13 | Added lean Claude-direct preflight (`preflight_commit.py --direct`), made dashboard rendering opt-in (`--render-dashboard`), and added honest "Not created (Claude-direct)" / "Legacy preview package (unused)" dashboard labels | Claude-direct (the default execution path) was forced through the full delegated-path preflight scoring and dashboard render every commit, producing misleading N/A-filled rows and unnecessary work. C29-C32 backfilled with `execution` field and corrected `tokens` (null where untracked). |

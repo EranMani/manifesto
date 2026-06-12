@@ -153,9 +153,7 @@ class PrepareAgentDelegationTests(unittest.TestCase):
                 "prepare_agent_delegation.initialize_commit_state"
             ) as initialize_state, patch(
                 "prepare_agent_delegation.initialize_telemetry"
-            ) as initialize_telemetry_mock, patch(
-                "prepare_agent_delegation.render_dashboard"
-            ) as render_dashboard_mock:
+            ) as initialize_telemetry_mock:
                 package, package_path, brief_path, _ = prepare(
                     root,
                     self.rules,
@@ -169,7 +167,7 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             self.assertTrue(brief_path.is_file())
             initialize_state.assert_not_called()
             initialize_telemetry_mock.assert_not_called()
-            render_dashboard_mock.assert_not_called()
+            self.assertFalse((root / "constraint-dashboard.html").exists())
 
             with patch(
                 "prepare_agent_delegation.require_valid_pending_graph",
@@ -188,6 +186,11 @@ class PrepareAgentDelegationTests(unittest.TestCase):
                     "aria",
                 )
             self.assertFalse(refreshed_again)
+
+            # activate=True (default) initializes tool-cap/telemetry but must not
+            # render the dashboard -- rendering is opt-in via verify_constraints
+            # --render-dashboard.
+            self.assertFalse((root / "constraint-dashboard.html").exists())
 
     @staticmethod
     def _greenfield_validation() -> dict:

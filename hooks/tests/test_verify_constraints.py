@@ -145,7 +145,8 @@ class TestPostCommitPersistence(unittest.TestCase):
         finally:
             sys.argv = old_argv
 
-    def test_persist_calls_all_write_functions(self):
+    def test_persist_calls_log_and_metric_but_not_dashboard_by_default(self):
+        """Dashboard rendering is opt-in (--render-dashboard); default off."""
         with (
             patch("verify_constraints.load_spec", return_value=MINIMAL_SPEC),
             patch("verify_constraints.load_worklog", return_value=""),
@@ -160,7 +161,63 @@ class TestPostCommitPersistence(unittest.TestCase):
             self._run(["--worktree"])
             mock_log.assert_called_once()
             mock_metric.assert_called_once()
+            mock_dash.assert_not_called()
+
+    def test_render_dashboard_flag_triggers_render(self):
+        with (
+            patch("verify_constraints.load_spec", return_value=MINIMAL_SPEC),
+            patch("verify_constraints.load_worklog", return_value=""),
+            patch("verify_constraints.git_files_changed", return_value=[]),
+            patch("verify_constraints.get_tokens_from_records", return_value=None),
+            patch("verify_constraints.build_metric_record",
+                  return_value={"commit": "C25", "agent": "nova"}),
+            patch("verify_constraints.append_to_log"),
+            patch("verify_constraints.upsert_metric"),
+            patch("verify_constraints.render_dashboard") as mock_dash,
+        ):
+            self._run(["--worktree", "--render-dashboard"])
             mock_dash.assert_called_once()
+
+    def test_claude_direct_execution_forces_tokens_none(self):
+        """--execution claude-direct must force tokens=None into build_metric_record
+        and append_to_log, even if --tokens or TOKEN_RECORDS.md would supply a value."""
+        with (
+            patch("verify_constraints.load_spec", return_value=MINIMAL_SPEC),
+            patch("verify_constraints.load_worklog", return_value=""),
+            patch("verify_constraints.git_files_changed", return_value=[]),
+            patch("verify_constraints.get_tokens_from_records", return_value=12345),
+            patch("verify_constraints.build_metric_record",
+                  return_value={"commit": "C25", "agent": "nova"}) as mock_build,
+            patch("verify_constraints.append_to_log") as mock_log,
+            patch("verify_constraints.upsert_metric"),
+            patch("verify_constraints.render_dashboard"),
+        ):
+            self._run(["--worktree", "--execution", "claude-direct"])
+
+            _, _, tokens_arg, *_ = mock_build.call_args[0]
+            self.assertIsNone(tokens_arg)
+            self.assertEqual(mock_build.call_args.kwargs.get("execution"), "claude-direct")
+
+            log_args = mock_log.call_args[0]
+            self.assertIsNone(log_args[-1])
+
+    def test_delegated_execution_uses_tokens_from_records(self):
+        with (
+            patch("verify_constraints.load_spec", return_value=MINIMAL_SPEC),
+            patch("verify_constraints.load_worklog", return_value=""),
+            patch("verify_constraints.git_files_changed", return_value=[]),
+            patch("verify_constraints.get_tokens_from_records", return_value=12345),
+            patch("verify_constraints.build_metric_record",
+                  return_value={"commit": "C25", "agent": "nova"}) as mock_build,
+            patch("verify_constraints.append_to_log"),
+            patch("verify_constraints.upsert_metric"),
+            patch("verify_constraints.render_dashboard"),
+        ):
+            self._run(["--worktree", "--execution", "delegated"])
+
+            _, _, tokens_arg, *_ = mock_build.call_args[0]
+            self.assertEqual(tokens_arg, 12345)
+            self.assertEqual(mock_build.call_args.kwargs.get("execution"), "delegated")
 
     def test_no_persist_and_persist_are_mutually_exclusive(self):
         """The same invocation cannot both skip and apply writes."""

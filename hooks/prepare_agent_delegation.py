@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Any
 
 from codebase_graph import graph_cache_is_stale, write_codebase_graph
-from constraint_dashboard import render_dashboard
 from context_engine import ContextPackageBuilder, load_rules
 from context_telemetry import initialize_telemetry
 from preflight_commit import evaluate as preflight_evaluate
@@ -357,7 +356,6 @@ def prepare(
             repo_root / "hooks" / "tool_cap.json",
         )
         initialize_telemetry(package, repo_root)
-        render_dashboard(repo_root)
     return package, package_path, brief_path, refreshed
 
 

@@ -1,15 +1,7 @@
 Read `project-state.json` to identify the next pending commit and owner. Check its
-dependencies, open handoffs, and unresolved quality-gate findings. Then run:
+dependencies, open handoffs, and unresolved quality-gate findings.
 
-`python hooks/prepare_agent_delegation.py --commit <N> --agent <agent-id> --preview`
-
-Preview mode must not initialize tool-cap state, telemetry, or the tracked dashboard.
-The generated preflight result and delegation package are internal preparation. When
-preflight is ready, do not narrate prerequisite checks, sequence rationale, unlocks,
-token commentary, selected-context counts, contracts, hubs, forbidden paths, graph
-refreshes, or other package diagnostics.
-
-Choose the execution route before rendering the card:
+Choose the execution route BEFORE running any preflight tooling:
 
 - Default: `Claude (direct)`.
 - Delegate only when at least one concrete justification applies: specialist uncertainty
@@ -22,18 +14,56 @@ Choose the execution route before rendering the card:
 - Record the justification in the card whenever execution is delegated. Without a
   written justification, execution remains Claude-direct.
 
+Then run the readiness check for the chosen route:
+
+- **Claude-direct (default):**
+  `python hooks/preflight_commit.py --direct --commit <N> --agent <owner>`
+  where `<owner>` is the commit's owner from the spec, not `"claude"` — executor and
+  owner are separate concepts. This is a lean, ephemeral check: it validates only the
+  active spec, this commit's own dependencies, ownership agreement, planned/forbidden
+  files, and verification-command presence. It persists nothing, builds no context
+  package, and never touches the dashboard. Returns `{status, proceed, violations}`.
+- **Delegated (justified only):**
+  `python hooks/prepare_agent_delegation.py --commit <N> --agent <agent-id> --preview`
+  Preview mode must not initialize tool-cap state, telemetry, or the tracked dashboard.
+
+The generated preflight result and (if delegated) delegation package are internal
+preparation. When preflight is ready, do not narrate prerequisite checks, sequence
+rationale, unlocks, token commentary, selected-context counts, contracts, hubs,
+forbidden paths, graph refreshes, or other package diagnostics.
+
 For C29B and every later commit, the compact approval card must be the entire
 response. Output no preamble, transition sentence, explanation, or conclusion before
 or after it. The first output line must be `C[N] PREFLIGHT: ...` and the final output
 line must be `Proceed? [yes/no]`.
 
-Use exactly this card:
+For Claude-direct, use this card (no numeric score — `evaluate_direct()` returns
+`status: "ready"|"blocked"`, not a score):
+
+```text
+C[N] PREFLIGHT: [READY|BLOCKED]
+
+Owner: [Name] ([Domain])
+Executor: Claude (direct)
+Goal: [one plain-language sentence]
+
+Files:
+- [Add|Edit|Delete]: path/to/file
+
+Warnings:
+- [Exact violation text from the `violations` array, or "None."]
+- Decision required: [Yes|No]
+
+Proceed? [yes/no]
+```
+
+For delegated execution, use the scored card:
 
 ```text
 C[N] PREFLIGHT: [READY|BLOCKED] ([score]/100)
 
 Owner: [Name] ([Domain])
-Executor: [Claude (direct)|Agent name (delegated)]
+Executor: Agent name (delegated)
 Goal: [one plain-language sentence]
 
 Files:
@@ -41,7 +71,7 @@ Files:
 
 Warnings:
 - [Exact warning text, or "None."]
-- Delegation justification: [Reason, or "Not delegated."]
+- Delegation justification: [Reason]
 - Decision required: [Yes|No]
 
 Proceed? [yes/no]

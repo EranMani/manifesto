@@ -254,6 +254,34 @@ def _expansion_cell(agent_scope: dict[str, Any] | None) -> str:
     return f'<span style="color:{color};font-weight:500">{n}</span>'
 
 
+def _not_applicable(label: str = "Not applicable") -> str:
+    return f'<span style="color:#94a3b8">{label}</span>'
+
+
+def _claude_direct_orch_cell(orch_scope: dict[str, Any] | None) -> str:
+    """Render the orchestrator-calls cell for a Claude-direct record.
+
+    Measured orchestrator telemetry is shown normally; absent telemetry reads
+    as "Not tracked" rather than the delegated-path "N/A".
+    """
+    if orch_scope is None or orch_scope.get("status") == "unavailable":
+        return _not_applicable("Not tracked")
+    return _scope_cell(orch_scope)
+
+
+def _package_cell(pkg: dict[str, Any], execution: str) -> str:
+    """Render the context-package cell, distinguishing Claude-direct from delegated."""
+    if execution == "claude-direct":
+        if pkg:
+            return _not_applicable("Legacy preview package (unused)")
+        return _not_applicable("Not created (Claude-direct)")
+    selected = pkg.get("selected_files")
+    chars = pkg.get("estimated_chars")
+    selected_text = str(selected) if selected is not None else "Unknown"
+    chars_text = f"{chars:,}" if chars is not None else "Unknown"
+    return f"<strong>{selected_text}</strong> files / {chars_text} chars"
+
+
 def _combined_cell(
     agent_scope: dict[str, Any] | None,
     orch_scope: dict[str, Any] | None,
@@ -485,9 +513,10 @@ def _preflight_detail_html(commit: str, entry: dict[str, Any]) -> str:
     context_package = report.get("context_package")
     package_summary = "No context package recorded."
     if isinstance(context_package, dict):
+        budget = context_package.get("budget", {}) if isinstance(context_package.get("budget"), dict) else {}
         package_summary = (
-            f"{metric_value(context_package.get('selected_files'))} files selected, "
-            f"{metric_value(context_package.get('estimated_chars'))} estimated chars."
+            f"{metric_value(budget.get('selected_files'))} files selected, "
+            f"{metric_value(budget.get('estimated_selected_chars'))} estimated chars."
         )
 
     dependencies = ", ".join(report.get("dependencies", [])) or "None"
@@ -611,20 +640,40 @@ def render_dashboard(
         telemetry = record.get("telemetry", {})
         agent_scope = telemetry.get("agent") if telemetry else None
         orch_scope = telemetry.get("orchestrator") if telemetry else None
-        selected = pkg.get("selected_files", 0)
-        used = usage.get("selected_files_read")
-        use_pct = usage.get("selected_utilization_percent")
+        execution = record.get("execution", "unknown")
+
+        if execution == "claude-direct":
+            tokens_cell = _not_applicable("Not tracked")
+            package_cell = _package_cell(pkg, execution)
+            used_cell = _not_applicable()
+            agent_cell = _not_applicable("Not delegated")
+            orch_cell = _claude_direct_orch_cell(orch_scope)
+            combined_cell = _not_applicable()
+            expansion_cell = _not_applicable()
+        else:
+            selected = pkg.get("selected_files")
+            selected_text = str(selected) if selected is not None else "Unknown"
+            used = usage.get("selected_files_read")
+            use_pct = usage.get("selected_utilization_percent")
+            tokens_cell = metric_value(record.get("tokens"))
+            package_cell = _package_cell(pkg, execution)
+            used_cell = f"{metric_value(used)} / {selected_text} ({metric_value(use_pct, '%')})"
+            agent_cell = _scope_cell(agent_scope)
+            orch_cell = _scope_cell(orch_scope)
+            combined_cell = _combined_cell(agent_scope, orch_scope)
+            expansion_cell = _expansion_cell(agent_scope)
+
         metric_rows += (
             "<tr>"
             f"<td>{badge(record.get('commit', '-'))}</td>"
             f"<td>{html.escape(record.get('agent', '-').title())}</td>"
-            f"<td>{metric_value(record.get('tokens'))}</td>"
-            f"<td><strong>{selected}</strong> / {pkg.get('estimated_chars', 0):,} chars</td>"
-            f"<td>{metric_value(used)} / {selected} ({metric_value(use_pct, '%')})</td>"
-            f"<td>{_scope_cell(agent_scope)}</td>"
-            f"<td>{_scope_cell(orch_scope)}</td>"
-            f"<td>{_combined_cell(agent_scope, orch_scope)}</td>"
-            f"<td>{_expansion_cell(agent_scope)}</td>"
+            f"<td>{tokens_cell}</td>"
+            f"<td>{package_cell}</td>"
+            f"<td>{used_cell}</td>"
+            f"<td>{agent_cell}</td>"
+            f"<td>{orch_cell}</td>"
+            f"<td>{combined_cell}</td>"
+            f"<td>{expansion_cell}</td>"
             f"<td>{badge('clean' if boundary.get('forbidden_clean') else 'violation', boundary.get('forbidden_clean'))}</td>"
             "</tr>"
         )

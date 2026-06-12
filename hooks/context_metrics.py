@@ -128,6 +128,7 @@ def build_metric_record(
     tokens: int | None,
     results: dict[str, Any],
     changed_files: list[str],
+    execution: str = "unknown",
 ) -> dict[str, Any]:
     commit_key = f"C{str(commit).zfill(2)}"
     self_report = load_agent_self_report(commit, agent)
@@ -188,17 +189,22 @@ def build_metric_record(
         if isinstance(srch, list):
             hook_searches = len(srch)
 
-    return {
-        "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        "commit": commit_key,
-        "agent": agent.lower(),
-        "tokens": tokens,
-        "package": {
+    package_record: dict[str, Any] = {}
+    if package_data:
+        package_record = {
             **package_data,
             "budget_utilization_percent": round(
                 estimated_chars / usable_chars * 100, 1
             ) if usable_chars else None,
-        },
+        }
+
+    return {
+        "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "commit": commit_key,
+        "agent": agent.lower(),
+        "execution": execution,
+        "tokens": tokens,
+        "package": package_record,
         "telemetry": {
             "agent": agent_scope,
             "orchestrator": orch_scope,

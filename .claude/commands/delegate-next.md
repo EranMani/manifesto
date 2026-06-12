@@ -4,7 +4,8 @@ Prepare and invoke the approved delegated agent with surgical live context.
 2. Confirm Eran has explicitly approved the Commit Preview. If not, stop and ask.
 3. Confirm the approval card named a delegated executor and included a concrete
    delegation justification. Domain ownership alone is not justification. If execution
-   was Claude-direct, stop; this command must not invoke an agent.
+   was Claude-direct (checked via `hooks/preflight_commit.py --direct`, a READY/BLOCKED
+   result with no score), stop; this command must not invoke an agent.
 4. Run:
 
 ```powershell

@@ -357,6 +357,9 @@ def main():
     parser.add_argument("--no-persist", action="store_true",
                         help="Run checks and return PASS/FAIL without writing "
                              "CONSTRAINT_LOG.md, CONTEXT_METRICS.json, or constraint-dashboard.html")
+    parser.add_argument("--render-dashboard", action="store_true",
+                        help="Also regenerate constraint-dashboard.html. Default off -- "
+                             "use manually or during the every-five-commit review wave.")
     args = parser.parse_args()
 
     spec_text    = load_spec(args.commit)
@@ -399,7 +402,10 @@ def main():
         print()
 
     if not args.no_persist:
-        tokens = args.tokens if args.tokens is not None else get_tokens_from_records(args.commit)
+        if args.execution == "claude-direct":
+            tokens = None
+        else:
+            tokens = args.tokens if args.tokens is not None else get_tokens_from_records(args.commit)
         append_to_log(args.commit, args.agent, results, all_pass, tokens)
         upsert_metric(
             build_metric_record(
@@ -408,9 +414,11 @@ def main():
                 tokens,
                 results,
                 changed,
+                execution=args.execution,
             )
         )
-        render_dashboard()
+        if args.render_dashboard:
+            render_dashboard()
     sys.exit(0 if all_pass else 1)
 
 

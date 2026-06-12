@@ -117,6 +117,12 @@ Proceed? [yes/no]
 Resolve the display name and domain from `hooks/agent-config.json`. Always list every
 planned file with its action and every warning in plain language, not counts alone.
 
+For Claude-direct execution, the preflight comes from `hooks/preflight_commit.py --direct`,
+which returns `status: "ready"|"blocked"` with no numeric score — render the first line
+as `C[N] PREFLIGHT: [READY|BLOCKED]` (omit `([score]/100)`) and list any `violations`
+under Warnings. The `[score]/100` form is shown only for delegated execution, where
+`hooks/prepare_agent_delegation.py --preview` produces the scored card.
+
 Do not load or summarize the full spec when preflight is ready and no warning requires a
 decision. Show details only when preflight blocks, a warning requires Eran's decision,
 scope changed after approval, or a repair/split commit is proposed.
@@ -144,10 +150,20 @@ You do **not** load files from other agents' domains unless this step explicitly
 1. Read state, identify active commit, check blockers
 2. Verify prerequisite handoffs are in place
 3. Run `hooks/validate_commit_spec.py --all-pending --json` after creating or renumbering
-   pending specs. Then validate the active commit and owner. If either fails, stop and
-   propose a smaller sequential commit. Only then run
-   `hooks/prepare_agent_delegation.py --preview` for the approval card. Preview mode
-   must not initialize tool-cap state, telemetry, or the tracked dashboard.
+   pending specs (skip this graph-wide check otherwise). Then decide the executor:
+   Claude-direct is the default (Non-Negotiable 10); delegate only with a written
+   justification (see "How to Invoke an Agent").
+   - **Claude-direct (default):** run
+     `python hooks/preflight_commit.py --direct --commit NN --agent OWNER`, where
+     `OWNER` is the commit's owner from the spec (not `"claude"` — executor and owner
+     are separate). This is a lean, ephemeral check: it validates only the active
+     spec, this commit's own dependencies, ownership agreement, planned/forbidden
+     files, and verification-command presence. It persists nothing and never touches
+     the dashboard. If it returns `proceed: false`, stop and propose a smaller
+     sequential commit.
+   - **Delegated (justified only):** run `hooks/prepare_agent_delegation.py --preview`
+     for the scored approval card. Preview mode must not initialize tool-cap state,
+     telemetry, or the tracked dashboard.
 4. **Present compact preflight approval to Eran — wait for explicit approval**
 5. After approval, execute directly by default. Delegate only when the approved card
    names a delegated executor and gives a concrete justification. Activate agent runtime
@@ -237,19 +253,26 @@ You do **not** load files from other agents' domains unless this step explicitly
 
     Commit command format — run AFTER Eran approves:
     ```
-    CLAUDE_COMMIT=1 git commit -m "..." && python hooks/verify_constraints.py --commit NN --agent NAME --tokens N
+    CLAUDE_COMMIT=1 git commit -m "..." && python hooks/verify_constraints.py --commit NN --agent NAME --execution EXEC [--tokens N]
     ```
     Three steps after approval, always in this order:
     1. git commit — CLAUDE_COMMIT=1 bypasses block_agent_commit.py only; pre_commit_check.py
        still runs domain boundary, commit-spec table, and message-format checks on this commit
-    2. verify_constraints.py — updates CONSTRAINT_LOG.md, CONTEXT_METRICS.json,
-       and constraint-dashboard.html
-    Pass --tokens 0 for Claude direct writes. Pass actual token count for agent invocations.
-    Never skip step 2 — this is what keeps the dashboard accurate.
+    2. verify_constraints.py — updates CONSTRAINT_LOG.md, CONTEXT_METRICS.json, and (only
+       if `--render-dashboard` is passed) constraint-dashboard.html. Pass
+       `--execution claude-direct` for Claude-direct commits — this forces `tokens: null`
+       in CONTEXT_METRICS.json automatically; do not pass `--tokens` for these. Pass
+       `--execution delegated` and `--tokens N` (actual token count) for delegated
+       invocations (`--agent NAME` already identifies who). constraint-dashboard.html
+       is not regenerated on every commit — render
+       it manually or during the five-commit Viktor review wave (Non-Negotiable 5) via
+       `--render-dashboard`.
+    Never skip step 2 — this is what keeps CONTEXT_METRICS.json accurate.
     3. Immediate doc sweep (mandatory — no exceptions):
        Stage and commit ALL post-commit protocol files as a chore commit:
          project-state.json, commit-protocol.md, TOKEN_RECORDS.md,
-         CONSTRAINT_LOG.md, CONTEXT_METRICS.json, constraint-dashboard.html,
+         CONSTRAINT_LOG.md, CONTEXT_METRICS.json, constraint-dashboard.html (only if
+         re-rendered this commit),
          .claude/agents/logs/<agent>-worklog.md,
          backend/DOMAIN_MAP.md, frontend/DOMAIN_MAP.md,
          ARCHITECTURE.md and GLOSSARY.md (if date headers were updated)
@@ -322,6 +345,14 @@ hooks/context_telemetry.py        ← dual-scope telemetry capture/persistence (
 hooks/tests/test_context_telemetry.py ← its test file (narrow exception)
 hooks/verify_constraints.py       ← quality-gate verification script (narrow exception)
 hooks/tests/test_verify_constraints.py ← its test file (narrow exception)
+hooks/preflight_commit.py          ← Claude-direct readiness check + full preflight scoring (narrow exception)
+hooks/tests/test_preflight_commit.py ← its test file (narrow exception)
+hooks/prepare_agent_delegation.py  ← delegated-path context package + brief preparation (narrow exception)
+hooks/tests/test_prepare_agent_delegation.py ← its test file (narrow exception)
+hooks/context_metrics.py           ← context-efficiency metric record schema (narrow exception)
+hooks/tests/test_context_metrics.py ← its test file (narrow exception)
+hooks/constraint_dashboard.py      ← dashboard rendering (narrow exception)
+hooks/tests/test_constraint_dashboard.py ← its test file (narrow exception)
 ```
 
 `hooks/` as a whole is Adam's domain (DevOps workflow automation, per AGENTS.md). The
@@ -329,9 +360,13 @@ files above are a narrow, explicitly listed exception in `hooks/agent-config.jso
 itself for orchestrator-owned identity registry, token telemetry, the commit-gate
 hook that enforces this protocol, the orchestrator-scope telemetry capture used
 by Steps 5b/7c, the quality-gate verification script used by Step 7b, the tool-cap
-invocation/budget-gating and enforcement scripts, and the post-commit protocol-advance
+invocation/budget-gating and enforcement scripts, the post-commit protocol-advance
 and domain-map-regeneration scripts that drive the commit loop's automated state
-transitions — not a general claim on `hooks/`.
+transitions, the Claude-direct readiness check (`--direct`) and full preflight
+scoring used to decide and validate execution mode, the delegated-path context
+package/brief preparation used only when delegation is justified, the
+context-efficiency metric record schema, and the constraint dashboard renderer
+and its manual/five-commit-wave rendering cadence — not a general claim on `hooks/`.
 
 For Claude-direct execution, you receive temporary, exact-file authority from the active
 approved commit spec's `Files To Modify Or Add` table. This does not grant directory-wide

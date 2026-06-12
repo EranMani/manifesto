@@ -439,3 +439,117 @@ def test_verification_tool_unavailable_deduction(tmp_path, monkeypatch):
     assert result["blocking_violations"] == []
     assert any("Verification tool unavailable" in w for w in result["warnings"])
     assert result["score"] == 90
+
+
+# ---------------------------------------------------------------------------
+# evaluate_direct() -- lean Claude-direct readiness check
+# ---------------------------------------------------------------------------
+
+
+def test_evaluate_direct_ready(tmp_path, monkeypatch):
+    repo = _make_repo(tmp_path)
+    monkeypatch.setattr(pf.shutil, "which", _which_all_available)
+
+    result = pf.evaluate_direct(repo, "C30", "adam")
+
+    assert result == {
+        "commit": "C30",
+        "owner": "adam",
+        "status": "ready",
+        "proceed": True,
+        "violations": [],
+    }
+
+
+def test_evaluate_direct_blocked_ownership_mismatch(tmp_path, monkeypatch):
+    state = dict(PROJECT_STATE)
+    state["next_commit_assignee"] = "rex"
+    repo = _make_repo(tmp_path)
+    _write(repo, "project-state.json", json.dumps(state))
+    monkeypatch.setattr(pf.shutil, "which", _which_all_available)
+
+    result = pf.evaluate_direct(repo, "C30", "adam")
+
+    assert result["status"] == "blocked"
+    assert result["proceed"] is False
+    assert any(v.startswith("ownership_match:") for v in result["violations"])
+
+
+def test_evaluate_direct_blocked_forbidden_path(tmp_path, monkeypatch):
+    spec = GOOD_SPEC.replace(
+        "| `hooks/context_telemetry.py` | edit | Store separate invocation telemetry records |",
+        "| `hooks/context_telemetry.py` | edit | Store separate invocation telemetry records |\n"
+        "| `backend/app/main.py` | edit | not allowed |",
+    )
+    repo = _make_repo(tmp_path, spec_text=spec)
+    _write(repo, "backend/app/main.py", "# main\n")
+    monkeypatch.setattr(pf.shutil, "which", _which_all_available)
+
+    result = pf.evaluate_direct(repo, "C30", "adam")
+
+    assert result["status"] == "blocked"
+    assert result["proceed"] is False
+    assert any(v.startswith("scope_forbidden_compliance:") for v in result["violations"])
+
+
+def test_evaluate_direct_blocked_verification_command_missing(tmp_path, monkeypatch):
+    spec = GOOD_SPEC.replace(
+        "```powershell\npytest -p no:cacheprovider hooks/tests/test_widget.py -q\n```",
+        "```\n<TODO: fill in>\n```",
+    )
+    repo = _make_repo(tmp_path, spec_text=spec)
+    monkeypatch.setattr(pf.shutil, "which", _which_all_available)
+
+    result = pf.evaluate_direct(repo, "C30", "adam")
+
+    assert result["status"] == "blocked"
+    assert result["proceed"] is False
+    assert any(v.startswith("verification_command_present:") for v in result["violations"])
+
+
+def test_evaluate_direct_dependency_scope_not_full_graph(tmp_path, monkeypatch):
+    """evaluate_direct checks only this commit's own dependencies (C29 status),
+    never the full pending graph -- pending_graph_validity is not a category at all."""
+    protocol = PROTOCOL.replace("| 29 | prep-commit | Adam | done |", "| 29 | prep-commit | Adam | pending |")
+    repo = _make_repo(tmp_path)
+    _write(repo, "commit-protocol.md", protocol)
+    monkeypatch.setattr(pf.shutil, "which", _which_all_available)
+
+    result = pf.evaluate_direct(repo, "C30", "adam")
+
+    assert result["status"] == "blocked"
+    assert any(v.startswith("dependencies_satisfied:") for v in result["violations"])
+    assert not any(v.startswith("pending_graph_validity:") for v in result["violations"])
+    assert not any("pending_graph_validity" in v for v in result["violations"])
+
+
+def test_evaluate_direct_no_side_effects(tmp_path, monkeypatch):
+    """evaluate_direct persists nothing: no preflight report, context package,
+    delegation artifacts, tool-cap state, telemetry, or dashboard render."""
+    repo = _make_repo(tmp_path)
+    monkeypatch.setattr(pf.shutil, "which", _which_all_available)
+
+    result = pf.evaluate_direct(repo, "C30", "adam")
+
+    assert result["proceed"] is True
+    assert not (repo / ".context" / "preflight").exists()
+    assert not (repo / ".context" / "runs").exists()
+    assert not (repo / ".context" / "delegations").exists()
+    assert not (repo / ".context" / "telemetry").exists()
+    assert not (repo / "hooks" / "tool_cap.json").exists()
+    assert not (repo / "constraint-dashboard.html").exists()
+
+
+# ---------------------------------------------------------------------------
+# evaluate() no longer renders the dashboard
+# ---------------------------------------------------------------------------
+
+
+def test_evaluate_does_not_render_dashboard(tmp_path, monkeypatch):
+    repo = _make_repo(tmp_path)
+    monkeypatch.setattr(pf.shutil, "which", _which_all_available)
+
+    result = pf.evaluate(repo, "C30", "adam")
+
+    assert result["proceed"] is True
+    assert not (repo / "constraint-dashboard.html").exists()

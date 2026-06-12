@@ -5,6 +5,7 @@
       "date": "2026-06-09",
       "commit": "C24",
       "agent": "rex",
+      "execution": "unknown",
       "tokens": 37486,
       "package": {
         "selected_files": 9,
@@ -73,6 +74,7 @@
       "date": "2026-06-09",
       "commit": "C25",
       "agent": "nova",
+      "execution": "unknown",
       "tokens": 51146,
       "package": {
         "selected_files": 8,
@@ -220,6 +222,7 @@
       "date": "2026-06-10",
       "commit": "C26",
       "agent": "rex",
+      "execution": "unknown",
       "tokens": 102587,
       "package": {
         "selected_files": 10,
@@ -362,6 +365,7 @@
       "date": "2026-06-10",
       "commit": "C27",
       "agent": "nova",
+      "execution": "unknown",
       "tokens": 174687,
       "package": {
         "selected_files": 9,
@@ -540,6 +544,7 @@
       "date": "2026-06-10",
       "commit": "C28",
       "agent": "rex",
+      "execution": "unknown",
       "tokens": 348889,
       "package": {
         "selected_files": 9,
@@ -683,7 +688,8 @@
       "date": "2026-06-10",
       "commit": "C29",
       "agent": "claude",
-      "tokens": 0,
+      "execution": "claude-direct",
+      "tokens": null,
       "package": {
         "budget_utilization_percent": null
       },
@@ -749,7 +755,8 @@
       "date": "2026-06-11",
       "commit": "C29A",
       "agent": "adam",
-      "tokens": 0,
+      "execution": "unknown",
+      "tokens": null,
       "package": {
         "budget_utilization_percent": null
       },
@@ -947,6 +954,7 @@
       "date": "2026-06-11",
       "commit": "C29B",
       "agent": "adam",
+      "execution": "unknown",
       "tokens": 49837,
       "package": {
         "selected_files": 3,
@@ -1020,7 +1028,8 @@
       "date": "2026-06-12",
       "commit": "C29C",
       "agent": "adam",
-      "tokens": 0,
+      "execution": "unknown",
+      "tokens": null,
       "package": {
         "selected_files": 4,
         "estimated_chars": 14889,
@@ -1289,7 +1298,8 @@
       "date": "2026-06-12",
       "commit": "C30",
       "agent": "adam",
-      "tokens": 0,
+      "execution": "claude-direct",
+      "tokens": null,
       "package": {
         "selected_files": 3,
         "estimated_chars": 11094,
@@ -1349,7 +1359,8 @@
       "date": "2026-06-12",
       "commit": "C31",
       "agent": "adam",
-      "tokens": 0,
+      "execution": "claude-direct",
+      "tokens": null,
       "package": {
         "selected_files": 3,
         "estimated_chars": 11094,
@@ -1409,7 +1420,8 @@
       "date": "2026-06-12",
       "commit": "C32",
       "agent": "adam",
-      "tokens": 0,
+      "execution": "claude-direct",
+      "tokens": null,
       "package": {
         "selected_files": 3,
         "estimated_chars": 11094,

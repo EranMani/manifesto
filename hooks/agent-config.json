@@ -49,7 +49,15 @@
         "hooks/context_telemetry.py",
         "hooks/tests/test_context_telemetry.py",
         "hooks/verify_constraints.py",
-        "hooks/tests/test_verify_constraints.py"
+        "hooks/tests/test_verify_constraints.py",
+        "hooks/preflight_commit.py",
+        "hooks/tests/test_preflight_commit.py",
+        "hooks/prepare_agent_delegation.py",
+        "hooks/tests/test_prepare_agent_delegation.py",
+        "hooks/context_metrics.py",
+        "hooks/tests/test_context_metrics.py",
+        "hooks/constraint_dashboard.py",
+        "hooks/tests/test_constraint_dashboard.py"
       ]
     },
     "rex.stockagent@gmail.com": {

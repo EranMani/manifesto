@@ -3,7 +3,8 @@
 > The master rules for running this project through the multi-agent workflow.
 > CLAUDE.md is the boot sequence. This file is the full ruleset.
 > When CLAUDE.md is ambiguous — this file is authoritative.
-> Last updated: 2026-06-09 (D31 — dual-scope telemetry wired into commit loop)
+> Last updated: 2026-06-13 (lean Claude-direct preflight via --direct; honest dashboard
+> labels for Claude-direct vs delegated; dashboard render is opt-in via --render-dashboard)
 
 ---
 
@@ -47,33 +48,47 @@ STEP 1 — Claude reads commit-protocol.md
 STEP 2 — Claude reads project-state.json
 └── Checks for open blockers. Blocker exists → surface to Eran and stop.
 
-STEP 3 — Claude validates scope, then builds the live context package
+STEP 3 — Claude validates scope, then checks readiness for the decided executor
 └── After spec generation or renumbering, runs
     hooks/validate_commit_spec.py --all-pending --json
-    Then runs hooks/validate_commit_spec.py for the active commit and owner
-    Validation failure → stop and draft a smaller sequential spec for Eran
-    Validation success → run hooks/prepare_agent_delegation.py --preview
-    Preview builds ignored approval artifacts only; it does not initialize tool-cap
-    state, telemetry, or the tracked dashboard.
-    Refreshes the cached graph only when stale
-    Produces a bounded brief: primary files, contracts, dependencies, hubs, tests,
-    boundaries, handoffs, acceptance criteria, and expansion triggers
+    (otherwise this graph-wide check is skipped)
+    Claude decides the executor before running any preflight tooling:
+    Claude-direct is the default (Non-Negotiable 10); delegation requires a
+    written justification (unresolved specialist uncertainty, independent
+    implementation for risk control, or a clearly bounded specialist unit whose
+    expected value exceeds invocation overhead).
+    - Claude-direct (default): runs
+        python hooks/preflight_commit.py --direct --commit NN --agent OWNER
+      where OWNER is the commit's owner (executor and owner are separate concepts).
+      Lean, ephemeral check: validates only the active spec, this commit's own
+      dependencies, ownership agreement, planned/forbidden files, and
+      verification-command presence. Persists nothing, builds no context package,
+      never touches the dashboard. Returns {status, proceed, violations}.
+      proceed: false → stop and draft a smaller sequential spec for Eran.
+    - Delegated (justified only): runs hooks/prepare_agent_delegation.py --preview
+      Preview builds ignored approval artifacts only; it does not initialize tool-cap
+      state, telemetry, or the tracked dashboard.
+      Refreshes the cached graph only when stale
+      Produces a bounded brief: primary files, contracts, dependencies, hubs, tests,
+      boundaries, handoffs, acceptance criteria, and expansion triggers
 
 STEP 3.5 — Claude presents the Commit Preview to Eran
-└── For C29B onward, shows only: readiness score/status, owner with domain,
-    executor, one-sentence goal, every planned file with Add/Edit/Delete action, exact
-    warning text, delegation justification, and whether a warning requires Eran's decision.
+└── For Claude-direct (the default), shows: READY/BLOCKED status (no numeric score),
+    owner with domain, executor, one-sentence goal, every planned file with
+    Add/Edit/Delete action, any `violations` as exact warning text, and whether a
+    warning requires Eran's decision.
+    For delegated execution, shows the scored readiness ([score]/100) plus the same
+    owner/executor/goal/files/warnings fields, and the delegation justification.
     Full diagnostics appear only for BLOCKED results, decision-required warnings,
     changed scope, or repair/split proposals.
     Asks: "Proceed? [yes/no]"
     Eran must respond with explicit approval before Step 4 runs.
 
 STEP 4 — Pre-invocation check (mandatory)
-└── Claude-direct is the default execution route.
-    Delegate only with an approved written justification: unresolved specialist
-    uncertainty, independent implementation required for risk control, or a clearly
-    bounded specialist unit whose expected value exceeds invocation overhead.
-    Claude-direct → edit only files listed in the active commit spec.
+└── The executor was decided in STEP 3 and approved in STEP 3.5.
+    Claude-direct → edit only files listed in the active commit spec. No further
+                tooling call is needed; hooks/preflight_commit.py --direct already
+                confirmed readiness without initializing any runtime state.
     Delegated → rerun hooks/prepare_agent_delegation.py without --preview to activate
                 tool-cap state and telemetry, then invoke the named agent.
 
@@ -170,12 +185,19 @@ STEP 12 — Claude commits on Eran's behalf
     Commit message must include "Commit #NN" and What/Why block.
 
 STEP 13 — verify_constraints + post-commit doc sweep (mandatory)
-└── python hooks/verify_constraints.py --commit NN --agent NAME --tokens N
-    Writes CONSTRAINT_LOG.md, CONTEXT_METRICS.json, and constraint-dashboard.html.
+└── Claude-direct: python hooks/verify_constraints.py --commit NN --agent NAME
+                    --execution claude-direct
+                    (forces tokens: null in CONTEXT_METRICS.json — do not pass --tokens)
+    Delegated:      python hooks/verify_constraints.py --commit NN --agent NAME
+                    --execution delegated --tokens N
+    Writes CONSTRAINT_LOG.md and CONTEXT_METRICS.json. constraint-dashboard.html is
+    regenerated only with --render-dashboard — render manually or during the
+    five-commit Viktor review wave, not on every commit.
 
     Then immediately: stage and commit ALL protocol files as a chore:
       project-state.json, commit-protocol.md, TOKEN_RECORDS.md,
-      CONSTRAINT_LOG.md, CONTEXT_METRICS.json, constraint-dashboard.html,
+      CONSTRAINT_LOG.md, CONTEXT_METRICS.json,
+      constraint-dashboard.html (only if re-rendered this commit),
       .claude/agents/logs/<agent>-worklog.md,
       backend/DOMAIN_MAP.md, frontend/DOMAIN_MAP.md,
       ARCHITECTURE.md and GLOSSARY.md (if updated this commit)

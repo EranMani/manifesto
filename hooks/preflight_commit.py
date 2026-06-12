@@ -6,9 +6,18 @@ pipeline (`prepare_agent_delegation.py`) -- it does not call, edit, or gate it.
 
 Usage:
     python hooks/preflight_commit.py --commit C30 --agent adam [--json]
+    python hooks/preflight_commit.py --direct --commit C33 --agent rex [--json]
 
 Exposes `evaluate(repo_root, commit, agent) -> dict` returning the compact result
 (after persisting the full diagnostics report as a side effect).
+
+Exposes `evaluate_direct(repo_root, commit, owner) -> dict` for Claude-direct
+execution: a lean, ephemeral readiness check (spec validity, this commit's
+dependencies, ownership agreement, planned/forbidden files, verification command
+presence). It performs no persistence, builds no context package, and never
+renders the dashboard. `owner` is the commit's domain owner (e.g. "rex"), not
+the executor -- Claude-direct execution and commit ownership are separate
+concepts.
 """
 
 from __future__ import annotations
@@ -475,6 +484,60 @@ def _build_owner_info(repo_root: Path, agent: str) -> dict[str, str]:
     return {"id": agent, "name": name, "domain": domain}
 
 
+VIOLATION_MESSAGES = {
+    "specification_validity": "Commit specification or its validation failed (validate_commit_spec status != 'valid'). Repair the spec until validate_commit_spec reports 'valid'.",
+    "pending_graph_validity": "Pending commit dependency graph is invalid (validate_pending_graph status != 'valid'). Resolve the reported graph violations.",
+    "ownership_match": "Ownership mismatch between the spec's Owner field, commit-protocol.md, and project-state.json next_commit_assignee. Align all three to the same owner.",
+    "scope_forbidden_compliance": "One or more planned files fail owner_paths or match a forbidden entry. Remove or reassign the offending files.",
+    "context_package_integrity": "Context package build failed, or has non-empty excluded_candidates/unresolved, or exceeds the context budget. Fix the context package or rules.",
+    "verification_command_present": "Verification Command section is missing, empty, or contains only placeholders/wildcards. Add a concrete, runnable verification command.",
+    "acceptance_criteria_present": "Done When section, or both Focused Tests and Required Tests sections, are missing or empty. Add concrete acceptance criteria and tests.",
+    "dependencies_satisfied": "One or more 'Depends on' commits are not marked done in commit-protocol.md. Complete and mark those dependencies done first.",
+}
+
+
+def evaluate_direct(repo_root: Path, commit: str, owner: str) -> dict[str, Any]:
+    """Lean Claude-direct readiness check.
+
+    Validates only the active spec, this commit's own dependencies (not the
+    full pending graph), ownership agreement, planned/forbidden files, and
+    verification command presence. Returns an ephemeral result -- no
+    `.context/preflight/*.json`, no context package, no dashboard render.
+    """
+    repo_root = Path(repo_root)
+    key = vcs.commit_key(commit)
+    spec_text = _read_spec(repo_root, commit)
+
+    spec_owner = vcs.metadata_value(spec_text, "Owner")
+    dependencies = vcs.dependency_keys(spec_text)
+    files = _files_from_table(spec_text)
+    verification_block = _verification_command_block(spec_text)
+
+    forbidden_block = vcs.section(spec_text, "Context")
+    forbidden = vcs.yaml_list(forbidden_block, "forbidden")
+
+    checks = {
+        "specification_validity": _eval_specification_validity(repo_root, commit, owner),
+        "dependencies_satisfied": _eval_dependencies_satisfied(repo_root, dependencies),
+        "ownership_match": _eval_ownership_match(repo_root, commit, spec_owner),
+        "scope_forbidden_compliance": _eval_scope_forbidden_compliance(repo_root, files, spec_owner, forbidden),
+        "verification_command_present": _eval_verification_command_present(verification_block),
+    }
+
+    violations: list[str] = []
+    for cat_name, result in checks.items():
+        if not result["passed"]:
+            violations.append(f"{cat_name}: {VIOLATION_MESSAGES[cat_name]}")
+
+    return {
+        "commit": key,
+        "owner": owner,
+        "status": "ready" if not violations else "blocked",
+        "proceed": not violations,
+        "violations": violations,
+    }
+
+
 def evaluate(repo_root: Path, commit: str, agent: str) -> dict[str, Any]:
     repo_root = Path(repo_root)
     key = vcs.commit_key(commit)
@@ -515,17 +578,6 @@ def evaluate(repo_root: Path, commit: str, agent: str) -> dict[str, Any]:
     category_breakdown: dict[str, Any] = {}
     hard_points = 0
 
-    violation_messages = {
-        "specification_validity": "Commit specification or its validation failed (validate_commit_spec status != 'valid'). Repair the spec until validate_commit_spec reports 'valid'.",
-        "pending_graph_validity": "Pending commit dependency graph is invalid (validate_pending_graph status != 'valid'). Resolve the reported graph violations.",
-        "ownership_match": "Ownership mismatch between the spec's Owner field, commit-protocol.md, and project-state.json next_commit_assignee. Align all three to the same owner.",
-        "scope_forbidden_compliance": "One or more planned files fail owner_paths or match a forbidden entry. Remove or reassign the offending files.",
-        "context_package_integrity": "Context package build failed, or has non-empty excluded_candidates/unresolved, or exceeds the context budget. Fix the context package or rules.",
-        "verification_command_present": "Verification Command section is missing, empty, or contains only placeholders/wildcards. Add a concrete, runnable verification command.",
-        "acceptance_criteria_present": "Done When section, or both Focused Tests and Required Tests sections, are missing or empty. Add concrete acceptance criteria and tests.",
-        "dependencies_satisfied": "One or more 'Depends on' commits are not marked done in commit-protocol.md. Complete and mark those dependencies done first.",
-    }
-
     for cat_name, points in HARD_CATEGORY_POINTS.items():
         result = categories[cat_name]
         passed = result["passed"]
@@ -538,7 +590,7 @@ def evaluate(repo_root: Path, commit: str, agent: str) -> dict[str, Any]:
             "evidence": result["evidence"],
         }
         if not passed:
-            blocking_violations.append(f"{cat_name}: {violation_messages[cat_name]}")
+            blocking_violations.append(f"{cat_name}: {VIOLATION_MESSAGES[cat_name]}")
 
     # --- Non-blocking readiness deductions ---
     package = context_integrity.get("package")
@@ -602,13 +654,6 @@ def evaluate(repo_root: Path, commit: str, agent: str) -> dict[str, Any]:
     report_path_abs.parent.mkdir(parents=True, exist_ok=True)
     report_path_abs.write_text(json.dumps(full_report, indent=2, sort_keys=True), encoding="utf-8")
 
-    try:
-        import constraint_dashboard
-
-        constraint_dashboard.render_dashboard(repo_root)
-    except Exception:  # noqa: BLE001
-        pass  # dashboard refresh is observational; never block the preflight decision
-
     return compact
 
 
@@ -649,14 +694,45 @@ def _render_human(result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _render_human_direct(result: dict[str, Any]) -> str:
+    lines = []
+    lines.append(f"{result['commit']} PREFLIGHT: {result['status'].upper()}")
+    lines.append("")
+    lines.append(f"Owner: {result['owner']}")
+    lines.append("")
+    if result["violations"]:
+        lines.append("Violations:")
+        for v in result["violations"]:
+            lines.append(f"- {v}")
+    else:
+        lines.append("Violations: None.")
+    lines.append("")
+    lines.append(f"Proceed? {'yes' if result['proceed'] else 'no'}")
+    return "\n".join(lines)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build, score, and persist a commit preflight report.")
     parser.add_argument("--commit", required=True, help="Commit ID, e.g. C30")
-    parser.add_argument("--agent", required=True, help="Agent id, e.g. adam")
+    parser.add_argument("--agent", required=True, help="Agent id, e.g. adam. For --direct, the commit owner.")
     parser.add_argument("--json", action="store_true", help="Print compact JSON instead of human-readable text")
+    parser.add_argument(
+        "--direct", action="store_true",
+        help="Run the lean Claude-direct readiness check (ephemeral, no persistence, "
+             "no context package, no dashboard render) instead of the full scored preflight.",
+    )
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parent.parent
+
+    if args.direct:
+        result = evaluate_direct(repo_root, args.commit, args.agent)
+        if args.json:
+            print(json.dumps(result))
+        else:
+            print(_render_human_direct(result))
+        return 0 if result["proceed"] else 1
+
     result = evaluate(repo_root, args.commit, args.agent)
 
     if args.json:
