@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C29B (preflight-delegation-gate) is done: prepare_agent_delegation.prepare() now hard-gates on preflight_commit.evaluate() before any delegation/telemetry/tool-cap state is created. OI-12 (tool_cap.json token undercount) is resolved: extract_tokens() now sums input+output+cache_creation+cache_read tokens, and ORCHESTRATION.md documents token budgets as post-hoc, cross-invocation circuit breakers. C29C (dashboard visibility) is next, pending Eran's approval of its preflight.",
+  "tldr": "C29C (preflight-dashboard-details) is done: constraint_dashboard.py now has a 'Preflight readiness' section with per-commit score badges (READY/WARNING/BLOCKED/NOT RUN/INVALID REPORT) and an expandable detail panel (breakdown, violations, warnings, files, context package, escaped raw JSON); preflight_commit.py refreshes the dashboard after persisting each report. C30 (invocation-record-storage) is next.",
   "phase": 2,
-  "last_completed_commit": "29B",
-  "next_commit": "29C",
-  "next_commit_name": "preflight-dashboard-details",
+  "last_completed_commit": "29C",
+  "next_commit": "30",
+  "next_commit_name": "invocation-record-storage",
   "next_commit_assignee": "adam",
   "status": "phase-2-active",
   "open_handoffs": [
