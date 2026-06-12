@@ -52,7 +52,9 @@ STEP 3 — Claude validates scope, then builds the live context package
     hooks/validate_commit_spec.py --all-pending --json
     Then runs hooks/validate_commit_spec.py for the active commit and owner
     Validation failure → stop and draft a smaller sequential spec for Eran
-    Validation success → run hooks/prepare_agent_delegation.py
+    Validation success → run hooks/prepare_agent_delegation.py --preview
+    Preview builds ignored approval artifacts only; it does not initialize tool-cap
+    state, telemetry, or the tracked dashboard.
     Refreshes the cached graph only when stale
     Produces a bounded brief: primary files, contracts, dependencies, hubs, tests,
     boundaries, handoffs, acceptance criteria, and expansion triggers
@@ -70,7 +72,9 @@ STEP 4 — Pre-invocation check (mandatory)
 └── "Do I already know the exact file, line, and content to change?"
     YES → use Edit directly. Do NOT invoke an agent.
           Agent overhead = 10–30k tokens. Edit = ~200 tokens.
-    NO  → invoke the agent with the generated delegation brief verbatim.
+    NO  → rerun hooks/prepare_agent_delegation.py without --preview to activate
+          tool-cap state and telemetry, then invoke the agent with the generated
+          delegation brief verbatim.
 
 STEP 5 — Agent executes
 └── One normal invocation, maximum 18 tool calls and two expansions.

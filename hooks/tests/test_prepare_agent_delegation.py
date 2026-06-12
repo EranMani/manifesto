@@ -128,6 +128,49 @@ class PrepareAgentDelegationTests(unittest.TestCase):
                 tool_cap["selected_paths"],
             )
 
+    def test_preview_does_not_activate_runtime_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            shutil.copytree(FIXTURE_ROOT, root)
+            (root / "project-state.json").write_text(
+                json.dumps({
+                    "next_commit": "1",
+                    "next_commit_assignee": "aria",
+                    "open_handoffs": [],
+                }),
+                encoding="utf-8",
+            )
+            with patch(
+                "prepare_agent_delegation.require_valid_pending_graph",
+                return_value={"status": "valid"},
+            ), patch(
+                "prepare_agent_delegation.require_valid_commit_spec",
+                return_value=self._validation(),
+            ), patch(
+                "prepare_agent_delegation.preflight_evaluate",
+                return_value=_PASSING_PREFLIGHT,
+            ), patch(
+                "prepare_agent_delegation.initialize_commit_state"
+            ) as initialize_state, patch(
+                "prepare_agent_delegation.initialize_telemetry"
+            ) as initialize_telemetry_mock, patch(
+                "prepare_agent_delegation.render_dashboard"
+            ) as render_dashboard_mock:
+                package, package_path, brief_path, _ = prepare(
+                    root,
+                    self.rules,
+                    "1",
+                    "aria",
+                    activate=False,
+                )
+
+            self.assertEqual(package["commit"], "C01")
+            self.assertTrue(package_path.is_file())
+            self.assertTrue(brief_path.is_file())
+            initialize_state.assert_not_called()
+            initialize_telemetry_mock.assert_not_called()
+            render_dashboard_mock.assert_not_called()
+
             with patch(
                 "prepare_agent_delegation.require_valid_pending_graph",
                 return_value={"status": "valid"},

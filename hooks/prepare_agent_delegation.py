@@ -245,6 +245,7 @@ def prepare(
     commit: str,
     agent: str,
     force_refresh: bool = False,
+    activate: bool = True,
 ) -> tuple[dict[str, Any], Path, Path, bool]:
     preflight_result = preflight_evaluate(repo_root, commit, agent)
     if not preflight_result.get("proceed"):
@@ -336,24 +337,25 @@ def prepare(
     )
     brief_path.parent.mkdir(parents=True, exist_ok=True)
     brief_path.write_text(brief, encoding="utf-8")
-    initialize_commit_state(
-        package["commit"],
-        agent,
-        [
-            *[item["path"] for item in package["files"]],
-            AGENT_FILES[agent],
-        ],
-        {
-            "max_agent_invocations": validation["budget"]["max_agent_invocations"],
-            "max_tool_calls": validation["budget"]["max_tool_calls"],
-            "max_expansions": validation["budget"]["max_expansions"],
-            "max_implementor_tokens": validation["budget"]["max_implementor_tokens"],
-            "max_total_tokens": validation["budget"]["max_total_tokens"],
-        },
-        repo_root / "hooks" / "tool_cap.json",
-    )
-    initialize_telemetry(package, repo_root)
-    render_dashboard(repo_root)
+    if activate:
+        initialize_commit_state(
+            package["commit"],
+            agent,
+            [
+                *[item["path"] for item in package["files"]],
+                AGENT_FILES[agent],
+            ],
+            {
+                "max_agent_invocations": validation["budget"]["max_agent_invocations"],
+                "max_tool_calls": validation["budget"]["max_tool_calls"],
+                "max_expansions": validation["budget"]["max_expansions"],
+                "max_implementor_tokens": validation["budget"]["max_implementor_tokens"],
+                "max_total_tokens": validation["budget"]["max_total_tokens"],
+            },
+            repo_root / "hooks" / "tool_cap.json",
+        )
+        initialize_telemetry(package, repo_root)
+        render_dashboard(repo_root)
     return package, package_path, brief_path, refreshed
 
 
@@ -363,6 +365,11 @@ def main() -> int:
     parser.add_argument("--agent", required=True, choices=sorted(AGENT_FILES))
     parser.add_argument("--rules", type=Path, default=DEFAULT_RULES)
     parser.add_argument("--force-refresh", action="store_true")
+    parser.add_argument(
+        "--preview",
+        action="store_true",
+        help="Validate and build ignored preview artifacts without activating runtime state.",
+    )
     args = parser.parse_args()
 
     try:
@@ -372,12 +379,14 @@ def main() -> int:
             args.commit,
             args.agent,
             args.force_refresh,
+            activate=not args.preview,
         )
     except PreflightBlocked as exc:
         print(json.dumps(exc.result, indent=2))
         return 1
+    label = "Preview" if args.preview else "Live"
     print(f"Delegation brief: {brief_path.relative_to(REPO_ROOT)}")
-    print(f"Live package: {package_path.relative_to(REPO_ROOT)}")
+    print(f"{label} package: {package_path.relative_to(REPO_ROOT)}")
     print(f"Graph: {'refreshed' if refreshed else 'cache current'}")
     print(
         f"Selected {package['budget']['selected_files']} files, "

@@ -138,9 +138,12 @@ You do **not** load files from other agents' domains unless this step explicitly
 2. Verify prerequisite handoffs are in place
 3. Run `hooks/validate_commit_spec.py --all-pending --json` after creating or renumbering
    pending specs. Then validate the active commit and owner. If either fails, stop and
-   propose a smaller sequential commit. Only then run `hooks/prepare_agent_delegation.py`.
+   propose a smaller sequential commit. Only then run
+   `hooks/prepare_agent_delegation.py --preview` for the approval card. Preview mode
+   must not initialize tool-cap state, telemetry, or the tracked dashboard.
 4. **Present compact preflight approval to Eran — wait for explicit approval**
-5. Invoke owning agent
+5. After approval, rerun `hooks/prepare_agent_delegation.py` without `--preview` to
+   activate runtime state, then invoke the owning agent.
 5a. **Parse agent self-report** — extract the telemetry JSON block from the agent's final
     message (Return Contract section) and persist it immediately:
     ```
