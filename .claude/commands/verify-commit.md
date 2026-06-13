@@ -6,11 +6,15 @@ Do the following:
 
 1. Read `project-state.json` and get `next_commit` and `next_commit_assignee`.
 
-2. Run the verification script in worktree + no-persist mode:
+2. Run the verification script in worktree + no-persist mode, with `--execution`
+   matching the chosen executor for this commit (`claude-direct` for Claude-direct,
+   `delegated` for a delegated agent):
    ```
-   python hooks/verify_constraints.py --commit <next_commit> --agent <next_commit_assignee> --worktree --no-persist
+   python hooks/verify_constraints.py --commit <next_commit> --agent <next_commit_assignee> --execution <claude-direct|delegated> --worktree --no-persist
    ```
    This checks uncommitted changes and returns PASS/FAIL without writing any records.
+   Omitting `--execution` causes a false `phase_budget FAIL` for Claude-direct commits
+   (it defaults to `delegated`, which requires an owner-worklog session match).
 
 3. Parse and present the output as a clear summary to Eran with three lines:
    - [1] Context block:    PASS / FAIL
