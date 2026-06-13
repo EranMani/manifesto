@@ -108,7 +108,7 @@
         "frontend/.env.example"
       ]
     },
-    "nova.stockagent@gmail.com": {
+    "nova.nodegraph@gmail.com": {
       "name": "Nova",
       "role": "ai-engineer",
       "domains": [
