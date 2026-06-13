@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C37 (ingestion-status-transaction-integration) is done: backend/tests/services/test_ingestion.py adds TestIngestDocumentTransactionIntegration with two real PostgreSQL+pgvector tests using C36's db_session fixture. test_successful_ingestion_commits_ready_state_with_chunk_count: creates a PolicyDocument row, runs ingest_document() with FakeEmbeddingService(dimensions=768), asserts status='ready', chunk_count>0, error_message is None, and after refresh policy_documents.status=='ready' with chunk_count matching persisted policy_chunks rows. test_failed_publish_rolls_back_with_no_partial_chunks: calls ingest_document() with a document_id that has no policy_documents row, so the publish UPDATE returns rowcount==0 and raises IngestionError('Document row not found during publish.'); asserts status='failed', chunk_count=0, error_message matches, and zero policy_chunks rows exist (rollback discarded pre-failure chunk adds). Verified live: docker compose run --rm backend uv run pytest tests/services/test_ingestion.py -k transaction -q -> 2 passed; full file -> 34 passed. verify_constraints all_pass (files=1/4, diff_lines=84/350). Claude-direct (Eran-approved), commit d4ce60f. No gate wave at C37 (next wave at C40). C38 (policy-query-embedding, nova) is next.",
+  "tldr": "C38 (policy-query-embedding) is done: backend/app/services/rag_policy.py adds normalize_query() (NFC unicode normalization + whitespace collapse), EmptyQueryError, and RAGPolicy.embed_query(text), which normalizes a policy query and embeds it once via EmbeddingService.embed_query() (per the C38-C49 handoff), raising EmptyQueryError before any provider call when the query is blank after normalization. New backend/tests/services/test_rag_policy.py::TestQueryEmbedding covers both: normalized text embedded exactly once, and blank input rejected with zero embed_documents calls. Verified live: docker compose run --rm backend uv run pytest tests/services/test_rag_policy.py -k query_embedding -q -> 2 passed. verify_constraints all_pass (files=2/4, diff_lines=85/350). Claude-direct (Eran-approved), commit b434dde. No gate wave at C38 (next wave at C40). C39 (policy-vector-candidates, nova) is next.",
   "phase": 2,
-  "last_completed_commit": "37",
-  "next_commit": "38",
-  "next_commit_name": "policy-query-embedding",
+  "last_completed_commit": "38",
+  "next_commit": "39",
+  "next_commit_name": "policy-vector-candidates",
   "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [

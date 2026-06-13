@@ -5,9 +5,9 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-13 · C36 committed*
+*Last updated: 2026-06-13 · C38 committed*
 
-**Last completed:** C36 `ingestion-pgvector-write-integration` — committed 2026-06-13 (c18a826)
+**Last completed:** C38 `policy-query-embedding` — committed 2026-06-13 (b434dde)
 **Currently active:** none
 **Blocked by:** none
 
@@ -46,6 +46,8 @@ No archived sessions yet.
 | 1 | C25 `llm-service-impl` | committed 2026-06-09 | Separate LLMService (per-conversation) from EmbeddingService (deployment-wide 768-dim); `chat()` returns AsyncIterator via async generator pattern; retry before first token only |
 | 2 | C27 `document-ingestion` | committed 2026-06-10 (4323405) | Structure-first then token-bounded chunking (450/600/60 overlap) at whole-`ExtractedBlock` granularity; per-document `pg_advisory_xact_lock` serializes concurrent ingestion; failure path deletes partial chunks and marks `status='failed'` with sanitized error |
 | 3 | C36 `ingestion-pgvector-write-integration` | committed 2026-06-13 (c18a826) | Replaced the skipped `TestIngestDocumentIntegration` placeholder with a real-DB `TestIngestDocumentPgvectorWrite` test (transaction-rollback fixture matching C35); proves `ingest_document()` writes 768-dim embeddings and chunk provenance matching `chunk_blocks()` |
+| 4 | C37 `ingestion-status-transaction-integration` | committed 2026-06-13 (d4ce60f) | Added `TestIngestDocumentTransactionIntegration` covering the successful ready-state commit and the failed-publish rollback path |
+| 5 | C38 `policy-query-embedding` | committed 2026-06-13 (b434dde) | `RAGPolicy.embed_query()` normalizes (NFC + whitespace collapse) and embeds via `EmbeddingService.embed_query()`; blank input raises `EmptyQueryError` before any provider call |
 
 ---
 
@@ -234,7 +236,7 @@ No gate wave at C36 (next wave at C40).
 ## Session 4 — C37 `ingestion-status-transaction-integration` · 2026-06-13
 
 **Executor:** Claude (direct, per Eran's approval)
-**Status:** pending approval
+**Status:** committed 2026-06-13 (d4ce60f)
 **Tool usage (orchestrator):** 0 agent calls
 
 ### What was built
@@ -263,3 +265,38 @@ Added `TestIngestDocumentTransactionIntegration` to
 → **2 passed**. Full file: `tests/services/test_ingestion.py` → **34 passed**.
 verify_constraints all_pass (--execution claude-direct): files=1/4, diff_lines=84/350.
 No gate wave at C37 (next wave at C40).
+
+---
+
+## Session 5 — C38 `policy-query-embedding` · 2026-06-13
+
+**Executor:** Claude (direct, per Eran's approval)
+**Status:** committed 2026-06-13 (b434dde)
+**Tool usage (orchestrator):** 0 agent calls
+
+### What was built
+
+`backend/app/services/rag_policy.py`:
+- `normalize_query(text)` — NFC-normalizes unicode and collapses all whitespace
+  (including newlines/tabs) to single spaces, trimming the result.
+- `EmptyQueryError` — raised when a query is blank after normalization.
+- `RAGPolicy.__init__(embeddings: EmbeddingService)` — now holds the active
+  embedding profile's provider.
+- `RAGPolicy.embed_query(text)` — normalizes the query, raises `EmptyQueryError`
+  without any provider call if blank, otherwise calls
+  `embeddings.embed_query(normalized)` exactly once (per the C38-C49 handoff:
+  policy retrieval uses `EmbeddingService.embed_query()`, never provider SDK
+  types directly).
+
+`backend/tests/services/test_rag_policy.py` (new) — `TestQueryEmbedding`:
+- `test_query_embedding_normalizes_and_embeds_once` — whitespace-heavy input is
+  normalized and `embed_documents` is called exactly once with the normalized text.
+- `test_query_embedding_rejects_blank_input` — whitespace-only input raises
+  `EmptyQueryError` and `embed_documents` is never called.
+
+### Verification
+
+`docker compose run --rm backend uv run pytest tests/services/test_rag_policy.py -k query_embedding -q`
+→ **2 passed**.
+verify_constraints all_pass (--execution claude-direct): files=2/4, diff_lines=85/350.
+No gate wave at C38 (next wave at C40).

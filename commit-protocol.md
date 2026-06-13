@@ -56,7 +56,7 @@
 | 35 | policy-storage-db-url | rex | ✅ done · 2026-06-13 |
 | 36 | ingestion-pgvector-write-integration | nova | ✅ done · 2026-06-13 |
 | 37 | ingestion-status-transaction-integration | nova | ✅ done · 2026-06-13 |
-| 38 | policy-query-embedding | nova | pending |
+| 38 | policy-query-embedding | nova | ✅ done · 2026-06-13 |
 | 39 | policy-vector-candidates | nova | pending |
 | 40 | policy-lexical-candidates | nova | pending |
 | 41 | policy-rank-fusion | nova | pending |
