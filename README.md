@@ -29,6 +29,16 @@ The backend will be available at `http://localhost:8000` once the db health chec
 docker-compose exec backend python scripts/seed.py
 ```
 
+### Run backend tests
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/test_backend.ps1
+```
+
+Runs the full backend test suite (`uv run pytest tests/`) inside the `backend`
+container via `docker compose run --rm`, so the database hostname `db` resolves
+correctly. Pass `-CollectOnly` to collect tests without running them.
+
 ---
 
 ## Services
