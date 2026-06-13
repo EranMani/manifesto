@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import os
+import uuid
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+import pytest_asyncio
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.services.ingestion import (
     Chunk,
@@ -21,6 +25,11 @@ from app.services.ingestion import (
     chunk_blocks,
     extract_document,
     ingest_document,
+)
+from app.models.policy import PolicyChunk, PolicyDocument
+
+DB_URL = os.environ.get(
+    "DATABASE_URL", "postgresql+asyncpg://manifesto:manifesto@localhost:5432/manifesto"
 )
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "documents"
@@ -431,15 +440,75 @@ class TestIngestDocument:
 
 
 # ---------------------------------------------------------------------------
-# Optional DB integration test (requires a live database)
+# DB integration: real pgvector writes
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(
-    not os.environ.get("MANIFESTO_DB_INTEGRATION_TESTS"),
-    reason="Set MANIFESTO_DB_INTEGRATION_TESTS=1 to run against a live database.",
-)
+@pytest_asyncio.fixture
+async def db_session():
+    """Yield an AsyncSession bound to a transaction that is rolled back after the test."""
+    engine = create_async_engine(DB_URL, echo=False)
+    try:
+        async with engine.connect() as conn:
+            trans = await conn.begin()
+            session_factory = async_sessionmaker(bind=conn, expire_on_commit=False, join_transaction_mode="create_savepoint")
+            async with session_factory() as sess:
+                yield sess
+            await trans.rollback()
+    finally:
+        await engine.dispose()
+
+
 @pytest.mark.asyncio
-class TestIngestDocumentIntegration:
-    async def test_ingest_against_real_database(self) -> None:
-        pytest.skip("Integration harness not wired up in this environment.")
+class TestIngestDocumentPgvectorWrite:
+    async def test_pgvector_write_persists_chunks_and_embeddings(self, db_session: AsyncSession) -> None:
+        """A real ingest_document run writes deterministic chunks and 768-dim
+        embeddings to policy_chunks, matching chunk_blocks's order and provenance."""
+        doc = PolicyDocument(
+            title="Pgvector Write Test",
+            sha256=uuid.uuid4().hex + uuid.uuid4().hex[:24],
+            embedding_provider="ollama",
+            embedding_model="fake-embed",
+            embedding_dimensions=768,
+            status="processing",
+        )
+        db_session.add(doc)
+        await db_session.flush()
+
+        embeddings = FakeEmbeddingService(
+            dimensions=768, profile=FakeProfile(provider="ollama", model="fake-embed", dimensions=768)
+        )
+
+        result = await ingest_document(
+            document_id=doc.id,
+            file_bytes=_load("sample.md"),
+            filename="sample.md",
+            content_type="text/markdown",
+            db=db_session,
+            embeddings=embeddings,
+        )
+
+        assert result.status == "ready"
+        assert result.chunk_count > 0
+
+        expected = chunk_blocks(extract_document(_load("sample.md"), "text/markdown").blocks)
+
+        rows = (
+            await db_session.execute(
+                select(PolicyChunk)
+                .where(PolicyChunk.document_id == doc.id)
+                .order_by(PolicyChunk.chunk_index)
+            )
+        ).scalars().all()
+
+        assert len(rows) == result.chunk_count == len(expected)
+        for row, expected_chunk in zip(rows, expected):
+            assert row.chunk_index == expected_chunk.chunk_index
+            assert row.page_number == expected_chunk.page_number
+            assert row.section == expected_chunk.section
+            assert row.embedding is not None
+            assert len(row.embedding) == 768
+
+        await db_session.refresh(doc)
+        assert doc.status == "ready"
+        assert doc.chunk_count == result.chunk_count
