@@ -21,6 +21,7 @@ Covers:
 
 from __future__ import annotations
 
+import os
 import uuid
 
 import pytest
@@ -31,7 +32,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.models.policy import PolicyChunk, PolicyDocument
 
-DB_URL = "postgresql+asyncpg://manifesto:manifesto@localhost:5432/manifesto"
+DB_URL = os.environ.get(
+    "DATABASE_URL", "postgresql+asyncpg://manifesto:manifesto@localhost:5432/manifesto"
+)
 
 _DIMS = 768
 
@@ -184,7 +187,7 @@ async def test_search_vector_full_text_query(session: AsyncSession):
     )
     rows = result.fetchall()
     assert len(rows) == 1
-    assert rows[0][0] == chunk.id
+    assert str(rows[0][0]) == chunk.id
 
 
 # ---------------------------------------------------------------------------
