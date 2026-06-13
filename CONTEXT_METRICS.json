@@ -1799,6 +1799,60 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "date": "2026-06-13",
+      "commit": "C37",
+      "agent": "nova",
+      "execution": "claude-direct",
+      "tokens": null,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "self_report",
+          "status": "partial",
+          "tool_calls": 7,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": [
+            "backend/app/services/ingestion.py"
+          ]
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "tool_calls": 4,
+          "read_paths": [],
+          "write_paths": [],
+          "searches": [],
+          "commands": [
+            "git status --short && git diff --stat && git diff --check",
+            "python hooks/verify_constraints.py --commit 37 --agent nova --execution claude-direct --worktree --no-persist",
+            "python hooks/context_telemetry.py --stop-orchestrator C37"
+          ]
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": 1
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          "backend/tests/services/test_ingestion.py"
+        ]
+      },
+      "result": "PASS"
     }
   ]
 }

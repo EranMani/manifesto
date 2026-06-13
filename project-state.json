@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C36 (ingestion-pgvector-write-integration) is done: backend/tests/services/test_ingestion.py replaces the skipped TestIngestDocumentIntegration placeholder with TestIngestDocumentPgvectorWrite, a real PostgreSQL+pgvector test (transaction-rollback db_session fixture matching C35's pattern). Creates a PolicyDocument row, runs ingest_document() with FakeEmbeddingService(dimensions=768), and asserts status='ready', persisted policy_chunks rows match chunk_blocks()'s chunk_index/page_number/section order and provenance, and every embedding is a 768-dim vector matching the Vector(768) column. Verified live: docker compose run --rm backend uv run pytest tests/services/test_ingestion.py -k pgvector_write -q -> 1 passed; full file -> 32 passed. verify_constraints all_pass (files=1/4, diff_lines=85/350). Claude-direct (Eran-approved), commit c18a826. No gate wave at C36 (next wave at C40). C37 (ingestion-status-transaction-integration, nova) is next.",
+  "tldr": "C37 (ingestion-status-transaction-integration) is done: backend/tests/services/test_ingestion.py adds TestIngestDocumentTransactionIntegration with two real PostgreSQL+pgvector tests using C36's db_session fixture. test_successful_ingestion_commits_ready_state_with_chunk_count: creates a PolicyDocument row, runs ingest_document() with FakeEmbeddingService(dimensions=768), asserts status='ready', chunk_count>0, error_message is None, and after refresh policy_documents.status=='ready' with chunk_count matching persisted policy_chunks rows. test_failed_publish_rolls_back_with_no_partial_chunks: calls ingest_document() with a document_id that has no policy_documents row, so the publish UPDATE returns rowcount==0 and raises IngestionError('Document row not found during publish.'); asserts status='failed', chunk_count=0, error_message matches, and zero policy_chunks rows exist (rollback discarded pre-failure chunk adds). Verified live: docker compose run --rm backend uv run pytest tests/services/test_ingestion.py -k transaction -q -> 2 passed; full file -> 34 passed. verify_constraints all_pass (files=1/4, diff_lines=84/350). Claude-direct (Eran-approved), commit d4ce60f. No gate wave at C37 (next wave at C40). C38 (policy-query-embedding, nova) is next.",
   "phase": 2,
-  "last_completed_commit": "36",
-  "next_commit": "37",
-  "next_commit_name": "ingestion-status-transaction-integration",
+  "last_completed_commit": "37",
+  "next_commit": "38",
+  "next_commit_name": "policy-query-embedding",
   "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [

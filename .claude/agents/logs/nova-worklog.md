@@ -228,3 +228,38 @@ asserts:
 → **1 passed**. Full file: `tests/services/test_ingestion.py` → **32 passed**.
 verify_constraints all_pass (--execution claude-direct): files=1/4, diff_lines=85/350.
 No gate wave at C36 (next wave at C40).
+
+---
+
+## Session 4 — C37 `ingestion-status-transaction-integration` · 2026-06-13
+
+**Executor:** Claude (direct, per Eran's approval)
+**Status:** pending approval
+**Tool usage (orchestrator):** 0 agent calls
+
+### What was built
+
+Added `TestIngestDocumentTransactionIntegration` to
+`backend/tests/services/test_ingestion.py`, using the C36 transaction-rollback
+`db_session` fixture, with two real-DB tests:
+
+- `test_successful_ingestion_commits_ready_state_with_chunk_count` — creates a
+  `PolicyDocument` row (status='processing', 768-dim profile), runs `ingest_document()`
+  with `FakeEmbeddingService(dimensions=768)`, and asserts `result.status == "ready"`,
+  `chunk_count > 0`, `error_message is None`, and after refresh
+  `policy_documents.status == "ready"` with `chunk_count` matching the persisted
+  `policy_chunks` row count.
+- `test_failed_publish_rolls_back_with_no_partial_chunks` — calls `ingest_document()`
+  with a `document_id` that has no corresponding `policy_documents` row, so the publish
+  `UPDATE ... WHERE id=:id` returns `rowcount == 0` and raises `IngestionError("Document
+  row not found during publish.")`. Asserts `result.status == "failed"`,
+  `chunk_count == 0`, `error_message == "Document row not found during publish."`, and
+  that no `policy_chunks` rows exist for that document id — confirming the chunks added
+  to the session before the failure were rolled back, not partially persisted.
+
+### Verification
+
+`docker compose run --rm backend uv run pytest tests/services/test_ingestion.py -k transaction -q`
+→ **2 passed**. Full file: `tests/services/test_ingestion.py` → **34 passed**.
+verify_constraints all_pass (--execution claude-direct): files=1/4, diff_lines=84/350.
+No gate wave at C37 (next wave at C40).
