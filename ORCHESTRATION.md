@@ -156,13 +156,16 @@ STEP 9 — Records update (mandatory before notification)
 └── DECISIONS.md — non-obvious choice or debate made?
     ARCHITECTURE.md — new component or data flow introduced?
     GLOSSARY.md — new term introduced?
-    TOKEN_RECORDS.md — always: add commit entry; correct counts if orchestrator
-    made post-session fixes (logic, tests, attribution).
     Worklog — update Current State and session index to reflect orchestrator corrections;
     correct outbound handoffs with any revised facts (model names, counts, etc.).
+    Do NOT touch TOKEN_RECORDS.md here — STEP 10's finalize_commit.py runs
+    verify_constraints --worktree, which flags any dirty file not in the owner's
+    worklog as unplanned. TOKEN_RECORDS.md is added in STEP 13's chore sweep,
+    after the primary commit.
 
 STEP 10 — Notify Eran
 └── Only after STEP 7.5 (/verify-commit) passes and STEP 9 (records) are current.
+    The working tree must otherwise be clean (no pending TOKEN_RECORDS.md edit).
     Run hooks/finalize_commit.py --commit NN --agent OWNER --execution EXEC
       --notify-what "..." --notify-why "..." [--tokens N] [--render-dashboard]
     This runs verify_constraints --worktree, a conditional dashboard render, writes the

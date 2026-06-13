@@ -210,13 +210,19 @@ You do **not** load files from other agents' domains unless this step explicitly
 8. Spawn Viktor (every 5 commits), Sage (conditional), Mira (conditional) — Haiku model, parallel
 9. Apply blocking rules. Any blocker becomes its own next commit and follows the same
    Claude-direct-default execution routing — no gate-fix passes.
-10. Update TOKEN_RECORDS.md and correct any stale worklog entries or handoffs caused by
-    orchestrator corrections. Worklog Current State stays "pending approval" until the
-    git commit succeeds — not when the agent finishes, not when the notification fires.
-11. Run `hooks/finalize_commit.py` — only after /verify-commit passes and records
-    (TOKEN_RECORDS.md etc.) are current. This single command runs, in fixed order:
-    verify_constraints (--worktree), a conditional dashboard render (every 5th commit
-    or `--render-dashboard`), writing the pending-notify flag, and writing the
+10. Correct any stale worklog entries or handoffs caused by orchestrator corrections.
+    Worklog Current State stays "pending approval" until the git commit succeeds — not
+    when the agent finishes, not when the notification fires. Do NOT touch
+    TOKEN_RECORDS.md yet — it is added in step 12.3's chore sweep, after the primary
+    commit lands.
+11. Run `hooks/finalize_commit.py` — only after /verify-commit passes and the worklog/
+    handoff corrections from step 10 are current. The working tree must otherwise be
+    clean (in particular, TOKEN_RECORDS.md must NOT be edited yet): this command's
+    verify_constraints (--worktree) check only treats the owner's own worklog file as
+    "always planned" — any other dirty file, including TOKEN_RECORDS.md, is flagged as
+    an unplanned file and returns `status: blocked`. This single command runs, in fixed
+    order: verify_constraints (--worktree), a conditional dashboard render (every 5th
+    commit or `--render-dashboard`), writing the pending-notify flag, and writing the
     `.context/finalize/CNN.json` marker that step 12's commit requires (via
     `pre_commit_check.py`'s `check_finalize_marker()`). It stops at the first failure.
     ```
@@ -319,7 +325,10 @@ After every agent completes work — before presenting the next Commit Preview.
 ```
 □ /verify-commit       — ALWAYS: run first. If any check FAILS, stop. Fix before proceeding.
 □ project-state.json   — ALWAYS: advance commit pointer, clear resolved handoffs
-□ TOKEN_RECORDS.md     — ALWAYS: add commit row + session total row
+□ TOKEN_RECORDS.md     — ALWAYS: add commit row + session total row, in the step
+                          12.3 chore sweep (after the primary commit) — never before
+                          step 11's finalize_commit.py, which will flag it as an
+                          unplanned file
 □ CONTEXT_METRICS.json — ALWAYS: updated automatically by verify_constraints
 □ DECISIONS.md         — if a non-obvious design choice was made
 □ ARCHITECTURE.md      — if a new component, pattern, or data flow was introduced
@@ -516,12 +525,15 @@ Mid-commit at ~60k tokens without a commit yet: `/compact`.
 9. Worklog Current State stays "currently active / pending approval" until git commit
    succeeds — not when the agent finishes, not when the notification fires.
 
-10. Send the completion notification only after /verify-commit passes and TOKEN_RECORDS.md
-    is current. Never on agent completion alone.
+10. Send the completion notification (via finalize_commit.py) only after /verify-commit
+    passes and the worklog/handoff corrections are current. TOKEN_RECORDS.md is added
+    afterward, in the step 12.3 chore sweep — never on agent completion alone, and
+    never before finalize_commit.py.
 
 11. After any orchestrator correction pass: update the worklog, outbound handoffs,
-    TOKEN_RECORDS.md, and test counts to reflect the corrected state before
-    re-presenting for approval.
+    and test counts to reflect the corrected state before re-presenting for approval.
+    Fold any TOKEN_RECORDS.md correction into the step 12.3 chore sweep alongside the
+    new commit's row — do not write it to the working tree before finalize_commit.py.
 
 12. Read Co-Authored-By emails from hooks/agent-config.json before every commit.
     Never recall from memory or prior sessions. Memory entries for emails are

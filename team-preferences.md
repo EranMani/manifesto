@@ -267,13 +267,17 @@ STEP D.5 — CLOSE ORCHESTRATOR SCOPE (immediately after STEP D passes)
   Never skip — missing file makes orchestrator scope show unavailable on dashboard.
 
 STEP E — UPDATE RECORDS
-  TOKEN_RECORDS.md: correct counts if orchestrator made post-session fixes.
   Worklog Current State: stays "currently active / pending approval" until git commit.
   Worklog session index: add orchestrator correction notes where applicable.
   Outbound handoffs: update with any corrected facts (model names, file counts, etc.).
+  Do NOT update TOKEN_RECORDS.md here — finalize_commit.py (STEP F) runs
+  verify_constraints --worktree, which flags any dirty file other than the owner's
+  worklog as an unplanned file and returns status: blocked. TOKEN_RECORDS.md is added
+  in the STEP 13 chore sweep, after the primary commit.
 
 STEP F — NOTIFY
-  Only after STEP D passes and STEP E is complete.
+  Only after STEP D passes and STEP E is complete. Working tree otherwise clean
+  (no pending TOKEN_RECORDS.md edit).
   NOTIFY_WHAT and NOTIFY_WHY describe the final, corrected state — never a preliminary state.
 
 STEP G — REQUEST APPROVAL
@@ -310,7 +314,10 @@ Claude must verify and update ALL of the following files as applicable:
                           handoffs, update notes.
 
 □ TOKEN_RECORDS.md     — ALWAYS: add one row per agent invocation to Commit Log,
-                          add one row to Session Totals.
+                          add one row to Session Totals. Do this in the STEP 13
+                          chore sweep, AFTER the primary commit — not before
+                          finalize_commit.py (STEP F), which would flag it as an
+                          unplanned file via verify_constraints --worktree.
 □ CONTEXT_METRICS.json — ALWAYS: updated by verify_constraints from live telemetry.
                           Pass --execution claude-direct (forces tokens: null) or
                           --execution delegated --tokens N for delegated invocations.

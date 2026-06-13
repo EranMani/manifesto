@@ -1324,4 +1324,70 @@ once-per-governance-change event. Revisit if this recurs a third time.
 
 ---
 
+---
+
+## D41 — Fix TOKEN_RECORDS.md/finalize_commit.py Ordering Contradiction (C36, A3)
+
+### Problem
+
+C36 scored 4/10 on COMMIT_HEALTH_RUBRIC.md. The biggest deduction (A3, −3) was
+`hooks/finalize_commit.py` returning `"status": "blocked"` on its first run.
+
+Root cause: CLAUDE.md step 10 said "Update TOKEN_RECORDS.md and correct any
+stale worklog entries..." and step 11 gated `finalize_commit.py` on "records
+(TOKEN_RECORDS.md etc.) are current" — both read as "write TOKEN_RECORDS.md
+before running finalize_commit.py." But `finalize_commit.py` runs
+`verify_constraints.py --worktree`, whose `check_actual_scope()` only treats
+the owner's own worklog file as "always planned." TOKEN_RECORDS.md is not in
+commit-36's spec `Files To Modify Or Add` and isn't exempted, so it was
+flagged as an unplanned file and the run blocked — and also persisted a
+spurious FAIL row to CONSTRAINT_LOG.md/CONTEXT_METRICS.json before failing.
+
+Recovery: confirmed via `git show 85d1867 --stat` / `git show dff2800 --stat`
+that for C35, TOKEN_RECORDS.md was correctly updated in the chore(state) sweep
+commit (dff2800), AFTER the primary commit (85d1867) — not before
+`finalize_commit.py`. Reverted the premature TOKEN_RECORDS.md edit and the
+spurious FAIL persistence via `git checkout -- TOKEN_RECORDS.md
+CONSTRAINT_LOG.md CONTEXT_METRICS.json`, re-ran `finalize_commit.py` clean,
+and applied the TOKEN_RECORDS.md rows in the chore sweep as C35 had done.
+
+Two smaller issues were also scored on C36: B2 (−2, `bash_command_lint.py`
+fired on a `cd ... 2>/dev/null; true; docker compose ...` command — a recurring
+execution-discipline lapse, not a doc gap, addressed by strengthening
+`feedback_no_cd_in_bash.md`), and D4 (−1, `hooks/agent-config.json` had Nova
+keyed under the wrong email `nova.stockagent@gmail.com`, corrected to
+`nova.nodegraph@gmail.com` post-commit in 70f1117 — per Eran's explicit choice,
+the historical C36 trailer using the wrong email was left as-is rather than
+amended/rebased).
+
+### Fix
+
+Per Rule 3, grepped and corrected all three governance files in one pass:
+
+- **CLAUDE.md**: step 10 no longer says to update TOKEN_RECORDS.md — it now
+  explicitly says "Do NOT touch TOKEN_RECORDS.md yet — it is added in step
+  12.3's chore sweep, after the primary commit lands." Step 11 now explains
+  *why* (verify_constraints --worktree only exempts the owner's worklog file)
+  and that a dirty TOKEN_RECORDS.md returns `status: blocked`. Behaviour Rules
+  10 and 11 reworded to match. Post-Commit File Checklist's TOKEN_RECORDS.md
+  line now states the chore-sweep timing explicitly.
+- **ORCHESTRATION.md**: STEP 9 (records update) no longer lists TOKEN_RECORDS.md;
+  STEP 10 (notify/finalize) now states the working tree must be clean of any
+  pending TOKEN_RECORDS.md edit.
+- **team-preferences.md**: STEP E (update records) and the Post-Commit File
+  Checklist both updated to match — TOKEN_RECORDS.md moves to the STEP 13
+  chore sweep only.
+
+### Why Fix the Docs Instead of `verify_constraints.py`
+
+`check_actual_scope()`'s narrow "owner's worklog only" exemption is correct —
+broadening it to also exempt TOKEN_RECORDS.md would let a Claude-direct commit
+silently carry an unrelated TOKEN_RECORDS.md edit into the primary commit,
+which is exactly the kind of scope drift the check exists to catch. The actual
+defect was the documented step *ordering* telling the orchestrator to create
+that dirty file before the check that forbids it — a docs fix, not a hook fix,
+matching the precedent set by D39/D40 (OI-15) for this class of problem.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
