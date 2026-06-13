@@ -5,9 +5,9 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-10 · C27 committed*
+*Last updated: 2026-06-13 · C36 committed*
 
-**Last completed:** C27 `document-ingestion` — committed 2026-06-10 (4323405)
+**Last completed:** C36 `ingestion-pgvector-write-integration` — committed 2026-06-13 (c18a826)
 **Currently active:** none
 **Blocked by:** none
 
@@ -28,11 +28,6 @@ fixes post-session (see Session 2 corrections).
   `ingest_document()` contract; the service owns `processing -> ready|failed`. ✅ recorded in project-state.json
 - → Rex (C30): Catch only `LLMError` and subclasses in route handlers — never provider SDK exceptions.
 
-**Open Issue:**
-- The opt-in DB integration test (`TestIngestDocumentIntegration`) is a stub
-  (`pytest.skip("Integration harness not wired up")`) — blocked on OI-08 (host port 5432
-  conflict). Wire up a real pgvector insertion/status-transition test once OI-08 is resolved.
-
 **Key Interfaces I Will Own:**
 - `backend/app/services/llm.py` — `LLMService` (Ollama + OpenAI abstraction)
 - `backend/app/services/rag_policy.py` — retrieval + generation + citations for policy chat
@@ -50,6 +45,7 @@ No archived sessions yet.
 |---|--------|--------|--------------|
 | 1 | C25 `llm-service-impl` | committed 2026-06-09 | Separate LLMService (per-conversation) from EmbeddingService (deployment-wide 768-dim); `chat()` returns AsyncIterator via async generator pattern; retry before first token only |
 | 2 | C27 `document-ingestion` | committed 2026-06-10 (4323405) | Structure-first then token-bounded chunking (450/600/60 overlap) at whole-`ExtractedBlock` granularity; per-document `pg_advisory_xact_lock` serializes concurrent ingestion; failure path deletes partial chunks and marks `status='failed'` with sanitized error |
+| 3 | C36 `ingestion-pgvector-write-integration` | committed 2026-06-13 (c18a826) | Replaced the skipped `TestIngestDocumentIntegration` placeholder with a real-DB `TestIngestDocumentPgvectorWrite` test (transaction-rollback fixture matching C35); proves `ingest_document()` writes 768-dim embeddings and chunk provenance matching `chunk_blocks()` |
 
 ---
 
@@ -198,5 +194,37 @@ C26 (OI-08, host port 5432 conflict), unrelated to this commit.
   via unit tests with `FakeEmbeddingService`)
 - [x] No partial chunk set is visible after any injected failure
 - [x] Duplicate/retried ingestion is idempotent (delete-then-replace, identical chunk content)
-- [~] Unit tests use fake embeddings (done); one opt-in DB integration test verifies pgvector
-  insertion and status transitions — currently a skip-gated stub, blocked on OI-08
+- [x] Unit tests use fake embeddings (done); one opt-in DB integration test verifies pgvector
+  insertion and status transitions — completed in C36 (OI-08 resolved by C34's
+  docker compose test runner)
+
+---
+
+## Session 3 — C36 `ingestion-pgvector-write-integration` · 2026-06-13
+
+**Executor:** Claude (direct, per Eran's approval)
+**Status:** committed 2026-06-13 (c18a826)
+**Tool usage (orchestrator):** 0 agent calls
+
+### What was built
+
+Replaced the skipped `TestIngestDocumentIntegration` placeholder in
+`backend/tests/services/test_ingestion.py` with `TestIngestDocumentPgvectorWrite`, a real
+PostgreSQL + pgvector test using a transaction-rollback `db_session` fixture (matches
+C35's `test_policy_storage.py` pattern; reads `DATABASE_URL` with a localhost fallback).
+
+The test creates a `PolicyDocument` row (status='processing', embedding profile = 768
+dims), runs `ingest_document()` with a `FakeEmbeddingService(dimensions=768)`, and
+asserts:
+- `result.status == "ready"`, `chunk_count > 0`
+- persisted `policy_chunks` rows match `chunk_blocks(extract_document(...))`'s
+  `chunk_index`, `page_number`, and `section` order/provenance
+- every persisted `embedding` is a 768-dim vector (matches the `Vector(768)` column)
+- `policy_documents.status == "ready"` and `chunk_count` matches after refresh
+
+### Verification
+
+`docker compose run --rm backend uv run pytest tests/services/test_ingestion.py -k pgvector_write -q`
+→ **1 passed**. Full file: `tests/services/test_ingestion.py` → **32 passed**.
+verify_constraints all_pass (--execution claude-direct): files=1/4, diff_lines=85/350.
+No gate wave at C36 (next wave at C40).

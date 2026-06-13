@@ -54,7 +54,7 @@
 | 33B | finalize-commit-pipeline | claude | ✅ done · 2026-06-13 |
 | 34 | database-test-container-command | adam | ✅ done · 2026-06-13 |
 | 35 | policy-storage-db-url | rex | ✅ done · 2026-06-13 |
-| 36 | ingestion-pgvector-write-integration | nova | pending |
+| 36 | ingestion-pgvector-write-integration | nova | ✅ done · 2026-06-13 |
 | 37 | ingestion-status-transaction-integration | nova | pending |
 | 38 | policy-query-embedding | nova | pending |
 | 39 | policy-vector-candidates | nova | pending |
