@@ -229,6 +229,15 @@ STEP C — DIFF AND BOUNDARY REVIEW
   git diff --stat — review every changed file and line count.
   Confirm no files outside the agent's domain are modified.
 
+STEP A.5 — SCOPE RIPPLE PRE-CHECK (before implementation, for commits that add
+  a new fail-closed check to an existing hook/gate)
+  Grep that hook's existing test file for fixtures that the new check will now
+  fail. If any exist, account for the resulting file edits and a realistic
+  diff-line cap in the commit spec BEFORE implementation starts — not after
+  /verify-commit fails. Avoids an implement -> fail -> stop -> amend-spec ->
+  re-verify round trip mid-session (each cycle re-runs the full test suite and
+  verify_constraints.py).
+
 STEP D — /verify-commit
   Always, without exception. If it fails: stop, fix, re-run.
   Never proceed to notification before this passes.
@@ -338,6 +347,36 @@ VERBOSE OUTPUT RULES:
 - uv sync: capture final line only
 Do not paste full command output into the worklog or response. Summary only.
 ```
+
+---
+
+## Bash Command Conventions (token-waste prevention)
+
+```
+1. NEVER use `cd` in any Bash command — not even in a subshell pattern like
+   `(cd path && cmd)`. The tool's working directory persists across calls and
+   starts at the repo root. A `cd` that succeeds once silently shifts CWD for
+   every subsequent command this session, breaking relative-path hooks
+   (e.g. `python hooks/...`) and causing "No such file or directory" failures
+   that then require extra pwd/recovery calls — each one a full priced turn.
+   Always write commands relative to the repo root as-is:
+     python -m pytest hooks/tests/ -q          (not: cd hooks && pytest tests/ -q)
+     python hooks/verify_constraints.py ...     (not: cd hooks && python verify_constraints.py ...)
+
+2. NEVER chain existence checks with `&&` + `2>/dev/null`, e.g.
+     ls .context 2>/dev/null && ls .context/finalize 2>/dev/null
+   If the directory doesn't exist, `ls` returns non-zero, `2>/dev/null` hides
+   the message but NOT the exit code, and the `&&` chain reports the whole
+   call as "Error: Exit code N" — even though earlier commands in the chain
+   succeeded and printed useful output. This burns a reasoning pass dismissing
+   a non-error. Use the Glob tool for existence checks instead (never errors
+   on a missing path), or if Bash is required, neutralize the exit code:
+     ls .context/finalize 2>/dev/null; true
+```
+
+This happened during C33B (2026-06-13): a `cd` drift caused 3 extra recovery
+bash calls (~17-18k tokens each), and an `ls ... 2>/dev/null` chain reported a
+false "Error: Exit code 2" on the very first command of the session.
 
 ---
 
@@ -451,3 +490,4 @@ Add commit-specific items where the spec has known sharp edges.
 | 2026-06-09 | Added Orchestrator Post-Agent Verification Protocol (Steps A–G) | C24 session: orchestrator presented a buggy commit without logic inspection; notified before /verify-commit passed; accepted tests that mirrored a bug rather than enforcing the contract; guessed agent email. 15 behavior corrections recorded across CLAUDE.md, ORCHESTRATION.md, and team-preferences.md. |
 | 2026-06-09 | Added dual-scope telemetry steps A0 and D.5 to Verification Protocol | Agent and orchestrator activity must be recorded separately per commit. A0 persists agent self-report and opens orchestrator scope. D.5 closes it after /verify-commit so verify_constraints.py can write the complete dual-scope record. See D31. |
 | 2026-06-13 | Added lean Claude-direct preflight (`preflight_commit.py --direct`), made dashboard rendering opt-in (`--render-dashboard`), and added honest "Not created (Claude-direct)" / "Legacy preview package (unused)" dashboard labels | Claude-direct (the default execution path) was forced through the full delegated-path preflight scoring and dashboard render every commit, producing misleading N/A-filled rows and unnecessary work. C29-C32 backfilled with `execution` field and corrected `tokens` (null where untracked). |
+| 2026-06-13 | Added "Bash Command Conventions" section (no `cd`, no exit-code-propagating `ls ... 2>/dev/null` chains) and STEP A.5 scope-ripple pre-check to Verification Protocol | C33B session: a `cd` drift caused 3 extra recovery bash calls, a chained `ls` reported a false "Error: Exit code 2", and an unanticipated test-fixture ripple from a new fail-closed gate triggered a full implement->fail->amend->re-verify round trip. All three wasted significant tokens. |
