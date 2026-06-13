@@ -1220,4 +1220,65 @@ unchanged); this decision adds enforcement on top of it.
 
 ---
 
+## D39 — C33B's `check_finalize_marker()` Gate Was Not Reflected in CLAUDE.md/ORCHESTRATION.md Steps 11-13 (OI-15)
+
+### Problem
+
+C33B (commit `41d1c97`) added `hooks/finalize_commit.py` and a fail-closed
+`check_finalize_marker()` to `pre_commit_check.py`, but did not update CLAUDE.md
+step 11 / ORCHESTRATION.md STEP 10 (which still described the superseded
+standalone `notify_agent_done.py --write-flag` call). During C34, this produced
+three avoidable failures in the commit step alone:
+
+1. `git commit` was attempted before `finalize_commit.py` had ever run, so
+   `check_finalize_marker()` blocked it (no marker existed).
+2. `finalize_commit.py --notify-what/--notify-why` are required args, discovered
+   only via `--help` after a first call failed.
+3. The `chore(state)` doc-sweep commit was first drafted with the primary
+   commit's "Commit #34" + "Execution: Claude-direct" + `Co-Authored-By: Adam`
+   header. This both mis-attributed `.context/finalize/` (Claude's domain per
+   `hooks/agent-config.json`) — triggering a domain-boundary block — and, once
+   re-attributed to Claude, still carried "Commit #34" + an execution/co-author
+   marker, which made `check_finalize_marker()` treat the chore commit itself
+   as a primary commit requiring its own (nonexistent) fresh marker.
+
+Separately, an env-prefix `GIT_MESSAGE="$(cat <<'EOF' ... EOF)" CLAUDE_COMMIT=1
+git commit -m "$GIT_MESSAGE"` produced an empty commit message — `$GIT_MESSAGE`
+expands in the current shell before the prefix-scoped assignment applies, so it
+was empty. This is a separate, pre-existing bash-syntax pitfall, not new in C33B.
+
+Eran flagged this session's commit-step friction as unacceptable token waste,
+the same category as OI-13/OI-14.
+
+### Fix
+
+Logged as OI-15 (resolved same session). Updated, in the same pass:
+
+- **CLAUDE.md** step 11: replaced the standalone `notify_agent_done.py
+  --write-flag` call with `hooks/finalize_commit.py --commit NN --agent OWNER
+  --execution EXEC --notify-what "..." --notify-why "..."`, run before
+  presenting the commit proposal — this writes both the notify flag and the
+  `.context/finalize/CNN.json` marker step 12 requires. Removed the now-duplicate
+  "Pre-approval notification" block from step 12.
+- **CLAUDE.md** step 12.3 (doc sweep): added `.context/finalize/CNN.json` to the
+  swept files; specified the chore commit must omit "Commit #NN"/"Execution:"
+  lines and must use `Co-Authored-By: Claude <claude@anthropic.com>`.
+- **CLAUDE.md** Critical Rule 2 and step 12 "Commit command format": replaced
+  the env-prefix `GIT_MESSAGE=` example with the `export GIT_MESSAGE=...` /
+  separate-statement form.
+- **ORCHESTRATION.md** STEP 10 and STEP 13: mirrored all of the above.
+- **team-preferences.md** "Bash Command Conventions": added rules #3
+  (GIT_MESSAGE export syntax), #4 (finalize_commit.py before commit), #5
+  (chore-commit template), with this session's incident as the example.
+
+### Why Not Revert or Defer C33B's Gate
+
+The gate itself (a fresh finalize marker required before a primary commit)
+is working as designed and catches a real class of skipped-verification bugs.
+The defect was purely in the *documented orchestrator sequence* around it, not
+in the gate's logic — fixing the docs in place, in the same session the gap
+was found, keeps the gate active without a regression window.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

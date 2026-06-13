@@ -378,6 +378,38 @@ This happened during C33B (2026-06-13): a `cd` drift caused 3 extra recovery
 bash calls (~17-18k tokens each), and an `ls ... 2>/dev/null` chain reported a
 false "Error: Exit code 2" on the very first command of the session.
 
+```
+3. NEVER set GIT_MESSAGE as an env-prefix on the same line as the commit, e.g.
+     GIT_MESSAGE="$(cat <<'EOF' ... EOF)" CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"
+   The env-prefix assignment is scoped to that command's environment only, so
+   $GIT_MESSAGE expands to empty in the *current* shell before the prefix even
+   applies — git then aborts with "Aborting commit due to empty commit message."
+   Always `export GIT_MESSAGE="$(cat <<'EOF' ... EOF)"` as its own statement first,
+   then `CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"` as a separate statement.
+
+4. Before running `git commit` on a primary commit (Commit #NN + Execution: /
+   Co-Authored-By:), run hooks/finalize_commit.py first (CLAUDE.md step 11) —
+   pre_commit_check.py's check_finalize_marker() fails closed without a fresh
+   .context/finalize/CNN.json marker, which only finalize_commit.py writes.
+
+5. chore(state) doc-sweep commits must NOT include a "Commit #NN" line or
+   "Execution:" line — that pattern plus any Co-Authored-By trailer makes
+   check_finalize_marker() treat the chore commit itself as a primary commit
+   requiring its own fresh marker. Use Co-Authored-By: Claude
+   <claude@anthropic.com> for the chore commit (it always includes
+   .context/finalize/CNN.json, which is Claude's domain).
+```
+
+This happened during C34 (2026-06-13): the env-prefix GIT_MESSAGE pattern produced
+an empty commit message; the primary commit's `git commit` was attempted before
+hooks/finalize_commit.py had run, failing on check_finalize_marker(); and the chore
+commit was first drafted with a "Commit #34" + "Execution: Claude-direct" +
+Co-Authored-By: Adam header, which both mis-attributed the .context/finalize/
+domain and re-triggered check_finalize_marker() for the chore commit itself.
+CLAUDE.md and ORCHESTRATION.md steps 11-12/STEP 10-13 were corrected to make
+finalize_commit.py the single pre-approval step and to spell out the chore-commit
+template.
+
 ---
 
 ## Context Window Management
@@ -491,3 +523,4 @@ Add commit-specific items where the spec has known sharp edges.
 | 2026-06-09 | Added dual-scope telemetry steps A0 and D.5 to Verification Protocol | Agent and orchestrator activity must be recorded separately per commit. A0 persists agent self-report and opens orchestrator scope. D.5 closes it after /verify-commit so verify_constraints.py can write the complete dual-scope record. See D31. |
 | 2026-06-13 | Added lean Claude-direct preflight (`preflight_commit.py --direct`), made dashboard rendering opt-in (`--render-dashboard`), and added honest "Not created (Claude-direct)" / "Legacy preview package (unused)" dashboard labels | Claude-direct (the default execution path) was forced through the full delegated-path preflight scoring and dashboard render every commit, producing misleading N/A-filled rows and unnecessary work. C29-C32 backfilled with `execution` field and corrected `tokens` (null where untracked). |
 | 2026-06-13 | Added "Bash Command Conventions" section (no `cd`, no exit-code-propagating `ls ... 2>/dev/null` chains) and STEP A.5 scope-ripple pre-check to Verification Protocol | C33B session: a `cd` drift caused 3 extra recovery bash calls, a chained `ls` reported a false "Error: Exit code 2", and an unanticipated test-fixture ripple from a new fail-closed gate triggered a full implement->fail->amend->re-verify round trip. All three wasted significant tokens. |
+| 2026-06-13 | Made `hooks/finalize_commit.py` the single pre-approval step (CLAUDE.md step 11 / ORCHESTRATION.md STEP 10), removed the now-redundant standalone `notify_agent_done.py --write-flag` call, added GIT_MESSAGE export-syntax rule (#3) and explicit chore(state) commit template (no "Commit #NN"/"Execution:" line, Co-Authored-By: Claude) to Bash Command Conventions | C34 session: C33B's new `check_finalize_marker()` gate wasn't reflected in steps 11-12, so the primary commit was attempted before the marker existed; an env-prefix `GIT_MESSAGE=` produced an empty commit message; and the chore commit's "Commit #34"+"Execution:"+Co-Authored-By: Adam header both mis-attributed Claude's `.context/finalize/` domain and re-triggered the marker gate for the chore commit. |

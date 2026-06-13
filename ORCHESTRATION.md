@@ -163,8 +163,13 @@ STEP 9 — Records update (mandatory before notification)
 
 STEP 10 — Notify Eran
 └── Only after STEP 7.5 (/verify-commit) passes and STEP 9 (records) are current.
-    NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py --write-flag
-    NOTIFY_WHAT and NOTIFY_WHY must describe the final, corrected state of the work.
+    Run hooks/finalize_commit.py --commit NN --agent OWNER --execution EXEC
+      --notify-what "..." --notify-why "..." [--tokens N] [--render-dashboard]
+    This runs verify_constraints --worktree, a conditional dashboard render, writes the
+    pending-notify flag, AND writes the .context/finalize/CNN.json marker that STEP 12's
+    commit requires (check_finalize_marker()). NOTIFY_WHAT/NOTIFY_WHY must describe the
+    final, corrected state of the work. If it returns "status": "blocked", stop and fix
+    before STEP 11. Do not call notify_agent_done.py separately — this supersedes it.
 
 STEP 11 — Eran's approval
 └── Approval prompt: what was built, test results, gate findings, "Approve to commit?"
@@ -198,11 +203,19 @@ STEP 13 — verify_constraints + post-commit doc sweep (mandatory)
       project-state.json, commit-protocol.md, TOKEN_RECORDS.md,
       CONSTRAINT_LOG.md, CONTEXT_METRICS.json,
       constraint-dashboard.html (only if re-rendered this commit),
+      .context/finalize/CNN.json (written by STEP 10),
       .claude/agents/logs/<agent>-worklog.md,
       backend/DOMAIN_MAP.md, frontend/DOMAIN_MAP.md,
       ARCHITECTURE.md and GLOSSARY.md (if updated this commit)
-    Commit: chore(state): advance state after C-NN
-    Use GIT_MESSAGE env var to prevent hook from reading stale COMMIT_EDITMSG.
+    Commit: chore(state): advance state after C-NN, Co-Authored-By: Claude
+    <claude@anthropic.com>. No "Commit #NN" or "Execution:" line — combined with any
+    Co-Authored-By trailer, check_finalize_marker() would treat this chore commit as
+    a primary commit needing its own (nonexistent) fresh marker. Always Claude, since
+    .context/finalize/CNN.json is in Claude's domain regardless of the primary owner.
+    Set GIT_MESSAGE with `export GIT_MESSAGE="$(cat <<'EOF' ... EOF)"` as its own
+    statement before `CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"` — an env-prefix
+    form (`GIT_MESSAGE="..." CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"`) expands
+    $GIT_MESSAGE to empty in the current shell and aborts with an empty message.
 
     Final check: git status must show no modified or untracked files
     in protocol-managed paths. If any remain — commit them before Step 14.

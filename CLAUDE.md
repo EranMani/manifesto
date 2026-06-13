@@ -17,8 +17,10 @@ These rules are here because they were violated in real sessions. They are non-n
 
 2. NEVER COMMIT WITHOUT ERAN'S EXPLICIT APPROVAL — not you, not any agent.
    No implementor agent (Rex, Adam, Aria) calls `git commit` under any circumstances.
-   After Eran approves, Claude commits on his behalf using:
-     GIT_MESSAGE="<msg>" CLAUDE_COMMIT=1 git commit -m "<msg>"
+   After Eran approves, Claude commits on his behalf using (as separate statements —
+   `export GIT_MESSAGE=...` then `CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"`; see
+   step 12 for the exact heredoc form):
+     export GIT_MESSAGE="<msg>"; CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"
    Always include Co-Authored-By trailers for the agent who did the work.
    Co-Authored-By names must be single-word (D10). Emails from agent-config.json.
    A block_agent_commit.py hook enforces this — CLAUDE_COMMIT=1 is the orchestrator bypass
@@ -211,16 +213,25 @@ You do **not** load files from other agents' domains unless this step explicitly
 10. Update TOKEN_RECORDS.md and correct any stale worklog entries or handoffs caused by
     orchestrator corrections. Worklog Current State stays "pending approval" until the
     git commit succeeds — not when the agent finishes, not when the notification fires.
-11. Run --write-flag to notify Eran — only after /verify-commit passes and records are current.
+11. Run `hooks/finalize_commit.py` — only after /verify-commit passes and records
+    (TOKEN_RECORDS.md etc.) are current. This single command runs, in fixed order:
+    verify_constraints (--worktree), a conditional dashboard render (every 5th commit
+    or `--render-dashboard`), writing the pending-notify flag, and writing the
+    `.context/finalize/CNN.json` marker that step 12's commit requires (via
+    `pre_commit_check.py`'s `check_finalize_marker()`). It stops at the first failure.
+    ```
+    python hooks/finalize_commit.py --commit NN --agent OWNER --execution EXEC \
+      --notify-what "..." --notify-why "..."
+    ```
+    `OWNER` is the commit's owner from the spec (not `"claude"`) — same convention as
+    `preflight_commit.py --direct`. Add `--tokens N` for delegated commits. Token count
+    for the email is still read automatically from TOKEN_RECORDS.md — do NOT pass
+    NOTIFY_TOKENS. If the result is `"status": "blocked"`, stop and fix before
+    proceeding — do not present a commit proposal.
+    This writes `hooks/.pending_notify.json`; the Stop hook (notify_on_stop.py) fires
+    the moment Claude stops, so Eran gets the email while reviewing the commit proposal.
     Then surface to Eran for approval. Clearly distinguish agent-written work from any
     orchestrator corrections in the approval prompt.
-    ```
-    NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py --write-flag
-    ```
-    Token count is read automatically from TOKEN_RECORDS.md (keyed by commit number) —
-    do NOT pass NOTIFY_TOKENS. This works because TOKEN_RECORDS.md must already be
-    updated before this point (see rule below and step 12's "no exceptions" note).
-    This triggers the email immediately when Claude stops. Eran reviews in his inbox.
 12. After approval: Claude commits using CLAUDE_COMMIT=1 with Co-Authored-By for the
     actual executor. Claude-direct commits also include `Execution: Claude-direct`;
     delegated commits credit the implementing agent. Hooks update protocol and state.
@@ -242,19 +253,25 @@ You do **not** load files from other agents' domains unless this step explicitly
     The What/Why block is mandatory. The email notification hook reads it verbatim.
     No What/Why = Eran gets a content-free email and cannot approve remotely.
 
-    Pre-approval notification — run THIS FIRST, before presenting the commit proposal:
-    ```
-    NOTIFY_WHAT="..." NOTIFY_WHY="..." python hooks/notify_agent_done.py --write-flag
-    ```
-    This writes hooks/.pending_notify.json. The Stop hook (notify_on_stop.py) fires the moment
-    Claude stops and waits — Eran gets the email while reviewing the commit proposal.
-    Commit number, name, agent, and token count are auto-detected (commit-protocol.md and
-    TOKEN_RECORDS.md respectively) — do NOT pass NOTIFY_NUM/NOTIFY_NAME/NOTIFY_AGENT/NOTIFY_TOKENS.
+    Step 11 already ran `hooks/finalize_commit.py`, which wrote both the pending-notify
+    flag and the `.context/finalize/CNN.json` marker this commit requires — do not call
+    `notify_agent_done.py` separately.
 
     Commit command format — run AFTER Eran approves:
     ```
-    CLAUDE_COMMIT=1 git commit -m "..." && python hooks/verify_constraints.py --commit NN --agent NAME --execution EXEC [--tokens N]
+    export GIT_MESSAGE="$(cat <<'EOF'
+    ...full message including trailers...
+    EOF
+    )"
+    CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"
+    python hooks/verify_constraints.py --commit NN --agent NAME --execution EXEC [--tokens N]
     ```
+    Always set `GIT_MESSAGE` with `export` as its own statement before the commit
+    (separate statement, or `;`-chained — never `&&` with a heredoc body). The form
+    `GIT_MESSAGE="..." CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"` does NOT work: an
+    env-prefix assignment is scoped to that command's environment only, so `$GIT_MESSAGE`
+    expands to empty in the *current* shell before the prefix even applies, and git
+    aborts with "Aborting commit due to empty commit message."
     Three steps after approval, always in this order:
     1. git commit — CLAUDE_COMMIT=1 bypasses block_agent_commit.py only; pre_commit_check.py
        still runs domain boundary, commit-spec table, and message-format checks on this commit
@@ -272,11 +289,18 @@ You do **not** load files from other agents' domains unless this step explicitly
        Stage and commit ALL post-commit protocol files as a chore commit:
          project-state.json, commit-protocol.md, TOKEN_RECORDS.md,
          CONSTRAINT_LOG.md, CONTEXT_METRICS.json, constraint-dashboard.html (only if
-         re-rendered this commit),
+         re-rendered this commit), .context/finalize/CNN.json (written by step 11),
          .claude/agents/logs/<agent>-worklog.md,
          backend/DOMAIN_MAP.md, frontend/DOMAIN_MAP.md,
          ARCHITECTURE.md and GLOSSARY.md (if date headers were updated)
-       Commit message: chore(state): advance state after C-NN
+       Commit message: `chore(state): advance state after C-NN`, body describing what
+       changed, `Co-Authored-By: Claude <claude@anthropic.com>`.
+       Do NOT include a "Commit #NN" line or "Execution: Claude-direct" — that combined
+       with any Co-Authored-By trailer makes `check_finalize_marker()` treat this chore
+       commit itself as a primary commit needing its own fresh marker, which it won't
+       have. Always attribute to Claude (not the primary commit's owner): this sweep
+       always includes `.context/finalize/CNN.json`, which is in Claude's domain per
+       `hooks/agent-config.json`, regardless of who owned the primary commit.
        Then run: git status
        If ANY modified or untracked files remain in protocol-managed paths — commit them.
        Do NOT present the next Commit Preview until git status is clean.
