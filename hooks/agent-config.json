@@ -60,6 +60,8 @@
         "hooks/tests/test_constraint_dashboard.py",
         "hooks/finalize_commit.py",
         "hooks/tests/test_finalize_commit.py",
+        "hooks/bash_command_lint.py",
+        "hooks/tests/test_bash_command_lint.py",
         ".context/finalize/"
       ]
     },

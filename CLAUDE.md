@@ -353,6 +353,8 @@ hooks/context_metrics.py           ← context-efficiency metric record schema (
 hooks/tests/test_context_metrics.py ← its test file (narrow exception)
 hooks/constraint_dashboard.py      ← dashboard rendering (narrow exception)
 hooks/tests/test_constraint_dashboard.py ← its test file (narrow exception)
+hooks/bash_command_lint.py         ← deterministic Bash PreToolUse safety lint (narrow exception)
+hooks/tests/test_bash_command_lint.py ← its test file (narrow exception)
 ```
 
 `hooks/` as a whole is Adam's domain (DevOps workflow automation, per AGENTS.md). The
@@ -365,8 +367,10 @@ and domain-map-regeneration scripts that drive the commit loop's automated state
 transitions, the Claude-direct readiness check (`--direct`) and full preflight
 scoring used to decide and validate execution mode, the delegated-path context
 package/brief preparation used only when delegation is justified, the
-context-efficiency metric record schema, and the constraint dashboard renderer
-and its manual/five-commit-wave rendering cadence — not a general claim on `hooks/`.
+context-efficiency metric record schema, the constraint dashboard renderer
+and its manual/five-commit-wave rendering cadence, and the deterministic
+Bash-command safety lint (OI-13/OI-14, DECISIONS.md D38) that protects the
+orchestrator's own session token budget — not a general claim on `hooks/`.
 
 For Claude-direct execution, you receive temporary, exact-file authority from the active
 approved commit spec's `Files To Modify Or Add` table. This does not grant directory-wide

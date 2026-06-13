@@ -179,6 +179,14 @@
       "priority": "medium",
       "opened": "2026-06-13",
       "status": "resolved"
+    },
+    {
+      "id": "OI-14",
+      "title": "OI-13 fix was prose-only (team-preferences.md); add deterministic bash-lint hook",
+      "detail": "OI-13 (resolved 2026-06-13) documented Bash command conventions (no cd, no 2>/dev/null && chains) in team-preferences.md as guidance for future sessions. Eran observed the identical pattern recur in the next session, confirming a markdown convention cannot reliably stop a token-wasting bash pattern. Fix (D38): hooks/bash_command_lint.py as a PreToolUse hook on the Bash matcher, deterministically rejecting commands containing a cd token or a 2>/dev/null && / 2>/dev/null ; (not followed by true) chain before they execute. Zero LLM token cost per check. Implemented 2026-06-13: hooks/bash_command_lint.py wired into .claude/settings.json after block_agent_commit.py, 17 tests in hooks/tests/test_bash_command_lint.py, full suite 238 passed/19 subtests (1 pre-existing unrelated failure: test_context_telemetry.py::test_records_selected_reads_and_expansions, confirmed present before this change).",
+      "priority": "medium",
+      "opened": "2026-06-13",
+      "status": "resolved"
     }
   ],
   "notes": "The approved task-to-commit decomposition defines C30-C76. C29A (preflight-score-engine) builds and persists deterministic preflight scoring and hard blockers as a standalone script. C29B (preflight-delegation-gate) wires that script into prepare_agent_delegation.py as a hard pre-delegation gate. C29C (preflight-dashboard-details) visualizes each persisted report in the dashboard. C30 and C33 depend on C29C, so every later commit inherits all three prerequisites transitively; runtime delegation also enforces preflight on every commit from C29C onward. C29A is the only full bootstrap exception per commit-protocol.md rule 17 (revised): before invoking C29B, Claude manually runs `python hooks/preflight_commit.py --commit 29B --agent adam --json` and requires score >= 80 with zero blocking_violations; automatic enforcement inside prepare_agent_delegation.py begins after C29B, for C29C onward. C29A's first invocation (2026-06-11) returned SPLIT_REQUIRED after exhausting its 18-call budget on discovery with zero files written; the spec was rewritten to a narrower preflight-score-engine scope and the original combined scope was split into C29A/C29B/C29C (was C29A/C29B). C29A's second invocation (2026-06-11, greenfield budget) completed: hooks/preflight_commit.py (647 lines) + hooks/tests/test_preflight_commit.py (431 lines, 13 tests) committed as 69b3658; verify_constraints all_pass; full hooks suite 120 passed/1 skipped. Adam's token usage for this invocation was lost to context compaction (recorded as '— (lost)' in TOKEN_RECORDS.md).",

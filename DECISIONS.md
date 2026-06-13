@@ -1183,4 +1183,41 @@ for Claude's own conduct, not an enforced gate.
 
 ---
 
+## D38 — OI-13 Prose-Only Fix Insufficient: Adding a Deterministic Bash-Lint Hook
+
+### Problem
+
+The C33B fix for OI-13 (documented above as part of D37, and in
+`team-preferences.md` "Bash Command Conventions") was **documentation only**:
+prose telling a future Claude session not to use `cd` in Bash commands and
+not to chain `ls ... 2>/dev/null && ls ... 2>/dev/null`. This relies entirely
+on the session reading `team-preferences.md` at boot and choosing to comply.
+
+Eran observed the identical pattern recur in the very next session (`cd
+hooks && pytest tests/`, `pwd`, `cd ..` recovery calls) — proof that an
+advisory note in a markdown file cannot reach the reliability needed to stop
+a recurring token-waste pattern. Eran asked for "10000000%" confidence, which
+a behavioral instruction to an LLM cannot provide.
+
+### Fix
+
+Add `hooks/bash_command_lint.py`, a `PreToolUse` hook on the `Bash` matcher
+in `.claude/settings.json`. It runs as plain deterministic Python (no LLM
+tokens) before any Bash command executes and rejects (non-zero exit, message
+on stderr — Claude Code blocks the call and surfaces the message) commands
+that:
+
+1. Contain a `cd ` token (including subshell forms like `(cd path && ...)`),
+   per the existing convention to always use repo-relative paths.
+2. Chain `2>/dev/null` immediately followed by `&&` or `;` — the
+   exit-code-propagating pattern that produces false "Error: Exit code N"
+   reports on missing-but-harmless paths.
+
+This converts OI-13's prose convention into a hard gate: a violating command
+never executes, so there is no failed-command output to read and no recovery
+turn to spend tokens on. OI-13 remains `resolved` (the convention itself is
+unchanged); this decision adds enforcement on top of it.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

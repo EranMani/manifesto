@@ -29,6 +29,10 @@
           {
             "type": "command",
             "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\block_agent_commit.py\""
+          },
+          {
+            "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\bash_command_lint.py\""
           }
         ]
       }
