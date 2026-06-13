@@ -200,6 +200,59 @@ def check_commit_spec_table(msg):
     return []
 
 
+def check_finalize_marker(msg, config):
+    """Require a fresh, matching .context/finalize/C<NN>.json marker before a
+    primary commit (Commit #NN + Execution: Claude-direct / Co-Authored-By:)
+    can land. Exempt chore/doc-sweep/state commits (neither marker present)."""
+    has_execution_marker = (
+        DIRECT_EXECUTION_MARKER.lower() in msg.lower()
+        or COAUTHORED_PATTERN.search(msg) is not None
+    )
+    m = re.search(r"(?:^|\n)\s*[Cc]ommit\s+#0*(\d{1,3}[a-zA-Z]?)", msg)
+    if not m or not has_execution_marker:
+        return []
+
+    commit_id = m.group(1).lower()
+    git_root = Path(
+        subprocess.run(["git", "rev-parse", "--show-toplevel"],
+                       capture_output=True, text=True).stdout.strip()
+    )
+    marker_path = git_root / ".context" / "finalize" / ("C" + commit_id.zfill(2).upper() + ".json")
+
+    error = (
+        f"Run hooks/finalize_commit.py --commit {commit_id.upper()} --agent OWNER "
+        f"--execution EXEC ... before committing (no fresh finalize marker found)."
+    )
+
+    if not marker_path.is_file():
+        return [error]
+    try:
+        marker = json.loads(marker_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return [error]
+
+    if str(marker.get("commit", "")).lower() != commit_id:
+        return [error]
+    if marker.get("checks_passed") is not True:
+        return [error]
+
+    expected_agent = None
+    agent_email = detect_agent_email(msg)
+    if agent_email and config:
+        expected_agent = config.get("agents", {}).get(agent_email, {}).get("name", "").lower() or None
+    if not expected_agent:
+        spec_path = git_root / "commit-specs" / f"commit-{commit_id}.md"
+        if spec_path.is_file():
+            owner_match = re.search(r"\*\*Owner:\*\*\s*(\S+)", spec_path.read_text(encoding="utf-8"))
+            if owner_match:
+                expected_agent = owner_match.group(1).strip().lower()
+
+    if expected_agent and str(marker.get("agent", "")).lower() != expected_agent:
+        return [error]
+
+    return []
+
+
 def check_not_already_done(msg):
     state_path = Path("project-state.json")
     if not state_path.exists():
@@ -281,6 +334,7 @@ def main():
 
     errors.extend(check_not_already_done(msg))
     errors.extend(check_commit_spec_table(msg))
+    errors.extend(check_finalize_marker(msg, config))
 
     if warnings:
         print("\n[WARN] Pre-commit warnings:")

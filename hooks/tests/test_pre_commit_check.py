@@ -266,6 +266,13 @@ Example.
     )
     _stage(repo, "backend/app/example.py")
 
+    finalize_dir = repo / ".context" / "finalize"
+    finalize_dir.mkdir(parents=True)
+    (finalize_dir / "C50.json").write_text(json.dumps({
+        "commit": "50", "agent": "claude", "execution": "claude-direct",
+        "checks_passed": True, "timestamp": "2026-06-13T00:00:00+00:00",
+    }), encoding="utf-8")
+
     message = (
         "fix(example): implement behavior here\n\n"
         "Commit #50\n\n"
