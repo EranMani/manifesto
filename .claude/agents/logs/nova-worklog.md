@@ -5,9 +5,9 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-13 · C39 pending approval*
+*Last updated: 2026-06-14 · C39 committed*
 
-**Last completed:** C39 `policy-vector-candidates` — pending approval (not yet committed)
+**Last completed:** C39 `policy-vector-candidates` — committed 2026-06-14 (1f47067)
 **Currently active:** none
 **Blocked by:** none
 
@@ -78,7 +78,7 @@ No archived sessions yet.
 | 3 | C36 `ingestion-pgvector-write-integration` | committed 2026-06-13 (c18a826) | Replaced the skipped `TestIngestDocumentIntegration` placeholder with a real-DB `TestIngestDocumentPgvectorWrite` test (transaction-rollback fixture matching C35); proves `ingest_document()` writes 768-dim embeddings and chunk provenance matching `chunk_blocks()` |
 | 4 | C37 `ingestion-status-transaction-integration` | committed 2026-06-13 (d4ce60f) | Added `TestIngestDocumentTransactionIntegration` covering the successful ready-state commit and the failed-publish rollback path |
 | 5 | C38 `policy-query-embedding` | committed 2026-06-13 (b434dde) | `RAGPolicy.embed_query()` normalizes (NFC + whitespace collapse) and embeds via `EmbeddingService.embed_query()`; blank input raises `EmptyQueryError` before any provider call |
-| 6 | C39 `policy-vector-candidates` | pending approval | `RAGPolicy.fetch_vector_candidates()` filters to `status == "ready"` and a matching `EmbeddingProfile` (provider/model/dimensions), scores by cosine similarity, sorts by (-score, chunk_index) |
+| 6 | C39 `policy-vector-candidates` | committed 2026-06-14 (1f47067) | `RAGPolicy.fetch_vector_candidates()` filters to `status == "ready"` and a matching `EmbeddingProfile` (provider/model/dimensions), scores by cosine similarity, sorts by (-score, chunk_index) |
 
 ---
 
@@ -334,10 +334,10 @@ No gate wave at C38 (next wave at C40).
 
 ---
 
-## Session 6 — C39 `policy-vector-candidates` · 2026-06-13
+## Session 6 — C39 `policy-vector-candidates` · 2026-06-14
 
 **Assigned:** Nova
-**Status:** pending approval (not yet committed)
+**Status:** committed 2026-06-14 (1f47067)
 Tool usage: reads=5, writes=2, total=11 (within 18 cap); 1 expansion used
 (grep over backend/app/models for policy.py field names — blocked at expansion 2, so
 implemented PolicyChunkCandidate/profile fields from handoff-documented C26/C27

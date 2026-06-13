@@ -55,3 +55,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-13 | C37 | nova | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-13 | C38 | nova | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-13 | C38A | claude | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
+| 2026-06-13 | C39 | nova | 53,272 | PASS | PASS | PASS r=5 w=2 t=11 | PASS |

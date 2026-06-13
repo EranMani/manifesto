@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C38A (orchestrator-telemetry-marker-gate) is done: hooks/pre_commit_check.py adds check_orchestrator_telemetry_marker(), mirroring check_finalize_marker() -- fails closed on a primary commit (Commit #NN + Execution: Claude-direct / Co-Authored-By:) unless a completed .context/telemetry/C<NN>-orchestrator.json scope (CLAUDE.md steps 5b/7c) exists and matches, exempting chore/doc-sweep/state commits. hooks/tests/test_pre_commit_check.py gains 6 new tests plus a C50-orchestrator.json fixture for the existing happy-path test. Verified: python -m pytest hooks/tests/test_pre_commit_check.py -q -> 15 passed. verify_constraints all_pass (files=2/2, diff_lines=192/200; D43 raised the cap from 150 to 200, Eran-approved, to cover all 6 required Focused Tests). Claude-direct (Eran-approved), commit bb77701. No gate wave at C38A (next wave at C40). C39 (policy-vector-candidates, nova) is next.",
+  "tldr": "C39 (policy-vector-candidates) is done: backend/app/services/rag_policy.py adds PolicyChunkCandidate/ScoredPolicyChunk TypedDicts, _cosine_similarity(), and RAGPolicy.fetch_vector_candidates(query_vector, candidates, top_k=5) -- filters to status=='ready' and a matching EmbeddingProfile (provider/model/dimensions), scores by cosine similarity, sorts by (-score, chunk_index), truncates to top_k. 4 new tests in backend/tests/services/test_rag_policy.py. Orchestrator correction: Nova's draft compared a single profile: str field to EmbeddingService.profile (an EmbeddingProfile dataclass) -- always False in production; corrected PolicyChunkCandidate and fetch_vector_candidates to use embedding_provider/embedding_model/embedding_dimensions matching backend/app/models/policy.py, and updated test fakes to use the real EmbeddingProfile. 6/6 tests pass. Nova (delegated, Eran-approved, 95/100 preflight), commit 1f47067. known_implementor_tokens=53,272 exceeded the 45,000 hard-stop (tool_cap.json status 'blocked') -- logged as OI-16 (post-hoc breaker per OI-12, did not block completion). verify_constraints all_pass (files=3/4, diff_lines=270/350). No gate wave at C39 (next wave at C40). C40 (policy-lexical-candidates, nova) is next.",
   "phase": 2,
-  "last_completed_commit": "38A",
-  "next_commit": "39",
-  "next_commit_name": "policy-vector-candidates",
+  "last_completed_commit": "39",
+  "next_commit": "40",
+  "next_commit_name": "policy-lexical-candidates",
   "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
@@ -195,6 +195,14 @@
       "priority": "medium",
       "opened": "2026-06-13",
       "status": "resolved"
+    },
+    {
+      "id": "OI-16",
+      "title": "C39 Nova invocation exceeded the 45k implementor token hard-stop and self-reported tool_calls diverged from harness-tracked count",
+      "detail": "hooks/tool_cap.json recorded C39's single Nova invocation at known_implementor_tokens=53272 (above the 45000 hard-stop; status='blocked', stop_reason='implementor_token_hard_stop') and tool_calls=18 (the cap). Nova's self-reported Return Contract telemetry said tool_calls=11. Per OI-12's resolution, token budgets are post-hoc, cross-invocation circuit breakers: the hard stop only would have blocked a *second* invocation, and no repair invocation was needed here -- the single invocation completed all in-scope work with tests passing (6/6 in test_rag_policy.py) and within file/diff budgets (files=3/4, diff_lines=270/350). The 11-vs-18 discrepancy was not investigated further; Nova's self-report (11) was persisted per CLAUDE.md step 5a and used for the worklog 'Tool usage' line that /verify-commit's phase budget check validated against (reads=5/10, writes=2/12, total=11/18). Recommend a future commit reconcile self-reported vs harness-tracked tool-call counts (e.g. surface both in the dashboard) so a 53k/45k overage on a completed, in-budget commit doesn't read as ambiguous.",
+      "priority": "low",
+      "opened": "2026-06-14",
+      "status": "open"
     },
     {
       "id": "OI-15",
