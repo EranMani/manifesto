@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C38 (policy-query-embedding) is done: backend/app/services/rag_policy.py adds normalize_query() (NFC unicode normalization + whitespace collapse), EmptyQueryError, and RAGPolicy.embed_query(text), which normalizes a policy query and embeds it once via EmbeddingService.embed_query() (per the C38-C49 handoff), raising EmptyQueryError before any provider call when the query is blank after normalization. New backend/tests/services/test_rag_policy.py::TestQueryEmbedding covers both: normalized text embedded exactly once, and blank input rejected with zero embed_documents calls. Verified live: docker compose run --rm backend uv run pytest tests/services/test_rag_policy.py -k query_embedding -q -> 2 passed. verify_constraints all_pass (files=2/4, diff_lines=85/350). Claude-direct (Eran-approved), commit b434dde. No gate wave at C38 (next wave at C40). C39 (policy-vector-candidates, nova) is next.",
+  "tldr": "C38A (orchestrator-telemetry-marker-gate) is done: hooks/pre_commit_check.py adds check_orchestrator_telemetry_marker(), mirroring check_finalize_marker() -- fails closed on a primary commit (Commit #NN + Execution: Claude-direct / Co-Authored-By:) unless a completed .context/telemetry/C<NN>-orchestrator.json scope (CLAUDE.md steps 5b/7c) exists and matches, exempting chore/doc-sweep/state commits. hooks/tests/test_pre_commit_check.py gains 6 new tests plus a C50-orchestrator.json fixture for the existing happy-path test. Verified: python -m pytest hooks/tests/test_pre_commit_check.py -q -> 15 passed. verify_constraints all_pass (files=2/2, diff_lines=192/200; D43 raised the cap from 150 to 200, Eran-approved, to cover all 6 required Focused Tests). Claude-direct (Eran-approved), commit bb77701. No gate wave at C38A (next wave at C40). C39 (policy-vector-candidates, nova) is next.",
   "phase": 2,
-  "last_completed_commit": "38",
-  "next_commit": "38A",
-  "next_commit_name": "orchestrator-telemetry-marker-gate",
-  "next_commit_assignee": "claude",
+  "last_completed_commit": "38A",
+  "next_commit": "39",
+  "next_commit_name": "policy-vector-candidates",
+  "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
     {
