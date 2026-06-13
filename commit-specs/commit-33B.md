@@ -4,7 +4,7 @@
 **Owner:** claude
 **Depends on:** C33A
 **Execution mode:** Claude-direct
-**Estimated diff lines:** 320
+**Estimated diff lines:** 480
 **Primary behavior count:** 1
 **Developer test milestone:** no
 
@@ -61,6 +61,15 @@ execution_budget:
   max_tool_calls: 18
   max_expansions: 2
   max_implementor_tokens: 45000
+bootstrap_exception:
+  reason: >
+    The new fail-closed finalize-marker gate (pre_commit_check.py) broke an
+    existing happy-path test in hooks/tests/test_pre_commit_check.py, which
+    required a 7-line .context/finalize/C50.json fixture to keep passing.
+    That 4th file plus the new pipeline module (hooks/finalize_commit.py) and
+    its full ordering/e2e test suite (hooks/tests/test_finalize_commit.py)
+    bring the total diff to ~480 lines.
+  max_estimated_diff_lines: 500
 ```
 
 ---
@@ -90,6 +99,7 @@ forbidden:
 | `hooks/finalize_commit.py` | new | Run verify_constraints -> conditional dashboard render -> notify-flag write -> finalize marker, in fixed order |
 | `hooks/pre_commit_check.py` | edit | Fail-closed: block a primary commit (`Commit #NN` + execution marker) unless `.context/finalize/CNN.json` exists and matches |
 | `hooks/tests/test_finalize_commit.py` | new | Pipeline ordering/failure tests and pre-commit gate tests |
+| `hooks/tests/test_pre_commit_check.py` | edit | Add a `.context/finalize/C50.json` fixture to the existing Claude-direct happy-path test, which the new finalize-marker gate now requires |
 
 ---
 
