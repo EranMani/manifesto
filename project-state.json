@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C33A (verify-constraints-ref-fix) is done: hooks/verify_constraints.py now has resolve_primary_commit_ref(), which auto-resolves --commit NN to the most recent commit whose body contains 'Commit #NN' plus 'Execution: Claude-direct' or 'Co-Authored-By:', falling back to HEAD with a ref_resolution warning; --ref default changed HEAD -> None, explicit --ref/--worktree unchanged. Also normalized commit-33A.md/commit-33B.md Owner metadata (verbose parenthetical -> 'claude'), fixing a preflight_commit.py --direct false block discovered this session. 47/47 tests pass, verify_constraints all_pass (files=4/4, diff_lines=231/350). Claude-direct (Eran-approved). C33B (finalize-commit-pipeline, claude) is next.",
+  "tldr": "C33B (finalize-commit-pipeline) is done: hooks/finalize_commit.py runs the post-test-pass sequence in fixed order (verify_constraints --worktree -> conditional dashboard render -> notify-flag write -> .context/finalize/CNN.json marker), stopping at the first failure. hooks/pre_commit_check.py's new check_finalize_marker() fails closed on any primary commit (Commit #NN + Execution: Claude-direct / Co-Authored-By:) unless a fresh, matching marker exists; chore/state commits are exempt. step_verify uses --worktree (not the auto-resolved ref) since this pipeline always runs pre-commit. 11 new + 1 updated test; full suite 220 passed/19 subtests (2 pre-existing unrelated failures, confirmed via git stash). Bootstrapped its own gate via finalize_commit.py --commit 33B before committing. verify_constraints all_pass (files=4/4, diff_lines=492/500). Claude-direct (Eran-approved), commit 41d1c97. C34 (database-test-container-command, adam) is next.",
   "phase": 2,
-  "last_completed_commit": "33A",
-  "next_commit": "33B",
-  "next_commit_name": "finalize-commit-pipeline",
-  "next_commit_assignee": "claude",
+  "last_completed_commit": "33B",
+  "next_commit": "34",
+  "next_commit_name": "database-test-container-command",
+  "next_commit_assignee": "adam",
   "status": "phase-2-active",
   "open_handoffs": [
     {
