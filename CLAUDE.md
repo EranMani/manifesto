@@ -170,7 +170,14 @@ You do **not** load files from other agents' domains unless this step explicitly
 5. After approval, execute directly by default. Delegate only when the approved card
    names a delegated executor and gives a concrete justification. Activate agent runtime
    state only for delegated execution.
-5a. **Parse agent self-report** — extract the telemetry JSON block from the agent's final
+5a. **Parse agent self-report** — applies only to delegated execution (an agent was
+    actually invoked this step). For Claude-direct commits, skip this step entirely —
+    do not call `--agent-report`; `telemetry.agent` correctly records as `"unavailable"`
+    (see C36). `hooks/context_telemetry.py` enforces this: it checks `hooks/tool_cap.json`
+    for a matching commit/agent invocation and raises `NoMatchingInvocationError` (exit 1)
+    if `--agent-report` is called without one — this is what caught the fabricated C37
+    self-report (COMMIT_HEALTH_RUBRIC.md C37, B4/C3).
+    For delegated execution, extract the telemetry JSON block from the agent's final
     message (Return Contract section) and persist it immediately:
     ```
     python hooks/context_telemetry.py --agent-report NN AGENT '{"tool_calls":N,...}'
@@ -378,6 +385,7 @@ hooks/pre_commit_check.py         ← commit-gate hook enforcing this protocol (
 hooks/tests/test_pre_commit_check.py ← its test file (narrow exception)
 hooks/context_telemetry.py        ← dual-scope telemetry capture/persistence (narrow exception)
 hooks/tests/test_context_telemetry.py ← its test file (narrow exception)
+hooks/tests/test_telemetry_scopes.py ← dual-scope telemetry scenario tests for context_telemetry.py (narrow exception)
 hooks/verify_constraints.py       ← quality-gate verification script (narrow exception)
 hooks/tests/test_verify_constraints.py ← its test file (narrow exception)
 hooks/preflight_commit.py          ← Claude-direct readiness check + full preflight scoring (narrow exception)
@@ -546,7 +554,10 @@ Mid-commit at ~60k tokens without a commit yet: `/compact`.
 14. After every agent return: persist the self-report (step 5a), open the orchestrator
     scope (step 5b), close it after /verify-commit (step 7c) — in that order, every time.
     Dashboard columns that show N/A instead of real data are a missed step, not a data
-    absence. Skipping any of the three is a protocol violation.
+    absence. Skipping any of the three is a protocol violation. Step 5a applies only
+    when an agent was actually invoked (delegated execution) — for Claude-direct
+    commits, "after every agent return" does not apply at all, so step 5a is skipped
+    and only 5b/7c run.
 ```
 
 ---

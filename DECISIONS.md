@@ -1390,4 +1390,66 @@ matching the precedent set by D39/D40 (OI-15) for this class of problem.
 
 ---
 
+## D42 — `--agent-report` Requires a Matching `tool_cap.json` Invocation (C37, B4/C3)
+
+### Problem
+
+C37 scored 6/10. At step 5a, `python hooks/context_telemetry.py --agent-report 37
+nova '{...}'` was called even though C37 was Claude-direct (no Nova invocation).
+`hooks/tool_cap.json` was stale from C29B (`commit: "C29B", agent: "adam"`,
+last invocation kind `"review"`). `_resolve_invocation_kind()` read that stale
+state, classified the call as `kind: "review"`, and wrote
+`.context/telemetry/invocations/C37-nova-review-self-report-1.json`
+(`status: "partial"`) plus a fabricated `telemetry.agent` block in C37's
+`CONTEXT_METRICS.json` record — C36 (also Claude-direct) had correctly recorded
+`"agent": "unavailable"` by simply not calling `--agent-report` at all, but
+nothing *enforced* that step 5a is conditional.
+
+### Fix
+
+1. **Data correction**: C37's `CONTEXT_METRICS.json` `telemetry.agent` reverted
+   to the `"unavailable"` shape (matching C36) and `usage.expansions` to `null`;
+   the two fabricated files under `.context/telemetry/` deleted.
+2. **Deterministic guard** (Eran: "things that need to be deterministic must have
+   its own python and logic, not allowing you to decide") — `hooks/context_telemetry.py`
+   gains `NoMatchingInvocationError` and `_require_matching_invocation()`, called
+   from `record_agent_self_report()` after `_validate_self_report()` (ordering
+   matters: malformed-report tests expect validation errors, not invocation errors,
+   to surface first). It compares `hooks/tool_cap.json`'s `commit`/`agent` against
+   the `--agent-report` call's commit/agent; on mismatch, raises (CLI: exit 1,
+   `ERROR: no matching agent invocation: ...`). For Claude-direct commits — where
+   `tool_cap.json` is never activated and stays stale from the last delegated
+   invocation — any `--agent-report` call now hard-fails instead of silently
+   fabricating telemetry.
+3. **Tests**: two new tests in `hooks/tests/test_context_telemetry.py` (stale
+   `tool_cap.json` → `NoMatchingInvocationError`; matching `tool_cap.json` →
+   accepted). Eight pre-existing tests across `hooks/tests/test_telemetry_scopes.py`
+   and `hooks/tests/test_verify_constraints.py` that call `record_agent_self_report`
+   with valid reports but no `tool_cap.json` fixture now write a matching
+   `{"commit": "C<NN>", "agent": "<agent>"}` fixture first via a small local
+   `_write_matching_tool_cap` helper. Full suite: 241 passed, 19 subtests.
+4. **Docs (Rule 3 — same pass)**: CLAUDE.md step 5a, Behaviour Rule 14,
+   ORCHESTRATION.md STEP 5.5(a), and team-preferences.md STEP A0(a) all now state
+   that step 5a applies only to delegated execution and is skipped entirely for
+   Claude-direct commits, with the enforcement mechanism named.
+5. **Domain ripple**: `hooks/tests/test_telemetry_scopes.py` (5 of the 8 fixture
+   fixes) tests `context_telemetry.py`'s dual-scope behavior directly but was
+   missing from Claude's narrow-exception list in `hooks/agent-config.json` —
+   an enumeration gap from D31, surfaced by `pre_commit_check.py`'s domain
+   boundary check on this commit's first attempt. Added it alongside
+   `test_context_telemetry.py` in `hooks/agent-config.json`, CLAUDE.md
+   "Files You Own", and AGENTS.md's Adam-exception enumeration (rule 3).
+
+### B2 (`bash_command_lint.py`, `cd` pattern) — not separately fixed
+
+C37 also re-triggered B2 (`cd hooks && python preflight_commit.py ...`), the same
+pattern as C35/C36. `bash_command_lint.py` (D38) already deterministically blocks
+this with zero bad side effects — the command is rejected before execution, no
+state is corrupted, and the corrected command succeeds immediately. Unlike the
+B4/C3 issue (which corrupted persisted records), this is a wasted-turn cost only.
+No further code change identified beyond the existing hook; recurrence is an
+execution-discipline issue tracked in `feedback_no_cd_in_bash.md`, not a guard gap.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

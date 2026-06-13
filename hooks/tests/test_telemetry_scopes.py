@@ -48,6 +48,19 @@ def _empty_metrics(root: Path) -> Path:
     return p
 
 
+def _write_matching_tool_cap(root: Path, commit: str, agent: str) -> None:
+    """Make tool_cap.json show an active invocation for commit/agent.
+
+    record_agent_self_report (C37 guard) refuses to persist a self-report
+    unless tool_cap.json shows a matching invocation, so tests that record a
+    self-report must set this up first.
+    """
+    cap = root / "hooks" / "tool_cap.json"
+    cap.parent.mkdir(parents=True, exist_ok=True)
+    commit_key = commit if str(commit).upper().startswith("C") else f"C{str(commit).zfill(2)}"
+    cap.write_text(json.dumps({"commit": commit_key, "agent": agent.lower()}), encoding="utf-8")
+
+
 # ---------------------------------------------------------------------------
 # Scenario 1 — Complete agent self-report: all fields available
 # ---------------------------------------------------------------------------
@@ -64,6 +77,7 @@ class TestCompleteAgentSelfReport(unittest.TestCase):
                 "commands": ["pytest backend/tests/test_config.py"],
                 "expansions": [],
             }
+            _write_matching_tool_cap(root, "24", "rex")
             scope = context_telemetry.record_agent_self_report("24", "rex", report, root)
             self.assertEqual(scope["status"], "available")
             self.assertEqual(scope["tool_calls"], 18)
@@ -94,6 +108,7 @@ class TestCompleteAgentSelfReport(unittest.TestCase):
                 "write_paths": [],
             }), encoding="utf-8")
             # Self-report with different counts
+            _write_matching_tool_cap(root, "24", "rex")
             context_telemetry.record_agent_self_report("24", "rex", {
                 "tool_calls": 18,
                 "read_paths": ["backend/app/core/config.py"],
@@ -227,6 +242,7 @@ class TestAgentAndOrchestratorCombined(unittest.TestCase):
             root = Path(tmp)
             tdir = root / ".context" / "telemetry"
             tdir.mkdir(parents=True)
+            _write_matching_tool_cap(root, "26", "rex")
             context_telemetry.record_agent_self_report("26", "rex", {
                 "tool_calls": 20,
                 "read_paths": ["a.py", "b.py"],
@@ -449,12 +465,14 @@ class TestInvocationRecordStorage(unittest.TestCase):
     def test_normal_repair_review_records_append_independently(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            _write_matching_tool_cap(root, "30", "adam")
             context_telemetry.record_agent_self_report(
                 "30", "adam", self._REPORT, root, invocation_kind="normal"
             )
             context_telemetry.record_agent_self_report(
                 "30", "adam", self._REPORT, root, invocation_kind="repair"
             )
+            _write_matching_tool_cap(root, "30", "viktor")
             context_telemetry.record_agent_self_report(
                 "30", "viktor", self._REPORT, root, invocation_kind="review"
             )
@@ -467,6 +485,7 @@ class TestInvocationRecordStorage(unittest.TestCase):
     def test_repeated_self_report_does_not_overwrite_prior_record(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            _write_matching_tool_cap(root, "30", "adam")
             context_telemetry.record_agent_self_report(
                 "30", "adam", {**self._REPORT, "tool_calls": 3}, root, invocation_kind="normal"
             )

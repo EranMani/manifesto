@@ -201,11 +201,15 @@ Claude completes these steps in order. This is the fixed commit loop sequence:
 
 ```
 STEP A0 — TELEMETRY CAPTURE (two sub-steps, always before inspection)
-  (a) Persist agent self-report:
+  (a) Persist agent self-report — DELEGATED EXECUTION ONLY:
       Extract JSON block from agent's final message (Return Contract section).
       Run: python hooks/context_telemetry.py --agent-report NN AGENT '{...}'
       If agent omitted the block: use worklog tool-usage line for tool_calls,
       set all path arrays to null. Never skip. Never treat missing as zero.
+      For Claude-direct commits, skip (a) entirely: no agent was invoked, so
+      hooks/tool_cap.json has no matching invocation and --agent-report raises
+      NoMatchingInvocationError (exit 1). telemetry.agent records as "unavailable"
+      (see C36; C37 fabricated a self-report this guard now blocks).
   (b) Open orchestrator scope:
       Run: python hooks/context_telemetry.py --start-orchestrator CNN
       Opens before any Claude file reads so all inspection activity is captured.

@@ -1809,16 +1809,14 @@
       "package": {},
       "telemetry": {
         "agent": {
-          "source": "self_report",
-          "status": "partial",
-          "tool_calls": 7,
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
           "read_paths": null,
           "write_paths": null,
           "searches": null,
           "commands": null,
-          "expansions": [
-            "backend/app/services/ingestion.py"
-          ]
+          "expansions": null
         },
         "orchestrator": {
           "source": "hooks",
@@ -1844,7 +1842,7 @@
         "selected_utilization_percent": null,
         "unused_selected_files": null,
         "outside_files_read": null,
-        "expansions": 1
+        "expansions": null
       },
       "boundaries": {
         "forbidden_clean": true,

@@ -50,6 +50,7 @@
         "hooks/tests/test_pre_commit_check.py",
         "hooks/context_telemetry.py",
         "hooks/tests/test_context_telemetry.py",
+        "hooks/tests/test_telemetry_scopes.py",
         "hooks/verify_constraints.py",
         "hooks/tests/test_verify_constraints.py",
         "hooks/preflight_commit.py",

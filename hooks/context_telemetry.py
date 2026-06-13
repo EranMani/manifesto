@@ -84,6 +84,37 @@ def _commit_key(commit: str) -> str:
     return commit if str(commit).upper().startswith("C") else f"C{str(commit).zfill(2)}"
 
 
+class NoMatchingInvocationError(ValueError):
+    """Raised when --agent-report has no matching tool_cap.json invocation."""
+
+
+def _require_matching_invocation(repo_root: Path, commit: str, agent: str) -> None:
+    """Guard against fabricated self-reports for commits where no agent ran.
+
+    --agent-report (CLAUDE.md step 5a) is valid only after a delegated agent
+    invocation, which activates hooks/tool_cap.json with this commit's key and
+    agent name (tool_cap_start.py). For Claude-direct commits no agent runs, so
+    tool_cap.json reflects a stale, unrelated invocation. Persisting a self-report
+    in that case fabricates agent telemetry and mislabels the invocation kind
+    (see COMMIT_HEALTH_RUBRIC.md C37). Refuse rather than guess.
+    """
+    cap_path = repo_root / "hooks" / "tool_cap.json"
+    try:
+        cap = json.loads(cap_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        cap = {}
+    cap_commit = _commit_key(str(cap.get("commit", "")))
+    cap_agent = str(cap.get("agent", "")).lower()
+    if cap_commit != _commit_key(commit) or cap_agent != agent.lower():
+        raise NoMatchingInvocationError(
+            f"tool_cap.json shows no invocation for {agent} on {_commit_key(commit)} "
+            f"(tool_cap commit={cap_commit or '<none>'}, agent={cap_agent or '<none>'}). "
+            "--agent-report is valid only after a delegated agent invocation. For "
+            "Claude-direct commits, do not call --agent-report at all -- "
+            "telemetry.agent will correctly record as 'unavailable'."
+        )
+
+
 def _resolve_invocation_kind(repo_root: Path) -> str:
     """Read the relevant invocation's kind (normal/repair/review) from tool_cap.json.
 
@@ -251,6 +282,7 @@ def record_agent_self_report(
 ) -> dict[str, Any]:
     """Validate and persist a structured telemetry report returned by an agent."""
     _validate_self_report(report)
+    _require_matching_invocation(repo_root, commit, agent)
     tool_calls = report.get("tool_calls")
     read_paths = report.get("read_paths")
     write_paths = report.get("write_paths")
@@ -465,6 +497,9 @@ def main() -> int:
             return 1
         try:
             record_agent_self_report(commit, agent, report, invocation_kind=args.invocation_kind)
+        except NoMatchingInvocationError as exc:
+            print(f"ERROR: no matching agent invocation: {exc}", file=sys.stderr)
+            return 1
         except ValueError as exc:
             print(f"ERROR: malformed agent report: {exc}", file=sys.stderr)
             return 1

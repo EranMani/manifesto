@@ -175,6 +175,43 @@ class ContextTelemetryTests(unittest.TestCase):
                 (root / ".context" / "telemetry" / "C30-orchestrator.json").exists()
             )
 
+    def test_agent_report_rejected_when_tool_cap_does_not_match(self) -> None:
+        """C37 regression: --agent-report must refuse to persist a self-report
+        for a commit/agent that hooks/tool_cap.json shows no invocation for
+        (e.g. a stale record from an earlier delegated commit), rather than
+        fabricating agent telemetry for a Claude-direct commit."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cap = root / "hooks" / "tool_cap.json"
+            cap.parent.mkdir(parents=True)
+            cap.write_text(json.dumps({"commit": "C29B", "agent": "adam"}), encoding="utf-8")
+
+            with self.assertRaises(context_telemetry.NoMatchingInvocationError):
+                context_telemetry.record_agent_self_report(
+                    "37", "nova", {"tool_calls": 7}, repo_root=root
+                )
+
+            self.assertFalse(
+                (root / ".context" / "telemetry" / "C37-nova-self-report.json").exists()
+            )
+            self.assertFalse((root / ".context" / "telemetry" / "invocations").exists())
+
+    def test_agent_report_accepted_when_tool_cap_matches(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cap = root / "hooks" / "tool_cap.json"
+            cap.parent.mkdir(parents=True)
+            cap.write_text(json.dumps({"commit": "C37", "agent": "nova"}), encoding="utf-8")
+
+            scope = context_telemetry.record_agent_self_report(
+                "37", "nova", {"tool_calls": 7}, repo_root=root, invocation_kind="normal"
+            )
+
+            self.assertEqual(scope["status"], "partial")
+            self.assertTrue(
+                (root / ".context" / "telemetry" / "C37-nova-self-report.json").exists()
+            )
+
 
 class ReconcileInvocationRecordsTests(unittest.TestCase):
     def _write_record(self, root: Path, name: str, payload: dict) -> None:

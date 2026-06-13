@@ -98,11 +98,15 @@ STEP 5 — Agent executes
     Writes worklog continuously. Decisions logged as made.
 
 STEP 5.5 — Telemetry capture — two mandatory sub-steps, in this order:
-└── (a) Persist agent self-report:
+└── (a) Persist agent self-report — DELEGATED EXECUTION ONLY:
         Extract the telemetry JSON block from the agent's final message (Return Contract).
         Run: python hooks/context_telemetry.py --agent-report NN AGENT '{...}'
         If the agent omitted the report: construct from worklog tool-usage line,
         set all path arrays to null (status: partial). Never skip. Never treat as zero.
+        For Claude-direct commits, skip (a) entirely — no agent was invoked, so
+        hooks/tool_cap.json has no matching invocation and --agent-report raises
+        NoMatchingInvocationError (exit 1). telemetry.agent correctly records as
+        "unavailable" (see C36; C37 fabricated a self-report this guard now blocks).
     (b) Open orchestrator scope:
         Run: python hooks/context_telemetry.py --start-orchestrator CNN
         All Claude tool calls from this point through STEP 7.5 are captured as

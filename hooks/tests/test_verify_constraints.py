@@ -360,9 +360,16 @@ class TestMalformedTelemetryRejection(unittest.TestCase):
                 "searches": [{"tool": "Grep", "path": 42, "query": "x"}],
             })
 
+    @staticmethod
+    def _write_matching_tool_cap(root: Path, commit: str, agent: str) -> None:
+        cap = root / "hooks" / "tool_cap.json"
+        cap.parent.mkdir(parents=True, exist_ok=True)
+        cap.write_text(json.dumps({"commit": f"C{commit}", "agent": agent.lower()}), encoding="utf-8")
+
     def test_accepts_valid_complete_report(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            self._write_matching_tool_cap(root, "25", "nova")
             scope = context_telemetry.record_agent_self_report("25", "nova", {
                 "tool_calls": 18,
                 "read_paths": ["backend/app/services/llm.py"],
@@ -377,6 +384,7 @@ class TestMalformedTelemetryRejection(unittest.TestCase):
     def test_accepts_null_optional_fields(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            self._write_matching_tool_cap(root, "25", "nova")
             scope = context_telemetry.record_agent_self_report("25", "nova", {
                 "tool_calls": 10,
                 "read_paths": None,
@@ -391,6 +399,7 @@ class TestMalformedTelemetryRejection(unittest.TestCase):
     def test_accepts_zero_tool_calls(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            self._write_matching_tool_cap(root, "25", "nova")
             scope = context_telemetry.record_agent_self_report("25", "nova", {
                 "tool_calls": 0,
                 "read_paths": [],
