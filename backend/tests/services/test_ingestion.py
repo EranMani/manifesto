@@ -512,3 +512,87 @@ class TestIngestDocumentPgvectorWrite:
         await db_session.refresh(doc)
         assert doc.status == "ready"
         assert doc.chunk_count == result.chunk_count
+
+
+# ---------------------------------------------------------------------------
+# DB integration: terminal state and rollback transactions
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+class TestIngestDocumentTransactionIntegration:
+    async def test_successful_ingestion_commits_ready_state_with_chunk_count(
+        self, db_session: AsyncSession
+    ) -> None:
+        """A successful run commits status='ready' with a matching chunk_count
+        and persists exactly that many policy_chunks rows."""
+        doc = PolicyDocument(
+            title="Transaction Ready Test",
+            sha256=uuid.uuid4().hex + uuid.uuid4().hex[:24],
+            embedding_provider="ollama",
+            embedding_model="fake-embed",
+            embedding_dimensions=768,
+            status="processing",
+        )
+        db_session.add(doc)
+        await db_session.flush()
+
+        embeddings = FakeEmbeddingService(
+            dimensions=768, profile=FakeProfile(provider="ollama", model="fake-embed", dimensions=768)
+        )
+
+        result = await ingest_document(
+            document_id=doc.id,
+            file_bytes=_load("sample.md"),
+            filename="sample.md",
+            content_type="text/markdown",
+            db=db_session,
+            embeddings=embeddings,
+        )
+
+        assert result.status == "ready"
+        assert result.chunk_count > 0
+        assert result.error_message is None
+
+        await db_session.refresh(doc)
+        assert doc.status == "ready"
+        assert doc.chunk_count == result.chunk_count
+
+        rows = (
+            await db_session.execute(
+                select(PolicyChunk).where(PolicyChunk.document_id == doc.id)
+            )
+        ).scalars().all()
+        assert len(rows) == result.chunk_count
+
+    async def test_failed_publish_rolls_back_with_no_partial_chunks(
+        self, db_session: AsyncSession
+    ) -> None:
+        """When the publish UPDATE finds no matching document row, the chunks
+        added during the attempt are rolled back and the failure path leaves
+        no policy_chunks rows behind."""
+        missing_document_id = str(uuid.uuid4())
+
+        embeddings = FakeEmbeddingService(
+            dimensions=768, profile=FakeProfile(provider="ollama", model="fake-embed", dimensions=768)
+        )
+
+        result = await ingest_document(
+            document_id=missing_document_id,
+            file_bytes=_load("sample.md"),
+            filename="sample.md",
+            content_type="text/markdown",
+            db=db_session,
+            embeddings=embeddings,
+        )
+
+        assert result.status == "failed"
+        assert result.chunk_count == 0
+        assert result.error_message == "Document row not found during publish."
+
+        rows = (
+            await db_session.execute(
+                select(PolicyChunk).where(PolicyChunk.document_id == missing_document_id)
+            )
+        ).scalars().all()
+        assert rows == []
