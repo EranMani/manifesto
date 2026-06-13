@@ -50,7 +50,7 @@
 | 31 | telemetry-reconciliation | adam | ✅ done · 2026-06-12 |
 | 32 | telemetry-dashboard-ledger | adam | ✅ done · 2026-06-12 |
 | 33 | upload-duplicate-status | rex | ✅ done · 2026-06-13 |
-| 33A | verify-constraints-ref-fix | claude | pending |
+| 33A | verify-constraints-ref-fix | claude | ✅ done · 2026-06-13 |
 | 33B | finalize-commit-pipeline | claude | pending |
 | 34 | database-test-container-command | adam | pending |
 | 35 | policy-storage-db-url | rex | pending |

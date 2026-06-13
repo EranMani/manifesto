@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C33 (upload-duplicate-status) is done: backend/app/api/v1/documents.py now returns HTTP 200 (instead of 201) for an idempotent duplicate upload of an already-ready document via response.status_code = status.HTTP_200_OK on that branch; new uploads remain 201. test_duplicate_upload_is_idempotent updated to assert 200. Claude-direct (Eran-approved), 16/16 tests pass. Replanned (2026-06-13): C33A/C33B inserted before C34 (Rule 10 letter-suffix, no renumbering of C34-C76) to fix verify_constraints.py's ref-resolution bug and add a deterministic finalize-commit pipeline + pre-commit gate. C33A (verify-constraints-ref-fix, claude) is next.",
+  "tldr": "C33A (verify-constraints-ref-fix) is done: hooks/verify_constraints.py now has resolve_primary_commit_ref(), which auto-resolves --commit NN to the most recent commit whose body contains 'Commit #NN' plus 'Execution: Claude-direct' or 'Co-Authored-By:', falling back to HEAD with a ref_resolution warning; --ref default changed HEAD -> None, explicit --ref/--worktree unchanged. Also normalized commit-33A.md/commit-33B.md Owner metadata (verbose parenthetical -> 'claude'), fixing a preflight_commit.py --direct false block discovered this session. 47/47 tests pass, verify_constraints all_pass (files=4/4, diff_lines=231/350). Claude-direct (Eran-approved). C33B (finalize-commit-pipeline, claude) is next.",
   "phase": 2,
-  "last_completed_commit": "33",
-  "next_commit": "33A",
-  "next_commit_name": "verify-constraints-ref-fix",
+  "last_completed_commit": "33A",
+  "next_commit": "33B",
+  "next_commit_name": "finalize-commit-pipeline",
   "next_commit_assignee": "claude",
   "status": "phase-2-active",
   "open_handoffs": [
