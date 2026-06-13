@@ -52,7 +52,7 @@
 | 33 | upload-duplicate-status | rex | ✅ done · 2026-06-13 |
 | 33A | verify-constraints-ref-fix | claude | ✅ done · 2026-06-13 |
 | 33B | finalize-commit-pipeline | claude | ✅ done · 2026-06-13 |
-| 34 | database-test-container-command | adam | pending |
+| 34 | database-test-container-command | adam | ✅ done · 2026-06-13 |
 | 35 | policy-storage-db-url | rex | pending |
 | 36 | ingestion-pgvector-write-integration | nova | pending |
 | 37 | ingestion-status-transaction-integration | nova | pending |
