@@ -17,7 +17,8 @@
     ".claude/agents/logs/",
     "backend/DOMAIN_MAP.md",
     "frontend/DOMAIN_MAP.md",
-    "claude_usage_data/"
+    "claude_usage_data/",
+    "COMMIT_HEALTH_RUBRIC.md"
   ],
   "agents": {
     "claude@anthropic.com": {
@@ -40,6 +41,7 @@
         "hooks/tests/test_tool_cap.py",
         "hooks/tool_cap_start.py",
         "hooks/tool_cap_enforce.py",
+        "hooks/tool_cap.json",
         "hooks/post_commit_next_step.py",
         "hooks/generate_domain_map.py",
         "hooks/tests/test_post_commit_next_step.py",

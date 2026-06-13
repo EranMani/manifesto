@@ -20,7 +20,7 @@ where to look and what "clean" looks like.
 | A1 | Preflight | `python hooks/preflight_commit.py --direct --commit NN --agent OWNER` (or delegated `--preview`) | `status: ready`, no violations, on the FIRST run |
 | A2 | /verify-commit | `python hooks/verify_constraints.py --commit NN --agent OWNER --execution EXEC --worktree --no-persist` | `RESULT: ALL CHECKS PASSED` on the FIRST run |
 | A3 | finalize_commit.py | `python hooks/finalize_commit.py --commit NN ...` | `"status": "ready"` on the FIRST run, no missing-arg errors |
-| A4 | Tests | full suite or focused tests for the commit | only known pre-existing failures (named in tldr/notes); no new failures |
+| A4 | Tests | full suite or focused tests for the commit | only known pre-existing failures (named in tldr/notes); no new failures caused by this commit's own changes |
 | A5 | Diff review | `git diff --check` / `git diff --stat` | no whitespace errors; files/lines within `execution_budget` |
 
 ### B. Hooks & triggers
@@ -62,7 +62,7 @@ Start at **10**. Apply deductions (floor at **1**):
 | Deduction | Trigger |
 |---|---|
 | −3 | Any of A1–A3 failed on the first attempt and required a retry/fix before passing |
-| −2 | A4 shows a new (non-pre-existing) test failure |
+| −2 | A4 shows a new test failure caused by this commit's own changes (a regression). A pre-existing *latent* bug that this commit's fix newly exposes (e.g. a masked assertion bug surfaced once a connectivity fix lets the test actually run) does not count here if it is fixed within the same pass, with Eran's approval, ending green |
 | −1 | A5 exceeded the spec's execution budget (files/lines/tool calls) without a documented, approved scope note |
 | −2 | Any B-check fired incorrectly (B2/B3 false trigger) or failed to fire when it should have (B4–B7 missing/stale) |
 | −1 | Any C-check incomplete or contradictory |
@@ -84,3 +84,4 @@ Record each scored commit here for trend-spotting.
 | Commit | Score | Deductions | Notes |
 |---|---|---|---|
 | C34 | 4 | A1–A3 (−3, finalize-marker gate failed first try + empty GIT_MESSAGE + chore-commit domain/marker re-trigger), D4 (−1, OI-15/D39 reactive fix), B1 (already counted in A1–A3) | First commit to exercise C33B's `check_finalize_marker()` gate; CLAUDE.md/ORCHESTRATION.md steps 11-13 hadn't been updated for it (OI-15, fixed with D39/D40). |
+| C35 | 9 | A2 (−3, `/verify-commit` failed first run — ran without `--execution claude-direct`, got `phase_budget` FAIL; root cause was a stale `.claude/commands/verify-commit.md` missing the flag entirely, fixed same session), B2 (−2, `bash_command_lint.py` fired twice on commands Claude wrote: a `cd && docker compose` chain and a `2>/dev/null`/`;` existence-check chain) | A4 *not* deducted (rubric clarified same session): `test_search_vector_full_text_query`'s UUID-vs-str failure was a pre-existing latent bug newly exposed by this commit's connectivity fix, fixed in the same pass with Eran's approval, ending green — a regression, not this commit's own change. B4/B6 (orchestrator telemetry + automatic pointer-advance not exercised for Claude-direct commits) noted but not separately penalized — pre-existing documented gap (OI-03). D-section and D4 fully clean (no governance rework). |
