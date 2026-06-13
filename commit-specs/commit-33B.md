@@ -1,7 +1,7 @@
 # Commit 33B - `finalize-commit-pipeline` - Claude
 
 **Phase:** Workflow Redesign - Stop the Bleeding
-**Owner:** Claude (workflow governance, under the orchestrator hooks exception)
+**Owner:** claude
 **Depends on:** C33A
 **Execution mode:** Claude-direct
 **Estimated diff lines:** 320

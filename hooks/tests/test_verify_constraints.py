@@ -741,5 +741,173 @@ class TestEffectiveGreenfieldBudgets(unittest.TestCase):
             self.assertEqual(counts["unplanned_files"], [])
 
 
+# ---------------------------------------------------------------------------
+# Task 8 — resolve_primary_commit_ref (C33A ref-resolution fix)
+# ---------------------------------------------------------------------------
+
+class TestResolvePrimaryCommitRef(unittest.TestCase):
+    """verify_constraints resolves the correct primary-commit ref instead of
+    silently defaulting to HEAD when --ref is omitted and --worktree is not set."""
+
+    @staticmethod
+    def _init_repo(root: Path) -> bool:
+        for cmd in (
+            ["git", "init"],
+            ["git", "config", "user.email", "test@manifesto.test"],
+            ["git", "config", "user.name", "Test"],
+        ):
+            if subprocess.run(cmd, capture_output=True, cwd=root).returncode != 0:
+                return False
+        (root / "README.md").write_text("init", encoding="utf-8")
+        for cmd in (
+            ["git", "add", "README.md"],
+            ["git", "commit", "-m", "init"],
+        ):
+            if subprocess.run(cmd, capture_output=True, cwd=root).returncode != 0:
+                return False
+        return True
+
+    @staticmethod
+    def _commit(root: Path, files: dict[str, str], message: str) -> str:
+        for relpath, content in files.items():
+            path = root / relpath
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "."], capture_output=True, cwd=root)
+        subprocess.run(["git", "commit", "-m", message], capture_output=True, cwd=root)
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=root
+        ).stdout.strip()
+
+    def test_finds_primary_commit_sha_when_chore_commit_is_head(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if not self._init_repo(root):
+                self.skipTest("git init/commit failed")
+            primary_sha = self._commit(
+                root, {"hooks/new_module.py": "# new\n"},
+                "feat(hooks): add new module\n\nCommit #33\n\n"
+                "Execution: Claude-direct\n\nWhat: x\nWhy: y\n",
+            )
+            head_sha = self._commit(
+                root, {"project-state.json": "{}"},
+                "chore(state): advance state after C-33",
+            )
+            self.assertNotEqual(primary_sha, head_sha)
+
+            ref, warning = verify_constraints.resolve_primary_commit_ref("33", "rex", root)
+            self.assertEqual(ref, primary_sha)
+            self.assertIsNone(warning)
+
+    def test_no_match_falls_back_to_head_with_warning(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if not self._init_repo(root):
+                self.skipTest("git init/commit failed")
+            self._commit(
+                root, {"hooks/new_module.py": "# new\n"},
+                "feat(hooks): unrelated change\n\nNo commit reference here\n",
+            )
+            ref, warning = verify_constraints.resolve_primary_commit_ref("99", "rex", root)
+            self.assertEqual(ref, "HEAD")
+            self.assertIn("Commit #99", warning)
+            self.assertIn("fallback to HEAD", warning)
+
+    def test_explicit_ref_overrides_auto_resolution(self):
+        with (
+            patch("verify_constraints.resolve_primary_commit_ref") as mock_resolve,
+            patch("verify_constraints.load_spec", return_value=MINIMAL_SPEC),
+            patch("verify_constraints.load_worklog", return_value=""),
+            patch("verify_constraints.git_files_changed", return_value=[]) as mock_changed,
+        ):
+            old_argv = sys.argv[:]
+            sys.argv = ["vc", "--commit", "25", "--agent", "nova", "--ref", "deadbeef", "--no-persist"]
+            try:
+                verify_constraints.main()
+            except SystemExit:
+                pass
+            finally:
+                sys.argv = old_argv
+
+            mock_resolve.assert_not_called()
+            mock_changed.assert_called_once_with("deadbeef", worktree=False)
+
+    def test_no_ref_passed_auto_resolves_and_reports_fallback(self):
+        with (
+            patch(
+                "verify_constraints.resolve_primary_commit_ref",
+                return_value=("HEAD", "fallback to HEAD - no commit matching 'Commit #25' found"),
+            ) as mock_resolve,
+            patch("verify_constraints.load_spec", return_value=MINIMAL_SPEC),
+            patch("verify_constraints.load_worklog", return_value=""),
+            patch("verify_constraints.git_files_changed", return_value=[]) as mock_changed,
+        ):
+            output_lines: list[str] = []
+
+            def capture_print(*args, **kwargs):
+                output_lines.append(" ".join(str(a) for a in args))
+
+            old_argv = sys.argv[:]
+            sys.argv = ["vc", "--commit", "25", "--agent", "nova", "--no-persist", "--json"]
+            try:
+                with patch("builtins.print", side_effect=capture_print):
+                    verify_constraints.main()
+            except SystemExit:
+                pass
+            finally:
+                sys.argv = old_argv
+
+            mock_resolve.assert_called_once_with("25", "nova")
+            mock_changed.assert_called_once_with("HEAD", worktree=False)
+            parsed = json.loads("\n".join(output_lines))
+            self.assertEqual(
+                parsed.get("ref_resolution"),
+                "fallback to HEAD - no commit matching 'Commit #25' found",
+            )
+
+    def test_actual_scope_ok_when_resolved_ref_used_after_chore_commit(self):
+        """Regression: re-running against a commit after a later chore commit
+        landed must diff the primary commit, not the chore commit (C33's bug)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if not self._init_repo(root):
+                self.skipTest("git init/commit failed")
+            primary_sha = self._commit(
+                root, {"hooks/new_module.py": "# new\n"},
+                "feat(hooks): add new module\n\nCommit #33\n\n"
+                "Execution: Claude-direct\n\nWhat: x\nWhy: y\n",
+            )
+            self._commit(
+                root, {"project-state.json": "{}"},
+                "chore(state): advance state after C-33",
+            )
+
+            spec_result = {
+                "commit": "C33",
+                "planned_changed_files": ["hooks/new_module.py"],
+                "budget": {"max_changed_files": 4, "max_estimated_diff_lines": 1200},
+            }
+
+            ref, warning = verify_constraints.resolve_primary_commit_ref("33", "rex", root)
+            self.assertEqual(ref, primary_sha)
+            self.assertIsNone(warning)
+
+            with patch.object(verify_constraints, "REPO_ROOT", root):
+                resolved_changed = verify_constraints.git_files_changed(ref, worktree=False, root=root)
+                ok, counts, msg = verify_constraints.check_actual_scope(
+                    spec_result, resolved_changed, False, ref, "rex"
+                )
+                self.assertTrue(ok, msg)
+                self.assertEqual(counts["unplanned_files"], [])
+
+                # Diffing HEAD (the chore commit) directly reproduces C33's bug.
+                head_changed = verify_constraints.git_files_changed("HEAD", worktree=False, root=root)
+                ok_head, counts_head, _ = verify_constraints.check_actual_scope(
+                    spec_result, head_changed, False, "HEAD", "rex"
+                )
+                self.assertFalse(ok_head)
+                self.assertIn("project-state.json", counts_head["unplanned_files"])
+
+
 if __name__ == "__main__":
     unittest.main()

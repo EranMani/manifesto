@@ -1,7 +1,7 @@
 # Commit 33A - `verify-constraints-ref-fix` - Claude
 
 **Phase:** Workflow Redesign - Stop the Bleeding
-**Owner:** Claude (workflow governance, under the orchestrator hooks exception)
+**Owner:** claude
 **Depends on:** C33
 **Execution mode:** Claude-direct
 **Estimated diff lines:** 140
@@ -81,6 +81,8 @@ forbidden:
 |---|---|---|
 | `hooks/verify_constraints.py` | edit | Resolve the correct primary-commit ref for `--commit NN` instead of defaulting to `HEAD` |
 | `hooks/tests/test_verify_constraints.py` | edit | Regress ref resolution after later commits have landed |
+| `commit-specs/commit-33A.md` | edit | Normalize `**Owner:**` to `claude` (was a verbose parenthetical form that broke `preflight_commit.py`'s owner-path lookup) |
+| `commit-specs/commit-33B.md` | edit | Same `**Owner:**` normalization, for consistency and to unblock C33B's own preflight |
 
 ---
 

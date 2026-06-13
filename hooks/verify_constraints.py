@@ -86,6 +86,40 @@ def load_worklog(agent: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def resolve_primary_commit_ref(commit_num: str, agent: str, root: Path = REPO_ROOT) -> tuple[str, str | None]:
+    """Find the primary commit for `commit_num` instead of assuming HEAD.
+
+    Searches `git log` for the most recent commit whose body contains a
+    `Commit #0*<commit_num>` line (same pattern as
+    `pre_commit_check.planned_files_for_commit`) and either an
+    `Execution: Claude-direct` marker or a `Co-Authored-By:` trailer.
+
+    Returns (ref, warning): `ref` is that commit's full SHA, or "HEAD" if no
+    match was found. `warning` is None on a match, or a non-fatal message
+    describing the HEAD fallback.
+    """
+    commit_num = str(commit_num)
+    pattern = re.compile(
+        rf"(?:^|\n)\s*[Cc]ommit\s+#0*{re.escape(commit_num)}(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    )
+    result = subprocess.run(
+        ["git", "log", "--format=%H%x00%B%x03"],
+        capture_output=True, text=True, cwd=root,
+    )
+    for entry in result.stdout.split("\x03"):
+        entry = entry.strip("\n")
+        if not entry:
+            continue
+        sha, _, body = entry.partition("\x00")
+        sha = sha.strip()
+        if not sha or not pattern.search(body):
+            continue
+        if "Execution: Claude-direct" in body or re.search(r"Co-Authored-By:", body, re.IGNORECASE):
+            return sha, None
+    return "HEAD", f"fallback to HEAD - no commit matching 'Commit #{commit_num}' found"
+
+
 def git_files_changed(commit_ref: str = "HEAD", worktree: bool = False, root: Path = REPO_ROOT) -> list:
     if worktree:
         diff = subprocess.run(
@@ -351,7 +385,7 @@ def main():
              "contain an exact commit-session match). Default: delegated.",
     )
     parser.add_argument("--tokens",  type=int, default=None, help="Token count for this commit (optional)")
-    parser.add_argument("--ref",        default="HEAD", help="Git ref to check (default: HEAD)")
+    parser.add_argument("--ref",        default=None, help="Git ref to check (default: auto-resolve the primary commit for --commit; falls back to HEAD)")
     parser.add_argument("--worktree",   action="store_true", help="Check working-tree changes vs HEAD instead of a committed ref")
     parser.add_argument("--json",       action="store_true", help="Output as JSON")
     parser.add_argument("--no-persist", action="store_true",
@@ -362,15 +396,23 @@ def main():
                              "use manually or during the every-five-commit review wave.")
     args = parser.parse_args()
 
+    ref_warning = None
+    if args.worktree:
+        effective_ref = args.ref if args.ref is not None else "HEAD"
+    elif args.ref is not None:
+        effective_ref = args.ref
+    else:
+        effective_ref, ref_warning = resolve_primary_commit_ref(args.commit, args.agent)
+
     spec_text    = load_spec(args.commit)
     worklog_text = load_worklog(args.agent)
-    changed      = git_files_changed(args.ref, worktree=args.worktree)
+    changed      = git_files_changed(effective_ref, worktree=args.worktree)
 
     ok0, msg0, spec_result = check_spec_validation(args.commit, args.agent)
     ok1, msg1          = check_context_block(spec_text, args.commit)
     ok2, msg2          = check_forbidden_paths(spec_text, changed)
     ok3, counts3, msg3 = check_phase_budget(worklog_text, args.commit, args.agent, spec_result, args.execution)
-    ok4, counts4, msg4 = check_actual_scope(spec_result, changed, args.worktree, args.ref, args.agent)
+    ok4, counts4, msg4 = check_actual_scope(spec_result, changed, args.worktree, effective_ref, args.agent)
 
     results = {
         "spec_validation": {"pass": ok0, "message": msg0},
@@ -383,10 +425,13 @@ def main():
     all_pass = all(r["pass"] for r in results.values())
 
     if args.json:
-        print(json.dumps({
+        output = {
             "commit": args.commit, "agent": args.agent, "execution": args.execution,
             "tokens": args.tokens, "all_pass": all_pass, "checks": results
-        }, indent=2))
+        }
+        if ref_warning:
+            output["ref_resolution"] = ref_warning
+        print(json.dumps(output, indent=2))
     else:
         status = lambda ok, msg: ("WARN" if msg and msg.startswith("WARN") else ("PASS" if ok else "FAIL"))
         print(f"\n-- Constraint Verification: C{args.commit.zfill(2)} ({args.agent}, {args.execution}) --\n")
@@ -395,6 +440,8 @@ def main():
         print(f"  [2] Forbidden paths  [{status(ok2, msg2)}] {msg2}")
         print(f"  [3] Phase budget     [{status(ok3, msg3)}] {msg3}")
         print(f"  [4] Actual scope     [{status(ok4, msg4)}] {msg4}")
+        if ref_warning:
+            print(f"  [ref] ref_resolution [WARN] {ref_warning}")
         if args.tokens:
             print(f"  [5] Tokens used      {args.tokens:,}")
         print()
