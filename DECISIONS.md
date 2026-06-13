@@ -1281,4 +1281,47 @@ was found, keeps the gate active without a regression window.
 
 ---
 
+## D40 — STEP A.5b: Protocol-Doc Ripple Pre-Check (generalizing D39/OI-15)
+
+### Problem
+
+D39/OI-15 fixed one instance of a recurring shape: a Claude-direct commit
+changes a hook that CLAUDE.md/ORCHESTRATION.md's documented commit-loop steps
+invoke (here, `pre_commit_check.py`'s new `check_finalize_marker()`,
+introduced by C33B), but the docs describing what the orchestrator must run
+before/after `git commit` aren't updated in the same commit. The very next
+commit that exercises the loop (C34) then fails on a precondition the
+documented steps never told it to satisfy.
+
+STEP A.5 (added for OI-13/C33B) already covers an adjacent case — a new
+fail-closed check breaking an *existing test fixture* — but only at the test
+level, not at the level of "does this change what the orchestrator itself
+must do in steps 11-13."
+
+### Fix
+
+Added **STEP A.5b — Protocol-Doc Ripple Pre-Check** to team-preferences.md's
+Verification Protocol: for any commit that edits a hook named in
+CLAUDE.md/ORCHESTRATION.md's commit-loop steps (`finalize_commit.py`,
+`pre_commit_check.py`, `notify_agent_done.py`, `verify_constraints.py`,
+`preflight_commit.py`, `prepare_agent_delegation.py`), grep both files for
+that hook's existing invocations and for the new check's required args/
+preconditions/gating files. If the documented steps don't already cover the
+new behavior, update CLAUDE.md and ORCHESTRATION.md (and team-preferences.md
+if a Bash/commit convention is affected) in the same commit, before
+/verify-commit.
+
+### Why a Pre-Check Instead of a Hook
+
+Unlike OI-13/14 (a recurring *behavioral* habit, fixed with a deterministic
+`bash_command_lint.py` because prose wasn't reliable), this is a *content*
+check — whether two specific markdown files mention a hook's new behavior.
+A grep-based pre-check inside the existing STEP A sequence is proportionate;
+a dedicated hook would need to parse both CLAUDE.md/ORCHESTRATION.md prose
+and the diff of the edited hook to detect "new precondition not yet
+documented," which is a much larger and more fragile undertaking for a
+once-per-governance-change event. Revisit if this recurs a third time.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

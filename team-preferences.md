@@ -238,6 +238,20 @@ STEP A.5 — SCOPE RIPPLE PRE-CHECK (before implementation, for commits that add
   re-verify round trip mid-session (each cycle re-runs the full test suite and
   verify_constraints.py).
 
+STEP A.5b — PROTOCOL-DOC RIPPLE PRE-CHECK (before implementation, for commits
+  that edit any hook invoked by CLAUDE.md/ORCHESTRATION.md's documented commit-
+  loop steps — e.g. finalize_commit.py, pre_commit_check.py, notify_agent_done.py,
+  verify_constraints.py, preflight_commit.py, prepare_agent_delegation.py)
+  Grep CLAUDE.md and ORCHESTRATION.md for every existing invocation of that hook
+  (by filename) and for the CLI args/behavior the new check changes (new required
+  args, new preconditions, new gating files). If the new check adds a precondition
+  or invocation the documented steps don't yet describe, update CLAUDE.md and
+  ORCHESTRATION.md (and team-preferences.md if a Bash/commit convention is
+  affected) in the SAME commit, before /verify-commit — not as a follow-up
+  session. This is the protocol-doc analogue of STEP A.5: a new gate that the
+  orchestrator's own documented sequence doesn't know to satisfy will fail on
+  the very next commit that hits it (OI-15/D40).
+
 STEP D — /verify-commit
   Always, without exception. If it fails: stop, fix, re-run.
   Never proceed to notification before this passes.
@@ -524,3 +538,4 @@ Add commit-specific items where the spec has known sharp edges.
 | 2026-06-13 | Added lean Claude-direct preflight (`preflight_commit.py --direct`), made dashboard rendering opt-in (`--render-dashboard`), and added honest "Not created (Claude-direct)" / "Legacy preview package (unused)" dashboard labels | Claude-direct (the default execution path) was forced through the full delegated-path preflight scoring and dashboard render every commit, producing misleading N/A-filled rows and unnecessary work. C29-C32 backfilled with `execution` field and corrected `tokens` (null where untracked). |
 | 2026-06-13 | Added "Bash Command Conventions" section (no `cd`, no exit-code-propagating `ls ... 2>/dev/null` chains) and STEP A.5 scope-ripple pre-check to Verification Protocol | C33B session: a `cd` drift caused 3 extra recovery bash calls, a chained `ls` reported a false "Error: Exit code 2", and an unanticipated test-fixture ripple from a new fail-closed gate triggered a full implement->fail->amend->re-verify round trip. All three wasted significant tokens. |
 | 2026-06-13 | Made `hooks/finalize_commit.py` the single pre-approval step (CLAUDE.md step 11 / ORCHESTRATION.md STEP 10), removed the now-redundant standalone `notify_agent_done.py --write-flag` call, added GIT_MESSAGE export-syntax rule (#3) and explicit chore(state) commit template (no "Commit #NN"/"Execution:" line, Co-Authored-By: Claude) to Bash Command Conventions | C34 session: C33B's new `check_finalize_marker()` gate wasn't reflected in steps 11-12, so the primary commit was attempted before the marker existed; an env-prefix `GIT_MESSAGE=` produced an empty commit message; and the chore commit's "Commit #34"+"Execution:"+Co-Authored-By: Adam header both mis-attributed Claude's `.context/finalize/` domain and re-triggered the marker gate for the chore commit. |
+| 2026-06-13 | Added STEP A.5b "Protocol-Doc Ripple Pre-Check" to Verification Protocol | C34/D40: STEP A.5 only covers test-fixture ripple from a new fail-closed gate; OI-15 showed the same ripple can hit CLAUDE.md/ORCHESTRATION.md's documented commit-loop steps themselves (C33B added `check_finalize_marker()` without updating step 11). A.5b requires grepping CLAUDE.md/ORCHESTRATION.md for the hook's existing invocations whenever a commit edits a hook those steps call, and syncing docs in the same commit. |
