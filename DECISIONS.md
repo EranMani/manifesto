@@ -1452,4 +1452,35 @@ execution-discipline issue tracked in `feedback_no_cd_in_bash.md`, not a guard g
 
 ---
 
+## D43 — C38A `max_estimated_diff_lines` Raised from 150 to 200 (Accepted Scope Overflow)
+
+- **Date:** 2026-06-13
+- **Decided by:** Claude (recommendation), Eran (approved)
+- **Context:** C38A's implementation diff is 192 lines (43 in
+  `hooks/pre_commit_check.py` for `check_orchestrator_telemetry_marker()`, 149 in
+  `hooks/tests/test_pre_commit_check.py` for the 6 required Focused Tests plus the
+  `C50-orchestrator.json` happy-path fixture), exceeding the spec's original
+  `max_estimated_diff_lines: 150` by 28%.
+
+### What was decided
+
+Unlike D35 (C28's `phase_budget` FAIL recorded honestly, pre-`finalize_commit.py`),
+`finalize_commit.py`'s `step_verify()` requires `all_pass: True` from
+`verify_constraints.py` before it will write the `.context/finalize/CNN.json`
+marker — and `check_finalize_marker()`/`check_orchestrator_telemetry_marker()`
+(C33B/C38A) now fail-closed on a missing marker. An `actual_scope: FAIL` can no
+longer be "recorded honestly" and still reach commit; it hard-blocks. Eran
+approved raising `commit-specs/commit-38A.md`'s `max_estimated_diff_lines` from
+150 to 200 to match the actual, justified scope (all 6 spec-required test cases),
+rather than trimming required test coverage to fit the original estimate.
+
+### Consequences
+
+- C38A proceeds with `actual_scope: PASS` against the amended cap of 200.
+- Future specs estimating diff lines for commits with several explicit
+  Focused-Test cases should budget more headroom — each new `def test_...`
+  with setup/assertions in this file's style runs ~20-30 lines.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

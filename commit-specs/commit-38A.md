@@ -54,12 +54,18 @@ execution_budget:
   max_changed_files: 2
   max_context_files: 4
   max_context_chars: 12000
-  max_estimated_diff_lines: 150
+  max_estimated_diff_lines: 200
   max_agent_invocations: 1
   max_tool_calls: 18
   max_expansions: 2
   max_implementor_tokens: 45000
 ```
+
+> **Amended post-implementation (D43, Eran-approved):** `max_estimated_diff_lines`
+> raised from 150 to 200. The actual diff (43 lines in `pre_commit_check.py` + 149
+> lines in `test_pre_commit_check.py`, totaling 192) covers all 6 required Focused
+> Tests plus the `C50-orchestrator.json` happy-path fixture; trimming would reduce
+> required test coverage.
 
 ---
 
