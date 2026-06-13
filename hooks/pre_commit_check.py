@@ -253,6 +253,48 @@ def check_finalize_marker(msg, config):
     return []
 
 
+def check_orchestrator_telemetry_marker(msg, config):
+    """Require a completed, matching .context/telemetry/C<NN>-orchestrator.json
+    scope (CLAUDE.md steps 5b/7c) before a primary commit (Commit #NN +
+    Execution: Claude-direct / Co-Authored-By:) can land. Exempt chore/doc-sweep/
+    state commits (neither marker present)."""
+    has_execution_marker = (
+        DIRECT_EXECUTION_MARKER.lower() in msg.lower()
+        or COAUTHORED_PATTERN.search(msg) is not None
+    )
+    m = re.search(r"(?:^|\n)\s*[Cc]ommit\s+#0*(\d{1,3}[a-zA-Z]?)", msg)
+    if not m or not has_execution_marker:
+        return []
+
+    commit_id = m.group(1).lower()
+    git_root = Path(
+        subprocess.run(["git", "rev-parse", "--show-toplevel"],
+                       capture_output=True, text=True).stdout.strip()
+    )
+    commit_key = "C" + commit_id.zfill(2).upper()
+    marker_path = git_root / ".context" / "telemetry" / f"{commit_key}-orchestrator.json"
+
+    error = (
+        f"Run hooks/context_telemetry.py --start-orchestrator {commit_key} before step 6a "
+        f"inspection and --stop-orchestrator {commit_key} after /verify-commit passes (no "
+        f"completed orchestrator telemetry scope found)."
+    )
+
+    if not marker_path.is_file():
+        return [error]
+    try:
+        scope = json.loads(marker_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return [error]
+
+    if str(scope.get("commit", "")).upper() != commit_key:
+        return [error]
+    if scope.get("status") != "completed":
+        return [error]
+
+    return []
+
+
 def check_not_already_done(msg):
     state_path = Path("project-state.json")
     if not state_path.exists():
@@ -335,6 +377,7 @@ def main():
     errors.extend(check_not_already_done(msg))
     errors.extend(check_commit_spec_table(msg))
     errors.extend(check_finalize_marker(msg, config))
+    errors.extend(check_orchestrator_telemetry_marker(msg, config))
 
     if warnings:
         print("\n[WARN] Pre-commit warnings:")

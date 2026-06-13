@@ -273,12 +273,161 @@ Example.
         "checks_passed": True, "timestamp": "2026-06-13T00:00:00+00:00",
     }), encoding="utf-8")
 
+    telemetry_dir = repo / ".context" / "telemetry"
+    telemetry_dir.mkdir(parents=True)
+    (telemetry_dir / "C50-orchestrator.json").write_text(json.dumps({
+        "commit": "C50", "status": "completed",
+        "started_at": "2026-06-13T00:00:00+00:00", "ended_at": "2026-06-13T00:05:00+00:00",
+        "tool_calls": 3, "read_paths": [], "write_paths": [], "searches": [], "commands": [],
+    }), encoding="utf-8")
+
     message = (
         "fix(example): implement behavior here\n\n"
         "Commit #50\n\n"
         "Execution: Claude-direct\n\n"
         "Co-Authored-By: Claude <claude@anthropic.com>"
     )
+
+    result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
+
+    assert result.returncode == 0
+    assert "Pre-commit check passed" in result.stdout
+
+
+# --- Orchestrator telemetry marker gate (C38A) ----------------------------------
+
+
+def _setup_valid_c50_commit(tmp_path: Path) -> tuple[Path, str]:
+    """Build a repo staged for a valid Commit #50 with a passing finalize marker
+    (but no orchestrator telemetry marker yet)."""
+    config = {
+        "initialized": True,
+        "universal_allowed": ["project-state.json"],
+        "agents": {
+            "claude@anthropic.com": {
+                "name": "Claude",
+                "domains": ["CLAUDE.md"],
+            }
+        },
+    }
+    repo = _init_repo(tmp_path, config)
+    (repo / "commit-specs").mkdir()
+    (repo / "commit-specs" / "commit-50.md").write_text(
+        """
+# Commit 50 - example
+
+## Files To Modify Or Add
+
+| File | Type | Purpose |
+|---|---|---|
+| `backend/app/example.py` | edit | Implement behavior |
+
+## Contract
+
+Example.
+""".strip(),
+        encoding="utf-8",
+    )
+    _stage(repo, "backend/app/example.py")
+
+    finalize_dir = repo / ".context" / "finalize"
+    finalize_dir.mkdir(parents=True)
+    (finalize_dir / "C50.json").write_text(json.dumps({
+        "commit": "50", "agent": "claude", "execution": "claude-direct",
+        "checks_passed": True, "timestamp": "2026-06-13T00:00:00+00:00",
+    }), encoding="utf-8")
+
+    message = (
+        "fix(example): implement behavior here\n\n"
+        "Commit #50\n\n"
+        "Execution: Claude-direct\n\n"
+        "Co-Authored-By: Claude <claude@anthropic.com>"
+    )
+    return repo, message
+
+
+def test_missing_orchestrator_marker_blocks(tmp_path: Path) -> None:
+    repo, message = _setup_valid_c50_commit(tmp_path)
+
+    result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
+
+    assert result.returncode == 2
+    assert "--start-orchestrator C50" in result.stdout
+    assert "--stop-orchestrator C50" in result.stdout
+
+
+def test_completed_matching_orchestrator_marker_passes(tmp_path: Path) -> None:
+    repo, message = _setup_valid_c50_commit(tmp_path)
+
+    telemetry_dir = repo / ".context" / "telemetry"
+    telemetry_dir.mkdir(parents=True)
+    (telemetry_dir / "C50-orchestrator.json").write_text(json.dumps({
+        "commit": "C50", "status": "completed",
+        "started_at": "2026-06-13T00:00:00+00:00", "ended_at": "2026-06-13T00:05:00+00:00",
+        "tool_calls": 3, "read_paths": [], "write_paths": [], "searches": [], "commands": [],
+    }), encoding="utf-8")
+
+    result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
+
+    assert result.returncode == 0
+    assert "Pre-commit check passed" in result.stdout
+
+
+def test_running_orchestrator_marker_blocks(tmp_path: Path) -> None:
+    """A scope file left in 'running' status (stop-orchestrator never ran) blocks,
+    same as missing."""
+    repo, message = _setup_valid_c50_commit(tmp_path)
+
+    telemetry_dir = repo / ".context" / "telemetry"
+    telemetry_dir.mkdir(parents=True)
+    (telemetry_dir / "C50-orchestrator.json").write_text(json.dumps({
+        "commit": "C50", "status": "running",
+        "started_at": "2026-06-13T00:00:00+00:00", "ended_at": None,
+        "tool_calls": 1, "read_paths": [], "write_paths": [], "searches": [], "commands": [],
+    }), encoding="utf-8")
+
+    result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
+
+    assert result.returncode == 2
+    assert "--start-orchestrator C50" in result.stdout
+
+
+def test_orchestrator_marker_commit_mismatch_blocks(tmp_path: Path) -> None:
+    """A scope file whose 'commit' field doesn't match the staged commit blocks,
+    same as missing."""
+    repo, message = _setup_valid_c50_commit(tmp_path)
+
+    telemetry_dir = repo / ".context" / "telemetry"
+    telemetry_dir.mkdir(parents=True)
+    (telemetry_dir / "C50-orchestrator.json").write_text(json.dumps({
+        "commit": "C49", "status": "completed",
+        "started_at": "2026-06-13T00:00:00+00:00", "ended_at": "2026-06-13T00:05:00+00:00",
+        "tool_calls": 3, "read_paths": [], "write_paths": [], "searches": [], "commands": [],
+    }), encoding="utf-8")
+
+    result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
+
+    assert result.returncode == 2
+    assert "--start-orchestrator C50" in result.stdout
+
+
+def test_chore_state_commit_exempt_from_orchestrator_marker(tmp_path: Path) -> None:
+    """A chore(state) commit with no Commit #NN + execution marker pair is exempt
+    regardless of telemetry scope state."""
+    config = {
+        "initialized": True,
+        "universal_allowed": ["project-state.json"],
+        "agents": {
+            "claude@anthropic.com": {
+                "name": "Claude",
+                "domains": ["CLAUDE.md"],
+            }
+        },
+    }
+    repo = _init_repo(tmp_path, config)
+    _stage(repo, "project-state.json", "{}")
+
+    message = "chore(state): advance state after C-50"
 
     result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
 
