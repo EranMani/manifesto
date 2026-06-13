@@ -5,15 +5,45 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-13 · C38 committed*
+*Last updated: 2026-06-13 · C39 pending approval*
 
-**Last completed:** C38 `policy-query-embedding` — committed 2026-06-13 (b434dde)
+**Last completed:** C39 `policy-vector-candidates` — pending approval (not yet committed)
 **Currently active:** none
 **Blocked by:** none
 
-Tool usage: reads=14, writes=10, total=53 (across two invocations, both hit the 25-cap)
-Note: counts are Nova's agent invocations only. Orchestrator applied a few additional direct
-fixes post-session (see Session 2 corrections).
+Tool usage (C39): reads=5 (within 10), writes=2, total=11 (within 18 cap); 1 expansion used
+(grep over backend/app/models for policy.py field names — blocked at expansion 2, so
+implemented PolicyChunkCandidate/profile fields from handoff-documented C26/C27
+provenance contracts instead of reading the model file directly).
+
+C39 added `PolicyChunkCandidate`/`ScoredPolicyChunk` TypedDicts, `_cosine_similarity()`,
+and `RAGPolicy.fetch_vector_candidates(query_vector, candidates, top_k)` to
+backend/app/services/rag_policy.py. Filters candidates to `status == "ready"` and a
+profile match against `self._embeddings.profile` (EmbeddingService.profile, per C25/C38
+contract), scores by cosine similarity, sorts by (-score, chunk_index) for deterministic
+tie-breaking, truncates to top_k. Pure in-memory function — no DB session added (the
+actual policy_chunks/policy_documents query is a later commit's concern; this establishes
+the scoring/filtering contract candidates must satisfy). 4 new tests added to
+backend/tests/services/test_rag_policy.py (all named test_vector_candidates_* so
+`-k vector_candidates` matches): cosine ordering, tie-breaking by chunk_index,
+wrong-profile/non-ready exclusion, top_k truncation. All 6 tests in the file pass.
+
+**Orchestrator correction:** Nova's draft modeled `profile` as a single string field
+(`PolicyChunkCandidate["profile"]: str`) compared via `==` against `EmbeddingService.profile`.
+`EmbeddingService.profile` is actually an `EmbeddingProfile` dataclass (provider, model,
+dimensions), and `policy_documents` stores three separate columns
+(`embedding_provider`, `embedding_model`, `embedding_dimensions`) — a string-vs-dataclass
+`==` would always be `False`, silently excluding every candidate in production despite
+passing the test (which used a matching fake string on both sides). Claude corrected
+`PolicyChunkCandidate` to carry `embedding_provider`/`embedding_model`/`embedding_dimensions`
+(matching `backend/app/models/policy.py`) and `fetch_vector_candidates` to compare each
+field against `active_profile.provider`/`.model`/`.dimensions`. Updated
+`test_rag_policy.py` to use the real `EmbeddingProfile` from `app.services.llm` in
+`ACTIVE_PROFILE`/`FakeEmbeddingService`/`_chunk()`. All 6 tests still pass.
+
+**Developer attention:** None — the field-name mismatch flagged below was resolved by the
+orchestrator correction above; `PolicyChunkCandidate` now matches
+`backend/app/models/policy.py` exactly.
 
 **Open Handoffs — Inbound:**
 - ← Rex (C24): validated provider settings, dependencies, and one 768-dimensional
@@ -48,6 +78,7 @@ No archived sessions yet.
 | 3 | C36 `ingestion-pgvector-write-integration` | committed 2026-06-13 (c18a826) | Replaced the skipped `TestIngestDocumentIntegration` placeholder with a real-DB `TestIngestDocumentPgvectorWrite` test (transaction-rollback fixture matching C35); proves `ingest_document()` writes 768-dim embeddings and chunk provenance matching `chunk_blocks()` |
 | 4 | C37 `ingestion-status-transaction-integration` | committed 2026-06-13 (d4ce60f) | Added `TestIngestDocumentTransactionIntegration` covering the successful ready-state commit and the failed-publish rollback path |
 | 5 | C38 `policy-query-embedding` | committed 2026-06-13 (b434dde) | `RAGPolicy.embed_query()` normalizes (NFC + whitespace collapse) and embeds via `EmbeddingService.embed_query()`; blank input raises `EmptyQueryError` before any provider call |
+| 6 | C39 `policy-vector-candidates` | pending approval | `RAGPolicy.fetch_vector_candidates()` filters to `status == "ready"` and a matching `EmbeddingProfile` (provider/model/dimensions), scores by cosine similarity, sorts by (-score, chunk_index) |
 
 ---
 
@@ -300,3 +331,48 @@ No gate wave at C37 (next wave at C40).
 → **2 passed**.
 verify_constraints all_pass (--execution claude-direct): files=2/4, diff_lines=85/350.
 No gate wave at C38 (next wave at C40).
+
+---
+
+## Session 6 — C39 `policy-vector-candidates` · 2026-06-13
+
+**Assigned:** Nova
+**Status:** pending approval (not yet committed)
+Tool usage: reads=5, writes=2, total=11 (within 18 cap); 1 expansion used
+(grep over backend/app/models for policy.py field names — blocked at expansion 2, so
+implemented PolicyChunkCandidate/profile fields from handoff-documented C26/C27
+provenance contracts instead of reading the model file directly)
+
+### What was built
+
+`backend/app/services/rag_policy.py`:
+- `PolicyChunkCandidate` / `ScoredPolicyChunk` `TypedDict`s
+- `_cosine_similarity(a, b)` — cosine similarity of two equal-length vectors, returns
+  0.0 for zero-magnitude vectors
+- `RAGPolicy.fetch_vector_candidates(query_vector, candidates, top_k=5)` — filters
+  candidates to `status == "ready"` and a matching `EmbeddingProfile`, scores by cosine
+  similarity, sorts by `(-score, chunk_index)`, truncates to `top_k`
+
+`backend/tests/services/test_rag_policy.py` — `TestFetchVectorCandidates` (4 new tests,
+all named `test_vector_candidates_*` so `-k vector_candidates` matches): cosine ordering,
+tie-breaking by chunk_index, wrong-profile/non-ready exclusion, top_k truncation.
+
+### Orchestrator correction
+
+Nova's draft modeled the profile match as `PolicyChunkCandidate["profile"]: str` compared
+via `==` against `EmbeddingService.profile`. `EmbeddingService.profile` is actually an
+`EmbeddingProfile` dataclass (provider, model, dimensions), and `policy_documents` stores
+three separate columns (`embedding_provider`, `embedding_model`, `embedding_dimensions`) —
+a string-vs-dataclass `==` would always be `False` in production. Claude corrected
+`PolicyChunkCandidate` to carry `embedding_provider`/`embedding_model`/`embedding_dimensions`
+(matching `backend/app/models/policy.py`) and `fetch_vector_candidates` to compare each
+field against `active_profile.provider`/`.model`/`.dimensions`. Updated
+`test_rag_policy.py` to use the real `EmbeddingProfile` from `app.services.llm`.
+
+### Verification
+
+`docker compose run --rm backend uv run pytest tests/services/test_rag_policy.py -k vector_candidates -q`
+→ **4 passed**.
+`docker compose run --rm backend uv run pytest tests/services/test_rag_policy.py -q`
+→ **6 passed**.
+No gate wave at C39 (next wave at C40).
