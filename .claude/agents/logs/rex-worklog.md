@@ -348,4 +348,21 @@ Tool usage: reads=6, writes=3, total=9
 - → Nova (C27/C29): retrieve only `status='ready'` documents matching the active embedding profile (`embedding_provider`, `embedding_model`, `embedding_dimensions`); `policy_chunks.embedding` is `VECTOR(768)`. The ready-state trigger requires every chunk embedding to be non-null before a document can be marked `ready`.
 - → Rex (C28/C31): expose only safe status/profile metadata via API/persistence schemas — never `embedding`, chunk `content`, or `error_message`.
 
+---
+
+## Session 15 — Commit 35: `policy-storage-db-url`
+*2026-06-13*
+
+**Approach:** Orchestrator direct write (Claude-direct, Eran-approved) — no Rex invocation. Single-file edit closing OI-11 from Session 14.
+
+**Files updated:**
+- `backend/tests/models/test_policy_storage.py` — `DB_URL` now reads `os.environ.get("DATABASE_URL", ...)` with the prior `localhost:5432` value as fallback, matching C28's `test_documents.py` pattern, so the suite resolves `db:5432` when run via `docker compose run --rm backend`. Also fixed a latent UUID-vs-str bug in `test_search_vector_full_text_query` (`assert str(rows[0][0]) == chunk.id`) — previously masked because the connection error meant the test never reached this assertion.
+
+**Test gate results:**
+- `docker compose run --rm backend uv run pytest tests/models/test_policy_storage.py -q` → 7 passed (was 7 errors, OI-11). verify_constraints all_pass (--execution claude-direct): files=1/4, diff_lines=7/350.
+
+**Handoffs out:** None — OI-11 resolved, no new constraints introduced.
+
+Tool usage: orchestrator direct write, 0 agent invocations.
+
 Tool usage: reads=18, writes=4, total=51 (combined across two capped invocations, with read overlap)

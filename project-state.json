@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C34 (database-test-container-command) is done: scripts/test_backend.ps1 runs `docker compose run --rm backend uv run pytest tests/` (with optional -CollectOnly -> --collect-only), exiting with pytest's exit code so the database hostname `db` resolves inside the backend container; documented in README.md. Verified live (Docker Desktop started mid-session): 131 tests collected, exit 0. verify_constraints all_pass (files=2/4, diff_lines=34/350). Claude-direct (Eran-approved), commit 4301b40. C35 (policy-storage-db-url, rex) is next.",
+  "tldr": "C35 (policy-storage-db-url) is done: backend/tests/models/test_policy_storage.py now reads DATABASE_URL via os.environ.get with the prior localhost value as fallback (matches C28's test_documents.py pattern), closing OI-11. Also fixed a latent UUID-vs-str assertion bug in test_search_vector_full_text_query (str(rows[0][0]) == chunk.id) that the connection failure had masked. Verified live: docker compose run --rm backend uv run pytest tests/models/test_policy_storage.py -q -> 7 passed (was 7 errors). verify_constraints all_pass (files=1/4, diff_lines=7/350). Claude-direct (Eran-approved), commit 85d1867. Gate wave due at C35 (every-5th-commit cadence). C36 (ingestion-pgvector-write-integration, nova) is next.",
   "phase": 2,
-  "last_completed_commit": "34",
-  "next_commit": "35",
-  "next_commit_name": "policy-storage-db-url",
-  "next_commit_assignee": "rex",
+  "last_completed_commit": "35",
+  "next_commit": "36",
+  "next_commit_name": "ingestion-pgvector-write-integration",
+  "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
     {
@@ -159,9 +159,10 @@
     {
       "id": "OI-11",
       "title": "tests/models/test_policy_storage.py (C26) hardcodes localhost:5432 DB_URL — 7 errors when run via docker compose",
-      "detail": "Same root cause as the fix applied in C28's tests/api/test_documents.py: DB_URL = \"postgresql+asyncpg://manifesto:manifesto@localhost:5432/manifesto\" resolves to the wrong host inside the backend container (should read DATABASE_URL env var, which resolves to db:5432). Currently produces 7 errors when the full suite is run via `docker compose run --rm backend uv run pytest`. Out of scope for C28; apply the same os.environ.get(\"DATABASE_URL\", ...) fix in a future commit.",
+      "detail": "Same root cause as the fix applied in C28's tests/api/test_documents.py: DB_URL = \"postgresql+asyncpg://manifesto:manifesto@localhost:5432/manifesto\" resolves to the wrong host inside the backend container (should read DATABASE_URL env var, which resolves to db:5432). Currently produces 7 errors when the full suite is run via `docker compose run --rm backend uv run pytest`. Out of scope for C28; apply the same os.environ.get(\"DATABASE_URL\", ...) fix in a future commit. Resolved 2026-06-13 (C35): DB_URL now reads os.environ.get(\"DATABASE_URL\", ...) with the prior localhost value as fallback, matching C28's pattern. Fixing the connection surfaced a separate latent bug (UUID-vs-str assertion in test_search_vector_full_text_query), fixed in the same commit. 7/7 tests now pass via docker compose.",
       "priority": "medium",
-      "opened": "2026-06-10"
+      "opened": "2026-06-10",
+      "status": "resolved"
     },
     {
       "id": "OI-12",
