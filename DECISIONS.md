@@ -1483,4 +1483,54 @@ rather than trimming required test coverage to fit the original estimate.
 
 ---
 
+---
+
+## D44 — Two Proposed Structural Fixes for C42/C43's Recurring COMMIT_HEALTH_RUBRIC Deductions
+
+- **Date:** 2026-06-14
+- **Decided by:** Claude (proposal), pending Eran's approval to spec as commits
+- **Context:** C43 scored 4/10 (COMMIT_HEALTH_RUBRIC.md), repeating two failure
+  modes already named in C42's score: A4 (the commit's own new alembic
+  migration breaks the *previous* commit's `command.downgrade(cfg, "-1")`
+  migration test, queued as a letter-suffix repair — C42A then C43A) and
+  B4/C3 (`context_telemetry.py --start-orchestrator`/`--stop-orchestrator`
+  run late, after inspection, producing an empty `tool_calls: 0` record —
+  also seen in C38). Per OI-13/OI-14's finding, prose/checklist reminders
+  (CLAUDE.md steps 5b/7c, "no -1 downgrades") do not reliably stop recurring
+  patterns; a deterministic gate is required.
+
+### Proposed fixes (not yet implemented)
+
+1. **Ban `command.downgrade(cfg, "-1")` in migration tests, enforced at
+   commit time.** Add a fail-closed check (new `hooks/check_migration_downgrade_targets.py`
+   or an addition to `pre_commit_check.py`, mirroring `check_finalize_marker()`)
+   that greps `backend/tests/models/test_*.py` for `command.downgrade(cfg, "-1")`
+   and blocks any commit that adds a new `backend/alembic/versions/000N_*.py`
+   file while that pattern still exists anywhere in the test tree. Forces the
+   prior test's downgrade target to an explicit revision ID in the same
+   commit that shifts the head — eliminating the C-NN-A repair-commit pattern
+   for this cause going forward. One-time cleanup: also fix C43A's own target
+   proactively and grep the full suite for any other lingering `"-1"` targets.
+
+2. **Make the orchestrator-telemetry bracket automatic, not Claude-remembered.**
+   `--start-orchestrator`/`--stop-orchestrator` have been mistimed or skipped in
+   3 of the last 6 commits with the gate active (C38, C42, C43). Add a
+   `PreToolUse` hook (Read/Edit/Grep matchers) that calls
+   `context_telemetry.py --start-orchestrator CNN` the first time any tool
+   touches a file in the active commit's `Files To Modify Or Add` (resolved
+   from `project-state.json next_commit` + the active spec) if no scope is
+   already open, and a hook on `/verify-commit`'s `verify_constraints.py
+   --worktree` call that closes the scope with `--stop-orchestrator CNN` once
+   it returns ALL CHECKS PASSED. Removes the manual step entirely so
+   `tool_calls`/`read_paths`/etc. are always populated from real tool-call
+   timestamps.
+
+### Status
+
+Recorded for Eran's review. If approved, each becomes a letter-suffix
+governance commit owned by Adam (hooks/ domain) following the
+C33B/C38A fail-closed-gate precedent. Tracked as **OI-17**.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

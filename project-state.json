@@ -219,6 +219,14 @@
       "status": "open"
     },
     {
+      "id": "OI-17",
+      "title": "C42/C43 recurring COMMIT_HEALTH_RUBRIC deductions (A4 migration-downgrade regression, B4/C3 late orchestrator telemetry) need deterministic fixes",
+      "detail": "C43 scored 4/10, repeating two failure modes already named in C42's score: A4 (a commit's new alembic migration breaks the previous commit's command.downgrade(cfg, \"-1\") test, queued as a letter-suffix repair -- C42A then C43A) and B4/C3 (context_telemetry.py --start-orchestrator/--stop-orchestrator run late, producing an empty tool_calls: 0 record -- also seen in C38). Per OI-13/OI-14, prose reminders don't stop recurring patterns. DECISIONS.md D44 proposes two deterministic gates: (1) a fail-closed pre_commit_check.py addition that bans command.downgrade(cfg, \"-1\") in backend/tests/models/test_*.py whenever a new alembic version file is added, forcing the prior test's downgrade target to an explicit revision in the same commit; (2) PreToolUse/verify-commit hooks that automatically bracket --start-orchestrator/--stop-orchestrator from real tool-call timestamps instead of relying on Claude to call them manually. Pending Eran's approval to spec as letter-suffix governance commits (Adam, hooks/ domain).",
+      "priority": "medium",
+      "opened": "2026-06-14",
+      "status": "open"
+    },
+    {
       "id": "OI-15",
       "title": "C33B's check_finalize_marker() gate was not reflected in CLAUDE.md/ORCHESTRATION.md steps 11-13",
       "detail": "C33B (commit 41d1c97) added hooks/finalize_commit.py and a fail-closed check_finalize_marker() to pre_commit_check.py, but the documented commit-loop sequence (CLAUDE.md step 11 / ORCHESTRATION.md STEP 10) still described the superseded standalone notify_agent_done.py --write-flag call, with no mention of finalize_commit.py. During C34 this caused: (1) git commit attempted before any marker existed (blocked), (2) finalize_commit.py's required --notify-what/--notify-why discovered only via --help, (3) the chore(state) doc-sweep commit first drafted with the primary commit's 'Commit #34'+'Execution: Claude-direct'+Co-Authored-By: Adam header, mis-attributing .context/finalize/ (Claude's domain) and re-triggering check_finalize_marker() for the chore commit itself. A pre-existing, separate bash pitfall (env-prefix GIT_MESSAGE= producing an empty commit message) also recurred. Fixed 2026-06-13 (D39): CLAUDE.md step 11 now runs hooks/finalize_commit.py (writes notify flag + marker) before the commit proposal, removed the duplicate pre-approval notification block, step 12.3 documents the .context/finalize/CNN.json sweep and the chore-commit template (no Commit #NN/Execution: line, Co-Authored-By: Claude), and the GIT_MESSAGE export-syntax form replaces the env-prefix form in Critical Rule 2 and step 12. ORCHESTRATION.md STEP 10/13 and team-preferences.md Bash Command Conventions (#3-#5) updated in the same pass.",
