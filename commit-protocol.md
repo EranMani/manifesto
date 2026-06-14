@@ -61,36 +61,35 @@
 | 39 | policy-vector-candidates | nova | ✅ done · 2026-06-14 |
 | 40 | product-delivery-replan | claude | ✅ done · 2026-06-14 |
 | 41 | purchase-order-storage | rex | pending |
-| 42 | shipment-lifecycle-fields | rex | planned |
-| 43 | shipment-event-storage | rex | planned |
-| 44 | procurement-foundation-seed | rex | planned |
-| 45 | shipment-scenario-seed | rex | planned |
-| 46 | bundled-policy-seed | nova | planned |
-| 47 | shipment-identifier-evidence | nova | planned |
-| 48 | procurement-relationship-evidence | nova | planned |
-| 49 | shipment-timeline-evidence | nova | planned |
-| 50 | logistics-graph-evidence | nova | planned |
-| 51 | minimal-policy-evidence | nova | planned |
-| 52 | assistant-intent-routing | nova | planned |
-| 53 | grounded-logistics-answer | nova | planned |
-| 54 | grounded-policy-answer | nova | planned |
-| 55 | assistant-role-authorization | rex | planned |
-| 56 | unified-assistant-api | rex | planned |
-| 57 | assistant-client-session-state | aria | planned |
-| 58 | focused-evidence-graph | aria | planned |
-| 59 | unified-assistant-interface | aria | planned |
-| 60 | assistant-evidence-integration | aria | planned |
-| 61 | assistant-golden-evaluation | nova | planned |
-| 62 | assembled-client-demo | adam | planned |
+| 42 | shipment-lifecycle-fields | rex | pending |
+| 43 | shipment-event-storage | rex | pending |
+| 44 | procurement-foundation-seed | rex | pending |
+| 45 | shipment-scenario-seed | rex | pending |
+| 46 | bundled-policy-seed | rex | pending |
+| 47 | shipment-identifier-evidence | nova | pending |
+| 48 | procurement-relationship-evidence | nova | pending |
+| 49 | shipment-timeline-evidence | nova | pending |
+| 50 | logistics-graph-evidence | nova | pending |
+| 51 | minimal-policy-evidence | nova | pending |
+| 52 | assistant-intent-routing | nova | pending |
+| 53 | grounded-logistics-answer | nova | pending |
+| 54 | grounded-policy-answer | nova | pending |
+| 55 | assistant-role-authorization | rex | pending |
+| 56 | unified-assistant-api | rex | pending |
+| 57 | assistant-client-session-state | aria | pending |
+| 58 | focused-evidence-graph | aria | pending |
+| 59 | unified-assistant-interface | aria | pending |
+| 60 | assistant-evidence-integration | aria | pending |
+| 61 | assistant-golden-evaluation | nova | pending |
+| 62 | assembled-client-demo | adam | pending |
 
 ---
 
 ## Fast-Delivery Product Replan (approved 2026-06-14)
 
 C40 resets the active roadmap around the procurement-logistics demonstration while
-preserving a minimal policy-document assistant. Only C40 is pending. C41-C62 remain
-planned until the immediately next commit receives an exact, validated specification.
-This keeps roadmap visibility without activating placeholder specs.
+preserving a minimal policy-document assistant. C41-C62 are specified in advance and
+validated as one dependency graph before implementation begins.
 
 **C40 review exception:** Eran explicitly waived the scheduled Viktor review for C40
 only because it changes planning and project-state documents without runtime behavior.
@@ -220,10 +219,8 @@ uncommitted contract.
 
 ## Commit Specs
 
-Full specifications for each commit live in `commit-specs/`.
+Full specifications for each pending commit live in `commit-specs/`.
 Load `commit-specs/commit-XX.md` (active commit only) when executing a step.
-Planned rows do not receive executable spec files until they become the immediately next
-commit. Retired specs remain available in Git history and must not stay at active paths.
 
 ---
 
