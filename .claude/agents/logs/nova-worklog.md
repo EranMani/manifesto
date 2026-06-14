@@ -5,10 +5,10 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-14 · C47 pending approval*
+*Last updated: 2026-06-14 · C48 committed*
 
-**Last completed:** C39 `policy-vector-candidates` — committed 2026-06-14 (1f47067)
-**Currently active:** C47 `shipment-identifier-evidence` — pending approval (Claude-direct)
+**Last completed:** C48 `procurement-relationship-evidence` — committed 2026-06-14 (e22e885)
+**Currently active:** none — C49 `shipment-timeline-evidence` next
 **Blocked by:** none
 
 Tool usage (C39): reads=5 (within 10), writes=2, total=11 (within 18 cap); 1 expansion used
@@ -79,6 +79,8 @@ No archived sessions yet.
 | 4 | C37 `ingestion-status-transaction-integration` | committed 2026-06-13 (d4ce60f) | Added `TestIngestDocumentTransactionIntegration` covering the successful ready-state commit and the failed-publish rollback path |
 | 5 | C38 `policy-query-embedding` | committed 2026-06-13 (b434dde) | `RAGPolicy.embed_query()` normalizes (NFC + whitespace collapse) and embeds via `EmbeddingService.embed_query()`; blank input raises `EmptyQueryError` before any provider call |
 | 6 | C39 `policy-vector-candidates` | committed 2026-06-14 (1f47067) | `RAGPolicy.fetch_vector_candidates()` filters to `status == "ready"` and a matching `EmbeddingProfile` (provider/model/dimensions), scores by cosine similarity, sorts by (-score, chunk_index) |
+| 7 | C47 `shipment-identifier-evidence` | committed 2026-06-14 (cc937ff) | `lookup_shipment()` normalizes tracking codes and returns `ShipmentEvidence` via one parameterized SELECT, raising `ShipmentNotFoundError` for blank/unmatched codes |
+| 8 | C48 `procurement-relationship-evidence` | committed 2026-06-14 (e22e885) | `lookup_procurement()` expands a shipment to its vendor, optional purchase order/buyer, and products (sorted by name then id) via allowlisted ORM selects |
 
 ---
 
@@ -382,7 +384,7 @@ No gate wave at C39 (next wave at C40).
 ## Session 7 — C47 `shipment-identifier-evidence` · 2026-06-14
 
 **Executor:** Claude (direct, per Eran's approval)
-**Status:** pending approval
+**Status:** committed 2026-06-14 (cc937ff)
 **Tool usage (orchestrator):** 0 agent calls
 
 ### What was built
@@ -418,3 +420,51 @@ separately (aa1fa2a, Claude, hooks narrow exception) before C47.
 → **4 passed**.
 verify_constraints all_pass (--execution claude-direct): files=3/4, diff_lines=202/350.
 No gate wave at C47 (next wave at C50).
+
+---
+
+## Session 8 — C48 `procurement-relationship-evidence` · 2026-06-14
+
+**Executor:** Claude (direct, per Eran's approval)
+**Status:** committed 2026-06-14 (e22e885)
+**Tool usage (orchestrator):** 0 agent calls
+
+### What was built
+
+`backend/app/services/rag_logistics.py`:
+- `VendorEvidence`, `BuyerEvidence`, `PurchaseOrderEvidence`, `ProductEvidence` (frozen
+  dataclasses) and `ProcurementEvidence` (shipment, optional purchase order, optional
+  buyer, vendor, products).
+- Refactored shared shipment loading into `_load_shipment`/`_shipment_evidence`,
+  reused by both `lookup_shipment` and the new `lookup_procurement`.
+- `lookup_procurement(db, tracking_code)` — loads the shipment, its vendor
+  (id/name/country only), its purchase order and buyer when
+  `purchase_order_id` is set (buyer via `PurchaseOrder.buyer_id` -> `User`,
+  exposing only id/name), and its products (via `Product.shipment_id`) sorted
+  by `name` then `id`. All allowlisted ORM `select`s — no password/email/notes
+  fields surfaced.
+
+`backend/tests/services/test_rag_logistics.py` (+3 tests, `-k relationships`):
+- golden path returns buyer/order/vendor and products sorted by name then id
+- missing purchase order -> `purchase_order`/`buyer` are `None`, `products == []`
+- buyer/vendor evidence objects carry no `email`/`password_hash`/`contact` fields
+
+### Telemetry interrupt (C47B/C47C, separate commits, not part of C48's diff)
+
+`context_telemetry.py --stop-orchestrator 48` was overwritten mid-session by the
+Bash PreToolUse lifecycle hook before `finalize_commit.py` could validate it,
+blocking finalize with "capture is empty; execution scope started too late".
+C47B/C47C (Claude, hooks narrow exception, executor: recovery/Codex-derived)
+fixed `direct_execution_lifecycle.py`/`context_telemetry.py`/`finalize_commit.py`
+so control commands never re-arm or overwrite an existing scope, and
+finalization is idempotent. C48's real telemetry (26 tool calls, 43 assistant
+turns) was recovered deterministically from the Claude transcript
+(`.context/telemetry/C48-orchestrator.json` `recovery` block) — committed
+between C47 and C48 (chore d59f21e resumed C48 afterward).
+
+### Verification
+
+`docker compose run --rm backend uv run pytest tests/services/test_rag_logistics.py -k relationships -q`
+→ **3 passed**; full file → **7 passed**.
+verify_constraints all_pass (--execution claude-direct): files=2/4, diff_lines=228/350.
+No gate wave at C48 (next wave at C50).

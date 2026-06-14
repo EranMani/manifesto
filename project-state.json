@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C47B and C47C telemetry lifecycle hotfixes are complete. Control commands cannot re-arm direct telemetry, existing same-commit scopes do not lock tools, explicit overwrites are rejected, and finalization accepts an already-completed matching scope. C48 telemetry was recovered from exact transcript evidence; C48 implementation remains complete and unstaged, ready for finalization without manual telemetry start/stop calls.",
+  "tldr": "C48 (procurement-relationship-evidence) is committed (e22e885). lookup_procurement() expands a shipment to its vendor, optional purchase order/buyer, and products (sorted by name then id) in backend/app/services/rag_logistics.py; 3 new tests pass (7/7 full file). C47B/C47C telemetry lifecycle hotfixes are in place; C48's telemetry was finalized from the recovered transcript-derived record. Next is C49 (shipment-timeline-evidence, Nova).",
   "phase": 2,
-  "last_completed_commit": "47C",
-  "next_commit": "48",
-  "next_commit_name": "procurement-relationship-evidence",
+  "last_completed_commit": "48",
+  "next_commit": "49",
+  "next_commit_name": "shipment-timeline-evidence",
   "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
