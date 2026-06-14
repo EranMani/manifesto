@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C41 (purchase-order-storage, Rex, Claude-direct) is complete: backend/app/models/purchase_order.py + 0003_purchase_order_storage migration + test_purchase_order_storage.py (4/4 passed, full suite 143/143). C42 (shipment-lifecycle-fields, Rex) is next. Normal review cadence resumes at C45 (Viktor every-5th-commit wave).",
+  "tldr": "C42 (shipment-lifecycle-fields, Rex, Claude-direct) is complete: backend/app/models/shipment.py + backend/app/schemas/shipment.py + 0004_shipment_lifecycle_fields migration + test_shipment_lifecycle.py (6/6 passed, full suite 148/149). C42A (purchase-order-migration-downgrade-fix, Rex) is next — a 1-line fix for the regression the 0004 migration caused in test_purchase_order_storage.py's downgrade target, queued because validate_commit_spec.py locks max_changed_files at 4. Normal review cadence resumes at C45 (Viktor every-5th-commit wave).",
   "phase": 2,
-  "last_completed_commit": "41",
-  "next_commit": "42",
-  "next_commit_name": "shipment-lifecycle-fields",
+  "last_completed_commit": "42",
+  "next_commit": "42A",
+  "next_commit_name": "purchase-order-migration-downgrade-fix",
   "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
@@ -85,6 +85,13 @@
       "summary": "Inserted C38A (orchestrator-telemetry-marker-gate) between C38 (done) and C39 (pending), using the Rule 10 letter-suffix convention so C39-C76 keep their existing numbers. C38A adds check_orchestrator_telemetry_marker() to hooks/pre_commit_check.py, mirroring check_finalize_marker()'s pattern: fails closed on a primary commit (Commit #NN + execution marker) unless a completed .context/telemetry/CNN-orchestrator.json scope exists and matches, exempting chore/doc-sweep/state commits. Owned by Claude under the orchestrator hooks exception. Follows the C33B/D39 precedent that a prose-only fix for a missed step (here, steps 5b/7c) does not reliably stick and needs a fail-closed gate.",
       "agents_activated": [],
       "files_updated": ["commit-protocol.md", "commit-specs/commit-38A.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-14",
+      "trigger": "C42's 0004_shipment_lifecycle_fields migration moved the alembic head past 0003_purchase_order_storage, breaking test_purchase_order_storage.py::test_migration_upgrade_creates_table_and_downgrade_removes_it (its command.downgrade(cfg, \"-1\") now only undoes 0004, leaving purchase_orders present when the assertion expects it removed; full suite 148/149 after C42).",
+      "summary": "Inserted C42A (purchase-order-migration-downgrade-fix) between C42 (done) and C43 (pending), using the Rule 10 letter-suffix convention so C43-C76 keep their existing numbers. C42A is a 1-line fix: change the downgrade target in test_purchase_order_storage.py from \"-1\" to the explicit revision \"0002_rag_storage_hardening\" so the downgrade always removes both 0004 and 0003. Eran initially approved folding this fix directly into C42, but validate_commit_spec.py hard-locks max_changed_files at 4 (not overridable in the spec), so the 5th file could not be added; the fix was reverted out of C42 and queued as this letter-suffix commit instead. Owned by Rex (backend/tests/ domain).",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "commit-specs/commit-42A.md", "project-state.json"]
     }
   ],
   "rollback_history": [],

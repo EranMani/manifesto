@@ -5,14 +5,14 @@
 ---
 
 ## Current State
-*Last updated: Commit 28 · 2026-06-10*
+*Last updated: Commit 42 · 2026-06-14*
 
-**Last completed:** Commit 28 `document-upload-routes` ✅ (pending Eran approval/commit)
+**Last completed:** Commit 42 `shipment-lifecycle-fields` ✅ (pending Eran approval/commit)
 **Currently active:** none
 **Blocked by:** none
-**Incoming fix commits:** none
+**Incoming fix commits:** C42A (1-line downgrade-target fix to `test_purchase_order_storage.py`, regression from C42's 0004 migration)
 
-Tool usage: reads=70, writes=10, total=116 (across 5 invocations; phase-1 research hit the 25-cap twice; final OI-08 fix and verification done directly by orchestrator)
+Tool usage: orchestrator direct write (Claude-direct), 0 agent invocations.
 
 **Open Handoffs — Outbound:**
 - → Aria (future document UI, C32+): `GET /api/v1/documents` and `GET /api/v1/documents/{id}` return safe metadata only — `id`, `title`, `original_filename`, `status`, `chunk_count`, `uploaded_by`, `embedding_provider`/`embedding_model`/`embedding_dimensions`, `uploaded_at`, `updated_at`, and `failure_code` (one of `DocumentFailureCode`, only set when `status == "failed"`). Never chunk text, embeddings, or `file_path`.
@@ -77,6 +77,8 @@ Your next commit is now: Commit 24 `llm-runtime-config`.
 | 13 | C24: llm-runtime-config | ✅ Done | Added validated LLM/embedding settings to config.py; added openai, httpx, tiktoken to pyproject.toml; uv sync succeeded. Post-session fix (orchestrator): EMBEDDING_MODEL changed to Optional[str]=None with provider-aware resolver validator — OpenAI deployments now default to text-embedding-3-small, never silently nomic-embed-text. Added pytest + 17 persistent tests (all pass). |
 | 14 | C26: rag-storage-hardening | ✅ Done | New migration 0002_rag_storage_hardening.py: VECTOR(1536)->VECTOR(768) with fail-loud guard if non-null embeddings exist, HNSW cosine index replacing IVFFlat, generated search_vector TSVECTOR + GIN index, idempotency unique constraint on (sha256, embedding_provider, embedding_model, embedding_dimensions), unique (document_id, chunk_index), trigger blocking status='ready' while any chunk embedding is null. policy.py models updated to match. test_policy_storage.py written covering all 7 acceptance scenarios. Live alembic upgrade/downgrade + pytest run blocked by environment (see Session 14 note) — verification deferred, code reviewed by orchestrator. |
 | 15 | C28: document-upload-routes | ✅ Done | Tool usage: reads=70, writes=10, total=116 (across 5 invocations; phase-1 research hit the 25-cap twice). New `app/schemas/document.py` (DocumentRead/DocumentListResponse/DocumentUploadResponse, safe fields only). Rewrote `documents.py` 501 stub: POST validates role, title, content-type/extension/signature, streams body with a configurable byte cap (`MAX_DOCUMENT_UPLOAD_BYTES`, new in config.py, never trusts Content-Length), computes sha256, checks `(sha256, embedding_provider, embedding_model, embedding_dimensions)` for idempotency (200 for existing ready doc, 201 for new), creates `policy_documents` row status='processing', calls frozen `ingest_document()`. GET list is cursor-paginated by `(uploaded_at DESC, id DESC)`. GET by id returns safe metadata or 404. Catches only `IngestionError`/`LLMError`. Orchestrator added `_failure_code_for()` mapping `error_message` text -> `DocumentFailureCode` (best-effort, coupled to ingestion.py's exact sanitized messages — flagged for Nova to replace with a structured error code in a future commit). OI-08 resolved for this commit by running tests inside `docker compose run backend` (db service hostname `db`, not `localhost`) — fixed hardcoded `localhost:5432` in test_documents.py to read `DATABASE_URL` env var; also ran `alembic upgrade head` against the docker db (was at base). 16/16 new tests pass; full backend suite 123 passed/1 skipped, plus 7 pre-existing errors in test_policy_storage.py (C26, same hardcoded-localhost issue, out of scope for C28 — flagged separately). |
+| 16 | C41: purchase-order-storage | ✅ Done | Orchestrator direct write. New `PurchaseOrder` model + `0003_purchase_order_storage` migration + tests. 4/4 new, 143/143 full suite. |
+| 17 | C42: shipment-lifecycle-fields | ✅ Done | Orchestrator direct write. See Session 17. |
 
 ---
 
@@ -392,5 +394,36 @@ Tool usage: reads=18, writes=4, total=51 (combined across two capped invocations
 - Test module uses a module-scoped autouse fixture (`command.upgrade(cfg, "head")`) so the migration is applied before the model-level tests run, then the dedicated migration test exercises upgrade -> downgrade -> upgrade and checks `policy_documents` is unaffected throughout.
 
 **Handoffs out:** None — shipment linkage and lifecycle fields remain C42.
+
+Tool usage: orchestrator direct write, 0 agent invocations.
+
+---
+
+## Session 17 — Commit 42: `shipment-lifecycle-fields`
+*2026-06-14*
+
+**Approach:** Orchestrator direct write (Claude-direct, Eran-approved) — no Rex invocation. Extends the existing `Shipment` model/schema with lifecycle state, following the C41 model+migration+test pattern.
+
+**Files updated:**
+- `backend/app/models/shipment.py` — added `ShipmentStatus` Literal (pending|in_transit|delayed|delivered|partial|damaged|cancelled|returned|lost); new columns `tracking_code` (unique, non-null), `purchase_order_id` (nullable FK -> `purchase_orders.id`, ON DELETE SET NULL), `origin`/`destination` (non-null), `status` (default `pending`, CHECK constraint `shipment_status_check`), `dispatched_at`/`expected_arrival_at` (non-null), `actual_arrival_at` (nullable, replaces `arrived_at`), `delay_reason` (nullable). `vendor_id` (FK CASCADE) preserved unchanged.
+- `backend/app/schemas/shipment.py` — `ShipmentBase`/`Create`/`Read` updated to expose all new lifecycle fields, importing `ShipmentStatus` from the model.
+
+**Files created:**
+- `backend/alembic/versions/0004_shipment_lifecycle_fields.py` — additive migration: adds `tracking_code` (+ unique constraint), `purchase_order_id` (+ FK + index), `origin`/`destination`, `status` (+ check constraint + index), `dispatched_at`/`expected_arrival_at`, renames `arrived_at` -> `actual_arrival_at` (now nullable), adds `delay_reason`. `downgrade()` reverses all of the above, including the rename back to `arrived_at` (not null).
+- `backend/tests/models/test_shipment_lifecycle.py` — covers: valid shipment persists with lifecycle fields and defaults (`status='pending'`, `purchase_order_id`/`actual_arrival_at`/`delay_reason` null); duplicate `tracking_code` rejected (IntegrityError via `uq_shipments_tracking_code`); invalid status rejected (DBAPIError via `shipment_status_check`); missing `origin` and missing `dispatched_at` rejected (IntegrityError, NOT NULL); migration upgrade adds the new columns (and removes `arrived_at`) and downgrade reverses it.
+
+**Test gate results:**
+- `docker compose run --rm backend uv run pytest tests/models/test_shipment_lifecycle.py -q` -> 6 passed.
+- `docker compose run --rm backend uv run pytest -q` (full suite) -> 148 passed, 1 failed (regression, see below).
+- verify_constraints all_pass (--execution claude-direct): files=4/4, diff_lines=312/350.
+
+**Decisions made:**
+- `purchase_order_id` uses `ON DELETE SET NULL` (nullable FK) rather than `RESTRICT`/`CASCADE`, since a shipment is allowed to outlive its purchase order per the spec contract.
+- `arrived_at` renamed to `actual_arrival_at` and made nullable in place (not dropped+re-added), preserving any existing data and matching the contract's "replace legacy `arrived_at`" wording.
+
+**Regression found (not fixed in this commit — see C42A):**
+- The new 0004 migration moves the alembic head past 0003, which breaks `test_purchase_order_storage.py::test_migration_upgrade_creates_table_and_downgrade_removes_it`: its `command.downgrade(cfg, "-1")` now only undoes 0004, so `purchase_orders` is still present when the test asserts it's gone. `validate_commit_spec.py` hard-locks `max_changed_files` at 4 (not overridable), so the 1-line fix (explicit downgrade target `0002_rag_storage_hardening`) could not be folded into C42. Queued as **C42A** (letter-suffix pattern, C33A/C38A precedent) to restore 149/149.
+
+**Handoffs out:** None.
 
 Tool usage: orchestrator direct write, 0 agent invocations.
