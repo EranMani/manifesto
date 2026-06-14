@@ -3,8 +3,8 @@
   "tldr": "C47 is complete. During C48, the valid telemetry scope was successfully stopped, but finalize_commit.py notification text containing rag_logistics.py was misclassified as implementation; the lifecycle hook opened a fresh empty scope and finalization overwrote the valid record. C47B (telemetry-lifecycle-overwrite-fix, Claude owner, recovery/Codex-derived executor) is inserted before C48 to land the lifecycle guards and exact transcript-derived C48 recovery. C48's implementation is complete and unstaged, pending C47B landing. Viktor's every-5th-commit wave remains pending.",
   "phase": 2,
   "last_completed_commit": "47",
-  "next_commit": "47B",
-  "next_commit_name": "telemetry-lifecycle-overwrite-fix",
+  "next_commit": "47C",
+  "next_commit_name": "telemetry-finalize-idempotency",
   "next_commit_assignee": "claude",
   "status": "phase-2-active",
   "open_handoffs": [

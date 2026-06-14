@@ -89,9 +89,18 @@ def step_render_dashboard():
 def step_close_capture(commit: str) -> tuple[bool, str]:
     """Close the matching active Claude scope as the first finalize action."""
     scope = finalize_orchestrator_scope(commit, REPO_ROOT)
-    if scope is None:
-        return False, "no matching active Claude scope to close"
-    return True, "closed"
+    if scope is not None:
+        return True, "closed"
+
+    commit_key = "C" + commit.zfill(2).upper()
+    completed_path = TELEMETRY_DIR / f"{commit_key}-orchestrator.json"
+    try:
+        completed = json.loads(completed_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False, "no matching active or completed Claude scope"
+    if completed.get("commit") == commit_key and completed.get("status") == "completed":
+        return True, "already closed"
+    return False, "no matching active or completed Claude scope"
 
 
 def step_validate_capture(commit: str, agent: str, execution: str) -> tuple[bool, str]:

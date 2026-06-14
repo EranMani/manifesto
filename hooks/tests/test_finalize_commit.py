@@ -130,6 +130,21 @@ def test_missing_active_capture_blocks_before_validation(monkeypatch, capsys):
     assert "no matching active" in summary["capture"]
 
 
+def test_step_close_capture_accepts_matching_completed_scope(tmp_path, monkeypatch):
+    telemetry = tmp_path / ".context" / "telemetry"
+    telemetry.mkdir(parents=True)
+    monkeypatch.setattr(finalize_commit, "TELEMETRY_DIR", telemetry)
+    monkeypatch.setattr(
+        finalize_commit, "finalize_orchestrator_scope", lambda *args: None
+    )
+    (telemetry / "C48-orchestrator.json").write_text(json.dumps({
+        "commit": "C48",
+        "status": "completed",
+    }), encoding="utf-8")
+
+    assert finalize_commit.step_close_capture("48") == (True, "already closed")
+
+
 def test_step_write_marker_matches_documented_schema(tmp_path, monkeypatch):
     monkeypatch.setattr(finalize_commit, "FINALIZE_DIR", tmp_path / ".context" / "finalize")
 
