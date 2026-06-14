@@ -1,0 +1,8 @@
+{
+  "commit": "45",
+  "agent": "rex",
+  "execution": "claude-direct",
+  "checks_passed": true,
+  "timestamp": "2026-06-14T08:05:48.254224+00:00",
+  "override_note": "diff_lines=391 exceeds cap of 350. Root cause: pre-existing CRLF/LF line-ending inconsistency in rex-worklog.md (Session 21 block was LF-only in HEAD; appending Session 22 normalized that block to CRLF, flipping ~40 lines as del+re-add). True new content is ~28 lines (24 for Session 22 + 4 for the Current State header edit). One-time diff-cap override approved by Eran."
+}

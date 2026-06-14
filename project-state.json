@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C44 (procurement-foundation-seed, Rex, Claude-direct) is complete: backend/seed.py idempotently seeds admin + 2 managers as buyers, 8 vendors, 6 categories, 20 purchase orders with deterministic identifiers; 2 new tests, full suite 155/155. C45 (shipment-scenario-seed, Rex) is next. Viktor's every-5th-commit wave is due at C45.",
+  "tldr": "C45 (shipment-scenario-seed, Rex, Claude-direct) is complete: backend/seed.py idempotently seeds 50 shipments (SHP-1001..SHP-1050) across 12 outcome types with products and chronological events; 2 new tests pass (-k shipment_scenarios). OI-18 (one-time diff-cap override, resolved) and OI-19 (pre-existing full-suite regression, open) logged. C46 (bundled-policy-seed, Rex) is next. Viktor's every-5th-commit wave is due at C45.",
   "phase": 2,
-  "last_completed_commit": "44",
-  "next_commit": "45",
-  "next_commit_name": "shipment-scenario-seed",
+  "last_completed_commit": "45",
+  "next_commit": "46",
+  "next_commit_name": "bundled-policy-seed",
   "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
@@ -233,6 +233,22 @@
       "priority": "high",
       "opened": "2026-06-13",
       "status": "resolved"
+    },
+    {
+      "id": "OI-18",
+      "title": "C45 diff_lines cap exceeded due to CRLF/LF artifact in rex-worklog.md; one-time override approved",
+      "detail": "C45 (shipment-scenario-seed) verify_constraints reported diff_lines=391 (cap 350): seed.py+test_seed.py=321, rex-worklog.md=70. Root cause: rex-worklog.md's 'Session 21' block (lines 500-520) was LF-only in HEAD (a pre-existing inconsistency from C44, the rest of the file is CRLF); appending the Session 22 entry normalized that block to CRLF, so git reports those 20 lines as deleted+re-added (40 lines) plus the 4-line Current State header edit, totalling a ~44-line artifact on top of ~28 lines of genuinely new worklog content. Eran approved a one-time diff-cap override for C45 (committed d3d0b7d); .context/finalize/C45.json carries checks_passed:true with an override_note, and CONSTRAINT_LOG.md/CONTEXT_METRICS.json record the honest FAIL for actual_scope. No code was trimmed.",
+      "priority": "low",
+      "opened": "2026-06-14",
+      "status": "resolved"
+    },
+    {
+      "id": "OI-19",
+      "title": "Full-suite pytest run has pre-existing failures/errors unrelated to C45 (1 failed, ~12-14 errors)",
+      "detail": "docker compose run --rm backend uv run pytest -q (full suite) returns 1 failed, 142 passed, 14 errors on top of C45. Reproduced the same pattern (1 failed, 142 passed, 12 errors) on HEAD before C45's changes via git stash, confirming pre-existing and unrelated to C45. First failure: test_purchase_order_storage.py::test_migration_upgrade_creates_table_and_downgrade_removes_it, followed by a cascade of RuntimeError ('Future attached to a different loop') / asyncpg InterfaceError ('another operation is in progress') across test_shipment_event_storage.py, test_shipment_lifecycle.py, and test_seed.py. The focused C45 verification command (-k shipment_scenarios) passes cleanly (2 passed). Likely needs a letter-suffix investigation/fix commit, similar to the C42A/C43A pattern but for cross-module migration/event-loop interaction rather than a downgrade-target mismatch.",
+      "priority": "medium",
+      "opened": "2026-06-14",
+      "status": "open"
     }
   ],
   "notes": "The approved task-to-commit decomposition defines C30-C76. C29A (preflight-score-engine) builds and persists deterministic preflight scoring and hard blockers as a standalone script. C29B (preflight-delegation-gate) wires that script into prepare_agent_delegation.py as a hard pre-delegation gate. C29C (preflight-dashboard-details) visualizes each persisted report in the dashboard. C30 and C33 depend on C29C, so every later commit inherits all three prerequisites transitively; runtime delegation also enforces preflight on every commit from C29C onward. C29A is the only full bootstrap exception per commit-protocol.md rule 17 (revised): before invoking C29B, Claude manually runs `python hooks/preflight_commit.py --commit 29B --agent adam --json` and requires score >= 80 with zero blocking_violations; automatic enforcement inside prepare_agent_delegation.py begins after C29B, for C29C onward. C29A's first invocation (2026-06-11) returned SPLIT_REQUIRED after exhausting its 18-call budget on discovery with zero files written; the spec was rewritten to a narrower preflight-score-engine scope and the original combined scope was split into C29A/C29B/C29C (was C29A/C29B). C29A's second invocation (2026-06-11, greenfield budget) completed: hooks/preflight_commit.py (647 lines) + hooks/tests/test_preflight_commit.py (431 lines, 13 tests) committed as 69b3658; verify_constraints all_pass; full hooks suite 120 passed/1 skipped. Adam's token usage for this invocation was lost to context compaction (recorded as '— (lost)' in TOKEN_RECORDS.md).",

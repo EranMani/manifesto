@@ -7,10 +7,10 @@
 
 ## Key Hubs (imported by 3+ modules)
 
-- `app.core.database` — imported by 16 modules
+- `app.core.database` — imported by 17 modules
 - `app.models.user` — imported by 7 modules
+- `app.models.shipment` — imported by 5 modules
 - `app.dependencies` — imported by 5 modules
-- `app.models.shipment` — imported by 4 modules
 - `app.core.security` — imported by 3 modules
 - `app.core.config` — imported by 3 modules
 - `app.models.vendor` — imported by 3 modules
@@ -30,9 +30,11 @@
 - `models\product.py`
 - `models\purchase_order.py`
 - `models\shipment.py`
+- `models\shipment_event.py`
 - `models\user.py`
 - `models\vendor.py`
 - `models\__init__.py`
+- `schemas\shipment.py`
 - `services\ingestion.py`
 - `services\rag_policy.py`
 - `api\v1\admin.py`
@@ -62,7 +64,7 @@
 | `core\security.py` | `app.core.config` |
 | `dependencies.py` | `app.core.database`, `app.core.security`, `app.models.user` |
 | `main.py` | `app.api.v1.admin`, `app.api.v1.auth`, `app.api.v1.chat`, `app.api.v1.documents`, `app.api.v1.products` (+2 more) |
-| `models\__init__.py` | `app.models.user`, `app.models.vendor`, `app.models.shipment`, `app.models.category`, `app.models.product` (+4 more) |
+| `models\__init__.py` | `app.models.user`, `app.models.vendor`, `app.models.shipment`, `app.models.shipment_event`, `app.models.category` (+5 more) |
 | `models\category.py` | `app.core.database` |
 | `models\conversation.py` | `app.core.database` |
 | `models\message.py` | `app.core.database` |
@@ -70,13 +72,14 @@
 | `models\product.py` | `app.core.database` |
 | `models\purchase_order.py` | `app.core.database` |
 | `models\shipment.py` | `app.core.database` |
+| `models\shipment_event.py` | `app.core.database` |
 | `models\user.py` | `app.core.database` |
 | `models\vendor.py` | `app.core.database` |
 | `schemas\__init__.py` | — |
 | `schemas\auth.py` | — |
 | `schemas\document.py` | — |
 | `schemas\product.py` | — |
-| `schemas\shipment.py` | — |
+| `schemas\shipment.py` | `app.models.shipment` |
 | `schemas\user.py` | — |
 | `schemas\vendor.py` | — |
 | `services\__init__.py` | — |
