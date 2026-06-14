@@ -1,17 +1,25 @@
 import asyncio
 import datetime
+import hashlib
+import json
+from pathlib import Path
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.category import Category
+from app.models.policy import PolicyChunk, PolicyDocument
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.shipment import Shipment
 from app.models.shipment_event import ShipmentEvent
 from app.models.user import User
 from app.models.vendor import Vendor
+from app.services.llm import EmbeddingService
+
+DEMO_POLICIES_PATH = Path(__file__).parent / "app" / "data" / "demo_policies.json"
 
 ADMIN_EMAIL = "admin@manifesto.local"
 
@@ -282,6 +290,82 @@ def _add_shipment_event(
     )
 
 
+def load_demo_policies() -> list[dict]:
+    return json.loads(DEMO_POLICIES_PATH.read_text(encoding="utf-8"))
+
+
+def _build_embedding_service() -> EmbeddingService:
+    return EmbeddingService(
+        provider=settings.EMBEDDING_PROVIDER,
+        model=settings.EMBEDDING_MODEL or "",
+        dimensions=settings.EMBEDDING_DIMENSIONS,
+        openai_api_key=settings.OPENAI_API_KEY,
+        ollama_base_url=settings.OLLAMA_BASE_URL,
+        connect_timeout=settings.LLM_CONNECT_TIMEOUT,
+        read_timeout=settings.LLM_READ_TIMEOUT,
+        total_timeout=settings.LLM_TOTAL_TIMEOUT,
+        max_retries=settings.LLM_MAX_RETRIES,
+    )
+
+
+async def _seed_policy_document(session, embeddings: EmbeddingService, policy: dict) -> None:
+    sections = policy["sections"]
+    contents = [section["content"] for section in sections]
+    combined = "\n\n".join(contents)
+    sha256 = hashlib.sha256(combined.encode("utf-8")).hexdigest()
+    profile = embeddings.profile
+
+    result = await session.execute(
+        select(PolicyDocument).where(
+            PolicyDocument.sha256 == sha256,
+            PolicyDocument.embedding_provider == profile.provider,
+            PolicyDocument.embedding_model == profile.model,
+            PolicyDocument.embedding_dimensions == profile.dimensions,
+            PolicyDocument.status == "ready",
+        )
+    )
+    if result.scalars().first() is not None:
+        return
+
+    document = PolicyDocument(
+        title=policy["title"],
+        content_type="text/markdown",
+        byte_size=len(combined.encode("utf-8")),
+        sha256=sha256,
+        status="processing",
+        embedding_provider=profile.provider,
+        embedding_model=profile.model,
+        embedding_dimensions=profile.dimensions,
+    )
+    session.add(document)
+    await session.flush()
+
+    vectors = await embeddings.embed_documents(contents)
+
+    for index, (section, vector) in enumerate(zip(sections, vectors)):
+        session.add(
+            PolicyChunk(
+                document_id=document.id,
+                chunk_index=index,
+                content=section["content"],
+                embedding=vector,
+                section=section["section"],
+            )
+        )
+
+    document.status = "ready"
+    document.chunk_count = len(sections)
+
+
+async def _seed_bundled_policies(session) -> None:
+    embeddings = _build_embedding_service()
+    try:
+        for policy in load_demo_policies():
+            await _seed_policy_document(session, embeddings, policy)
+    finally:
+        await embeddings.close()
+
+
 async def seed() -> None:
     async with AsyncSessionLocal() as session:
         buyer_ids = [await _ensure_user(session, name="Admin", email=ADMIN_EMAIL, password="admin123", role="admin")]
@@ -353,8 +437,10 @@ async def seed() -> None:
                     details=details,
                 )
 
+        await _seed_bundled_policies(session)
+
         await session.commit()
-        print("Seed complete — procurement foundation and shipment scenario data ready")
+        print("Seed complete — procurement foundation, shipment scenario, and policy data ready")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,109 @@
+[
+  {
+    "title": "Procurement Approval Policy",
+    "sections": [
+      {
+        "section": "Approval Thresholds",
+        "content": "Purchase orders under $1,000 may be approved by any manager. Orders between $1,000 and $10,000 require approval from a department manager and must reference an active vendor account. Orders above $10,000 require additional approval from the operations director before the purchase order status can move from draft to approved. Approvers must confirm the vendor, requested delivery date, and total cost before approving."
+      },
+      {
+        "section": "Emergency and Expedited Purchases",
+        "content": "Emergency purchases needed to prevent a production stoppage or fulfill a customer commitment may be marked expedited and approved by a single manager regardless of value, but must be reviewed retroactively by the operations director within two business days. Expedited purchase orders must include a written justification describing the operational impact of delay."
+      },
+      {
+        "section": "Vendor Selection Requirements",
+        "content": "New vendors must be added to the vendor list with a verified contact, email, and country before any purchase order references them. Repeat purchases should favor existing vendors with on-time delivery history. If a vendor has two or more delayed shipments in the prior quarter, buyers should request a written delivery commitment before placing new orders."
+      }
+    ]
+  },
+  {
+    "title": "Shipment Delay Policy",
+    "sections": [
+      {
+        "section": "Delay Notification Requirements",
+        "content": "Any shipment expected to arrive more than 24 hours after its expected arrival date must have a delay reason recorded as soon as the cause is known. Acceptable delay events include weather delays, carrier capacity shortages, customs holds, and vendor production delays. The shipment status should be updated to delayed and the delay reason field must describe the cause in plain language for customer-facing summaries."
+      },
+      {
+        "section": "Acceptable Delay Causes",
+        "content": "Weather delays occur when severe conditions close a transit corridor and are recorded as a delay_reported event on the route. Customs holds occur when a shipment is held at a border crossing pending documentation review. Carrier delays occur when a carrier reschedules pickup due to a capacity shortage. Vendor delays occur when the originating vendor reports a production delay before dispatch. Each cause should be logged with the location and a short explanation."
+      },
+      {
+        "section": "Customer Communication for Delays",
+        "content": "When a shipment's status changes to delayed, the assigned buyer should notify the receiving location within one business day. Communications should state the original expected arrival date, the new estimate if known, and the delay reason in non-technical terms. Repeated delays from the same vendor or route should be flagged for the vendor selection review described in the procurement approval policy."
+      }
+    ]
+  },
+  {
+    "title": "Damaged Goods Policy",
+    "sections": [
+      {
+        "section": "Inspection on Arrival",
+        "content": "All shipments arriving at a regional hub or final destination must be visually inspected for packaging damage before acceptance. If damage is found, the shipment status should be set to damaged and a damaged event recorded at the location where the damage was discovered, with details describing the inspection finding, for example damaged packaging found on arrival at the hub."
+      },
+      {
+        "section": "Damage Reporting and Claims",
+        "content": "A damage report must be filed with the carrier within 48 hours of discovery, referencing the shipment tracking code, the products affected, and photographic evidence where available. The damage event's details field should summarize the carrier claim reference once filed. Claims should be tracked until the carrier issues a resolution, whether replacement, credit, or denial."
+      },
+      {
+        "section": "Disposition of Damaged Inventory",
+        "content": "Products confirmed damaged should not be moved into sellable inventory. Depending on the extent of damage, products may be returned to the vendor under the returns policy, scrapped, or sold at a discount if the damage is cosmetic only and does not affect function. The disposition decision should be recorded alongside the claim outcome."
+      }
+    ]
+  },
+  {
+    "title": "Partial Delivery Policy",
+    "sections": [
+      {
+        "section": "Authorized Partial Shipments",
+        "content": "A partial shipment occurs when only part of an order's quantity is available at the time of dispatch due to an inventory shortage at origin. The shipment status should be set to partial, with a partial_delivery event recorded at the destination describing that only part of the order quantity was available for shipment. Partial shipments must still record the products that were actually shipped."
+      },
+      {
+        "section": "Backorder Tracking and Fulfillment",
+        "content": "The remaining quantity from a partial shipment becomes a backorder against the original purchase order. Buyers should track backorders separately and follow up with the vendor for an estimated ship date for the remaining quantity. A partial shipment does not close out the purchase order until all backordered quantities have been fulfilled or the order is formally adjusted."
+      }
+    ]
+  },
+  {
+    "title": "Returns Policy",
+    "sections": [
+      {
+        "section": "Eligible Returns",
+        "content": "A return is eligible when a recipient refuses delivery, when goods arrive damaged beyond use, or when the wrong product was shipped. Eligible returns should be recorded with a returned event at the destination, with details explaining the reason, for example that the recipient refused delivery and the shipment was returned to the origin."
+      },
+      {
+        "section": "Return Authorization Process",
+        "content": "Before a returned shipment is dispatched back to the vendor, the assigned buyer should confirm the vendor will accept the return and note any return merchandise authorization reference. Returned shipments should keep their original tracking code so the full lifecycle, from delivery through return, remains traceable in the shipment's event history."
+      },
+      {
+        "section": "Refused Delivery Handling",
+        "content": "When a recipient refuses delivery, the shipment's delivered event remains in its history, followed by a later returned event once the shipment begins its journey back to origin. The shipment status should be updated to returned only after the returned event is recorded. Refused deliveries should be reviewed to determine whether the cause was address accuracy, product condition, or a change in the recipient's order."
+      }
+    ]
+  },
+  {
+    "title": "Lost Shipment Policy",
+    "sections": [
+      {
+        "section": "Lost Shipment Investigation",
+        "content": "A shipment is considered lost when the carrier cannot account for its location after dispatch and departure. The shipment status should be set to lost, with a lost event recorded on the route describing that the carrier reported the shipment lost in transit and opened an investigation. The delay reason should summarize this as a shipment lost in transit with a carrier investigation opened."
+      },
+      {
+        "section": "Carrier Claims and Reimbursement",
+        "content": "Once a shipment is marked lost, a claim should be filed with the carrier for the value of the lost goods, referencing the purchase order and product list. Buyers should monitor the carrier's investigation and update the shipment's event history if the shipment is later recovered. If the carrier confirms the loss, reimbursement should be reconciled against the original purchase order value."
+      }
+    ]
+  },
+  {
+    "title": "Employee Escalation Policy",
+    "sections": [
+      {
+        "section": "Escalation Tiers",
+        "content": "Routine status questions about a shipment's location or expected arrival can be answered directly using shipment and event history. Issues involving delays, damaged goods, partial deliveries, returns, or lost shipments should be escalated to the assigned manager if the customer requests compensation, expedited resolution, or if the issue affects more than one shipment from the same vendor."
+      },
+      {
+        "section": "Manager Response Expectations",
+        "content": "Managers should acknowledge escalated issues within one business day. For damaged or lost shipments, the manager should confirm whether a carrier claim has been filed and provide the customer with the claim status. For delays, the manager should confirm the delay reason and provide an updated expected arrival date if available. Escalations that remain unresolved after five business days should be reviewed by the operations director."
+      }
+    ]
+  }
+]

@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 import seed
 from app.core.database import engine as app_engine
 from app.models.category import Category
+from app.models.policy import PolicyChunk, PolicyDocument
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.shipment import Shipment
@@ -225,3 +226,66 @@ async def test_shipment_scenarios_seed_is_idempotent():
     assert len(second_shipments) == seed.SHIPMENT_COUNT
     assert len(second_products) == len(first_products)
     assert len(second_events) == len(first_events)
+
+
+async def _fetch_seeded_policies(titles: set[str]):
+    engine = create_async_engine(DB_URL, echo=False)
+    try:
+        async with engine.connect() as conn:
+            session_factory = async_sessionmaker(bind=conn, expire_on_commit=False)
+            async with session_factory() as session:
+                documents = (
+                    await session.execute(select(PolicyDocument).where(PolicyDocument.title.in_(titles)))
+                ).scalars().all()
+                document_ids = [d.id for d in documents]
+                chunks = (
+                    await session.execute(select(PolicyChunk).where(PolicyChunk.document_id.in_(document_ids)))
+                ).scalars().all()
+                return documents, chunks
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_bundled_policy_seed_creates_ready_documents():
+    policies = seed.load_demo_policies()
+    titles = {policy["title"] for policy in policies}
+
+    await seed.seed()
+
+    documents, chunks = await _fetch_seeded_policies(titles)
+
+    assert {d.title for d in documents} == titles
+    for document in documents:
+        assert document.status == "ready"
+        assert document.chunk_count > 0
+
+    chunks_by_document: dict[str, list] = {}
+    for chunk in chunks:
+        chunks_by_document.setdefault(chunk.document_id, []).append(chunk)
+
+    policies_by_title = {policy["title"]: policy for policy in policies}
+    for document in documents:
+        policy = policies_by_title[document.title]
+        document_chunks = sorted(chunks_by_document[document.id], key=lambda c: c.chunk_index)
+        assert [c.chunk_index for c in document_chunks] == list(range(len(policy["sections"])))
+        assert [c.section for c in document_chunks] == [s["section"] for s in policy["sections"]]
+        assert [c.content for c in document_chunks] == [s["content"] for s in policy["sections"]]
+        for chunk in document_chunks:
+            assert chunk.embedding is not None
+
+
+@pytest.mark.asyncio
+async def test_bundled_policy_seed_is_idempotent():
+    policies = seed.load_demo_policies()
+    titles = {policy["title"] for policy in policies}
+
+    await seed.seed()
+    first_documents, first_chunks = await _fetch_seeded_policies(titles)
+
+    await seed.seed()
+    second_documents, second_chunks = await _fetch_seeded_policies(titles)
+
+    assert {d.id for d in first_documents} == {d.id for d in second_documents}
+    assert len(second_documents) == len(first_documents)
+    assert len(second_chunks) == len(first_chunks)
