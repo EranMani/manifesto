@@ -5,12 +5,11 @@
 ---
 
 ## Current State
-*Last updated: Commit 42 · 2026-06-14*
+*Last updated: Commit 42A · 2026-06-14*
 
-**Last completed:** Commit 42 `shipment-lifecycle-fields` ✅ (pending Eran approval/commit)
+**Last completed:** Commit 42A `purchase-order-migration-downgrade-fix` ✅ (pending Eran approval/commit)
 **Currently active:** none
 **Blocked by:** none
-**Incoming fix commits:** C42A (1-line downgrade-target fix to `test_purchase_order_storage.py`, regression from C42's 0004 migration)
 
 Tool usage: orchestrator direct write (Claude-direct), 0 agent invocations.
 
@@ -79,6 +78,7 @@ Your next commit is now: Commit 24 `llm-runtime-config`.
 | 15 | C28: document-upload-routes | ✅ Done | Tool usage: reads=70, writes=10, total=116 (across 5 invocations; phase-1 research hit the 25-cap twice). New `app/schemas/document.py` (DocumentRead/DocumentListResponse/DocumentUploadResponse, safe fields only). Rewrote `documents.py` 501 stub: POST validates role, title, content-type/extension/signature, streams body with a configurable byte cap (`MAX_DOCUMENT_UPLOAD_BYTES`, new in config.py, never trusts Content-Length), computes sha256, checks `(sha256, embedding_provider, embedding_model, embedding_dimensions)` for idempotency (200 for existing ready doc, 201 for new), creates `policy_documents` row status='processing', calls frozen `ingest_document()`. GET list is cursor-paginated by `(uploaded_at DESC, id DESC)`. GET by id returns safe metadata or 404. Catches only `IngestionError`/`LLMError`. Orchestrator added `_failure_code_for()` mapping `error_message` text -> `DocumentFailureCode` (best-effort, coupled to ingestion.py's exact sanitized messages — flagged for Nova to replace with a structured error code in a future commit). OI-08 resolved for this commit by running tests inside `docker compose run backend` (db service hostname `db`, not `localhost`) — fixed hardcoded `localhost:5432` in test_documents.py to read `DATABASE_URL` env var; also ran `alembic upgrade head` against the docker db (was at base). 16/16 new tests pass; full backend suite 123 passed/1 skipped, plus 7 pre-existing errors in test_policy_storage.py (C26, same hardcoded-localhost issue, out of scope for C28 — flagged separately). |
 | 16 | C41: purchase-order-storage | ✅ Done | Orchestrator direct write. New `PurchaseOrder` model + `0003_purchase_order_storage` migration + tests. 4/4 new, 143/143 full suite. |
 | 17 | C42: shipment-lifecycle-fields | ✅ Done | Orchestrator direct write. See Session 17. |
+| 18 | C42A: purchase-order-migration-downgrade-fix | ✅ Done | Orchestrator direct write. See Session 18. |
 
 ---
 
@@ -423,6 +423,26 @@ Tool usage: orchestrator direct write, 0 agent invocations.
 
 **Regression found (not fixed in this commit — see C42A):**
 - The new 0004 migration moves the alembic head past 0003, which breaks `test_purchase_order_storage.py::test_migration_upgrade_creates_table_and_downgrade_removes_it`: its `command.downgrade(cfg, "-1")` now only undoes 0004, so `purchase_orders` is still present when the test asserts it's gone. `validate_commit_spec.py` hard-locks `max_changed_files` at 4 (not overridable), so the 1-line fix (explicit downgrade target `0002_rag_storage_hardening`) could not be folded into C42. Queued as **C42A** (letter-suffix pattern, C33A/C38A precedent) to restore 149/149.
+
+**Handoffs out:** None.
+
+Tool usage: orchestrator direct write, 0 agent invocations.
+
+---
+
+## Session 18 — Commit 42A: `purchase-order-migration-downgrade-fix`
+*2026-06-14*
+
+**Approach:** Orchestrator direct write (Claude-direct, Eran-approved) — no Rex invocation. 1-line letter-suffix repair commit (C33A/C38A precedent) for the regression C42 introduced.
+
+**Files updated:**
+- `backend/tests/models/test_purchase_order_storage.py` — `test_migration_upgrade_creates_table_and_downgrade_removes_it`'s downgrade target changed from `command.downgrade(cfg, "-1")` to `command.downgrade(cfg, "0002_rag_storage_hardening")`, so the downgrade always removes both `0004_shipment_lifecycle_fields` and `0003_purchase_order_storage` (and thus `purchase_orders`), regardless of how many migrations sit above 0003.
+
+**Test gate results:**
+- `docker compose run --rm backend uv run pytest -q` (full suite) -> 149 passed (was 148 passed, 1 failed after C42).
+- verify_constraints all_pass (--execution claude-direct): files=1/1, diff_lines=2/20.
+
+**Decisions made:** None — single-line mechanical fix per the C42A spec contract; no other lines changed.
 
 **Handoffs out:** None.
 

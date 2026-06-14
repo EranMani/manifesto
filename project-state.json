@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C42 (shipment-lifecycle-fields, Rex, Claude-direct) is complete: backend/app/models/shipment.py + backend/app/schemas/shipment.py + 0004_shipment_lifecycle_fields migration + test_shipment_lifecycle.py (6/6 passed, full suite 148/149). C42A (purchase-order-migration-downgrade-fix, Rex) is next — a 1-line fix for the regression the 0004 migration caused in test_purchase_order_storage.py's downgrade target, queued because validate_commit_spec.py locks max_changed_files at 4. Normal review cadence resumes at C45 (Viktor every-5th-commit wave).",
+  "tldr": "C42A (purchase-order-migration-downgrade-fix, Rex, Claude-direct) is complete: test_purchase_order_storage.py's downgrade target changed from \"-1\" to \"0002_rag_storage_hardening\", restoring the full suite to 149/149 after C42's 0004 migration shifted the alembic head. C43 (shipment-event-storage, Rex) is next. Normal review cadence resumes at C45 (Viktor every-5th-commit wave).",
   "phase": 2,
-  "last_completed_commit": "42",
-  "next_commit": "42A",
-  "next_commit_name": "purchase-order-migration-downgrade-fix",
+  "last_completed_commit": "42A",
+  "next_commit": "43",
+  "next_commit_name": "shipment-event-storage",
   "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [

@@ -62,7 +62,7 @@
 | 40 | product-delivery-replan | claude | ✅ done · 2026-06-14 |
 | 41 | purchase-order-storage | rex | ✅ done · 2026-06-14 |
 | 42 | shipment-lifecycle-fields | rex | ✅ done · 2026-06-14 |
-| 42A | purchase-order-migration-downgrade-fix | rex | pending |
+| 42A | purchase-order-migration-downgrade-fix | rex | ✅ done · 2026-06-14 |
 | 43 | shipment-event-storage | rex | pending |
 | 44 | procurement-foundation-seed | rex | pending |
 | 45 | shipment-scenario-seed | rex | pending |
