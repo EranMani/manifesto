@@ -188,7 +188,7 @@ def test_migration_upgrade_adds_lifecycle_columns_and_downgrade_removes_them():
     assert "actual_arrival_at" in columns
     assert "arrived_at" not in columns
 
-    command.downgrade(cfg, "-1")
+    command.downgrade(cfg, "0003_purchase_order_storage")
     columns = _shipment_columns()
     assert "tracking_code" not in columns
     assert "arrived_at" in columns
