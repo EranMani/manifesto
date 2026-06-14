@@ -15,11 +15,16 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.models.product import Product
+from app.models.purchase_order import PurchaseOrder
 from app.models.shipment import Shipment
+from app.models.user import User
 from app.models.vendor import Vendor
 from app.services.rag_logistics import (
+    ProcurementEvidence,
     ShipmentEvidence,
     ShipmentNotFoundError,
+    lookup_procurement,
     lookup_shipment,
 )
 
@@ -111,3 +116,98 @@ async def test_identifier_lookup_executes_no_write_statement(session: AsyncSessi
     assert not session.new
     assert not session.dirty
     assert not session.deleted
+
+
+async def _make_buyer(session: AsyncSession) -> User:
+    buyer = User(
+        name="Test Buyer",
+        email=f"buyer-{uuid.uuid4().hex[:8]}@example.com",
+        password_hash="x",
+        role="employee",
+    )
+    session.add(buyer)
+    await session.flush()
+    return buyer
+
+
+async def _make_purchase_order(session: AsyncSession, vendor_id: str, buyer_id: str, **overrides) -> PurchaseOrder:
+    defaults = dict(
+        order_number="PO-" + uuid.uuid4().hex[:12],
+        vendor_id=vendor_id,
+        buyer_id=buyer_id,
+        ordered_at=_NOW,
+        requested_delivery_at=_LATER,
+    )
+    defaults.update(overrides)
+    order = PurchaseOrder(**defaults)
+    session.add(order)
+    await session.flush()
+    return order
+
+
+async def _make_product(session: AsyncSession, shipment_id: str, **overrides) -> Product:
+    defaults = dict(
+        shipment_id=shipment_id,
+        name="Widget",
+        quantity=1,
+    )
+    defaults.update(overrides)
+    product = Product(**defaults)
+    session.add(product)
+    await session.flush()
+    return product
+
+
+@pytest.mark.asyncio
+async def test_procurement_relationships_returns_buyer_order_vendor_and_products(session: AsyncSession):
+    shipment = await _make_shipment(session)
+    buyer = await _make_buyer(session)
+    order = await _make_purchase_order(session, shipment.vendor_id, buyer.id)
+    shipment.purchase_order_id = order.id
+    await session.flush()
+
+    product_b = await _make_product(session, shipment.id, name="Widget B", quantity=2, unit="box")
+    product_a = await _make_product(session, shipment.id, name="Widget A", quantity=1, unit="crate")
+
+    evidence = await lookup_procurement(session, shipment.tracking_code)
+
+    assert isinstance(evidence, ProcurementEvidence)
+    assert evidence.shipment.id == shipment.id
+    assert evidence.purchase_order is not None
+    assert evidence.purchase_order.id == order.id
+    assert evidence.purchase_order.order_number == order.order_number
+    assert evidence.buyer is not None
+    assert evidence.buyer.id == buyer.id
+    assert evidence.buyer.name == buyer.name
+    assert evidence.vendor.id == shipment.vendor_id
+    assert [p.id for p in evidence.products] == [product_a.id, product_b.id]
+
+
+@pytest.mark.asyncio
+async def test_procurement_relationships_missing_order_is_explicit(session: AsyncSession):
+    shipment = await _make_shipment(session)
+
+    evidence = await lookup_procurement(session, shipment.tracking_code)
+
+    assert evidence.purchase_order is None
+    assert evidence.buyer is None
+    assert evidence.vendor.id == shipment.vendor_id
+    assert evidence.products == []
+
+
+@pytest.mark.asyncio
+async def test_procurement_relationships_excludes_sensitive_user_fields(session: AsyncSession):
+    shipment = await _make_shipment(session)
+    buyer = await _make_buyer(session)
+    order = await _make_purchase_order(session, shipment.vendor_id, buyer.id)
+    shipment.purchase_order_id = order.id
+    await session.flush()
+
+    evidence = await lookup_procurement(session, shipment.tracking_code)
+
+    buyer_fields = vars(evidence.buyer)
+    assert "email" not in buyer_fields
+    assert "password_hash" not in buyer_fields
+    vendor_fields = vars(evidence.vendor)
+    assert "email" not in vendor_fields
+    assert "contact" not in vendor_fields
