@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C45 (shipment-scenario-seed, Rex, Claude-direct) is complete: backend/seed.py idempotently seeds 50 shipments (SHP-1001..SHP-1050) across 12 outcome types with products and chronological events; 2 new tests pass (-k shipment_scenarios). OI-18 (one-time diff-cap override, resolved) and OI-19 (pre-existing full-suite regression, open) logged. C46 (bundled-policy-seed, Rex) is next. Viktor's every-5th-commit wave is due at C45.",
+  "tldr": "C46 (bundled-policy-seed, Rex, Claude-direct) is complete: bundled 7-document mock policy corpus (backend/app/data/demo_policies.json) seeded into ready PolicyDocument/PolicyChunk rows with real Ollama embeddings via EmbeddingService, idempotent on sha256+profile; 2 new tests pass (-k bundled_policy). OI-20 (ollama not wired into docker-compose depends_on / model pull undocumented, open — Adam) logged. D45 records the first live result of prepare_claude_direct.py's context package (80% read coverage, one justified expansion). C47 (shipment-identifier-evidence, Nova) is next. Viktor's every-5th-commit wave (due since C45, not yet run) remains pending.",
   "phase": 2,
-  "last_completed_commit": "45",
-  "next_commit": "46",
-  "next_commit_name": "bundled-policy-seed",
-  "next_commit_assignee": "rex",
+  "last_completed_commit": "46",
+  "next_commit": "47",
+  "next_commit_name": "shipment-identifier-evidence",
+  "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
     {
@@ -246,6 +246,14 @@
       "id": "OI-19",
       "title": "Full-suite pytest run has pre-existing failures/errors unrelated to C45 (1 failed, ~12-14 errors)",
       "detail": "docker compose run --rm backend uv run pytest -q (full suite) returns 1 failed, 142 passed, 14 errors on top of C45. Reproduced the same pattern (1 failed, 142 passed, 12 errors) on HEAD before C45's changes via git stash, confirming pre-existing and unrelated to C45. First failure: test_purchase_order_storage.py::test_migration_upgrade_creates_table_and_downgrade_removes_it, followed by a cascade of RuntimeError ('Future attached to a different loop') / asyncpg InterfaceError ('another operation is in progress') across test_shipment_event_storage.py, test_shipment_lifecycle.py, and test_seed.py. The focused C45 verification command (-k shipment_scenarios) passes cleanly (2 passed). Likely needs a letter-suffix investigation/fix commit, similar to the C42A/C43A pattern but for cross-module migration/event-loop interaction rather than a downgrade-target mismatch.",
+      "priority": "medium",
+      "opened": "2026-06-14",
+      "status": "open"
+    },
+    {
+      "id": "OI-20",
+      "title": "ollama embedding service is undeclared/unprovisioned in docker-compose — manual model pull required",
+      "detail": "C46 (bundled-policy-seed) is the first commit whose tests call EmbeddingService.embed_documents() against a real provider. docker-compose.yml defines an `ollama` service but `backend` does not declare `depends_on: ollama`, so `docker compose run --rm backend ...` never starts it; the container also had zero models pulled. Both `docker compose up -d ollama` and `docker exec manifesto-ollama-1 ollama pull nomic-embed-text` (the Phase 2 default per config.py's resolve_and_validate_embedding_model) were run manually during C46 verification. The pulled model persists in the `ollama_data` named volume, so this specific environment is now fixed, but any fresh environment or CI run will hit the same `httpx.ConnectError: Name or service not known` until someone repeats this. Needs a devops fix (Adam, docker-compose.yml/scripts/ domain): add `ollama` to backend's `depends_on` and document or automate the `nomic-embed-text` model pull (e.g. an init script or compose healthcheck) before C47+ (retrieval) and any future embedding-dependent seed/test runs.",
       "priority": "medium",
       "opened": "2026-06-14",
       "status": "open"

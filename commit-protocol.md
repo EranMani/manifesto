@@ -67,7 +67,7 @@
 | 43A | shipment-lifecycle-migration-downgrade-fix | rex | ✅ done · 2026-06-14 |
 | 44 | procurement-foundation-seed | rex | ✅ done · 2026-06-14 |
 | 45 | shipment-scenario-seed | rex | ✅ done · 2026-06-14 |
-| 46 | bundled-policy-seed | rex | pending |
+| 46 | bundled-policy-seed | rex | ✅ done · 2026-06-14 |
 | 47 | shipment-identifier-evidence | nova | pending |
 | 48 | procurement-relationship-evidence | nova | pending |
 | 49 | shipment-timeline-evidence | nova | pending |

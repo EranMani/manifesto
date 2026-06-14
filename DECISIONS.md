@@ -1533,4 +1533,42 @@ C33B/C38A fail-closed-gate precedent. Tracked as **OI-17**.
 
 ---
 
+## D45 — First Live Result of `prepare_claude_direct.py` Context Package (C46)
+
+- **Date:** 2026-06-14
+- **Decided by:** Claude, reviewed with Eran
+- **Context:** Commit cc6e9e5 added `hooks/prepare_claude_direct.py`, generating
+  `.context/direct/CNN.md` for Claude-direct commits (CLAUDE.md step 5). C46
+  (bundled-policy-seed) was the first commit executed against this package.
+- **Result:** The generated brief selected 5 files: `backend/seed.py` and
+  `backend/tests/test_seed.py` (targeted excerpts, both edited), plus
+  `backend/app/models/policy.py` and `backend/app/services/ingestion.py`
+  (contracts), and correctly flagged `backend/app/data/demo_policies.json`
+  as a new file needing no read. Claude read exactly those 4 existing files
+  in one batched call — no directory scan, no symbol-hunting for
+  `PolicyDocument`/`PolicyChunk`/`chunk_blocks`.
+- **One expansion was still required:** `backend/app/api/v1/documents.py`
+  (forbidden to edit, but readable) held the exact idempotency pattern
+  (sha256 + embedding profile + `status='ready'` lookup) and the
+  `EmbeddingService(...)` construction-from-settings pattern that C46's
+  seed code needed to mirror. Neither `policy.py` nor `ingestion.py` surfaced
+  this; the package's "contracts" selection didn't reach into
+  `backend/app/api/` (consistent with C46's own `forbidden` list, but the
+  *pattern* living only in a forbidden-read file was a gap).
+- **Assessment:** The package covered roughly 80% of the needed reads up
+  front and eliminated directory scanning / blind guessing for the core
+  models and ingestion contract. The remaining 20% (the checksum-idempotency
+  and embedding-service-construction pattern) required one targeted,
+  justified expansion into a forbidden-edit-but-readable file. Net: fewer
+  total reads than a cold start, and the one expansion was precise rather
+  than exploratory.
+- **Follow-up (not actioned):** If a future commit's contract depends on a
+  pattern that lives only inside another agent's forbidden path (read-only),
+  `prepare_claude_direct.py`'s contract selection could consider surfacing it
+  as a "read-only reference" entry rather than leaving it for an in-session
+  expansion. Not worth a dedicated commit on a single data point — revisit if
+  the pattern recurs in C47+.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

@@ -5,10 +5,10 @@
 ---
 
 ## Current State
-*Last updated: Commit 45 · 2026-06-14*
+*Last updated: Commit 46 · 2026-06-14*
 
-**Last completed:** Commit 44 `procurement-foundation-seed` ✅
-**Currently active:** Commit 45 `shipment-scenario-seed` — pending approval
+**Last completed:** Commit 45 `shipment-scenario-seed` ✅
+**Currently active:** Commit 46 `bundled-policy-seed` — pending approval
 **Blocked by:** none
 
 Tool usage: orchestrator direct write (Claude-direct), 0 agent invocations.
@@ -538,6 +538,31 @@ Tool usage: orchestrator direct write, 0 agent invocations.
 
 **Regression found (pre-existing, NOT caused by this commit):**
 - `docker compose run --rm backend uv run pytest -q` (full suite) returns `1 failed, 142 passed, 14 errors` on this branch. Reproduced the same failure pattern (`1 failed, 142 passed, 12 errors`) on HEAD *before* this commit's changes (via `git stash`), so this is pre-existing and unrelated to C45. The first failure is `test_purchase_order_storage.py::test_migration_upgrade_creates_table_and_downgrade_removes_it`, followed by a cascade of `RuntimeError: ... got Future ... attached to a different loop` / `asyncpg.exceptions._base.InterfaceError: cannot perform operation: another operation is in progress` errors across `test_shipment_event_storage.py`, `test_shipment_lifecycle.py`, and `test_seed.py` (all 4 seed tests, including the 2 new ones). All of these are outside C45's forbidden/allowed file set. The focused C45 verification command (`-k shipment_scenarios`) passes cleanly in isolation (2 passed). Flagging for Eran — likely needs a new open issue and a letter-suffix investigation/fix commit, similar to the C42A/C43A pattern but for cross-module migration/event-loop interaction rather than a downgrade-target mismatch.
+
+**Handoffs out:** None.
+
+Tool usage: orchestrator direct write, 0 agent invocations.
+
+## Session 23 — Commit 46: `bundled-policy-seed`
+*2026-06-14*
+
+**Approach:** Orchestrator direct write (Claude-direct, Eran-approved) — no Rex invocation.
+
+**Files updated:**
+- `backend/app/data/demo_policies.json` (new) — 7 bundled policy documents (Procurement Approval, Shipment Delay, Damaged Goods, Partial Delivery, Returns, Lost Shipment, Employee Escalation policies), each with 2-3 titled sections of plain-text content matching the C44/C45 shipment lifecycle vocabulary (delay_reason causes, event types, statuses).
+- `backend/seed.py` — added `load_demo_policies()`, `_build_embedding_service()` (constructs `EmbeddingService` from `app.core.config.settings`, mirroring `documents.py`'s `_build_embedding_service()`), `_seed_policy_document()` and `_seed_bundled_policies()`. For each bundled policy, computes a sha256 checksum over the concatenated section contents; if a `ready` `PolicyDocument` with that checksum and the active embedding profile already exists, skips it. Otherwise creates a `PolicyDocument` (status `processing` -> `ready`, `content_type="text/markdown"`, checksum, embedding profile fields), embeds each section's content via `EmbeddingService.embed_documents()`, and inserts one `PolicyChunk` per section (`chunk_index`, `content`, `section`, `embedding`). Called from `seed()` before the final commit.
+- `backend/tests/test_seed.py` — `test_bundled_policy_seed_creates_ready_documents` (all 7 titles present and `status='ready'` with `chunk_count > 0`; each document's chunks match the bundle's chunk_index/section/content order and have non-null embeddings) and `test_bundled_policy_seed_is_idempotent` (re-running `seed.seed()` produces identical document IDs and the same chunk count).
+
+**Test gate results:**
+- `docker compose run --rm backend uv run pytest tests/test_seed.py -k bundled_policy -q` -> 2 passed.
+- `docker compose run --rm backend uv run pytest tests/test_seed.py -q` (full module) -> 6 passed, no regression to C44/C45 tests.
+- verify_constraints all_pass (--execution claude-direct): files=3/4, diff_lines=261/350.
+
+**Environment fix required:** The `ollama` service was not running and had no models pulled, so `EmbeddingService.embed_documents()` failed with `httpx.ConnectError: Name or service not known`. Started `manifesto-ollama-1` (`docker compose up -d ollama`) and pulled `nomic-embed-text` (`docker exec manifesto-ollama-1 ollama pull nomic-embed-text`), the Phase 2 default per `config.py`'s `resolve_and_validate_embedding_model`. The model persists in the `ollama_data` named volume. Logged as **OI-20** (Adam/devops) — `docker-compose.yml` doesn't declare `backend depends_on: ollama` and nothing documents/automates the model pull, so a fresh environment or CI will hit this again.
+
+**Decisions made:**
+- Each bundled policy's sections map 1:1 to chunks (no further sub-chunking via `chunk_blocks()`) — the bundle is hand-curated and pre-sized per section, so the structural extraction/chunking pipeline in `ingestion.py` is not needed for this commit.
+- Idempotency mirrors the document-upload route's checksum check (`sha256` + `embedding_provider`/`embedding_model`/`embedding_dimensions` + `status='ready'`) rather than inventing a new comparison — recorded as **D45** alongside the first live review of `prepare_claude_direct.py`'s context package (covered ~80% of needed reads; one justified expansion into `backend/app/api/v1/documents.py`, read-only, for this exact pattern).
 
 **Handoffs out:** None.
 
