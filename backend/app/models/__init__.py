@@ -6,6 +6,7 @@ from app.models.product import Product
 from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.policy import PolicyDocument, PolicyChunk
+from app.models.purchase_order import PurchaseOrder
 
 __all__ = [
     "User",
@@ -17,4 +18,5 @@ __all__ = [
     "Message",
     "PolicyDocument",
     "PolicyChunk",
+    "PurchaseOrder",
 ]
