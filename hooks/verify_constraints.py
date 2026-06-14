@@ -306,7 +306,7 @@ def check_spec_validation(commit_num: str, agent: str):
     return False, f"commit specification invalid: {detail}", result
 
 
-def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bool, commit_ref: str, agent: str = ""):
+def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bool, commit_ref: str, agent: str = "", commit_num: str = ""):
     if spec_result.get("legacy"):
         return True, None, "legacy completed commit: actual micro-scope check not applied"
     changed_files = [f for f in changed_files if f not in RUNTIME_TELEMETRY_FILES]
@@ -316,6 +316,11 @@ def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bo
     # "Files To Modify Or Add" table - treat it as always-planned, not unplanned.
     if agent:
         planned.add(f".claude/agents/logs/{agent}-worklog.md")
+    # prepare_claude_direct.py (CLAUDE.md step 5) writes this brief as a side
+    # effect of every Claude-direct commit - never part of an implementor's
+    # planned scope, same treatment as the worklog above.
+    if commit_num:
+        planned.add(f".context/direct/C{commit_num}.md")
     unplanned = sorted(path for path in changed_files if path not in planned)
     # spec_result["budget"] is the effective budget: validate_commit_spec already
     # merges any bootstrap_exception overrides for max_changed_files and
@@ -412,7 +417,7 @@ def main():
     ok1, msg1          = check_context_block(spec_text, args.commit)
     ok2, msg2          = check_forbidden_paths(spec_text, changed)
     ok3, counts3, msg3 = check_phase_budget(worklog_text, args.commit, args.agent, spec_result, args.execution)
-    ok4, counts4, msg4 = check_actual_scope(spec_result, changed, args.worktree, effective_ref, args.agent)
+    ok4, counts4, msg4 = check_actual_scope(spec_result, changed, args.worktree, effective_ref, args.agent, args.commit)
 
     results = {
         "spec_validation": {"pass": ok0, "message": msg0},
