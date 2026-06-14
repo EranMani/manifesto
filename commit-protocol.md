@@ -70,7 +70,7 @@
 | 46 | bundled-policy-seed | rex | ✅ done · 2026-06-14 |
 | 47 | shipment-identifier-evidence | nova | ✅ done · 2026-06-14 |
 | 47B | telemetry-lifecycle-overwrite-fix | claude | ✅ done · 2026-06-14 |
-| 47C | telemetry-finalize-idempotency | claude | pending |
+| 47C | telemetry-finalize-idempotency | claude | ✅ done · 2026-06-14 |
 | 48 | procurement-relationship-evidence | nova | pending |
 | 49 | shipment-timeline-evidence | nova | pending |
 | 50 | logistics-graph-evidence | nova | pending |
