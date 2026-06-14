@@ -1653,4 +1653,116 @@ The hooks, not Claude, own both telemetry boundaries:
 
 ---
 
+## D48 — Recorded Risk: Self-Assessed Delegation Bias in Claude-Direct vs. Agent Invocation
+
+- **Date:** 2026-06-14
+- **Decided by:** Eran and Claude (discussion, no protocol change)
+- **Context:** Eran asked how Claude decides when to invoke an agent vs. execute
+  directly, and whether the current rules strike a good balance between deterministic
+  enforcement and semantic judgment.
+
+### The discussion
+
+Claude described the current structure as a layered system:
+
+- **Deterministic layer:** Claude-direct is the default (Non-Negotiable 10); tool-cap
+  budgets are hook-enforced; domain ownership is a hard boundary
+  (`pre_commit_check.py`); Viktor/Sage/Mira gates fire on fixed schedules/conditions;
+  no commit without Eran's approval.
+- **Semantic layer:** whether a specific task has genuine specialist uncertainty,
+  and whether expected delegation value exceeds invocation overhead, is a judgment
+  call — backed by a written-justification requirement so the reasoning is auditable.
+
+Eran pressed on whether this is "good," and then on a specific risk: that Claude
+might recognize a scenario where delegation would genuinely help (e.g., a fresh
+perspective on security-sensitive code) but default to doing it directly anyway,
+because direct execution is frictionless (no justification, no brief, no prep
+script) while delegation always carries overhead.
+
+Claude agreed this is a real and predictable bias:
+- Doing the work directly requires no extra step; delegating requires stopping,
+  articulating a justification, and accepting 10–30k token overhead.
+- On marginal cases, this asymmetry can tip the decision toward "I'll just do it,"
+  with the written justification potentially becoming a post-hoc rationalization
+  rather than a genuine gate.
+- The hard triggers (Viktor every 5 commits, conditional Sage/Mira) exist precisely
+  *because* this bias is predictable — they don't depend on Claude noticing the
+  marginal case in the moment.
+- For cases outside those hard triggers, Claude's own justification is written by
+  the same party that benefits from skipping delegation — the check is not airtight.
+
+### Decision
+
+No protocol change made. This is recorded as a **known, accepted risk** of the
+current design, not a defect requiring an immediate fix.
+
+### Consequences
+
+- The hard-triggered gates (Viktor/Sage/Mira) remain the primary backstop for this
+  bias — they should not be loosened on the assumption that Claude's judgment alone
+  is sufficient.
+- If a future review (e.g., a Viktor or Sage finding) surfaces a case where a
+  Claude-direct commit should clearly have been delegated and wasn't, that's
+  evidence this bias materialized in practice — treat it as a signal to consider
+  tightening the deterministic triggers rather than relying further on
+  self-assessment.
+- No new hooks, scores, or enforcement were introduced by this discussion.
+
+---
+
+## D49 — Proposed Optimization: Trigger Signals That Flip the Claude-Direct Default
+
+- **Date:** 2026-06-14
+- **Decided by:** Eran and Claude (proposal recorded; not yet wired into rules or hooks)
+- **Context:** Follow-on to D48's recorded risk — that Claude may recognize a case
+  where delegation would help but default to Claude-direct anyway, because direct
+  execution carries no friction while delegation requires a written justification
+  and 10–30k token overhead.
+
+### The proposal
+
+Eran asked how to optimize further: either a deterministic equation/score that
+decides delegation, or a hybrid of deterministic findings plus judgment.
+
+Claude recommended against a full numeric score, citing this project's history with
+scored systems (COMMIT_HEALTH_RUBRIC's recurring deductions in D44, the fabricated
+C37 self-report) — scores tend to accumulate edge-case patches and become their own
+maintenance burden.
+
+Instead: a small set of **objective trigger signals**, evaluated before the
+direct-vs-delegate decision. If any signal fires, the default flips —
+delegation becomes the default and Claude must write a justification to go
+Claude-direct instead (mirroring the existing justification requirement, but in
+the opposite direction). Candidate signals:
+
+- The commit touches a path inside Sage's security-review domain
+  (auth, secrets, user input, uploads, external calls).
+- The commit's planned file count exceeds the live delegation brief's normal range
+  for that commit type (cf. `prepare_agent_delegation.py` context package).
+- The codebase graph shows no prior commit of this pattern/type (genuinely novel
+  work, not a repeat of an established pattern).
+- A previous Claude-direct commit on this same area was later flagged by
+  Viktor/Sage and required a repair commit (D48's "evidence this bias
+  materialized" case).
+
+This reverses the friction asymmetry exactly where the self-assessment bias from
+D48 is most likely to matter, without introducing a weighted formula.
+
+### Status
+
+Recorded as a proposal only. Not yet adopted as an operative rule in CLAUDE.md,
+ORCHESTRATION.md, or team-preferences.md, and no hook implements signal detection.
+Before adoption, the trigger list and override-justification format should be
+drafted as a concrete protocol addition for Eran's approval, per CLAUDE.md rule 3
+(governance files updated together).
+
+### Consequences
+
+- No immediate behavior change.
+- If adopted, this would be the first deterministic check that runs *before* the
+  Claude-direct-vs-delegate decision, rather than only validating a decision already
+  made (as `preflight_commit.py` and `prepare_agent_delegation.py --preview` do today).
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
