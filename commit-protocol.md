@@ -60,7 +60,7 @@
 | 38A | orchestrator-telemetry-marker-gate | claude | ✅ done · 2026-06-13 |
 | 39 | policy-vector-candidates | nova | ✅ done · 2026-06-14 |
 | 40 | product-delivery-replan | claude | ✅ done · 2026-06-14 |
-| 41 | purchase-order-storage | rex | planned |
+| 41 | purchase-order-storage | rex | pending |
 | 42 | shipment-lifecycle-fields | rex | planned |
 | 43 | shipment-event-storage | rex | planned |
 | 44 | procurement-foundation-seed | rex | planned |
@@ -222,6 +222,8 @@ uncommitted contract.
 
 Full specifications for each commit live in `commit-specs/`.
 Load `commit-specs/commit-XX.md` (active commit only) when executing a step.
+Planned rows do not receive executable spec files until they become the immediately next
+commit. Retired specs remain available in Git history and must not stay at active paths.
 
 ---
 
