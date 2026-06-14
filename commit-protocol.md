@@ -60,7 +60,7 @@
 | 38A | orchestrator-telemetry-marker-gate | claude | ✅ done · 2026-06-13 |
 | 39 | policy-vector-candidates | nova | ✅ done · 2026-06-14 |
 | 40 | product-delivery-replan | claude | ✅ done · 2026-06-14 |
-| 41 | purchase-order-storage | rex | pending |
+| 41 | purchase-order-storage | rex | ✅ done · 2026-06-14 |
 | 42 | shipment-lifecycle-fields | rex | pending |
 | 43 | shipment-event-storage | rex | pending |
 | 44 | procurement-foundation-seed | rex | pending |

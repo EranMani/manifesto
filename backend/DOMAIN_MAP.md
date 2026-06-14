@@ -7,7 +7,7 @@
 
 ## Key Hubs (imported by 3+ modules)
 
-- `app.core.database` — imported by 15 modules
+- `app.core.database` — imported by 16 modules
 - `app.models.user` — imported by 7 modules
 - `app.dependencies` — imported by 5 modules
 - `app.models.shipment` — imported by 4 modules
@@ -28,6 +28,7 @@
 - `models\message.py`
 - `models\policy.py`
 - `models\product.py`
+- `models\purchase_order.py`
 - `models\shipment.py`
 - `models\user.py`
 - `models\vendor.py`
@@ -61,12 +62,13 @@
 | `core\security.py` | `app.core.config` |
 | `dependencies.py` | `app.core.database`, `app.core.security`, `app.models.user` |
 | `main.py` | `app.api.v1.admin`, `app.api.v1.auth`, `app.api.v1.chat`, `app.api.v1.documents`, `app.api.v1.products` (+2 more) |
-| `models\__init__.py` | `app.models.user`, `app.models.vendor`, `app.models.shipment`, `app.models.category`, `app.models.product` (+3 more) |
+| `models\__init__.py` | `app.models.user`, `app.models.vendor`, `app.models.shipment`, `app.models.category`, `app.models.product` (+4 more) |
 | `models\category.py` | `app.core.database` |
 | `models\conversation.py` | `app.core.database` |
 | `models\message.py` | `app.core.database` |
 | `models\policy.py` | `app.core.database` |
 | `models\product.py` | `app.core.database` |
+| `models\purchase_order.py` | `app.core.database` |
 | `models\shipment.py` | `app.core.database` |
 | `models\user.py` | `app.core.database` |
 | `models\vendor.py` | `app.core.database` |

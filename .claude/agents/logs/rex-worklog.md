@@ -366,3 +366,31 @@ Tool usage: reads=6, writes=3, total=9
 Tool usage: orchestrator direct write, 0 agent invocations.
 
 Tool usage: reads=18, writes=4, total=51 (combined across two capped invocations, with read overlap)
+
+---
+
+## Session 16 — Commit 41: `purchase-order-storage`
+*2026-06-14*
+
+**Approach:** Orchestrator direct write (Claude-direct, Eran-approved) — no Rex invocation. New procurement entity following the C26/C35 model+migration+test pattern.
+
+**Files created:**
+- `backend/app/models/purchase_order.py` — `PurchaseOrder` ORM model mapping `purchase_orders`: UUID `id` (gen_random_uuid), unique non-null `order_number`, `vendor_id` -> `vendors.id` (ON DELETE RESTRICT), `buyer_id` -> `users.id` (ON DELETE RESTRICT), timezone-aware non-null `ordered_at`/`requested_delivery_at`, `status` (default `approved`, CHECK draft|approved|fulfilled|cancelled), `created_at` (default now()).
+- `backend/alembic/versions/0003_purchase_order_storage.py` — additive migration creating `purchase_orders` with the same constraints as the ORM model (unique `order_number`, FK RESTRICT to vendors/users, status CHECK); `downgrade()` drops the table.
+- `backend/tests/models/test_purchase_order_storage.py` — covers: valid order persists with vendor/buyer ids and default status; duplicate `order_number` rejected (IntegrityError via `uq_purchase_orders_order_number`); invalid status rejected (DBAPIError via `purchase_order_status_check`); migration upgrade creates `purchase_orders` and downgrade removes it while `policy_documents` and other tables remain present.
+
+**Files updated:**
+- `backend/app/models/__init__.py` — exported `PurchaseOrder` for Alembic metadata discovery.
+
+**Test gate results:**
+- `docker compose run --rm backend uv run pytest tests/models/test_purchase_order_storage.py -q` -> 4 passed.
+- `docker compose run --rm backend uv run pytest -q` (full suite) -> 143 passed (no regressions).
+- verify_constraints all_pass (--execution claude-direct): files=4/4, diff_lines=253/350.
+
+**Decisions made:**
+- FK `ondelete="RESTRICT"` on both `vendor_id` and `buyer_id`, per the spec contract — distinct from the `CASCADE` pattern used by `shipments.vendor_id`, since deleting a vendor or user must not silently delete procurement history.
+- Test module uses a module-scoped autouse fixture (`command.upgrade(cfg, "head")`) so the migration is applied before the model-level tests run, then the dedicated migration test exercises upgrade -> downgrade -> upgrade and checks `policy_documents` is unaffected throughout.
+
+**Handoffs out:** None — shipment linkage and lifecycle fields remain C42.
+
+Tool usage: orchestrator direct write, 0 agent invocations.

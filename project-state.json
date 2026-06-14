@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C40 (product-delivery-replan) is complete. The roadmap now prioritizes a unified procurement-logistics and policy assistant through five developer-test milestones, with C41-C62 kept atomic and planned until individually specified. Eran explicitly waived Viktor for documentation-only C40; the normal review cadence resumes at C45. C41 (purchase-order-storage, Rex) is next and still requires an exact validated spec before activation.",
+  "tldr": "C41 (purchase-order-storage, Rex, Claude-direct) is complete: backend/app/models/purchase_order.py + 0003_purchase_order_storage migration + test_purchase_order_storage.py (4/4 passed, full suite 143/143). C42 (shipment-lifecycle-fields, Rex) is next. Normal review cadence resumes at C45 (Viktor every-5th-commit wave).",
   "phase": 2,
-  "last_completed_commit": "40",
-  "next_commit": "41",
-  "next_commit_name": "purchase-order-storage",
+  "last_completed_commit": "41",
+  "next_commit": "42",
+  "next_commit_name": "shipment-lifecycle-fields",
   "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
