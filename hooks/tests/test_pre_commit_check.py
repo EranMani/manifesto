@@ -356,7 +356,7 @@ def test_missing_orchestrator_marker_blocks(tmp_path: Path) -> None:
 
     assert result.returncode == 2
     assert "prepare_claude_direct.py --commit C50 --owner OWNER" in result.stdout
-    assert "--stop-orchestrator C50" in result.stdout
+    assert "finalize_commit.py" in result.stdout
 
 
 def test_completed_matching_orchestrator_marker_passes(tmp_path: Path) -> None:

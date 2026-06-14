@@ -170,9 +170,10 @@ You do **not** load files from other agents' domains unless this step explicitly
 5. After approval, open the matching Claude capture scope before any implementation
    read, search, edit, or command:
    - Claude-direct:
-     `python hooks/prepare_claude_direct.py --commit CNN --owner OWNER`
-     Then read `.context/direct/CNN.md` first and follow its selected-file order.
-     Do not scan directories or search the full graph before exhausting that package.
+     The `direct_execution_lifecycle.py` PreToolUse hook automatically runs
+     `prepare_claude_direct.py` before the first implementation-facing tool event.
+     Read `.context/direct/CNN.md` first and follow its selected-file order.
+     Do not manually start or stop telemetry.
    - Delegated: activate the agent runtime, invoke the agent, then open Claude review
      capture after the agent returns with
      `python hooks/context_telemetry.py --start-review CNN OWNER`.
@@ -237,7 +238,8 @@ You do **not** load files from other agents' domains unless this step explicitly
     verify_constraints (--worktree) check only treats the owner's own worklog file as
     "always planned" — any other dirty file, including TOKEN_RECORDS.md, is flagged as
     an unplanned file and returns `status: blocked`. This single command runs, in fixed
-    order: verify_constraints (--worktree), dashboard rendering after every successful
+    order: close the active telemetry scope, verify_constraints (--worktree),
+    dashboard rendering after every successful
     commit, writing the pending-notify flag, and writing the
     `.context/finalize/CNN.json` marker that step 12's commit requires (via
     `pre_commit_check.py`'s `check_finalize_marker()`). It stops at the first failure.

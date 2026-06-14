@@ -43,6 +43,7 @@ import notify_agent_done  # noqa: E402
 sys.argv = _argv_for_import
 
 import verify_constraints  # noqa: E402
+from context_telemetry import finalize_orchestrator_scope  # noqa: E402
 from constraint_dashboard import render_dashboard  # noqa: E402
 
 REPO_ROOT = Path(__file__).parent.parent
@@ -83,6 +84,14 @@ def step_verify(commit: str, agent: str, execution: str, tokens: int | None):
 
 def step_render_dashboard():
     render_dashboard()
+
+
+def step_close_capture(commit: str) -> tuple[bool, str]:
+    """Close the matching active Claude scope as the first finalize action."""
+    scope = finalize_orchestrator_scope(commit, REPO_ROOT)
+    if scope is None:
+        return False, "no matching active Claude scope to close"
+    return True, "closed"
 
 
 def step_validate_capture(commit: str, agent: str, execution: str) -> tuple[bool, str]:
@@ -170,7 +179,15 @@ def main():
         "notify_written": False,
         "marker_written": False,
         "capture": "unchecked",
+        "capture_closed": False,
     }
+
+    closed, close_message = step_close_capture(args.commit)
+    summary["capture_closed"] = closed
+    if not closed:
+        summary["capture"] = close_message
+        print(json.dumps(summary, indent=2))
+        return 1
 
     capture_ok, capture_message = step_validate_capture(
         args.commit, args.agent, args.execution

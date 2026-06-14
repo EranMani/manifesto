@@ -15,6 +15,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\direct_execution_lifecycle.py\""
+          },
+          {
+            "type": "command",
             "command": "python \"D:\\AI\\_My_Projects\\manifesto\\hooks\\tool_cap_enforce.py\""
           },
           {

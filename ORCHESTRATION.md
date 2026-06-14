@@ -88,10 +88,12 @@ STEP 4 — Pre-invocation check (mandatory)
 └── The executor was decided in STEP 3 and approved in STEP 3.5.
     Claude-direct → edit only files listed in the active commit spec. No further
                 implementation tool call is allowed until this capture command runs:
-                python hooks/prepare_claude_direct.py --commit CNN --owner OWNER
-    Claude reads `.context/direct/CNN.md` first and follows the selected-file order.
+    The PreToolUse lifecycle hook automatically runs
+    `prepare_claude_direct.py --commit CNN --owner OWNER` before the first
+    implementation-facing tool event. Claude reads `.context/direct/CNN.md` first.
     Repository-wide discovery is prohibited until the package has an unresolved
     symbol, missing contract, failing test, or contradictory implementation evidence.
+    `finalize_commit.py` closes capture automatically; Claude never starts or stops it.
     Delegated → rerun hooks/prepare_agent_delegation.py without --preview to activate
                 tool-cap state and telemetry, then invoke the named agent.
 

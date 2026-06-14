@@ -88,10 +88,11 @@ whose expected value exceeds invocation overhead. Workflow/governance changes,
 mechanical wiring, narrow repairs, exact known edits, and straightforward tests remain
 Claude-direct.
 
-For Claude-direct (the default), readiness and bounded context preparation run with
-`python hooks/prepare_claude_direct.py --commit <N> --owner <owner>`. It performs the
-lean direct preflight, builds a deterministic graph-selected execution package, writes
-the compact brief, and starts full-execution telemetry. No model or agent is invoked.
+For Claude-direct (the default), the PreToolUse lifecycle hook automatically runs
+`prepare_claude_direct.py` before the first implementation-facing tool event. It performs
+the lean direct preflight, builds a deterministic graph-selected execution package,
+writes the compact brief, and starts full-execution telemetry. `finalize_commit.py`
+closes capture automatically. Claude does not control either boundary. No model or agent is invoked.
 `prepare_agent_delegation.py` is invoked only on the delegated path.
 
 Claude-direct edits are mechanically limited to the active commit specification's

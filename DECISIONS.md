@@ -1605,4 +1605,52 @@ C33B/C38A fail-closed-gate precedent. Tracked as **OI-17**.
 
 ---
 
+## D47 - Deterministic Claude-Direct Telemetry Lifecycle
+
+- **Date:** 2026-06-14
+- **Decided by:** Eran and Claude
+- **Context:** C46 proved that transcript-derived Claude-direct token telemetry works
+  when capture brackets the full implementation, but C47 started and stopped capture
+  after the work had already finished. Its zero-token/zero-call record was correctly
+  rejected by the dashboard, yet the failure showed that written workflow instructions
+  still left the timing decision to Claude.
+
+### Decision
+
+The hooks, not Claude, own both telemetry boundaries:
+
+1. `direct_execution_lifecycle.py` runs as the first general `PreToolUse` hook.
+2. It reads `project-state.json` and the pending commit specification.
+3. The first Read/Grep/Glob/Write/Edit/Bash event targeting a planned implementation
+   file synchronously runs `prepare_claude_direct.py`.
+4. Package generation, graph selection, transcript snapshot, and active-scope
+   persistence must succeed before that tool event is allowed.
+5. Unrelated planning, governance, and discussion reads do not activate commit capture.
+6. `finalize_commit.py` closes the matching active scope before validating or
+   persisting metrics. Manual start/stop commands are no longer part of normal execution.
+7. Finalization and the commit gate fail closed for missing, stale, empty, or
+   mismatched telemetry.
+
+### Why deterministic
+
+- Token observability is a product acceptance requirement, not optional agent behavior.
+- A model can forget, mistime, or reinterpret a checklist; a local hook has a fixed
+  transition and produces the same result from the same repository state and tool event.
+- The implementation uses only commit specs, project state, the graph index, hook
+  payloads, Git evidence, and Claude's local transcript. It invokes no agent or model
+  and adds no semantic-token overhead.
+- Activating on the first planned implementation event is the earliest authoritative
+  local boundary. Activating earlier would count approval discussion and planning;
+  activating later would omit implementation tokens.
+
+### Consequences
+
+- C48 and later direct commits cannot perform planned-file work before telemetry is active.
+- A package/preflight failure blocks the first implementation tool rather than allowing
+  unobserved work.
+- Finalization cannot silently accept an empty C47-style capture.
+- Delegated execution keeps its separate agent/review telemetry path.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

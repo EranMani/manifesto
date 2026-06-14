@@ -57,6 +57,8 @@
         "hooks/tests/test_preflight_commit.py",
         "hooks/prepare_agent_delegation.py",
         "hooks/tests/test_prepare_agent_delegation.py",
+        "hooks/direct_execution_lifecycle.py",
+        "hooks/tests/test_direct_execution_lifecycle.py",
         "hooks/context_metrics.py",
         "hooks/tests/test_context_metrics.py",
         "hooks/constraint_dashboard.py",

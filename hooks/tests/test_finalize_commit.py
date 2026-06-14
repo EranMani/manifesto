@@ -24,6 +24,8 @@ PRE_COMMIT_CHECK = HOOKS_DIR / "pre_commit_check.py"
 # ---------------------------------------------------------------------------
 
 def _patch_steps(monkeypatch, calls, verify_result=(True, {"spec_validation": "ok"})):
+    monkeypatch.setattr(finalize_commit, "step_close_capture",
+                         lambda *a, **k: (calls.append("close"), (True, "closed"))[1])
     monkeypatch.setattr(finalize_commit, "step_validate_capture",
                          lambda *a, **k: (calls.append("capture"), (True, "complete"))[1])
     monkeypatch.setattr(finalize_commit, "step_verify",
@@ -51,7 +53,7 @@ def test_passing_pipeline_always_renders_dashboard(monkeypatch, capsys):
     ])
 
     assert rc == 0
-    assert calls == ["capture", "verify", "render", "notify", "marker"]
+    assert calls == ["close", "capture", "verify", "render", "notify", "marker"]
 
     summary = json.loads(capsys.readouterr().out)
     assert summary["status"] == "ready"
@@ -70,7 +72,7 @@ def test_failing_verify_stops_before_render_notify_marker(monkeypatch, capsys):
     ])
 
     assert rc == 1
-    assert calls == ["capture", "verify"]
+    assert calls == ["close", "capture", "verify"]
 
     summary = json.loads(capsys.readouterr().out)
     assert summary["status"] == "blocked"
@@ -89,7 +91,7 @@ def test_render_dashboard_flag_remains_compatible(monkeypatch, capsys):
     ])
 
     assert rc == 0
-    assert calls == ["capture", "verify", "render", "notify", "marker"]
+    assert calls == ["close", "capture", "verify", "render", "notify", "marker"]
     summary = json.loads(capsys.readouterr().out)
     assert summary["dashboard_rendered"] is True
 
@@ -104,7 +106,28 @@ def test_regular_commit_renders_dashboard_without_flag(monkeypatch, capsys):
     ])
 
     assert rc == 0
-    assert calls == ["capture", "verify", "render", "notify", "marker"]
+    assert calls == ["close", "capture", "verify", "render", "notify", "marker"]
+
+
+def test_missing_active_capture_blocks_before_validation(monkeypatch, capsys):
+    calls = []
+    _patch_steps(monkeypatch, calls)
+    monkeypatch.setattr(
+        finalize_commit,
+        "step_close_capture",
+        lambda *a, **k: (False, "no matching active Claude scope to close"),
+    )
+
+    rc = _run_main(monkeypatch, [
+        "--commit", "48", "--agent", "nova", "--execution", "claude-direct",
+        "--notify-what", "did stuff", "--notify-why", "because",
+    ])
+
+    assert rc == 1
+    assert calls == []
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["capture_closed"] is False
+    assert "no matching active" in summary["capture"]
 
 
 def test_step_write_marker_matches_documented_schema(tmp_path, monkeypatch):

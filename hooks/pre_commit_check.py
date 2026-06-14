@@ -281,9 +281,9 @@ def check_orchestrator_telemetry_marker(msg, config):
         else f"python hooks/context_telemetry.py --start-review {commit_key} OWNER"
     )
     error = (
-        f"Run `{start_command}` at the required lifecycle boundary and "
-        f"`python hooks/context_telemetry.py --stop-orchestrator {commit_key}` after "
-        f"/verify-commit passes (no complete matching Claude telemetry scope found)."
+        f"The deterministic lifecycle must activate `{start_command}` before implementation; "
+        f"`finalize_commit.py` closes it automatically "
+        f"(no complete matching Claude telemetry scope found)."
     )
 
     if not marker_path.is_file():
