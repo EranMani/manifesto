@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C43 (shipment-event-storage, Rex, Claude-direct) is complete: added ShipmentEvent model, the 0005_shipment_event_storage migration, and 4 focused tests (152/153 full suite). C43's 0005 migration shifted the alembic head past 0004, breaking test_shipment_lifecycle.py's downgrade-target assertion the same way C42 broke test_purchase_order_storage.py (fixed by C42A). C43A (shipment-lifecycle-migration-downgrade-fix, Rex, Claude-direct) is next: 1-line downgrade-target fix to restore 153/153. Normal review cadence resumes at C45 (Viktor every-5th-commit wave).",
+  "tldr": "C43A (shipment-lifecycle-migration-downgrade-fix, Rex, Claude-direct) is complete: 1-line downgrade-target fix in test_shipment_lifecycle.py restores 153/153. C44 (procurement-foundation-seed, Rex) is next. Normal review cadence resumes at C45 (Viktor every-5th-commit wave).",
   "phase": 2,
-  "last_completed_commit": "43",
-  "next_commit": "43A",
-  "next_commit_name": "shipment-lifecycle-migration-downgrade-fix",
+  "last_completed_commit": "43A",
+  "next_commit": "44",
+  "next_commit_name": "procurement-foundation-seed",
   "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [

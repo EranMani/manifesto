@@ -64,7 +64,7 @@
 | 42 | shipment-lifecycle-fields | rex | ✅ done · 2026-06-14 |
 | 42A | purchase-order-migration-downgrade-fix | rex | ✅ done · 2026-06-14 |
 | 43 | shipment-event-storage | rex | ✅ done · 2026-06-14 |
-| 43A | shipment-lifecycle-migration-downgrade-fix | rex | pending |
+| 43A | shipment-lifecycle-migration-downgrade-fix | rex | ✅ done · 2026-06-14 |
 | 44 | procurement-foundation-seed | rex | pending |
 | 45 | shipment-scenario-seed | rex | pending |
 | 46 | bundled-policy-seed | rex | pending |

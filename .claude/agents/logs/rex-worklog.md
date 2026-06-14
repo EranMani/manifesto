@@ -5,9 +5,9 @@
 ---
 
 ## Current State
-*Last updated: Commit 42A · 2026-06-14*
+*Last updated: Commit 43A · 2026-06-14*
 
-**Last completed:** Commit 42A `purchase-order-migration-downgrade-fix` ✅ (pending Eran approval/commit)
+**Last completed:** Commit 43A `shipment-lifecycle-migration-downgrade-fix` ✅ (pending Eran approval/commit)
 **Currently active:** none
 **Blocked by:** none
 
@@ -473,6 +473,26 @@ Tool usage: orchestrator direct write, 0 agent invocations.
 
 **Regression found (not fixed in this commit — see C43A):**
 - The new 0005 migration moves the alembic head past 0004, which breaks `test_shipment_lifecycle.py::test_migration_upgrade_adds_lifecycle_columns_and_downgrade_removes_them`: its `command.downgrade(cfg, "-1")` now only undoes 0005, so the 0004 lifecycle columns (`tracking_code`, etc.) are still present when the test asserts they're removed. Same C42A pattern, one revision later. Queued as **C43A** (letter-suffix pattern) — explicit downgrade target `0003_purchase_order_storage` (0004's down_revision) to restore 153/153.
+
+**Handoffs out:** None.
+
+Tool usage: orchestrator direct write, 0 agent invocations.
+
+---
+
+## Session 20 — Commit 43A: `shipment-lifecycle-migration-downgrade-fix`
+*2026-06-14*
+
+**Approach:** Orchestrator direct write (Claude-direct, Eran-approved) — no Rex invocation. 1-line letter-suffix repair commit (C33A/C38A/C42A precedent) for the regression C43 introduced.
+
+**Files updated:**
+- `backend/tests/models/test_shipment_lifecycle.py` — `test_migration_upgrade_adds_lifecycle_columns_and_downgrade_removes_them`'s downgrade target changed from `command.downgrade(cfg, "-1")` to `command.downgrade(cfg, "0003_purchase_order_storage")`, so the downgrade always removes both `0005_shipment_event_storage` and `0004_shipment_lifecycle_fields` (and thus the lifecycle columns), regardless of how many migrations sit above 0004.
+
+**Test gate results:**
+- `docker compose run --rm backend uv run pytest -q` (full suite) -> 153 passed (was 152 passed, 1 failed after C43).
+- verify_constraints all_pass (--execution claude-direct): files=1/1, diff_lines=2/20.
+
+**Decisions made:** None — single-line mechanical fix per the C43A spec contract; no other lines changed.
 
 **Handoffs out:** None.
 
