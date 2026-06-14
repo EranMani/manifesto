@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C39 (policy-vector-candidates) is done: backend/app/services/rag_policy.py adds PolicyChunkCandidate/ScoredPolicyChunk TypedDicts, _cosine_similarity(), and RAGPolicy.fetch_vector_candidates(query_vector, candidates, top_k=5) -- filters to status=='ready' and a matching EmbeddingProfile (provider/model/dimensions), scores by cosine similarity, sorts by (-score, chunk_index), truncates to top_k. 4 new tests in backend/tests/services/test_rag_policy.py. Orchestrator correction: Nova's draft compared a single profile: str field to EmbeddingService.profile (an EmbeddingProfile dataclass) -- always False in production; corrected PolicyChunkCandidate and fetch_vector_candidates to use embedding_provider/embedding_model/embedding_dimensions matching backend/app/models/policy.py, and updated test fakes to use the real EmbeddingProfile. 6/6 tests pass. Nova (delegated, Eran-approved, 95/100 preflight), commit 1f47067. known_implementor_tokens=53,272 exceeded the 45,000 hard-stop (tool_cap.json status 'blocked') -- logged as OI-16 (post-hoc breaker per OI-12, did not block completion). verify_constraints all_pass (files=3/4, diff_lines=270/350). No gate wave at C39 (next wave at C40). C40 (policy-lexical-candidates, nova) is next.",
+  "tldr": "C39 is complete. Eran approved a fast-delivery replan centered on a unified procurement-logistics and policy assistant. C40 records the milestone-led roadmap and reusable planning method; C41-C62 remain planned until individually specified and activated. Eran explicitly waived Viktor for documentation-only C40; the normal review cadence resumes at C45.",
   "phase": 2,
   "last_completed_commit": "39",
   "next_commit": "40",
-  "next_commit_name": "policy-lexical-candidates",
-  "next_commit_assignee": "nova",
+  "next_commit_name": "product-delivery-replan",
+  "next_commit_assignee": "claude",
   "status": "phase-2-active",
   "open_handoffs": [
     {

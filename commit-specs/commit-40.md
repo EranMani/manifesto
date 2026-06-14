@@ -1,25 +1,25 @@
-# Commit 40 - `policy-lexical-candidates` - Nova
+# Commit 40 - `product-delivery-replan` - Claude
 
-**Phase:** Policy RAG
-**Owner:** nova
+**Phase:** Product delivery reset
+**Owner:** claude
 **Depends on:** C39
-**Estimated diff lines:** 200
+**Estimated diff lines:** 320
 **Primary behavior count:** 1
-**Developer test milestone:** no
+**Developer test milestone:** yes
 
 ---
 
 ## Primary Behavior
 
-Fetch ready, profile-matched lexical candidates.
+Replace the policy-first pending roadmap with the approved milestone-led delivery plan.
 
 ---
 
 ## Semantic Fit Review
 
-- **Atomic outcome:** One full-text retrieval channel returns ranked candidates.
-- **Failure boundary:** Fusion remains C41.
-- **Budget rationale:** 2 exact changed file(s), 4 initial context file(s), and one focused verification command fit one bounded invocation.
+- **Atomic outcome:** The canonical protocol points to one bounded, client-demo roadmap.
+- **Failure boundary:** Product implementation and later commit-spec activation remain outside C40.
+- **Budget rationale:** Four planning/state files and one structural validation command fit the locked envelope.
 
 ---
 
@@ -44,14 +44,17 @@ execution_budget:
 
 ```yaml
 primary_files:
-  - backend/app/services/rag_policy.py
+  - commit-protocol.md
+  - commit-specs/PRODUCT_DELIVERY_PLANNING.md
 initial_context:
-  - backend/app/services/rag_policy.py
-  - backend/tests/services/test_rag_policy.py
+  - commit-protocol.md
+  - project-state.json
+  - commit-specs/commit-40.md
+  - commit-specs/TEMPLATE.md
 forbidden:
-  - backend/app/api/
-  - backend/app/models/
+  - backend/
   - frontend/
+  - hooks/
 ```
 
 ---
@@ -60,38 +63,39 @@ forbidden:
 
 | File | Type | Purpose |
 |---|---|---|
-| `backend/app/services/rag_policy.py` | edit | Fetch ready, profile-matched lexical candidates. |
-| `backend/tests/services/test_rag_policy.py` | edit | Prove policy-lexical-candidates |
+| `commit-protocol.md` | edit | Activate C40 and record planned C41-C62 milestones. |
+| `commit-specs/PRODUCT_DELIVERY_PLANNING.md` | add | Preserve the reusable planning method and Manifesto example. |
+| `commit-specs/commit-40.md` | edit | Define the bounded roadmap-reset contract. |
+| `project-state.json` | edit | Point project state at the approved C40 replan. |
 
 ---
 
 ## Contract
 
-Fetch ready, profile-matched lexical candidates.
-
-The implementation must preserve prior committed contracts, use provider-neutral or typed
-interfaces where applicable, and expose no unrelated behavior.
+Only C40 is pending. C41-C62 are listed as planned and become pending only after their
+focused specs are drafted and validated. The protocol records checkpoints at C46, C50,
+C56, C60, and C62 plus the deferred policy-chat backlog.
 
 ---
 
 ## Environment Prerequisites
 
-- C37 ingestion database contract and C25 provider-neutral services are available.
+- C39 is complete and Eran approved the fast-delivery replan.
 
 ---
 
 ## Verification Command
 
 ```powershell
-docker compose run --rm backend uv run pytest tests/services/test_rag_policy.py -k lexical_candidates -q
+python hooks/validate_commit_spec.py --all-pending --json
 ```
 
 ---
 
 ## Focused Tests
 
-- Text rank ordering is deterministic.
-- Wrong-profile and non-ready documents are excluded.
+- C40 is the only active pending spec and passes structural validation.
+- C41-C62 remain visible as planned work without entering pending validation.
 
 ---
 
@@ -105,13 +109,19 @@ docker compose run --rm backend uv run pytest tests/services/test_rag_policy.py 
 
 ## Developer Test Checkpoint
 
-**Next milestone:** C49.
+**Ready now:** The approved product milestones, atomic delivery sequence, and reusable
+planning method are canonical.
+**How to test:** Read the Commit Index, Developer Test Milestones, deferred backlog, and
+`commit-specs/PRODUCT_DELIVERY_PLANNING.md`; run the verification command.
+**Expected result:** The pending graph is valid with C40 as its only pending commit.
+**Still incomplete:** No product implementation begins until C41 is separately specified
+and approved.
 
 ---
 
 ## Not In This Commit
 
-- Later policy RAG behavior starts C41.
+- Product code, migrations, seeds, APIs, UI, and C41-C62 detailed specifications.
 
 ---
 

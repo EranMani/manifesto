@@ -59,47 +59,59 @@
 | 38 | policy-query-embedding | nova | ✅ done · 2026-06-13 |
 | 38A | orchestrator-telemetry-marker-gate | claude | ✅ done · 2026-06-13 |
 | 39 | policy-vector-candidates | nova | ✅ done · 2026-06-14 |
-| 40 | policy-lexical-candidates | nova | pending |
-| 41 | policy-rank-fusion | nova | pending |
-| 42 | policy-result-diversification | nova | pending |
-| 43 | policy-evidence-threshold | nova | pending |
-| 44 | policy-context-budget | nova | pending |
-| 45 | policy-source-labels | nova | pending |
-| 46 | policy-grounded-prompt | nova | pending |
-| 47 | policy-stream-events | nova | pending |
-| 48 | policy-stream-cancellation | nova | pending |
-| 49 | policy-citation-validation | nova | pending |
-| 50 | policy-evaluation-dataset | nova | pending |
-| 51 | policy-retrieval-metrics | nova | pending |
-| 52 | policy-answer-quality-metrics | nova | pending |
-| 53 | policy-runtime-baselines | nova | pending |
-| 54 | policy-chat-request-schema | rex | pending |
-| 55 | policy-chat-sse-route | rex | pending |
-| 56 | policy-chat-stream-errors | rex | pending |
-| 57 | message-stream-state-schema | rex | pending |
-| 58 | message-citation-schema | rex | pending |
-| 59 | conversation-write-service | rex | pending |
-| 60 | chat-stream-persistence | rex | pending |
-| 61 | chat-idempotent-retry | rex | pending |
-| 62 | conversation-send-concurrency | rex | pending |
-| 63 | conversation-list-api | rex | pending |
-| 64 | conversation-history-api | rex | pending |
-| 65 | frontend-test-baseline | aria | pending |
-| 66 | chat-sse-client | aria | pending |
-| 67 | policy-chat-state | aria | pending |
-| 68 | stream-message-rendering | aria | pending |
-| 69 | message-input-cancel | aria | pending |
-| 70 | provider-selection-ui | aria | pending |
-| 71 | conversation-api-client | aria | pending |
-| 72 | conversation-sidebar-list | aria | pending |
-| 73 | conversation-history-navigation | aria | pending |
-| 74 | citations-ui | aria | pending |
-| 75 | policy-chat-ui-integration | aria | pending |
-| 76 | assembled-policy-chat-smoke | adam | pending |
+| 40 | product-delivery-replan | claude | pending |
+| 41 | purchase-order-storage | rex | planned |
+| 42 | shipment-lifecycle-fields | rex | planned |
+| 43 | shipment-event-storage | rex | planned |
+| 44 | procurement-foundation-seed | rex | planned |
+| 45 | shipment-scenario-seed | rex | planned |
+| 46 | bundled-policy-seed | nova | planned |
+| 47 | shipment-identifier-evidence | nova | planned |
+| 48 | procurement-relationship-evidence | nova | planned |
+| 49 | shipment-timeline-evidence | nova | planned |
+| 50 | logistics-graph-evidence | nova | planned |
+| 51 | minimal-policy-evidence | nova | planned |
+| 52 | assistant-intent-routing | nova | planned |
+| 53 | grounded-logistics-answer | nova | planned |
+| 54 | grounded-policy-answer | nova | planned |
+| 55 | assistant-role-authorization | rex | planned |
+| 56 | unified-assistant-api | rex | planned |
+| 57 | assistant-client-session-state | aria | planned |
+| 58 | focused-evidence-graph | aria | planned |
+| 59 | unified-assistant-interface | aria | planned |
+| 60 | assistant-evidence-integration | aria | planned |
+| 61 | assistant-golden-evaluation | nova | planned |
+| 62 | assembled-client-demo | adam | planned |
 
 ---
 
-## Workflow Redesign And Phase 2 Recovery (revised 2026-06-10)
+## Fast-Delivery Product Replan (approved 2026-06-14)
+
+C40 resets the active roadmap around the procurement-logistics demonstration while
+preserving a minimal policy-document assistant. Only C40 is pending. C41-C62 remain
+planned until the immediately next commit receives an exact, validated specification.
+This keeps roadmap visibility without activating placeholder specs.
+
+**C40 review exception:** Eran explicitly waived the scheduled Viktor review for C40
+only because it changes planning and project-state documents without runtime behavior.
+The normal five-commit review cadence resumes at C45.
+
+| Range | Product result |
+|---|---|
+| C41-C46 | Stable procurement scenarios and query-ready policy documents |
+| C47-C50 | Traceable logistics facts, timelines, relationships, and graph evidence |
+| C51-C56 | One role-aware backend assistant for logistics and policy questions |
+| C57-C60 | Browser assistant with session chat, citations, and focused graph paths |
+| C61-C62 | Golden-question verification and a clean client-demo rehearsal |
+
+Deferred until demonstrations justify them: advanced policy rank fusion, durable
+conversation history, SSE streaming and cancellation, provider selection, extensive
+runtime metrics, and full-network graph exploration.
+
+The reusable planning method and Manifesto worked example live in
+`commit-specs/PRODUCT_DELIVERY_PLANNING.md`.
+
+## Workflow Redesign And Phase 2 Recovery (historical, superseded 2026-06-14)
 
 C29 installed enforcement. C29A builds the deterministic readiness scoring engine, C29B
 wires it into `prepare_agent_delegation.py` as a hard gate before delegation, and C29C
@@ -172,13 +184,11 @@ only when a coherent capability is ready to test.
 |---|---|---|
 | C32 | Technical | Open the constraint dashboard and inspect separate invocation records, totals, and contradictions |
 | C37 | Technical | Run document upload and ingestion against the real database, including success and rollback paths |
-| C49 | Technical | Exercise the complete policy RAG service contract through focused service tests |
-| C56 | Technical | Call the authenticated policy SSE endpoint and inspect incremental events and public errors |
-| C64 | Technical | Test durable conversations, retries, concurrency rejection, history, and citations through backend APIs |
-| C70 | Application | Open Policy Chat and visually test provider selection, sending, streaming text, stop, and safe retry |
-| C73 | Application | Open Policy Chat and test conversation sidebar navigation, reload, and browser back/forward |
-| C74 | Application | Ask a policy question and visually inspect live and historical citation rendering |
-| C76 | Application | Run the complete upload -> ask -> stream -> reload -> citations workflow in the assembled application |
+| C46 | Product | Inspect stable mock procurement data and query-ready policy documents |
+| C50 | Product | Verify shipment facts, timelines, relationships, and graph paths |
+| C56 | Product | Ask logistics and policy questions through one authenticated API |
+| C60 | Application | Use answers, citations, focused graphs, and node details in the browser |
+| C62 | Application | Rehearse the complete client demonstration from a clean environment |
 
 After a milestone commit passes its gates, Claude tells Eran:
 
