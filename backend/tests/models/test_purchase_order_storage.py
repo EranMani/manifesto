@@ -167,7 +167,7 @@ def test_migration_upgrade_creates_table_and_downgrade_removes_it():
     assert "purchase_orders" in tables
     assert "policy_documents" in tables
 
-    command.downgrade(cfg, "-1")
+    command.downgrade(cfg, "0002_rag_storage_hardening")
     tables = _table_names()
     assert "purchase_orders" not in tables
     assert "policy_documents" in tables
