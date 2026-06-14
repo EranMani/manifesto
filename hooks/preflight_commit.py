@@ -242,6 +242,48 @@ def _eval_scope_forbidden_compliance(
     return {"passed": passed, "evidence": {"bad_files": bad_files}}
 
 
+# D50 (DECISIONS.md): deterministic pre-check that flips the Claude-direct default
+# to delegate-first when planned files fall into a domain-sensitive category (T1)
+# or the commit is at the file-count cap (T2 -- max_changed_files is locked at 4 by
+# validate_commit_spec.py, so >4 is unreachable for a valid spec; T2 instead fires
+# at the cap itself, i.e. >= 4 planned files).
+_D50_T1_PATTERNS = (
+    "auth", "jwt", "password", "secret",
+    "models", "migrations", "alembic", "schema",
+    "celery", "redis", "docker", "queue",
+)
+_D50_T2_MIN_FILES = 4
+
+
+def _eval_d50_trigger_check(
+    files: list[dict[str, str]], override_justification: str | None
+) -> dict[str, Any]:
+    t1_hits: list[str] = []
+    for f in files:
+        normalized = f["path"].replace("\\", "/").lower()
+        if any(pattern in normalized for pattern in _D50_T1_PATTERNS):
+            t1_hits.append(f["path"])
+        elif f["action"] == "add" and "/services/" in normalized:
+            t1_hits.append(f["path"])
+
+    triggers: list[str] = []
+    if t1_hits:
+        triggers.append(f"T1 (domain-sensitive category): {', '.join(t1_hits)}")
+    if len(files) >= _D50_T2_MIN_FILES:
+        triggers.append(f"T2 (size outlier): {len(files)} planned files (>= {_D50_T2_MIN_FILES})")
+
+    if not triggers:
+        return {"passed": True, "evidence": {"triggers": []}}
+
+    if override_justification:
+        return {
+            "passed": True,
+            "evidence": {"triggers": triggers, "override_justification": override_justification},
+        }
+
+    return {"passed": False, "evidence": {"triggers": triggers}}
+
+
 def _eval_context_package_integrity(
     repo_root: Path, commit: str, agent: str, spec_validation_budget: dict[str, int]
 ) -> dict[str, Any]:
@@ -493,10 +535,13 @@ VIOLATION_MESSAGES = {
     "verification_command_present": "Verification Command section is missing, empty, or contains only placeholders/wildcards. Add a concrete, runnable verification command.",
     "acceptance_criteria_present": "Done When section, or both Focused Tests and Required Tests sections, are missing or empty. Add concrete acceptance criteria and tests.",
     "dependencies_satisfied": "One or more 'Depends on' commits are not marked done in commit-protocol.md. Complete and mark those dependencies done first.",
+    "d50_trigger_check": "Commit matches a D50 trigger (CLAUDE.md 'How to Invoke an Agent'): the default flips to delegate-first. Delegate this commit, or pass --override-justification \"<reason>\" to proceed Claude-direct anyway.",
 }
 
 
-def evaluate_direct(repo_root: Path, commit: str, owner: str) -> dict[str, Any]:
+def evaluate_direct(
+    repo_root: Path, commit: str, owner: str, override_justification: str | None = None
+) -> dict[str, Any]:
     """Lean Claude-direct readiness check.
 
     Validates only the active spec, this commit's own dependencies (not the
@@ -523,12 +568,17 @@ def evaluate_direct(repo_root: Path, commit: str, owner: str) -> dict[str, Any]:
         "ownership_match": _eval_ownership_match(repo_root, commit, spec_owner),
         "scope_forbidden_compliance": _eval_scope_forbidden_compliance(repo_root, files, spec_owner, forbidden),
         "verification_command_present": _eval_verification_command_present(verification_block),
+        "d50_trigger_check": _eval_d50_trigger_check(files, override_justification),
     }
 
     violations: list[str] = []
     for cat_name, result in checks.items():
         if not result["passed"]:
-            violations.append(f"{cat_name}: {VIOLATION_MESSAGES[cat_name]}")
+            message = VIOLATION_MESSAGES[cat_name]
+            if cat_name == "d50_trigger_check":
+                triggers = "; ".join(result["evidence"]["triggers"])
+                message = f"{message} Triggers: {triggers}"
+            violations.append(f"{cat_name}: {message}")
 
     return {
         "commit": key,
@@ -722,12 +772,17 @@ def main() -> int:
         help="Run the lean Claude-direct readiness check (ephemeral, no persistence "
              "or dashboard render) instead of the full scored preflight.",
     )
+    parser.add_argument(
+        "--override-justification", default=None,
+        help="Required to proceed --direct when a D50 trigger fires (domain-sensitive "
+             "files and/or >4 planned files). States why Claude-direct is used anyway.",
+    )
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parent.parent
 
     if args.direct:
-        result = evaluate_direct(repo_root, args.commit, args.agent)
+        result = evaluate_direct(repo_root, args.commit, args.agent, args.override_justification)
         if args.json:
             print(json.dumps(result))
         else:

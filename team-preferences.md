@@ -53,7 +53,8 @@ Public-facing:     internal tool (future AWS deployment)
    going direct instead):
      - T1: planned files touch auth/secrets/JWT/password, DB schema/migrations/models,
        new business logic (services), or infrastructure (Celery, Redis, Docker, queues)
-     - T2: `Files To Modify Or Add` lists more than 4 files
+     - T2: `Files To Modify Or Add` lists 4 or more files (the locked
+       `max_changed_files` cap — a commit at its full file-count budget)
    Neither fires → Claude-direct stands as the default.
 
 5. DEBATES AND DECISIONS GO INTO DECISIONS.md IMMEDIATELY.

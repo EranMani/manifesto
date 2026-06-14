@@ -450,8 +450,9 @@ must instead write a justification to execute directly.
 - **T1 — Domain-sensitive category:** planned files touch auth/secrets/JWT/password
   handling, DB schema/migrations/models, new business logic (services), or
   infrastructure (Celery, Redis, Docker, queues).
-- **T2 — Size outlier:** the commit spec's `Files To Modify Or Add` table lists more
-  than 4 files.
+- **T2 — Size outlier:** the commit spec's `Files To Modify Or Add` table lists 4 or
+  more files (the `max_changed_files` cap in `validate_commit_spec.py`'s
+  `LOCKED_BUDGET` — a commit at its full file-count budget).
 
 If neither fires, Claude-direct remains the default per Non-Negotiable 10.
 

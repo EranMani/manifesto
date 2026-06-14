@@ -58,7 +58,8 @@ STEP 3 — Claude validates scope, then checks readiness for the decided executo
       T1: planned files touch auth/secrets/JWT/password, DB schema/migrations/models,
           new business logic (services), or infrastructure (Celery, Redis, Docker,
           queues)
-      T2: `Files To Modify Or Add` lists more than 4 files
+      T2: `Files To Modify Or Add` lists 4 or more files (the locked
+          max_changed_files cap -- a commit at its full file-count budget)
     If neither fires, Claude-direct is the default (Non-Negotiable 10); delegation
     requires a written justification (unresolved specialist uncertainty, independent
     implementation for risk control, or a clearly bounded specialist unit whose

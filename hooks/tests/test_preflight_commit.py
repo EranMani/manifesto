@@ -541,6 +541,88 @@ def test_evaluate_direct_no_side_effects(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# evaluate_direct() -- D50 deterministic delegate-first trigger check
+# ---------------------------------------------------------------------------
+
+
+def test_evaluate_direct_blocked_d50_t1_domain_sensitive(tmp_path, monkeypatch):
+    spec = GOOD_SPEC.replace(
+        "| `hooks/context_telemetry.py` | edit | Store separate invocation telemetry records |",
+        "| `docker-compose.yml` | edit | Update service config |",
+    )
+    repo = _make_repo(tmp_path, spec_text=spec)
+    _write(repo, "docker-compose.yml", "services: {}\n")
+    monkeypatch.setattr(pf.shutil, "which", _which_all_available)
+
+    result = pf.evaluate_direct(repo, "C30", "adam")
+
+    assert result["status"] == "blocked"
+    assert result["proceed"] is False
+    assert any(v.startswith("d50_trigger_check:") for v in result["violations"])
+    assert any("T1" in v and "docker-compose.yml" in v for v in result["violations"])
+
+
+def test_evaluate_direct_d50_t1_override_proceeds(tmp_path, monkeypatch):
+    spec = GOOD_SPEC.replace(
+        "| `hooks/context_telemetry.py` | edit | Store separate invocation telemetry records |",
+        "| `docker-compose.yml` | edit | Update service config |",
+    )
+    repo = _make_repo(tmp_path, spec_text=spec)
+    _write(repo, "docker-compose.yml", "services: {}\n")
+    monkeypatch.setattr(pf.shutil, "which", _which_all_available)
+
+    result = pf.evaluate_direct(repo, "C30", "adam", "narrow mechanical edit, no infra behavior change")
+
+    assert result["status"] == "ready"
+    assert result["proceed"] is True
+    assert result["violations"] == []
+
+
+def test_evaluate_direct_blocked_d50_t2_at_file_cap(tmp_path, monkeypatch):
+    """T2 fires at the file-count cap itself (>= 4): validate_commit_spec's
+    LOCKED_BUDGET caps max_changed_files at 4, so 4 planned files is the largest
+    legal commit and is reachable through evaluate_direct."""
+    extra_rows = "\n".join(
+        f"| `hooks/extra_{i}.py` | edit | extra file {i} |" for i in range(1, 4)
+    )
+    spec = GOOD_SPEC.replace(
+        "| `hooks/context_telemetry.py` | edit | Store separate invocation telemetry records |",
+        "| `hooks/context_telemetry.py` | edit | Store separate invocation telemetry records |\n" + extra_rows,
+    )
+    repo = _make_repo(tmp_path, spec_text=spec)
+    for i in range(1, 4):
+        _write(repo, f"hooks/extra_{i}.py", f"# extra {i}\n")
+    monkeypatch.setattr(pf.shutil, "which", _which_all_available)
+
+    result = pf.evaluate_direct(repo, "C30", "adam")
+
+    assert result["status"] == "blocked"
+    assert result["proceed"] is False
+    assert any(v.startswith("d50_trigger_check:") for v in result["violations"])
+    assert any("T2" in v and "4 planned files" in v for v in result["violations"])
+
+
+def test_evaluate_direct_d50_t2_override_proceeds(tmp_path, monkeypatch):
+    extra_rows = "\n".join(
+        f"| `hooks/extra_{i}.py` | edit | extra file {i} |" for i in range(1, 4)
+    )
+    spec = GOOD_SPEC.replace(
+        "| `hooks/context_telemetry.py` | edit | Store separate invocation telemetry records |",
+        "| `hooks/context_telemetry.py` | edit | Store separate invocation telemetry records |\n" + extra_rows,
+    )
+    repo = _make_repo(tmp_path, spec_text=spec)
+    for i in range(1, 4):
+        _write(repo, f"hooks/extra_{i}.py", f"# extra {i}\n")
+    monkeypatch.setattr(pf.shutil, "which", _which_all_available)
+
+    result = pf.evaluate_direct(repo, "C30", "adam", "4 mechanical hook edits, single cohesive change")
+
+    assert result["status"] == "ready"
+    assert result["proceed"] is True
+    assert result["violations"] == []
+
+
+# ---------------------------------------------------------------------------
 # evaluate() no longer renders the dashboard
 # ---------------------------------------------------------------------------
 

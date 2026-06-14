@@ -1833,15 +1833,32 @@ Adopted. Wired into:
 - `CLAUDE.md` → "How to Invoke an Agent"
 - `team-preferences.md` → item 5
 - `ORCHESTRATION.md` → Commit Loop Step 3
+- `hooks/preflight_commit.py` → `evaluate_direct()` (`--direct`), via
+  `_eval_d50_trigger_check()` and the new `--override-justification` CLI flag
 
 ### Consequences
 
 - Step 3 of the commit loop now runs this pre-check before the existing
   judgment-based executor decision, for every commit.
-- No new hooks or scripts — both triggers are checkable by reading the active commit
-  spec already loaded in Step 2/3.
+- `preflight_commit.py --direct` now mechanically enforces D50: if T1 or T2 fires
+  without `--override-justification`, the result is `status: blocked`,
+  `proceed: false`. This was Eran's explicit ask — the check should not depend on
+  Claude remembering to apply it.
 - Future refinement (per D48/D49) may add an outcome-tracking metric later; not
   part of this adoption.
+
+### Addendum — T2 corrected to `>= 4` (was `> 4`)
+
+During implementation, T2's original wording ("more than 4 planned files") was
+found to be unreachable: `validate_commit_spec.py`'s `LOCKED_BUDGET` already caps
+`max_changed_files` at 4, so any spec with 5+ files fails `specification_validity`
+before D50 ever runs — independent of D50, and not overridable by D50's
+justification mechanism.
+
+**Corrected to T2 = `>= 4`** (fires at the file-count cap itself, i.e. a commit
+already at its full file-count budget). This is reachable today (4 files is the
+largest legal commit) and is a more useful signal than the original unreachable
+condition. `_D50_T2_MIN_FILES = 4` in `hooks/preflight_commit.py`.
 
 ---
 
