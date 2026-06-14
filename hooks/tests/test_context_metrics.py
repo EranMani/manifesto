@@ -104,11 +104,16 @@ def test_build_metric_record_persists_canonical_direct_evidence(tmp_path, monkey
         "status": "completed",
         "started_at": "2026-06-14T10:00:00+00:00",
         "ended_at": "2026-06-14T10:05:00+00:00",
-        "tool_calls": 0,
+        "tool_calls": 1,
         "read_paths": [],
         "write_paths": ["backend/app/example.py"],
         "searches": [],
         "commands": [],
+        "token_usage": {
+            "status": "complete",
+            "assistant_turns": 1,
+            "total_tokens": 1234,
+        },
     }), encoding="utf-8")
 
     record = cm.build_metric_record(

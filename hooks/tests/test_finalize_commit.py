@@ -41,7 +41,7 @@ def _run_main(monkeypatch, argv):
     return finalize_commit.main()
 
 
-def test_passing_pipeline_runs_in_order_skipping_dashboard(monkeypatch, capsys):
+def test_passing_pipeline_always_renders_dashboard(monkeypatch, capsys):
     calls = []
     _patch_steps(monkeypatch, calls)
 
@@ -51,11 +51,11 @@ def test_passing_pipeline_runs_in_order_skipping_dashboard(monkeypatch, capsys):
     ])
 
     assert rc == 0
-    assert calls == ["capture", "verify", "notify", "marker"]
+    assert calls == ["capture", "verify", "render", "notify", "marker"]
 
     summary = json.loads(capsys.readouterr().out)
     assert summary["status"] == "ready"
-    assert summary["dashboard_rendered"] is False
+    assert summary["dashboard_rendered"] is True
     assert summary["notify_written"] is True
     assert summary["marker_written"] is True
 
@@ -79,7 +79,7 @@ def test_failing_verify_stops_before_render_notify_marker(monkeypatch, capsys):
     assert summary["marker_written"] is False
 
 
-def test_render_dashboard_flag_forces_render_on_non_fifth_commit(monkeypatch, capsys):
+def test_render_dashboard_flag_remains_compatible(monkeypatch, capsys):
     calls = []
     _patch_steps(monkeypatch, calls)
 
@@ -94,12 +94,12 @@ def test_render_dashboard_flag_forces_render_on_non_fifth_commit(monkeypatch, ca
     assert summary["dashboard_rendered"] is True
 
 
-def test_fifth_commit_renders_dashboard_without_flag(monkeypatch, capsys):
+def test_regular_commit_renders_dashboard_without_flag(monkeypatch, capsys):
     calls = []
     _patch_steps(monkeypatch, calls)
 
     rc = _run_main(monkeypatch, [
-        "--commit", "35", "--agent", "claude", "--execution", "claude-direct",
+        "--commit", "34", "--agent", "claude", "--execution", "claude-direct",
         "--notify-what", "did stuff", "--notify-why", "because",
     ])
 
@@ -130,7 +130,10 @@ def test_step_validate_capture_accepts_full_direct_scope(tmp_path, monkeypatch):
         "commit": "C46", "status": "completed", "owner": "rex",
         "executor": "claude", "execution_mode": "claude-direct",
         "scope_kind": "execution", "capture_window": "full-execution",
-        "token_usage": {"status": "complete", "total_tokens": 1234},
+        "tool_calls": 1,
+        "token_usage": {
+            "status": "complete", "total_tokens": 1234, "assistant_turns": 1
+        },
     }), encoding="utf-8")
 
     assert finalize_commit.step_validate_capture("46", "rex", "claude-direct") == (
@@ -155,6 +158,28 @@ def test_step_validate_capture_rejects_missing_direct_tokens(tmp_path, monkeypat
 
     assert ok is False
     assert "token capture unavailable" in message
+
+
+def test_step_validate_capture_rejects_empty_direct_scope(tmp_path, monkeypatch):
+    telemetry = tmp_path / ".context" / "telemetry"
+    telemetry.mkdir(parents=True)
+    monkeypatch.setattr(finalize_commit, "TELEMETRY_DIR", telemetry)
+    (telemetry / "C47-orchestrator.json").write_text(json.dumps({
+        "commit": "C47", "status": "completed", "owner": "nova",
+        "executor": "claude", "execution_mode": "claude-direct",
+        "scope_kind": "execution", "capture_window": "full-execution",
+        "tool_calls": 0,
+        "token_usage": {
+            "status": "complete", "total_tokens": 0, "assistant_turns": 0
+        },
+    }), encoding="utf-8")
+
+    ok, message = finalize_commit.step_validate_capture(
+        "47", "nova", "claude-direct"
+    )
+
+    assert ok is False
+    assert "started too late" in message
 
 
 def test_step_validate_capture_rejects_legacy_direct_scope(tmp_path, monkeypatch):

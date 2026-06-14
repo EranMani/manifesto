@@ -25,7 +25,6 @@ import argparse
 import contextlib
 import io
 import json
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -124,6 +123,8 @@ def step_validate_capture(commit: str, agent: str, execution: str) -> tuple[bool
         if token_usage.get("status") != "complete":
             reason = token_usage.get("reason", "token snapshot did not complete")
             return False, f"Claude-direct token capture unavailable: {reason}"
+        if token_usage.get("assistant_turns", 0) < 1 or scope.get("tool_calls", 0) < 1:
+            return False, "Claude-direct capture is empty; execution scope started too late"
     return True, "complete"
 
 
@@ -152,8 +153,11 @@ def main():
     parser.add_argument("--agent", required=True, help="Commit owner agent name")
     parser.add_argument("--execution", required=True, choices=["claude-direct", "delegated"])
     parser.add_argument("--tokens", type=int, default=None)
-    parser.add_argument("--render-dashboard", action="store_true",
-                         help="Force constraint-dashboard.html render regardless of cadence")
+    parser.add_argument(
+        "--render-dashboard",
+        action="store_true",
+        help="Deprecated compatibility flag; the dashboard now renders after every successful commit.",
+    )
     parser.add_argument("--notify-what", required=True)
     parser.add_argument("--notify-why", required=True)
     args = parser.parse_args()
@@ -183,11 +187,8 @@ def main():
         print(json.dumps(summary, indent=2))
         return 1
 
-    numeric = re.match(r"\d+", args.commit)
-    is_fifth = bool(numeric) and int(numeric.group(0)) % 5 == 0
-    if args.render_dashboard or is_fifth:
-        step_render_dashboard()
-        summary["dashboard_rendered"] = True
+    step_render_dashboard()
+    summary["dashboard_rendered"] = True
 
     step_write_notify(args.notify_what, args.notify_why, args.commit, args.agent)
     summary["notify_written"] = True

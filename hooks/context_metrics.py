@@ -195,6 +195,8 @@ def canonicalize_metric_record(
         and raw_scope.get("scope_kind") == "execution"
         and raw_scope.get("capture_window") == "full-execution"
         and raw_scope.get("execution_mode") == "claude-direct"
+        and raw_scope.get("token_usage", {}).get("assistant_turns", 0) > 0
+        and raw_scope.get("tool_calls", 0) > 0
     ):
         capture_status = "complete"
         capture_reason = None
@@ -211,8 +213,14 @@ def canonicalize_metric_record(
 
     updated = dict(record)
     token_usage = (raw_scope or {}).get("token_usage", {})
-    if execution == "claude-direct" and token_usage.get("status") == "complete":
+    if (
+        execution == "claude-direct"
+        and token_usage.get("status") == "complete"
+        and token_usage.get("assistant_turns", 0) > 0
+    ):
         updated["tokens"] = token_usage.get("total_tokens")
+    elif execution == "claude-direct":
+        updated["tokens"] = None
     updated["record_schema_version"] = 2
     updated["identity"] = {
         "owner": owner,
@@ -421,6 +429,8 @@ def build_metric_record(
         and orch_scope.get("scope_kind") == "execution"
         and orch_scope.get("capture_window") == "full-execution"
         and orch_scope.get("execution_mode") == "claude-direct"
+        and (orch_scope.get("token_usage") or {}).get("assistant_turns", 0) > 0
+        and (orch_scope.get("tool_calls") or 0) > 0
     ):
         capture_status = "complete"
         capture_reason = None

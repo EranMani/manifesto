@@ -126,6 +126,8 @@
         "planned_files_read": 0,
         "planned_read_percent": null,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -353,7 +355,8 @@
         "planned_files": 0,
         "planned_files_read": 0,
         "planned_read_percent": null,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           ".claude/agents/ai-engineer.md",
           ".claude/agents/logs/nova-worklog.md",
           "backend/app/core/config.py",
@@ -366,6 +369,7 @@
           "project-state.json",
           "tests/services/test_llm.py"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -599,7 +603,8 @@
         "planned_files": 0,
         "planned_files_read": 0,
         "planned_read_percent": null,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           ".claude/agents/backend.md",
           ".claude/agents/logs/rex-worklog.md",
           "TOKEN_RECORDS.md",
@@ -617,6 +622,7 @@
           "commit-specs/commit-26.md",
           "docker-compose.yml"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -885,7 +891,8 @@
         "planned_files": 0,
         "planned_files_read": 0,
         "planned_read_percent": null,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           ".claude/agents/ai-engineer.md",
           ".claude/agents/logs/nova-worklog.md",
           "backend/app/models/policy.py",
@@ -899,6 +906,7 @@
           "backend/tests/services/test_llm.py",
           "manifesto-spec.md"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -1130,7 +1138,8 @@
         "planned_files": 0,
         "planned_files_read": 0,
         "planned_read_percent": null,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           ".claude/agents/backend.md",
           ".claude/agents/logs/rex-worklog.md",
           ".env",
@@ -1154,6 +1163,7 @@
           "backend/tests/services/test_ingestion.py",
           "commit-specs/commit-28.md"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -1304,6 +1314,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -1577,7 +1589,8 @@
         "planned_files": 2,
         "planned_files_read": 1,
         "planned_read_percent": 50.0,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           ".claude/agents/logs/adam-worklog.md",
           ".context/telemetry/C29A-adam-self-report.json",
           "backend/app/core/config.py",
@@ -1589,6 +1602,7 @@
           "hooks/validate_commit_spec.py",
           "hooks/verify_constraints.py"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -1722,9 +1736,11 @@
         "planned_files": 2,
         "planned_files_read": 1,
         "planned_read_percent": 50.0,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           ".claude/agents/logs/adam-worklog.md"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -2075,7 +2091,8 @@
         "planned_files": 3,
         "planned_files_read": 3,
         "planned_read_percent": 100.0,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           ".claude/agents/logs/adam-worklog.md",
           ".claude/commands/verify-commit.md",
           ".context/telemetry/C29C-adam-self-report.json",
@@ -2090,6 +2107,7 @@
           "hooks/validate_commit_spec.py",
           "hooks/verify_constraints.py"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -2202,6 +2220,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -2314,6 +2334,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -2426,6 +2448,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -2538,6 +2562,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -2644,6 +2670,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -2750,6 +2778,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -2850,6 +2880,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -2947,6 +2979,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -3065,11 +3099,13 @@
         "planned_files": 1,
         "planned_files_read": 1,
         "planned_read_percent": 100.0,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           "backend/app/models/policy.py",
           "backend/app/services/ingestion.py",
           "backend/tests/models/test_policy_storage.py"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -3171,6 +3207,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -3271,6 +3309,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -3392,9 +3432,11 @@
         "planned_files": 2,
         "planned_files_read": 2,
         "planned_read_percent": 100.0,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           "hooks/context_telemetry.py"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -3573,12 +3615,14 @@
         "planned_files": 2,
         "planned_files_read": 2,
         "planned_read_percent": 100.0,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           ".claude/agents/logs/nova-worklog.md",
           "backend/app/services/__init__.py",
           "commit-specs/commit-39.md",
           "hooks/verify_constraints.py"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -3685,6 +3729,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -3848,7 +3894,8 @@
         "planned_files": 4,
         "planned_files_read": 1,
         "planned_read_percent": 25.0,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           "backend/alembic/env.py",
           "backend/alembic/versions/0002_rag_storage_hardening.py",
           "backend/app/models/policy.py",
@@ -3857,6 +3904,7 @@
           "backend/app/models/vendor.py",
           "backend/tests/models/test_policy_storage.py"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -3963,6 +4011,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -4065,6 +4115,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -4171,6 +4223,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -4268,6 +4322,8 @@
         "planned_files_read": 0,
         "planned_read_percent": 0.0,
         "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -4424,7 +4480,8 @@
         "planned_files": 2,
         "planned_files_read": 1,
         "planned_read_percent": 50.0,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           "backend/app/core/database.py",
           "backend/app/core/security.py",
           "backend/app/models/category.py",
@@ -4435,6 +4492,7 @@
           "backend/tests/conftest.py",
           "backend/tests/models/test_purchase_order_storage.py"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -4567,11 +4625,13 @@
         "planned_files": 2,
         "planned_files_read": 2,
         "planned_read_percent": 100.0,
-        "supporting_reads": [
+        "supporting_reads": [],
+        "expansion_reads": [
           "backend/app/models/product.py",
           "backend/app/models/shipment.py",
           "backend/app/models/shipment_event.py"
         ],
+        "preselected_files": [],
         "source": "spec-and-hook-derived"
       }
     },
@@ -4851,15 +4911,15 @@
         "source": "spec-and-hook-derived"
       },
       "capture": {
-        "status": "complete",
-        "reason": null,
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
         "scope_kind": "execution",
         "capture_window": "full-execution",
         "started_at": "2026-06-14T13:21:40+00:00",
         "ended_at": "2026-06-14T13:21:40+00:00",
-        "zero_is_measured": true
+        "zero_is_measured": false
       },
-      "tokens": 0,
+      "tokens": null,
       "package": {},
       "telemetry": {
         "agent": {

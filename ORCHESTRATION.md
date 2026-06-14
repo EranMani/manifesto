@@ -4,7 +4,7 @@
 > CLAUDE.md is the boot sequence. This file is the full ruleset.
 > When CLAUDE.md is ambiguous — this file is authoritative.
 > Last updated: 2026-06-13 (lean Claude-direct preflight via --direct; honest dashboard
-> labels for Claude-direct vs delegated; dashboard render is opt-in via --render-dashboard)
+> labels for Claude-direct vs delegated; dashboard renders after every successful commit)
 
 ---
 
@@ -206,7 +206,7 @@ STEP 13 — verify_constraints + post-commit doc sweep (mandatory)
     Delegated:      python hooks/verify_constraints.py --commit NN --agent NAME
                     --execution delegated --tokens N
     Writes CONSTRAINT_LOG.md and CONTEXT_METRICS.json. constraint-dashboard.html is
-    regenerated only with --render-dashboard — render manually or during the
+    regenerated after every successful finalize pipeline run — no manual render
     five-commit Viktor review wave, not on every commit.
 
     Then immediately: stage and commit ALL protocol files as a chore:

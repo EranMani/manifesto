@@ -237,8 +237,8 @@ You do **not** load files from other agents' domains unless this step explicitly
     verify_constraints (--worktree) check only treats the owner's own worklog file as
     "always planned" — any other dirty file, including TOKEN_RECORDS.md, is flagged as
     an unplanned file and returns `status: blocked`. This single command runs, in fixed
-    order: verify_constraints (--worktree), a conditional dashboard render (every 5th
-    commit or `--render-dashboard`), writing the pending-notify flag, and writing the
+    order: verify_constraints (--worktree), dashboard rendering after every successful
+    commit, writing the pending-notify flag, and writing the
     `.context/finalize/CNN.json` marker that step 12's commit requires (via
     `pre_commit_check.py`'s `check_finalize_marker()`). It stops at the first failure.
     ```
