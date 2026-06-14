@@ -274,10 +274,16 @@ def check_orchestrator_telemetry_marker(msg, config):
     commit_key = "C" + commit_id.zfill(2).upper()
     marker_path = git_root / ".context" / "telemetry" / f"{commit_key}-orchestrator.json"
 
+    is_direct = DIRECT_EXECUTION_MARKER.lower() in msg.lower()
+    start_command = (
+        f"python hooks/prepare_claude_direct.py --commit {commit_key} --owner OWNER"
+        if is_direct
+        else f"python hooks/context_telemetry.py --start-review {commit_key} OWNER"
+    )
     error = (
-        f"Run hooks/context_telemetry.py --start-orchestrator {commit_key} before step 6a "
-        f"inspection and --stop-orchestrator {commit_key} after /verify-commit passes (no "
-        f"completed orchestrator telemetry scope found)."
+        f"Run `{start_command}` at the required lifecycle boundary and "
+        f"`python hooks/context_telemetry.py --stop-orchestrator {commit_key}` after "
+        f"/verify-commit passes (no complete matching Claude telemetry scope found)."
     )
 
     if not marker_path.is_file():
@@ -291,6 +297,17 @@ def check_orchestrator_telemetry_marker(msg, config):
         return [error]
     if scope.get("status") != "completed":
         return [error]
+    if is_direct:
+        if scope.get("execution_mode") != "claude-direct":
+            return [error]
+        if scope.get("scope_kind") != "execution":
+            return [error]
+        if scope.get("capture_window") != "full-execution":
+            return [error]
+        if str(scope.get("executor", "")).lower() != "claude":
+            return [error]
+        if not str(scope.get("owner", "")).strip():
+            return [error]
 
     return []
 

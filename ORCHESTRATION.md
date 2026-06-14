@@ -87,8 +87,11 @@ STEP 3.5 — Claude presents the Commit Preview to Eran
 STEP 4 — Pre-invocation check (mandatory)
 └── The executor was decided in STEP 3 and approved in STEP 3.5.
     Claude-direct → edit only files listed in the active commit spec. No further
-                tooling call is needed; hooks/preflight_commit.py --direct already
-                confirmed readiness without initializing any runtime state.
+                implementation tool call is allowed until this capture command runs:
+                python hooks/prepare_claude_direct.py --commit CNN --owner OWNER
+    Claude reads `.context/direct/CNN.md` first and follows the selected-file order.
+    Repository-wide discovery is prohibited until the package has an unresolved
+    symbol, missing contract, failing test, or contradictory implementation evidence.
     Delegated → rerun hooks/prepare_agent_delegation.py without --preview to activate
                 tool-cap state and telemetry, then invoke the named agent.
 
@@ -107,10 +110,10 @@ STEP 5.5 — Telemetry capture — two mandatory sub-steps, in this order:
         hooks/tool_cap.json has no matching invocation and --agent-report raises
         NoMatchingInvocationError (exit 1). telemetry.agent correctly records as
         "unavailable" (see C36; C37 fabricated a self-report this guard now blocks).
-    (b) Open orchestrator scope:
-        Run: python hooks/context_telemetry.py --start-orchestrator CNN
-        All Claude tool calls from this point through STEP 7.5 are captured as
-        orchestrator activity. Open BEFORE reading any files for inspection.
+    (b) Open Claude review scope:
+        Run: python hooks/context_telemetry.py --start-review CNN OWNER
+        Claude-direct capture is already active from STEP 4. Delegated review capture
+        opens BEFORE Claude reads any returned file.
 
 STEP 6 — Agent completes
 └── Updates Current State Header. Writes outgoing handoff notes.
@@ -141,11 +144,11 @@ STEP 7.5 — Diff review and /verify-commit (mandatory — before any notificati
     logic correctness, or spec conformance. Step 6.5's independent logic inspection
     is what verifies correctness; passing /verify-commit is not a substitute.
 
-STEP 7.75 — Close orchestrator scope (immediately after /verify-commit passes)
+STEP 7.75 — Close Claude scope (immediately after /verify-commit passes)
 └── Run: python hooks/context_telemetry.py --stop-orchestrator CNN
     Finalises .context/telemetry/CNN-orchestrator.json so verify_constraints.py (STEP 13)
     can read it and write the complete dual-scope record into CONTEXT_METRICS.json.
-    Never skip — missing file leaves orchestrator scope as status: unavailable in the dashboard.
+    Never skip. Finalization rejects missing, mismatched, or incomplete capture.
 
 STEP 8 — Quality gate wave (parallel where triggered)
 └── Viktor: every 5th commit (C05, C10, C15, C20) — Haiku
@@ -502,6 +505,6 @@ These cannot be overridden by any agent or any instruction:
 15. Completion notifications describe only the final, verified, corrected state of the
     work — never a preliminary or unreviewed state
 16. Dual-scope telemetry is mandatory every commit: persist agent self-report (STEP 5.5a),
-    open orchestrator scope (STEP 5.5b), close it after /verify-commit (STEP 7.75).
+    open the required Claude scope, then close it after /verify-commit (STEP 7.75).
     Dashboard columns showing N/A when real data existed are a skipped step, not
     missing data. All three sub-steps run every commit without exception.

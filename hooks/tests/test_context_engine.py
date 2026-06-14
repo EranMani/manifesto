@@ -59,7 +59,8 @@ forbidden:
 ```
 """
         parsed = _parse_context_block(spec)
-        self.assertEqual(parsed["tier0"], ["first.md", "second.md"])
+        self.assertEqual(parsed["initial_context"], ["first.md", "second.md"])
+        self.assertEqual(parsed["tier0"], [])
         self.assertEqual(parsed["forbidden"], ["backend/", "frontend/"])
 
     def test_context_parser_accepts_legacy_tier0_key(self) -> None:

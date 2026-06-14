@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -174,6 +175,54 @@ class ContextTelemetryTests(unittest.TestCase):
             self.assertTrue(
                 (root / ".context" / "telemetry" / "C30-orchestrator.json").exists()
             )
+
+    def test_execution_scope_persists_full_capture_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            started = context_telemetry.initialize_execution_scope("C46", "rex", root)
+            result = context_telemetry.finalize_orchestrator_scope("C46", root)
+
+            self.assertEqual(started["owner"], "rex")
+            self.assertEqual(result["executor"], "claude")
+            self.assertEqual(result["execution_mode"], "claude-direct")
+            self.assertEqual(result["scope_kind"], "execution")
+            self.assertEqual(result["capture_window"], "full-execution")
+
+    def test_execution_scope_captures_top_level_transcript_tokens(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            transcript = root / "session.jsonl"
+            transcript.write_text('{"type":"user"}\n', encoding="utf-8")
+            with patch.dict(
+                os.environ, {"CLAUDE_TRANSCRIPT_PATH": str(transcript)}
+            ):
+                context_telemetry.initialize_execution_scope("C46", "rex", root)
+                with transcript.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps({
+                        "type": "assistant",
+                        "isSidechain": False,
+                        "message": {"usage": {
+                            "input_tokens": 2,
+                            "output_tokens": 30,
+                            "cache_creation_input_tokens": 100,
+                            "cache_read_input_tokens": 1000,
+                        }},
+                    }) + "\n")
+                    handle.write(json.dumps({
+                        "type": "assistant",
+                        "isSidechain": True,
+                        "message": {"usage": {
+                            "input_tokens": 9,
+                            "output_tokens": 9,
+                            "cache_creation_input_tokens": 9,
+                            "cache_read_input_tokens": 9,
+                        }},
+                    }) + "\n")
+                result = context_telemetry.finalize_orchestrator_scope("C46", root)
+
+            self.assertEqual(result["token_usage"]["status"], "complete")
+            self.assertEqual(result["token_usage"]["assistant_turns"], 1)
+            self.assertEqual(result["token_usage"]["total_tokens"], 1132)
 
     def test_agent_report_rejected_when_tool_cap_does_not_match(self) -> None:
         """C37 regression: --agent-report must refuse to persist a self-report
@@ -365,7 +414,7 @@ class ConstraintDashboardTests(unittest.TestCase):
             output = root / "constraint-dashboard.html"
             document = render_dashboard(root, output)
             self.assertIn("Prepared next delegation", document)
-            self.assertIn("Phase B context efficiency", document)
+            self.assertIn("Execution observability", document)
             self.assertIn("77.8%", document)
             self.assertIn("C24", document)
             self.assertIn("Commit measurements", document)

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +15,12 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ACTIVE_PATH = REPO_ROOT / ".context" / "telemetry" / "active.json"
 ORCHESTRATOR_ACTIVE_PATH = REPO_ROOT / ".context" / "telemetry" / "orchestrator-active.json"
+TOKEN_FIELDS = (
+    "input_tokens",
+    "output_tokens",
+    "cache_creation_input_tokens",
+    "cache_read_input_tokens",
+)
 
 
 def utc_now() -> str:
@@ -28,6 +35,125 @@ def normalize_path(value: str) -> str:
     while value.startswith("./"):
         value = value[2:]
     return value
+
+
+def _find_transcript(repo_root: Path = REPO_ROOT) -> Path | None:
+    """Find the active Claude transcript for this repository."""
+    explicit = os.environ.get("CLAUDE_TRANSCRIPT_PATH")
+    if explicit:
+        path = Path(explicit)
+        return path if path.is_file() else None
+
+    projects = Path.home() / ".claude" / "projects"
+    try:
+        candidates = sorted(
+            projects.glob("*/*.jsonl"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return None
+    expected = json.dumps(str(repo_root), ensure_ascii=True)[1:-1].lower()
+    for path in candidates[:50]:
+        try:
+            size = path.stat().st_size
+            with path.open("rb") as handle:
+                handle.seek(max(0, size - 131072))
+                tail = handle.read().decode("utf-8", errors="replace").lower()
+        except OSError:
+            continue
+        if f'"cwd":"{expected}"' in tail:
+            return path
+    return None
+
+
+def _token_snapshot(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+    transcript = _find_transcript(repo_root)
+    if transcript is None:
+        return {
+            "status": "unavailable",
+            "reason": "Claude transcript not found",
+            "source": "claude-transcript-jsonl",
+        }
+    try:
+        offset = transcript.stat().st_size
+    except OSError:
+        return {
+            "status": "unavailable",
+            "reason": "Claude transcript could not be read",
+            "source": "claude-transcript-jsonl",
+        }
+    return {
+        "status": "running",
+        "source": "claude-transcript-jsonl",
+        "transcript_path": str(transcript),
+        "start_offset": offset,
+        "formula": "input + output + cache_creation_input + cache_read_input",
+        "excludes": "sidechain and separate delegated-agent transcripts",
+    }
+
+
+def _finalize_token_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
+    if snapshot.get("status") != "running":
+        return snapshot
+    path = Path(str(snapshot.get("transcript_path", "")))
+    start_offset = snapshot.get("start_offset")
+    if not isinstance(start_offset, int):
+        return {**snapshot, "status": "unavailable", "reason": "invalid start offset"}
+    try:
+        end_offset = path.stat().st_size
+        if end_offset < start_offset:
+            raise OSError("transcript was truncated")
+        with path.open("rb") as handle:
+            handle.seek(start_offset)
+            raw = handle.read(end_offset - start_offset)
+    except OSError as exc:
+        return {**snapshot, "status": "unavailable", "reason": str(exc)}
+
+    totals = {field: 0 for field in TOKEN_FIELDS}
+    assistant_turns = 0
+    malformed_lines = 0
+    for raw_line in raw.splitlines():
+        try:
+            entry = json.loads(raw_line.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            malformed_lines += 1
+            continue
+        if entry.get("type") != "assistant" or entry.get("isSidechain") is True:
+            continue
+        usage = (entry.get("message") or {}).get("usage")
+        if not isinstance(usage, dict):
+            continue
+        values: dict[str, int] = {}
+        valid = True
+        for field in TOKEN_FIELDS:
+            value = usage.get(field, 0)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                valid = False
+                break
+            values[field] = value
+        if not valid:
+            malformed_lines += 1
+            continue
+        assistant_turns += 1
+        for field, value in values.items():
+            totals[field] += value
+
+    if malformed_lines:
+        return {
+            **snapshot,
+            "status": "unavailable",
+            "reason": f"{malformed_lines} malformed usage record(s)",
+            "end_offset": end_offset,
+        }
+    return {
+        **snapshot,
+        "status": "complete",
+        "end_offset": end_offset,
+        "assistant_turns": assistant_turns,
+        "components": totals,
+        "total_tokens": sum(totals.values()),
+    }
 
 
 def initialize_telemetry(
@@ -178,10 +304,24 @@ def _write_invocation_record(
     return record
 
 
-def initialize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
-    """Open an orchestrator telemetry scope for post-agent review and verification."""
+def initialize_orchestrator_scope(
+    commit: str,
+    repo_root: Path = REPO_ROOT,
+    *,
+    owner: str | None = None,
+    execution_mode: str = "delegated",
+    scope_kind: str = "review",
+    capture_window: str = "review-only",
+) -> dict[str, Any]:
+    """Open a Claude telemetry scope with explicit execution semantics."""
     scope = {
-        "commit": commit,
+        "schema_version": 2,
+        "commit": _commit_key(commit),
+        "owner": owner.lower() if owner else None,
+        "executor": "claude",
+        "execution_mode": execution_mode,
+        "scope_kind": scope_kind,
+        "capture_window": capture_window,
         "status": "running",
         "started_at": utc_now(),
         "ended_at": None,
@@ -190,6 +330,7 @@ def initialize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> d
         "write_paths": [],
         "searches": [],
         "commands": [],
+        "token_usage": _token_snapshot(repo_root),
     }
     path = repo_root / ".context" / "telemetry" / "orchestrator-active.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -197,12 +338,67 @@ def initialize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> d
     return scope
 
 
+def initialize_execution_scope(
+    commit: str,
+    owner: str,
+    repo_root: Path = REPO_ROOT,
+    *,
+    package: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Open full Claude-direct capture before implementation begins."""
+    scope = initialize_orchestrator_scope(
+        commit,
+        repo_root,
+        owner=owner,
+        execution_mode="claude-direct",
+        scope_kind="execution",
+        capture_window="full-execution",
+    )
+    if package:
+        selected = [item["path"] for item in package.get("files", [])]
+        planned = [
+            item["path"]
+            for item in package.get("files", [])
+            if item.get("category") in {"primary", "test"}
+        ]
+        scope["context_package"] = {
+            "path": f".context/runs/{package['commit']}-claude-direct.json",
+            "brief_path": f".context/direct/{package['commit']}.md",
+            "selection_policy": package.get("selection_policy"),
+            "selected_paths": selected,
+            "planned_paths": planned,
+            "selected_files": package.get("budget", {}).get("selected_files"),
+            "estimated_chars": package.get("budget", {}).get(
+                "estimated_selected_chars"
+            ),
+        }
+        scope["selected_read_paths"] = []
+        scope["outside_read_paths"] = []
+        path = repo_root / ".context" / "telemetry" / "orchestrator-active.json"
+        path.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
+    return scope
+
+
+def initialize_review_scope(
+    commit: str, owner: str, repo_root: Path = REPO_ROOT
+) -> dict[str, Any]:
+    """Open Claude review capture after a delegated implementor returns."""
+    return initialize_orchestrator_scope(
+        commit,
+        repo_root,
+        owner=owner,
+        execution_mode="delegated",
+        scope_kind="review",
+        capture_window="review-only",
+    )
+
+
 def finalize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> dict[str, Any] | None:
-    """Close the orchestrator scope and write a permanent commit-keyed file.
+    """Close the active Claude scope and write a permanent commit-keyed file.
 
     Returns None — and writes nothing — if no scope is active, or the active
     scope belongs to a different commit. The latter happens when
-    --start-orchestrator was never called for `commit`: a stale "completed"
+    no matching start command was called for `commit`: a stale "completed"
     scope from a previous commit would otherwise be re-stamped with a new
     ended_at and persisted under the new commit's filename, duplicating the
     previous commit's tool-call history under the wrong commit (see OI-13).
@@ -218,6 +414,7 @@ def finalize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> dic
         return None
     scope["status"] = "completed"
     scope["ended_at"] = utc_now()
+    scope["token_usage"] = _finalize_token_snapshot(scope.get("token_usage", {}))
     path.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
     output = repo_root / ".context" / "telemetry" / f"{commit_key}-orchestrator.json"
     output.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
@@ -361,12 +558,22 @@ def record_tool_event(event: dict[str, Any]) -> dict[str, Any] | None:
         tool_input = {}
     path = _tool_path(tool_input)
 
-    # Route to orchestrator scope when it is active (opened by Claude during review phase)
+    # Route to the active Claude execution or review scope.
     orch = _load_orchestrator_active()
     if orch and orch.get("status") == "running":
         orch["tool_calls"] = orch.get("tool_calls", 0) + 1
         if tool_name == "Read" and path:
             _append_unique(orch.setdefault("read_paths", []), path)
+            selected = set(
+                orch.get("context_package", {}).get("selected_paths", [])
+            )
+            if selected:
+                target = (
+                    orch.setdefault("selected_read_paths", [])
+                    if path in selected
+                    else orch.setdefault("outside_read_paths", [])
+                )
+                _append_unique(target, path)
         elif tool_name in {"Grep", "Glob"}:
             orch.setdefault("searches", []).append({
                 "tool": tool_name,
@@ -448,12 +655,24 @@ def main() -> int:
     parser.add_argument(
         "--start-orchestrator",
         metavar="COMMIT",
-        help="Open orchestrator scope for the given commit (call before post-agent review)",
+        help="Legacy alias: open a delegated review-only Claude scope",
+    )
+    parser.add_argument(
+        "--start-execution",
+        nargs=2,
+        metavar=("COMMIT", "OWNER"),
+        help="Open full Claude-direct capture before implementation begins",
+    )
+    parser.add_argument(
+        "--start-review",
+        nargs=2,
+        metavar=("COMMIT", "OWNER"),
+        help="Open Claude review capture after delegated implementation",
     )
     parser.add_argument(
         "--stop-orchestrator",
         metavar="COMMIT",
-        help="Close and persist orchestrator scope (call after verification is complete)",
+        help="Close and persist the active Claude scope after verification",
     )
     parser.add_argument(
         "--agent-report",
@@ -477,13 +696,22 @@ def main() -> int:
         initialize_orchestrator_scope(args.start_orchestrator)
         return 0
 
+    if args.start_execution:
+        commit, owner = args.start_execution
+        initialize_execution_scope(commit, owner)
+        return 0
+
+    if args.start_review:
+        commit, owner = args.start_review
+        initialize_review_scope(commit, owner)
+        return 0
+
     if args.stop_orchestrator:
         scope = finalize_orchestrator_scope(args.stop_orchestrator)
         if scope is None:
             print(
-                f"WARNING: no active orchestrator scope for {args.stop_orchestrator} "
-                "(was --start-orchestrator called for this commit?). "
-                "No orchestrator telemetry file was written.",
+                f"WARNING: no active Claude scope for {args.stop_orchestrator}. "
+                "No Claude telemetry file was written.",
                 file=sys.stderr,
             )
         return 0

@@ -12,7 +12,7 @@
 |---|---|---|---|
 | Orchestrator / Default Implementor | Claude | sonnet | Direct execution by default, limited to the active approved commit spec |
 | Backend Engineer | Rex | sonnet | `backend/` — all Python application code |
-| DevOps Engineer | Adam | sonnet | Infrastructure plus workflow automation under `hooks/` (except `hooks/agent-config.json`, `hooks/tool_cap_end.py`, `hooks/tests/test_tool_cap.py`, `hooks/tool_cap_start.py`, `hooks/tool_cap_enforce.py`, `hooks/post_commit_next_step.py`, `hooks/generate_domain_map.py`, `hooks/tests/test_post_commit_next_step.py`, `hooks/tests/test_generate_domain_map.py`, `hooks/pre_commit_check.py`, `hooks/tests/test_pre_commit_check.py`, `hooks/context_telemetry.py`, `hooks/tests/test_context_telemetry.py`, `hooks/tests/test_telemetry_scopes.py`, `hooks/verify_constraints.py`, `hooks/tests/test_verify_constraints.py`, `hooks/preflight_commit.py`, `hooks/tests/test_preflight_commit.py`, `hooks/prepare_agent_delegation.py`, `hooks/tests/test_prepare_agent_delegation.py`, `hooks/context_metrics.py`, `hooks/tests/test_context_metrics.py`, `hooks/constraint_dashboard.py`, and `hooks/tests/test_constraint_dashboard.py` — a narrow Claude/orchestrator exception for the agent identity registry, token telemetry capture/persistence, the commit-gate hook that enforces this protocol, the quality-gate verification script, the tool-cap budget-gating/enforcement and post-commit protocol-advance/domain-map scripts that drive the commit loop's automated state transitions, the Claude-direct readiness check and full preflight scoring, the delegated-path context package/brief preparation (used only when delegation is justified), the context-efficiency metric record schema, and the dashboard renderer with its manual/five-commit-wave rendering cadence) |
+| DevOps Engineer | Adam | sonnet | Infrastructure plus workflow automation under `hooks/` (except `hooks/agent-config.json`, `hooks/tool_cap_end.py`, `hooks/tests/test_tool_cap.py`, `hooks/tool_cap_start.py`, `hooks/tool_cap_enforce.py`, `hooks/post_commit_next_step.py`, `hooks/generate_domain_map.py`, `hooks/tests/test_post_commit_next_step.py`, `hooks/tests/test_generate_domain_map.py`, `hooks/pre_commit_check.py`, `hooks/tests/test_pre_commit_check.py`, `hooks/context_telemetry.py`, `hooks/tests/test_context_telemetry.py`, `hooks/tests/test_telemetry_scopes.py`, `hooks/verify_constraints.py`, `hooks/tests/test_verify_constraints.py`, `hooks/preflight_commit.py`, `hooks/tests/test_preflight_commit.py`, `hooks/prepare_agent_delegation.py`, `hooks/tests/test_prepare_agent_delegation.py`, `hooks/prepare_claude_direct.py`, `hooks/tests/test_prepare_claude_direct.py`, `hooks/context_metrics.py`, `hooks/tests/test_context_metrics.py`, `hooks/constraint_dashboard.py`, and `hooks/tests/test_constraint_dashboard.py` — a narrow Claude/orchestrator exception for the agent identity registry, token telemetry capture/persistence, the commit-gate hook that enforces this protocol, the quality-gate verification script, the tool-cap budget-gating/enforcement and post-commit protocol-advance/domain-map scripts that drive the commit loop's automated state transitions, deterministic direct/delegated context package preparation, the context-efficiency metric record schema, and the dashboard renderer with its manual/five-commit-wave rendering cadence) |
 | Frontend Engineer | Aria | sonnet | `frontend/` — all React/TypeScript |
 | AI/ML Engineer | Nova | sonnet | `backend/app/services/llm.py`, `rag_policy.py`, `rag_logistics.py`, `ingestion.py` |
 | Code Reviewer | Viktor | haiku | Cross-domain review — reads any file, touches none |
@@ -88,11 +88,11 @@ whose expected value exceeds invocation overhead. Workflow/governance changes,
 mechanical wiring, narrow repairs, exact known edits, and straightforward tests remain
 Claude-direct.
 
-For Claude-direct (the default), readiness is checked with
-`python hooks/preflight_commit.py --direct --commit <N> --agent <owner>` — a lean,
-ephemeral check (no context package, no telemetry, no dashboard) returning
-`{status, proceed, violations}`. `prepare_agent_delegation.py` is invoked only on
-the delegated path (see "Live Context Delegation" below).
+For Claude-direct (the default), readiness and bounded context preparation run with
+`python hooks/prepare_claude_direct.py --commit <N> --owner <owner>`. It performs the
+lean direct preflight, builds a deterministic graph-selected execution package, writes
+the compact brief, and starts full-execution telemetry. No model or agent is invoked.
+`prepare_agent_delegation.py` is invoked only on the delegated path.
 
 Claude-direct edits are mechanically limited to the active commit specification's
 `Files To Modify Or Add` table. A direct commit records `Execution: Claude-direct` and

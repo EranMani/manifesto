@@ -209,11 +209,15 @@ def build_graph_view_data(repo_root: Path) -> dict[str, Any]:
     overlays: dict[str, dict[str, Any]] = {}
     for record in load_metrics(repo_root / "CONTEXT_METRICS.json").get("records", []):
         commit = str(record.get("commit", ""))
-        owner = str(record.get("agent", "")).lower()
+        identity = record.get("identity", {})
+        evidence = record.get("evidence", {})
+        owner = str(identity.get("owner") or record.get("agent", "")).lower()
         if not commit or not owner:
             continue
-        execution = record.get("execution") or "delegated"
-        executor = "claude" if execution == "claude-direct" else owner
+        execution = identity.get("execution_mode") or record.get("execution") or "delegated"
+        executor = identity.get("executor") or (
+            "claude" if execution == "claude-direct" else owner
+        )
         key = f"{commit}-{owner}"
         package = packages_by_key.get(key, {})
         package_spec = package.get("spec")
@@ -237,14 +241,14 @@ def build_graph_view_data(repo_root: Path) -> dict[str, Any]:
             for item in package.get("files", [])
             if isinstance(item, dict) and item.get("path")
         }
-        planned = _planned_files_from_spec(spec_path)
-        committed = [
+        planned = evidence.get("planned_files") or _planned_files_from_spec(spec_path)
+        committed = evidence.get("changed_files") or [
             path.replace("\\", "/")
             for path in record.get("boundaries", {}).get("changed_files", [])
             if isinstance(path, str)
         ]
-        read = _metric_scope_paths(record, "read_paths")
-        written = _metric_scope_paths(record, "write_paths")
+        read = evidence.get("read_files") or _metric_scope_paths(record, "read_paths")
+        written = evidence.get("written_files") or _metric_scope_paths(record, "write_paths")
         expanded = (
             record.get("telemetry", {}).get("agent", {}).get("expansions")
             if execution != "claude-direct"
@@ -279,10 +283,18 @@ def build_graph_view_data(repo_root: Path) -> dict[str, Any]:
             "expanded": [path.replace("\\", "/") for path in expanded if isinstance(path, str)],
             "status": "measured" if read or written else "git-and-spec-only",
             "provenance": {
-                "planned": "spec-derived" if planned else "not-captured",
-                "committed": "git-derived",
-                "read": "hook-measured" if read else "not-captured",
-                "written": "hook-measured" if written else "not-captured",
+                "planned": evidence.get("provenance", {}).get(
+                    "planned_files", "spec-derived" if planned else "not-captured"
+                ),
+                "committed": evidence.get("provenance", {}).get(
+                    "changed_files", "git-derived"
+                ),
+                "read": evidence.get("provenance", {}).get(
+                    "read_files", "hook-measured" if read else "not-captured"
+                ),
+                "written": evidence.get("provenance", {}).get(
+                    "written_files", "hook-measured" if written else "not-captured"
+                ),
             },
         }
 
@@ -404,7 +416,17 @@ def _not_applicable(label: str = "Not applicable") -> str:
     return f'<span style="color:#94a3b8">{label}</span>'
 
 
-def _claude_direct_orch_cell(orch_scope: dict[str, Any] | None) -> str:
+def _info_tip(text: str) -> str:
+    return (
+        f'<span class="info-tip" tabindex="0" data-tip="{html.escape(text, quote=True)}" '
+        'aria-label="Explanation">?</span>'
+    )
+
+
+def _claude_direct_orch_cell(
+    orch_scope: dict[str, Any] | None,
+    capture: dict[str, Any] | None = None,
+) -> str:
     """Render the orchestrator-calls cell for a Claude-direct record.
 
     Measured orchestrator telemetry is shown normally; absent telemetry reads
@@ -412,20 +434,77 @@ def _claude_direct_orch_cell(orch_scope: dict[str, Any] | None) -> str:
     """
     if orch_scope is None or orch_scope.get("status") == "unavailable":
         return _not_applicable("Not tracked")
-    return _scope_cell(orch_scope)
+    if (
+        (not capture or capture.get("status") != "complete")
+        and orch_scope.get("tool_calls") == 0
+    ):
+        return _not_applicable("Capture incomplete")
+    rendered = _scope_cell(orch_scope)
+    if not capture or capture.get("status") != "complete":
+        rendered += (
+            '<span style="background:#fff7ed;color:#9a3412;border-radius:3px;'
+            'padding:1px 5px;font-size:10px;font-weight:500;margin-left:4px">'
+            "partial</span>"
+        )
+    return rendered
 
 
-def _package_cell(pkg: dict[str, Any], execution: str) -> str:
-    """Render the context-package cell, distinguishing Claude-direct from delegated."""
+def _package_cell(
+    pkg: dict[str, Any], execution: str, scope: dict[str, Any] | None = None
+) -> str:
+    """Render deterministic direct scope or the delegated context package."""
     if execution == "claude-direct":
-        if pkg:
-            return _not_applicable("Legacy preview package (unused)")
-        return _not_applicable("Not created (Claude-direct)")
+        if scope and scope.get("planned_files"):
+            planned = int(scope["planned_files"])
+            read = int(scope.get("planned_files_read", 0))
+            percent = scope.get("planned_read_percent")
+            supporting = len(scope.get("supporting_reads", []))
+            expansions = len(scope.get("expansion_reads", []))
+            extra = (
+                f" · {supporting} preselected support "
+                + _info_tip(
+                    "Graph-selected dependency or contract files included before Claude started, so no repository-wide discovery was needed."
+                )
+                if supporting
+                else ""
+            )
+            if expansions:
+                extra += (
+                    f" · {expansions} expansions "
+                    + _info_tip(
+                        "Files read outside the deterministic package during execution. Each expansion should have a recorded reason."
+                    )
+                )
+            return f"<strong>{read} / {planned} ({percent:.1f}%)</strong>{extra}"
+        return _not_applicable("Execution scope unavailable")
     selected = pkg.get("selected_files")
     chars = pkg.get("estimated_chars")
     selected_text = str(selected) if selected is not None else "Unknown"
     chars_text = f"{chars:,}" if chars is not None else "Unknown"
     return f"<strong>{selected_text}</strong> files / {chars_text} chars"
+
+
+def _file_evidence_cell(evidence: dict[str, Any]) -> str:
+    coverage = evidence.get("coverage", {})
+    planned = coverage.get("planned_files")
+    changed = coverage.get("planned_files_changed")
+    percent = coverage.get("planned_change_percent")
+    if not planned:
+        return _not_applicable("Planned scope unavailable")
+    extras = len(coverage.get("supporting_changes", []))
+    missing = len(coverage.get("missing_planned_files", []))
+    notes = []
+    if extras:
+        notes.append(
+            f"+{extras} supporting "
+            + _info_tip(
+                "Changed files outside the planned product files, such as required worklogs or generated records."
+            )
+        )
+    if missing:
+        notes.append(f"{missing} missing")
+    suffix = f" · {' · '.join(notes)}" if notes else ""
+    return f"<strong>{changed} / {planned} ({percent:.1f}%)</strong>{suffix}"
 
 
 def _combined_cell(
@@ -746,18 +825,20 @@ def render_dashboard(
     avg_tokens = round(sum(token_values) / len(token_values)) if token_values else None
 
     measured = len(metrics)
-    package_chars = [r["package"].get("estimated_chars", 0) for r in metrics if r.get("package")]
-    utilizations = [
-        r["usage"].get("selected_utilization_percent")
-        for r in metrics
-        if r.get("usage", {}).get("selected_utilization_percent") is not None
-    ]
-    expansion_statuses = [_is_expansion_free(r) for r in metrics]
-    expansion_free = sum(1 for s in expansion_statuses if s is True)
-    expansion_unknown = sum(1 for s in expansion_statuses if s is None)
+    full_capture = sum(
+        record.get("capture", {}).get("status") == "complete" for record in metrics
+    )
+    direct_commits = sum(
+        (record.get("identity", {}).get("execution_mode") or record.get("execution"))
+        == "claude-direct"
+        for record in metrics
+    )
+    delegated_commits = sum(
+        (record.get("identity", {}).get("execution_mode") or record.get("execution"))
+        == "delegated"
+        for record in metrics
+    )
     boundary_clean = sum(r.get("boundaries", {}).get("forbidden_clean", False) for r in metrics)
-    avg_package = round(sum(package_chars) / len(package_chars)) if package_chars else None
-    avg_use = round(sum(utilizations) / len(utilizations), 1) if utilizations else None
 
     prepared_html = ""
     if prepared:
@@ -786,18 +867,34 @@ def render_dashboard(
         telemetry = record.get("telemetry", {})
         agent_scope = telemetry.get("agent") if telemetry else None
         orch_scope = telemetry.get("orchestrator") if telemetry else None
-        execution = record.get("execution", "unknown")
-        owner = str(record.get("agent", "-")).title()
-        executor = "Claude" if execution == "claude-direct" else owner
+        identity = record.get("identity", {})
+        evidence = record.get("evidence", {})
+        scope = record.get("scope", {})
+        capture = record.get("capture", {})
+        execution = identity.get("execution_mode") or record.get("execution", "unknown")
+        owner = str(identity.get("owner") or record.get("agent", "-")).title()
+        executor = str(
+            identity.get("executor")
+            or ("Claude" if execution == "claude-direct" else owner)
+        ).title()
+        domain = str(identity.get("domain") or "Unknown")
 
         if execution == "claude-direct":
-            tokens_cell = _not_applicable("Not captured")
-            package_cell = _package_cell(pkg, execution)
-            changed_count = len(boundary.get("changed_files", []))
-            used_cell = f"<strong>{changed_count}</strong> committed <span style=\"color:#64748b\">(Git-derived)</span>"
+            tokens_cell = (
+                metric_value(record.get("tokens"))
+                if record.get("tokens") is not None
+                else _not_applicable("Not captured")
+            )
+            package_cell = _package_cell(pkg, execution, scope)
+            used_cell = _file_evidence_cell(evidence)
             agent_cell = _not_applicable("Not delegated")
-            orch_cell = _claude_direct_orch_cell(orch_scope)
-            combined_cell = _combined_cell(None, orch_scope)
+            orch_cell = _claude_direct_orch_cell(orch_scope, capture)
+            combined_cell = (
+                _not_applicable("Capture incomplete")
+                if (not capture or capture.get("status") != "complete")
+                and (orch_scope or {}).get("tool_calls") == 0
+                else _combined_cell(None, orch_scope)
+            )
             expansion_cell = _not_applicable()
         else:
             selected = pkg.get("selected_files")
@@ -815,6 +912,7 @@ def render_dashboard(
         metric_rows += (
             "<tr>"
             f"<td>{badge(record.get('commit', '-'))}</td>"
+            f"<td>{html.escape(domain)}</td>"
             f"<td>{html.escape(owner)}</td>"
             f"<td>{html.escape(executor)}</td>"
             f"<td>{tokens_cell}</td>"
@@ -829,7 +927,7 @@ def render_dashboard(
         )
     if not metric_rows:
         metric_rows = (
-            '<tr><td colspan="11" class="empty">Phase B measurements begin with the next '
+            '<tr><td colspan="12" class="empty">Measurements begin with the next '
             'verified live delegation.</td></tr>'
         )
 
@@ -864,6 +962,7 @@ def render_dashboard(
 th{background:#f7f9fc;color:#69778e;font-size:10px;text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:10px 12px}
 td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff}.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#edf2f7;color:#455468;font-size:11px;font-weight:600}
 .badge.good{background:#e8f7ef;color:#157347}.badge.bad{background:#fdebec;color:#b4232c}.empty{text-align:center;color:#7b8798;padding:24px}.legend{color:#67758a;font-size:12px;margin-top:10px}
+.info-tip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#e2e8f0;color:#475569;font-size:10px;font-weight:700;cursor:help;vertical-align:middle}.info-tip:after{content:attr(data-tip);display:none;position:absolute;z-index:20;left:50%;bottom:calc(100% + 7px);transform:translateX(-50%);width:230px;white-space:normal;padding:8px 10px;border-radius:6px;background:#172033;color:#fff;font-size:11px;font-weight:400;line-height:1.35;box-shadow:0 6px 18px #0f172a40}.info-tip:hover:after,.info-tip:focus:after{display:block}
 .graph-controls{display:grid;grid-template-columns:1.2fr 1.6fr auto auto;gap:10px;align-items:end;margin-bottom:12px}.field label{display:block;color:#718096;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
 .field input,.field select,.graph-button{width:100%;border:1px solid #cfd9e6;background:#fff;border-radius:7px;padding:8px 10px;color:#263449}.graph-button{width:auto;cursor:pointer;font-weight:600}
 .graph-layout{display:block}.graph-stage{height:820px;border:1px solid #dce5ef;border-radius:10px;background:#111827;overflow:hidden;position:relative}
@@ -882,17 +981,11 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
 .preflight-raw{margin-top:10px}.preflight-raw pre{max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#cbd5e1;border-radius:8px;padding:12px;font-size:11px}
 .preflight-raw summary{cursor:pointer;font-size:12px;color:#2457c5;font-weight:600}
 """
-    if measured:
-        ef_label = f"{expansion_free}/{measured}"
-        if expansion_unknown:
-            ef_label += f" ({expansion_unknown} unknown)"
-    else:
-        ef_label = "-"
     phase_cards = [
-        ("Measured commits", measured),
-        ("Avg package", f"{avg_package:,} chars" if avg_package is not None else "-"),
-        ("Selected files used", f"{avg_use}%" if avg_use is not None else "-"),
-        ("Expansion-free", ef_label),
+        ("Recorded commits", measured),
+        ("Full capture", f"{full_capture}/{measured}" if measured else "-"),
+        ("Claude-direct", direct_commits),
+        ("Delegated", delegated_commits),
         ("Boundary clean", f"{boundary_clean}/{measured}" if measured else "-"),
     ]
     cards_html = "".join(
@@ -918,13 +1011,13 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
 </div>
 <main id="measurements" class="tab-panel active">
 {prepared_html}
-<section><div class="section-head"><div><h2>Phase B context efficiency</h2>
-<p>Measures whether the prepared package was concise and sufficient.</p></div></div>
+<section><div class="section-head"><div><h2>Execution observability</h2>
+<p>Deterministic evidence for direct and delegated work, with capture limits shown explicitly.</p></div></div>
 <div class="cards">{cards_html}</div>
-<div class="table-wrap"><table><thead><tr><th>Commit</th><th>Owner</th><th>Executor</th><th>Tokens</th><th>Context package</th>
+<div class="table-wrap"><table><thead><tr><th>Commit</th><th>Domain</th><th>Owner</th><th>Executor</th><th>Tokens</th><th>Execution scope</th>
 <th>File evidence</th><th>Delegated calls</th><th>Claude calls</th><th>Combined</th><th>Expansions</th><th>Boundary</th></tr></thead>
 <tbody>{metric_rows}</tbody></table></div>
-<p class="legend">Owner comes from the commit record; Executor identifies Claude-direct versus delegated work. Committed files are Git-derived. N/A or Not captured means the measurement is unavailable, never zero.</p></section>
+<p class="legend">Domain comes from the owner registry. File evidence compares spec-planned files with Git-derived changes. Claude token totals remain unavailable unless they can be attributed to one commit. Partial means the hook count is real but its capture window did not cover the full execution.</p></section>
 <section><div class="section-head"><div><h2>Constraint history</h2>
 <p>Existing checks for upfront context, forbidden paths, tool budget, and result.</p></div></div>
 <div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>Agent</th><th>Tokens</th>

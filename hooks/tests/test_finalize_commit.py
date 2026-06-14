@@ -24,6 +24,8 @@ PRE_COMMIT_CHECK = HOOKS_DIR / "pre_commit_check.py"
 # ---------------------------------------------------------------------------
 
 def _patch_steps(monkeypatch, calls, verify_result=(True, {"spec_validation": "ok"})):
+    monkeypatch.setattr(finalize_commit, "step_validate_capture",
+                         lambda *a, **k: (calls.append("capture"), (True, "complete"))[1])
     monkeypatch.setattr(finalize_commit, "step_verify",
                          lambda *a, **k: (calls.append("verify"), verify_result)[1])
     monkeypatch.setattr(finalize_commit, "step_render_dashboard",
@@ -49,7 +51,7 @@ def test_passing_pipeline_runs_in_order_skipping_dashboard(monkeypatch, capsys):
     ])
 
     assert rc == 0
-    assert calls == ["verify", "notify", "marker"]
+    assert calls == ["capture", "verify", "notify", "marker"]
 
     summary = json.loads(capsys.readouterr().out)
     assert summary["status"] == "ready"
@@ -68,7 +70,7 @@ def test_failing_verify_stops_before_render_notify_marker(monkeypatch, capsys):
     ])
 
     assert rc == 1
-    assert calls == ["verify"]
+    assert calls == ["capture", "verify"]
 
     summary = json.loads(capsys.readouterr().out)
     assert summary["status"] == "blocked"
@@ -87,7 +89,7 @@ def test_render_dashboard_flag_forces_render_on_non_fifth_commit(monkeypatch, ca
     ])
 
     assert rc == 0
-    assert calls == ["verify", "render", "notify", "marker"]
+    assert calls == ["capture", "verify", "render", "notify", "marker"]
     summary = json.loads(capsys.readouterr().out)
     assert summary["dashboard_rendered"] is True
 
@@ -102,7 +104,7 @@ def test_fifth_commit_renders_dashboard_without_flag(monkeypatch, capsys):
     ])
 
     assert rc == 0
-    assert calls == ["verify", "render", "notify", "marker"]
+    assert calls == ["capture", "verify", "render", "notify", "marker"]
 
 
 def test_step_write_marker_matches_documented_schema(tmp_path, monkeypatch):
@@ -118,6 +120,56 @@ def test_step_write_marker_matches_documented_schema(tmp_path, monkeypatch):
 
     written = json.loads((tmp_path / ".context" / "finalize" / "C33B.json").read_text(encoding="utf-8"))
     assert written == marker
+
+
+def test_step_validate_capture_accepts_full_direct_scope(tmp_path, monkeypatch):
+    telemetry = tmp_path / ".context" / "telemetry"
+    telemetry.mkdir(parents=True)
+    monkeypatch.setattr(finalize_commit, "TELEMETRY_DIR", telemetry)
+    (telemetry / "C46-orchestrator.json").write_text(json.dumps({
+        "commit": "C46", "status": "completed", "owner": "rex",
+        "executor": "claude", "execution_mode": "claude-direct",
+        "scope_kind": "execution", "capture_window": "full-execution",
+        "token_usage": {"status": "complete", "total_tokens": 1234},
+    }), encoding="utf-8")
+
+    assert finalize_commit.step_validate_capture("46", "rex", "claude-direct") == (
+        True, "complete"
+    )
+
+
+def test_step_validate_capture_rejects_missing_direct_tokens(tmp_path, monkeypatch):
+    telemetry = tmp_path / ".context" / "telemetry"
+    telemetry.mkdir(parents=True)
+    monkeypatch.setattr(finalize_commit, "TELEMETRY_DIR", telemetry)
+    (telemetry / "C46-orchestrator.json").write_text(json.dumps({
+        "commit": "C46", "status": "completed", "owner": "rex",
+        "executor": "claude", "execution_mode": "claude-direct",
+        "scope_kind": "execution", "capture_window": "full-execution",
+        "token_usage": {"status": "unavailable", "reason": "transcript not found"},
+    }), encoding="utf-8")
+
+    ok, message = finalize_commit.step_validate_capture(
+        "46", "rex", "claude-direct"
+    )
+
+    assert ok is False
+    assert "token capture unavailable" in message
+
+
+def test_step_validate_capture_rejects_legacy_direct_scope(tmp_path, monkeypatch):
+    telemetry = tmp_path / ".context" / "telemetry"
+    telemetry.mkdir(parents=True)
+    monkeypatch.setattr(finalize_commit, "TELEMETRY_DIR", telemetry)
+    (telemetry / "C46-orchestrator.json").write_text(json.dumps({
+        "commit": "C46", "status": "completed", "tool_calls": 0,
+    }), encoding="utf-8")
+
+    ok, message = finalize_commit.step_validate_capture(
+        "46", "rex", "claude-direct"
+    )
+    assert ok is False
+    assert "metadata mismatch" in message
 
 
 def test_step_verify_checks_worktree_not_committed_ref(monkeypatch):
@@ -233,6 +285,13 @@ def test_allows_primary_commit_with_matching_marker(tmp_path: Path) -> None:
         "commit": "33B", "agent": "claude", "execution": "claude-direct",
         "checks_passed": True, "timestamp": "2026-06-13T00:00:00+00:00",
     })
+    telemetry = repo / ".context" / "telemetry"
+    telemetry.mkdir(parents=True)
+    (telemetry / "C33B-orchestrator.json").write_text(json.dumps({
+        "commit": "C33B", "status": "completed", "owner": "claude",
+        "executor": "claude", "execution_mode": "claude-direct",
+        "scope_kind": "execution", "capture_window": "full-execution",
+    }), encoding="utf-8")
 
     result = _run_check(repo, PRIMARY_MESSAGE)
 

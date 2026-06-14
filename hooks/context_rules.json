@@ -155,5 +155,11 @@
     "live_max_chars_per_file": 3900,
     "live_max_total_chars": 18000,
     "live_reserve_chars": 3000
+  },
+  "direct_budget": {
+    "max_files": 6,
+    "max_chars_per_file": 3000,
+    "max_total_chars": 15000,
+    "reserve_chars": 1500
   }
 }

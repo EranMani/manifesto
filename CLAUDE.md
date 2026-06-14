@@ -167,9 +167,17 @@ You do **not** load files from other agents' domains unless this step explicitly
      for the scored approval card. Preview mode must not initialize tool-cap state,
      telemetry, or the tracked dashboard.
 4. **Present compact preflight approval to Eran — wait for explicit approval**
-5. After approval, execute directly by default. Delegate only when the approved card
-   names a delegated executor and gives a concrete justification. Activate agent runtime
-   state only for delegated execution.
+5. After approval, open the matching Claude capture scope before any implementation
+   read, search, edit, or command:
+   - Claude-direct:
+     `python hooks/prepare_claude_direct.py --commit CNN --owner OWNER`
+     Then read `.context/direct/CNN.md` first and follow its selected-file order.
+     Do not scan directories or search the full graph before exhausting that package.
+   - Delegated: activate the agent runtime, invoke the agent, then open Claude review
+     capture after the agent returns with
+     `python hooks/context_telemetry.py --start-review CNN OWNER`.
+   Delegate only when the approved card names a delegated executor and gives a concrete
+   justification.
 5a. **Parse agent self-report** — applies only to delegated execution (an agent was
     actually invoked this step). For Claude-direct commits, skip this step entirely —
     do not call `--agent-report`; `telemetry.agent` correctly records as `"unavailable"`
@@ -184,11 +192,12 @@ You do **not** load files from other agents' domains unless this step explicitly
     ```
     If the agent omitted the report: persist with `tool_calls` from worklog and all arrays `null`.
     Never skip — missing report becomes `status: partial`, not zero.
-5b. **Open orchestrator scope** — before reading any files for inspection:
+5b. **Confirm Claude review capture** — before reading delegated output:
     ```
-    python hooks/context_telemetry.py --start-orchestrator CNN
+    python hooks/context_telemetry.py --start-review CNN OWNER
     ```
-    All Claude tool calls from this point through step 7b are captured as orchestrator activity.
+    Claude-direct capture is already active from step 5. Delegated review capture starts
+    here before Claude reads any returned file.
 6. Receive work; verify agent updated worklog and handoffs
 6a. **Inspect changed logic against the commit contract** — read every edited file.
     Check validators, defaults, and business rules against the spec. Do not rely on
@@ -207,13 +216,13 @@ You do **not** load files from other agents' domains unless this step explicitly
     forbidden-path files, tool budget respected) — it does not verify test results,
     logic correctness, or spec conformance. Step 6a/6b's independent inspection is
     what verifies correctness; passing `/verify-commit` is not a substitute.
-7c. **Close orchestrator scope** — immediately after /verify-commit passes:
+7c. **Close Claude capture scope** — immediately after /verify-commit passes:
     ```
     python hooks/context_telemetry.py --stop-orchestrator CNN
     ```
     This finalises `.context/telemetry/CNN-orchestrator.json` so `verify_constraints.py`
     (step 12) can read it and write the complete dual-scope record into CONTEXT_METRICS.json.
-    Never skip — missing file leaves the orchestrator scope as `status: unavailable`.
+    Never skip. Finalization rejects missing, mismatched, or incomplete capture.
 8. Spawn Viktor (every 5 commits), Sage (conditional), Mira (conditional) — Haiku model, parallel
 9. Apply blocking rules. Any blocker becomes its own next commit and follows the same
    Claude-direct-default execution routing — no gate-fix passes.

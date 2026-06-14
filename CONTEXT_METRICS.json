@@ -68,7 +68,66 @@
           "backend/uv.lock"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "rex",
+        "execution_mode": "unknown",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "backend/app/core/config.py",
+          "backend/pyproject.toml",
+          "backend/tests/__init__.py",
+          "backend/tests/conftest.py",
+          "backend/tests/test_config.py",
+          "backend/uv.lock"
+        ],
+        "coverage": {
+          "planned_files": 0,
+          "planned_files_changed": 0,
+          "planned_change_percent": null,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            "backend/app/core/config.py",
+            "backend/pyproject.toml",
+            "backend/tests/__init__.py",
+            "backend/tests/conftest.py",
+            "backend/tests/test_config.py",
+            "backend/uv.lock"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "not-captured",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "delegation-package",
+        "planned_files": 0,
+        "planned_files_read": 0,
+        "planned_read_percent": null,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-09",
@@ -216,7 +275,99 @@
           "project-state.json"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "nova",
+        "executor": "nova",
+        "execution_mode": "unknown",
+        "domain": "AI/ML",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [],
+        "read_files": [
+          ".claude/agents/ai-engineer.md",
+          ".claude/agents/logs/nova-worklog.md",
+          "commit-specs/commit-25.md",
+          "backend/app/services/llm.py",
+          "backend/app/services/__init__.py",
+          "backend/pyproject.toml",
+          "backend/app/core/config.py",
+          "manifesto-spec.md",
+          "tests/services/test_llm.py",
+          "backend/tests/services/test_llm.py",
+          "project-state.json"
+        ],
+        "written_files": [
+          "backend/app/services/llm.py",
+          "backend/tests/services/test_llm.py",
+          "backend/tests/services/__init__.py",
+          "backend/pyproject.toml"
+        ],
+        "changed_files": [
+          ".claude/agents/logs/nova-worklog.md",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "TOKEN_RECORDS.md",
+          "commit-protocol.md",
+          "constraint-dashboard.html",
+          "hooks/agent-config.json",
+          "project-state.json"
+        ],
+        "coverage": {
+          "planned_files": 0,
+          "planned_files_changed": 0,
+          "planned_change_percent": null,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".claude/agents/logs/nova-worklog.md",
+            "CONSTRAINT_LOG.md",
+            "CONTEXT_METRICS.json",
+            "TOKEN_RECORDS.md",
+            "commit-protocol.md",
+            "constraint-dashboard.html",
+            "hooks/agent-config.json",
+            "project-state.json"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "not-captured",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "delegation-package",
+        "planned_files": 0,
+        "planned_files_read": 0,
+        "planned_read_percent": null,
+        "supporting_reads": [
+          ".claude/agents/ai-engineer.md",
+          ".claude/agents/logs/nova-worklog.md",
+          "backend/app/core/config.py",
+          "backend/app/services/__init__.py",
+          "backend/app/services/llm.py",
+          "backend/pyproject.toml",
+          "backend/tests/services/test_llm.py",
+          "commit-specs/commit-25.md",
+          "manifesto-spec.md",
+          "project-state.json",
+          "tests/services/test_llm.py"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-10",
@@ -359,7 +510,115 @@
           "project-state.json"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "rex",
+        "execution_mode": "unknown",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [],
+        "read_files": [
+          "commit-specs/commit-26.md",
+          ".claude/agents/backend.md",
+          ".claude/agents/logs/rex-worklog.md",
+          "backend/app/models/policy.py",
+          "backend/alembic/env.py",
+          "backend/app/models/__init__.py",
+          "backend/app/core/database.py",
+          "commit-specs/PHASE-2-RAG-ARCHITECTURE-REVIEW.md",
+          "backend/alembic/versions/0001_initial.py",
+          "backend/tests/conftest.py",
+          "backend/tests/services/test_llm.py",
+          "backend/app/core/config.py",
+          "backend/pyproject.toml",
+          "backend/alembic/versions/0002_rag_storage_hardening.py",
+          "docker-compose.yml",
+          "TOKEN_RECORDS.md"
+        ],
+        "written_files": [
+          "backend/alembic/versions/0002_rag_storage_hardening.py",
+          "backend/app/models/policy.py",
+          "backend/tests/models/test_policy_storage.py",
+          "backend/tests/models/__init__.py",
+          ".claude/agents/logs/rex-worklog.md",
+          "TOKEN_RECORDS.md"
+        ],
+        "changed_files": [
+          ".claude/agents/logs/rex-worklog.md",
+          "AGENTS.md",
+          "TOKEN_RECORDS.md",
+          "backend/alembic/versions/0002_rag_storage_hardening.py",
+          "backend/app/models/policy.py",
+          "backend/tests/models/__init__.py",
+          "backend/tests/models/test_policy_storage.py",
+          "constraint-dashboard.html",
+          "hooks/agent-config.json",
+          "project-state.json"
+        ],
+        "coverage": {
+          "planned_files": 0,
+          "planned_files_changed": 0,
+          "planned_change_percent": null,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".claude/agents/logs/rex-worklog.md",
+            "AGENTS.md",
+            "TOKEN_RECORDS.md",
+            "backend/alembic/versions/0002_rag_storage_hardening.py",
+            "backend/app/models/policy.py",
+            "backend/tests/models/__init__.py",
+            "backend/tests/models/test_policy_storage.py",
+            "constraint-dashboard.html",
+            "hooks/agent-config.json",
+            "project-state.json"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "not-captured",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "delegation-package",
+        "planned_files": 0,
+        "planned_files_read": 0,
+        "planned_read_percent": null,
+        "supporting_reads": [
+          ".claude/agents/backend.md",
+          ".claude/agents/logs/rex-worklog.md",
+          "TOKEN_RECORDS.md",
+          "backend/alembic/env.py",
+          "backend/alembic/versions/0001_initial.py",
+          "backend/alembic/versions/0002_rag_storage_hardening.py",
+          "backend/app/core/config.py",
+          "backend/app/core/database.py",
+          "backend/app/models/__init__.py",
+          "backend/app/models/policy.py",
+          "backend/pyproject.toml",
+          "backend/tests/conftest.py",
+          "backend/tests/services/test_llm.py",
+          "commit-specs/PHASE-2-RAG-ARCHITECTURE-REVIEW.md",
+          "commit-specs/commit-26.md",
+          "docker-compose.yml"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-10",
@@ -538,7 +797,110 @@
           "backend/tests/services/test_ingestion.py"
         ]
       },
-      "result": "FAIL"
+      "result": "FAIL",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "nova",
+        "executor": "nova",
+        "execution_mode": "unknown",
+        "domain": "AI/ML",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [],
+        "read_files": [
+          ".claude/agents/ai-engineer.md",
+          ".claude/agents/logs/nova-worklog.md",
+          "backend/app/models/policy.py",
+          "backend/app/services/__init__.py",
+          "backend/app/services/ingestion.py",
+          "backend/app/services/llm.py",
+          "manifesto-spec.md",
+          "backend/tests/conftest.py",
+          "backend/tests/services/test_llm.py",
+          "backend/pyproject.toml",
+          "backend/tests/services/test_ingestion.py",
+          "backend/tests/fixtures/documents/make_fixtures.py"
+        ],
+        "written_files": [
+          "backend/app/services/ingestion.py",
+          "backend/tests/fixtures/documents/sample.txt",
+          "backend/tests/fixtures/documents/sample.md",
+          "backend/tests/fixtures/documents/make_fixtures.py",
+          "backend/tests/services/test_ingestion.py"
+        ],
+        "changed_files": [
+          "backend/DOMAIN_MAP.md",
+          "backend/app/services/ingestion.py",
+          "backend/tests/fixtures/documents/corrupt.docx",
+          "backend/tests/fixtures/documents/encrypted.docx",
+          "backend/tests/fixtures/documents/encrypted.pdf",
+          "backend/tests/fixtures/documents/image_only.pdf",
+          "backend/tests/fixtures/documents/make_fixtures.py",
+          "backend/tests/fixtures/documents/sample.docx",
+          "backend/tests/fixtures/documents/sample.md",
+          "backend/tests/fixtures/documents/sample.pdf",
+          "backend/tests/fixtures/documents/sample.txt",
+          "backend/tests/services/test_ingestion.py"
+        ],
+        "coverage": {
+          "planned_files": 0,
+          "planned_files_changed": 0,
+          "planned_change_percent": null,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            "backend/DOMAIN_MAP.md",
+            "backend/app/services/ingestion.py",
+            "backend/tests/fixtures/documents/corrupt.docx",
+            "backend/tests/fixtures/documents/encrypted.docx",
+            "backend/tests/fixtures/documents/encrypted.pdf",
+            "backend/tests/fixtures/documents/image_only.pdf",
+            "backend/tests/fixtures/documents/make_fixtures.py",
+            "backend/tests/fixtures/documents/sample.docx",
+            "backend/tests/fixtures/documents/sample.md",
+            "backend/tests/fixtures/documents/sample.pdf",
+            "backend/tests/fixtures/documents/sample.txt",
+            "backend/tests/services/test_ingestion.py"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "not-captured",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "delegation-package",
+        "planned_files": 0,
+        "planned_files_read": 0,
+        "planned_read_percent": null,
+        "supporting_reads": [
+          ".claude/agents/ai-engineer.md",
+          ".claude/agents/logs/nova-worklog.md",
+          "backend/app/models/policy.py",
+          "backend/app/services/__init__.py",
+          "backend/app/services/ingestion.py",
+          "backend/app/services/llm.py",
+          "backend/pyproject.toml",
+          "backend/tests/conftest.py",
+          "backend/tests/fixtures/documents/make_fixtures.py",
+          "backend/tests/services/test_ingestion.py",
+          "backend/tests/services/test_llm.py",
+          "manifesto-spec.md"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-10",
@@ -682,7 +1044,118 @@
           "backend/tests/api/test_documents.py"
         ]
       },
-      "result": "FAIL"
+      "result": "FAIL",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "rex",
+        "execution_mode": "unknown",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [],
+        "read_files": [
+          ".claude/agents/backend.md",
+          "commit-specs/commit-28.md",
+          ".claude/agents/logs/rex-worklog.md",
+          "backend/app/api/v1/documents.py",
+          "backend/app/dependencies.py",
+          "backend/app/main.py",
+          "backend/app/services/ingestion.py",
+          "backend/app/models/policy.py",
+          "backend/app/models/user.py",
+          "backend/app/schemas/product.py",
+          "backend/app/services/llm.py",
+          "backend/app/api/v1/chat.py",
+          "backend/app/api/v1/vendors.py",
+          "backend/app/core/config.py",
+          "backend/app/core/database.py",
+          "backend/tests/conftest.py",
+          "backend/tests/services/test_ingestion.py",
+          "backend/tests/models/test_policy_storage.py",
+          "backend/app/core/security.py",
+          "backend/.env.test",
+          ".env",
+          "DECISIONS.md"
+        ],
+        "written_files": [
+          "backend/app/schemas/document.py",
+          "backend/app/core/config.py",
+          "backend/app/api/v1/documents.py",
+          "backend/tests/api/__init__.py",
+          "backend/tests/api/test_documents.py",
+          ".claude/agents/logs/rex-worklog.md",
+          "DECISIONS.md"
+        ],
+        "changed_files": [
+          "backend/app/api/v1/documents.py",
+          "backend/app/core/config.py",
+          "backend/app/schemas/document.py",
+          "backend/tests/api/__init__.py",
+          "backend/tests/api/test_documents.py"
+        ],
+        "coverage": {
+          "planned_files": 0,
+          "planned_files_changed": 0,
+          "planned_change_percent": null,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            "backend/app/api/v1/documents.py",
+            "backend/app/core/config.py",
+            "backend/app/schemas/document.py",
+            "backend/tests/api/__init__.py",
+            "backend/tests/api/test_documents.py"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "not-captured",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "delegation-package",
+        "planned_files": 0,
+        "planned_files_read": 0,
+        "planned_read_percent": null,
+        "supporting_reads": [
+          ".claude/agents/backend.md",
+          ".claude/agents/logs/rex-worklog.md",
+          ".env",
+          "DECISIONS.md",
+          "backend/.env.test",
+          "backend/app/api/v1/chat.py",
+          "backend/app/api/v1/documents.py",
+          "backend/app/api/v1/vendors.py",
+          "backend/app/core/config.py",
+          "backend/app/core/database.py",
+          "backend/app/core/security.py",
+          "backend/app/dependencies.py",
+          "backend/app/main.py",
+          "backend/app/models/policy.py",
+          "backend/app/models/user.py",
+          "backend/app/schemas/product.py",
+          "backend/app/services/ingestion.py",
+          "backend/app/services/llm.py",
+          "backend/tests/conftest.py",
+          "backend/tests/models/test_policy_storage.py",
+          "backend/tests/services/test_ingestion.py",
+          "commit-specs/commit-28.md"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-10",
@@ -749,7 +1222,90 @@
           "project-state.json"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "claude",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Orchestration",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "MULTI_AGENT_WORKFLOW_REDESIGN_ROADMAP.md",
+          "commit-specs/commit-29.md",
+          "CLAUDE.md",
+          "ORCHESTRATION.md",
+          "commit-protocol.md",
+          "project-state.json",
+          "commit-specs/TEMPLATE.md",
+          "hooks/validate_commit_spec.py",
+          "hooks/prepare_agent_delegation.py",
+          "hooks/context_rules.json",
+          "hooks/verify_constraints.py",
+          "hooks/tool_cap_start.py",
+          "hooks/tool_cap_enforce.py",
+          "hooks/tool_cap_end.py",
+          "hooks/agent-config.json",
+          "hooks/tests/test_validate_commit_spec.py",
+          "hooks/tests/test_prepare_agent_delegation.py",
+          "hooks/tests/test_tool_cap.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "CLAUDE.md",
+          "MULTI_AGENT_WORKFLOW_REDESIGN_ROADMAP.md",
+          "ORCHESTRATION.md",
+          "commit-protocol.md",
+          "commit-specs/TEMPLATE.md",
+          "commit-specs/commit-29.md",
+          "hooks/agent-config.json",
+          "hooks/context_rules.json",
+          "hooks/prepare_agent_delegation.py",
+          "hooks/tests/test_prepare_agent_delegation.py",
+          "hooks/tests/test_tool_cap.py",
+          "hooks/tests/test_validate_commit_spec.py",
+          "hooks/tool_cap_end.py",
+          "hooks/tool_cap_enforce.py",
+          "hooks/tool_cap_start.py",
+          "hooks/validate_commit_spec.py",
+          "hooks/verify_constraints.py",
+          "project-state.json"
+        ],
+        "coverage": {
+          "planned_files": 18,
+          "planned_files_changed": 18,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 18,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-11",
@@ -948,7 +1504,93 @@
           "hooks/tests/test_preflight_commit.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "adam",
+        "executor": "adam",
+        "execution_mode": "unknown",
+        "domain": "DevOps",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "hooks/preflight_commit.py",
+          "hooks/tests/test_preflight_commit.py"
+        ],
+        "read_files": [
+          "hooks/preflight_commit.py",
+          ".claude/agents/logs/adam-worklog.md",
+          "commit-specs/commit-29a.md",
+          "hooks/validate_commit_spec.py",
+          "hooks/context_engine.py",
+          "hooks/verify_constraints.py",
+          ".context/telemetry/C29A-adam-self-report.json",
+          "hooks/context_telemetry.py",
+          "hooks/tests/test_validate_commit_spec.py",
+          "hooks/tests/test_verify_constraints.py",
+          "backend/app/core/config.py"
+        ],
+        "written_files": [
+          "hooks/preflight_commit.py",
+          "hooks/tests/test_preflight_commit.py",
+          "hooks/verify_constraints.py",
+          "hooks/validate_commit_spec.py",
+          "commit-specs/commit-29A.md",
+          "hooks/tests/test_validate_commit_spec.py",
+          "hooks/tests/test_verify_constraints.py",
+          ".claude/agents/logs/adam-worklog.md"
+        ],
+        "changed_files": [
+          ".claude/agents/logs/adam-worklog.md",
+          "hooks/preflight_commit.py",
+          "hooks/tests/test_preflight_commit.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".claude/agents/logs/adam-worklog.md"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-11T11:34:40+00:00",
+        "ended_at": "2026-06-11T15:54:32+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "delegation-package",
+        "planned_files": 2,
+        "planned_files_read": 1,
+        "planned_read_percent": 50.0,
+        "supporting_reads": [
+          ".claude/agents/logs/adam-worklog.md",
+          ".context/telemetry/C29A-adam-self-report.json",
+          "backend/app/core/config.py",
+          "commit-specs/commit-29a.md",
+          "hooks/context_engine.py",
+          "hooks/context_telemetry.py",
+          "hooks/tests/test_validate_commit_spec.py",
+          "hooks/tests/test_verify_constraints.py",
+          "hooks/validate_commit_spec.py",
+          "hooks/verify_constraints.py"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-11",
@@ -1022,7 +1664,69 @@
           "hooks/tests/test_prepare_agent_delegation.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "adam",
+        "executor": "adam",
+        "execution_mode": "unknown",
+        "domain": "DevOps",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "hooks/prepare_agent_delegation.py",
+          "hooks/tests/test_prepare_agent_delegation.py"
+        ],
+        "read_files": [
+          "hooks/tests/test_prepare_agent_delegation.py",
+          ".claude/agents/logs/adam-worklog.md"
+        ],
+        "written_files": [
+          "hooks/tests/test_prepare_agent_delegation.py",
+          ".claude/agents/logs/adam-worklog.md"
+        ],
+        "changed_files": [
+          ".claude/agents/logs/adam-worklog.md",
+          "hooks/prepare_agent_delegation.py",
+          "hooks/tests/test_prepare_agent_delegation.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".claude/agents/logs/adam-worklog.md"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "delegation-package",
+        "planned_files": 2,
+        "planned_files_read": 1,
+        "planned_read_percent": 50.0,
+        "supporting_reads": [
+          ".claude/agents/logs/adam-worklog.md"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-12",
@@ -1292,7 +1996,102 @@
           "hooks/tests/test_context_telemetry.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "adam",
+        "executor": "adam",
+        "execution_mode": "unknown",
+        "domain": "DevOps",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "hooks/constraint_dashboard.py",
+          "hooks/preflight_commit.py",
+          "hooks/tests/test_context_telemetry.py"
+        ],
+        "read_files": [
+          "hooks/constraint_dashboard.py",
+          "hooks/preflight_commit.py",
+          ".claude/agents/logs/adam-worklog.md",
+          "commit-specs/commit-29c.md",
+          "hooks/tests/test_context_telemetry.py",
+          "hooks/context_metrics.py",
+          "hooks/tests/test_preflight_commit.py",
+          "backend/app/core/config.py",
+          ".context/telemetry/C29C-adam-self-report.json",
+          ".context/telemetry/C29C-adam.json",
+          "hooks/tests/test_pending_context_feasibility.py",
+          ".claude/commands/verify-commit.md",
+          "hooks/verify_constraints.py",
+          "DECISIONS.md",
+          "hooks/validate_commit_spec.py",
+          "hooks/context_engine.py"
+        ],
+        "written_files": [
+          "hooks/constraint_dashboard.py",
+          "hooks/preflight_commit.py",
+          "hooks/tests/test_context_telemetry.py",
+          "hooks/tests/test_preflight_commit.py",
+          ".claude/agents/logs/adam-worklog.md",
+          "commit-specs/commit-29c.md",
+          "DECISIONS.md"
+        ],
+        "changed_files": [
+          ".claude/agents/logs/adam-worklog.md",
+          "hooks/constraint_dashboard.py",
+          "hooks/preflight_commit.py",
+          "hooks/tests/test_context_telemetry.py"
+        ],
+        "coverage": {
+          "planned_files": 3,
+          "planned_files_changed": 3,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".claude/agents/logs/adam-worklog.md"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-12T04:37:24+00:00",
+        "ended_at": "2026-06-12T05:32:36+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "delegation-package",
+        "planned_files": 3,
+        "planned_files_read": 3,
+        "planned_read_percent": 100.0,
+        "supporting_reads": [
+          ".claude/agents/logs/adam-worklog.md",
+          ".claude/commands/verify-commit.md",
+          ".context/telemetry/C29C-adam-self-report.json",
+          ".context/telemetry/C29C-adam.json",
+          "DECISIONS.md",
+          "backend/app/core/config.py",
+          "commit-specs/commit-29c.md",
+          "hooks/context_engine.py",
+          "hooks/context_metrics.py",
+          "hooks/tests/test_pending_context_feasibility.py",
+          "hooks/tests/test_preflight_commit.py",
+          "hooks/validate_commit_spec.py",
+          "hooks/verify_constraints.py"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-12",
@@ -1353,7 +2152,58 @@
           "hooks/tests/test_telemetry_scopes.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "adam",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "DevOps",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "hooks/context_telemetry.py",
+          "hooks/tests/test_telemetry_scopes.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "hooks/context_telemetry.py",
+          "hooks/tests/test_telemetry_scopes.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-12T11:56:50+00:00",
+        "ended_at": "2026-06-12T11:56:50+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-12",
@@ -1414,7 +2264,58 @@
           "hooks/tests/test_context_telemetry.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "adam",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "DevOps",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "hooks/context_metrics.py",
+          "hooks/tests/test_context_telemetry.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "hooks/context_metrics.py",
+          "hooks/tests/test_context_telemetry.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-12",
@@ -1475,7 +2376,58 @@
           "hooks/tests/test_context_telemetry.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "adam",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "DevOps",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "hooks/constraint_dashboard.py",
+          "hooks/tests/test_context_telemetry.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "hooks/constraint_dashboard.py",
+          "hooks/tests/test_context_telemetry.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-12",
@@ -1536,7 +2488,58 @@
           "backend/tests/api/test_documents.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/app/api/v1/documents.py",
+          "backend/tests/api/test_documents.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "backend/app/api/v1/documents.py",
+          "backend/tests/api/test_documents.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-13",
@@ -1587,7 +2590,62 @@
           "hooks/verify_constraints.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "claude",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Orchestration",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "hooks/verify_constraints.py",
+          "hooks/tests/test_verify_constraints.py",
+          "commit-specs/commit-33A.md",
+          "commit-specs/commit-33B.md"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "commit-specs/commit-33A.md",
+          "commit-specs/commit-33B.md",
+          "hooks/tests/test_verify_constraints.py",
+          "hooks/verify_constraints.py"
+        ],
+        "coverage": {
+          "planned_files": 4,
+          "planned_files_changed": 4,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 4,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-13",
@@ -1638,7 +2696,62 @@
           "hooks/tests/test_pre_commit_check.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "claude",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Orchestration",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "hooks/finalize_commit.py",
+          "hooks/pre_commit_check.py",
+          "hooks/tests/test_finalize_commit.py",
+          "hooks/tests/test_pre_commit_check.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "hooks/finalize_commit.py",
+          "hooks/pre_commit_check.py",
+          "hooks/tests/test_finalize_commit.py",
+          "hooks/tests/test_pre_commit_check.py"
+        ],
+        "coverage": {
+          "planned_files": 4,
+          "planned_files_changed": 4,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 4,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-13",
@@ -1687,7 +2800,58 @@
           "scripts/test_backend.ps1"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "adam",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "DevOps",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "scripts/test_backend.ps1",
+          "README.md"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "README.md",
+          "scripts/test_backend.ps1"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-13",
@@ -1735,7 +2899,56 @@
           "backend/tests/models/test_policy_storage.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/tests/models/test_policy_storage.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "backend/tests/models/test_policy_storage.py"
+        ],
+        "coverage": {
+          "planned_files": 1,
+          "planned_files_changed": 1,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 1,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-13",
@@ -1798,7 +3011,67 @@
           "backend/tests/services/test_ingestion.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "nova",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "AI/ML",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/tests/services/test_ingestion.py"
+        ],
+        "read_files": [
+          "backend/tests/services/test_ingestion.py",
+          "backend/app/services/ingestion.py",
+          "backend/tests/models/test_policy_storage.py",
+          "backend/app/models/policy.py"
+        ],
+        "written_files": [
+          "backend/tests/services/test_ingestion.py"
+        ],
+        "changed_files": [
+          "backend/tests/services/test_ingestion.py"
+        ],
+        "coverage": {
+          "planned_files": 1,
+          "planned_files_changed": 1,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-13T17:38:17+00:00",
+        "ended_at": "2026-06-13T17:41:04+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 1,
+        "planned_files_read": 1,
+        "planned_read_percent": 100.0,
+        "supporting_reads": [
+          "backend/app/models/policy.py",
+          "backend/app/services/ingestion.py",
+          "backend/tests/models/test_policy_storage.py"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-13",
@@ -1850,7 +3123,56 @@
           "backend/tests/services/test_ingestion.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "nova",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "AI/ML",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/tests/services/test_ingestion.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "backend/tests/services/test_ingestion.py"
+        ],
+        "coverage": {
+          "planned_files": 1,
+          "planned_files_changed": 1,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-13T19:02:09+00:00",
+        "ended_at": "2026-06-13T19:02:22+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 1,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-13",
@@ -1899,7 +3221,58 @@
           "backend/tests/services/test_rag_policy.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "nova",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "AI/ML",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/app/services/rag_policy.py",
+          "backend/tests/services/test_rag_policy.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "backend/app/services/rag_policy.py",
+          "backend/tests/services/test_rag_policy.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "incomplete",
+        "reason": "no completed Claude telemetry scope",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": null,
+        "ended_at": null,
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-13",
@@ -1963,7 +3336,67 @@
           "hooks/tests/test_pre_commit_check.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "claude",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Orchestration",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "hooks/pre_commit_check.py",
+          "hooks/tests/test_pre_commit_check.py"
+        ],
+        "read_files": [
+          "hooks/pre_commit_check.py",
+          "hooks/tests/test_pre_commit_check.py",
+          "hooks/context_telemetry.py"
+        ],
+        "written_files": [
+          "hooks/pre_commit_check.py",
+          "hooks/tests/test_pre_commit_check.py"
+        ],
+        "changed_files": [
+          "hooks/pre_commit_check.py",
+          "hooks/tests/test_pre_commit_check.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-13T20:40:22+00:00",
+        "ended_at": "2026-06-13T20:42:05+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 2,
+        "planned_read_percent": 100.0,
+        "supporting_reads": [
+          "hooks/context_telemetry.py"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-13",
@@ -2077,7 +3510,77 @@
           "backend/tests/services/test_rag_policy.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "nova",
+        "executor": "nova",
+        "execution_mode": "delegated",
+        "domain": "AI/ML",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/app/services/rag_policy.py",
+          "backend/tests/services/test_rag_policy.py"
+        ],
+        "read_files": [
+          "backend/app/services/rag_policy.py",
+          "backend/tests/services/test_rag_policy.py",
+          "backend/app/services/__init__.py",
+          ".claude/agents/logs/nova-worklog.md",
+          "commit-specs/commit-39.md",
+          "hooks/verify_constraints.py"
+        ],
+        "written_files": [
+          "backend/app/services/rag_policy.py",
+          "backend/tests/services/test_rag_policy.py",
+          ".claude/agents/logs/nova-worklog.md"
+        ],
+        "changed_files": [
+          ".claude/agents/logs/nova-worklog.md",
+          "backend/app/services/rag_policy.py",
+          "backend/tests/services/test_rag_policy.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".claude/agents/logs/nova-worklog.md"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-13T20:57:03+00:00",
+        "ended_at": "2026-06-13T20:59:17+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "delegation-package",
+        "planned_files": 2,
+        "planned_files_read": 2,
+        "planned_read_percent": 100.0,
+        "supporting_reads": [
+          ".claude/agents/logs/nova-worklog.md",
+          "backend/app/services/__init__.py",
+          "commit-specs/commit-39.md",
+          "hooks/verify_constraints.py"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-14",
@@ -2128,7 +3631,62 @@
           "project-state.json"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "claude",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Orchestration",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "commit-protocol.md",
+          "commit-specs/PRODUCT_DELIVERY_PLANNING.md",
+          "commit-specs/commit-40.md",
+          "project-state.json"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "commit-protocol.md",
+          "commit-specs/PRODUCT_DELIVERY_PLANNING.md",
+          "commit-specs/commit-40.md",
+          "project-state.json"
+        ],
+        "coverage": {
+          "planned_files": 4,
+          "planned_files_changed": 4,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-14T02:47:45+00:00",
+        "ended_at": "2026-06-14T02:48:00+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 4,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-14",
@@ -2223,7 +3781,84 @@
           "backend/tests/models/test_purchase_order_storage.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/app/models/purchase_order.py",
+          "backend/app/models/__init__.py",
+          "backend/alembic/versions/0003_purchase_order_storage.py",
+          "backend/tests/models/test_purchase_order_storage.py"
+        ],
+        "read_files": [
+          "backend/app/models/user.py",
+          "backend/app/models/vendor.py",
+          "backend/app/models/__init__.py",
+          "backend/alembic/versions/0002_rag_storage_hardening.py",
+          "backend/tests/models/test_policy_storage.py",
+          "backend/app/models/shipment.py",
+          "backend/app/models/policy.py",
+          "backend/alembic/env.py"
+        ],
+        "written_files": [
+          "backend/app/models/purchase_order.py",
+          "backend/app/models/__init__.py",
+          "backend/alembic/versions/0003_purchase_order_storage.py",
+          "backend/tests/models/test_purchase_order_storage.py"
+        ],
+        "changed_files": [
+          "backend/alembic/versions/0003_purchase_order_storage.py",
+          "backend/app/models/__init__.py",
+          "backend/app/models/purchase_order.py",
+          "backend/tests/models/test_purchase_order_storage.py"
+        ],
+        "coverage": {
+          "planned_files": 4,
+          "planned_files_changed": 4,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-14T03:26:52+00:00",
+        "ended_at": "2026-06-14T03:31:16+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 4,
+        "planned_files_read": 1,
+        "planned_read_percent": 25.0,
+        "supporting_reads": [
+          "backend/alembic/env.py",
+          "backend/alembic/versions/0002_rag_storage_hardening.py",
+          "backend/app/models/policy.py",
+          "backend/app/models/shipment.py",
+          "backend/app/models/user.py",
+          "backend/app/models/vendor.py",
+          "backend/tests/models/test_policy_storage.py"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-14",
@@ -2274,7 +3909,62 @@
           "backend/tests/models/test_shipment_lifecycle.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/app/models/shipment.py",
+          "backend/app/schemas/shipment.py",
+          "backend/alembic/versions/0004_shipment_lifecycle_fields.py",
+          "backend/tests/models/test_shipment_lifecycle.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "backend/alembic/versions/0004_shipment_lifecycle_fields.py",
+          "backend/app/models/shipment.py",
+          "backend/app/schemas/shipment.py",
+          "backend/tests/models/test_shipment_lifecycle.py"
+        ],
+        "coverage": {
+          "planned_files": 4,
+          "planned_files_changed": 4,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-14T04:46:42+00:00",
+        "ended_at": "2026-06-14T04:46:42+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 4,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-14",
@@ -2327,7 +4017,56 @@
           "backend/tests/models/test_purchase_order_storage.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/tests/models/test_purchase_order_storage.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "backend/tests/models/test_purchase_order_storage.py"
+        ],
+        "coverage": {
+          "planned_files": 1,
+          "planned_files_changed": 1,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-14T05:25:27+00:00",
+        "ended_at": "2026-06-14T05:25:49+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 1,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-14",
@@ -2378,7 +4117,62 @@
           "backend/tests/models/test_shipment_event_storage.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/app/models/shipment_event.py",
+          "backend/app/models/__init__.py",
+          "backend/alembic/versions/0005_shipment_event_storage.py",
+          "backend/tests/models/test_shipment_event_storage.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "backend/alembic/versions/0005_shipment_event_storage.py",
+          "backend/app/models/__init__.py",
+          "backend/app/models/shipment_event.py",
+          "backend/tests/models/test_shipment_event_storage.py"
+        ],
+        "coverage": {
+          "planned_files": 4,
+          "planned_files_changed": 4,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-14T05:45:20+00:00",
+        "ended_at": "2026-06-14T05:45:20+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 4,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-14",
@@ -2426,7 +4220,56 @@
           "backend/tests/models/test_shipment_lifecycle.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/tests/models/test_shipment_lifecycle.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "backend/tests/models/test_shipment_lifecycle.py"
+        ],
+        "coverage": {
+          "planned_files": 1,
+          "planned_files_changed": 1,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-14T06:28:49+00:00",
+        "ended_at": "2026-06-14T06:28:49+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 1,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-14",
@@ -2518,7 +4361,82 @@
           "backend/tests/test_seed.py"
         ]
       },
-      "result": "PASS"
+      "result": "PASS",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/seed.py",
+          "backend/tests/test_seed.py"
+        ],
+        "read_files": [
+          "backend/seed.py",
+          "backend/app/models/purchase_order.py",
+          "backend/app/models/vendor.py",
+          "backend/app/models/user.py",
+          "backend/app/models/category.py",
+          "backend/tests/models/test_purchase_order_storage.py",
+          "backend/tests/conftest.py",
+          "backend/app/core/security.py",
+          "backend/app/core/database.py",
+          "backend/pyproject.toml"
+        ],
+        "written_files": [
+          "backend/seed.py",
+          "backend/tests/test_seed.py"
+        ],
+        "changed_files": [
+          "backend/seed.py",
+          "backend/tests/test_seed.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-14T06:45:47+00:00",
+        "ended_at": "2026-06-14T06:50:18+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 1,
+        "planned_read_percent": 50.0,
+        "supporting_reads": [
+          "backend/app/core/database.py",
+          "backend/app/core/security.py",
+          "backend/app/models/category.py",
+          "backend/app/models/purchase_order.py",
+          "backend/app/models/user.py",
+          "backend/app/models/vendor.py",
+          "backend/pyproject.toml",
+          "backend/tests/conftest.py",
+          "backend/tests/models/test_purchase_order_storage.py"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     },
     {
       "date": "2026-06-14",
@@ -2588,7 +4506,74 @@
           "backend/tests/test_seed.py"
         ]
       },
-      "result": "FAIL"
+      "result": "FAIL",
+      "record_schema_version": 2,
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/seed.py",
+          "backend/tests/test_seed.py"
+        ],
+        "read_files": [
+          "backend/seed.py",
+          "backend/tests/test_seed.py",
+          "backend/app/models/shipment.py",
+          "backend/app/models/shipment_event.py",
+          "backend/app/models/product.py"
+        ],
+        "written_files": [
+          "backend/seed.py",
+          "backend/tests/test_seed.py"
+        ],
+        "changed_files": [
+          ".claude/agents/logs/rex-worklog.md",
+          "backend/seed.py",
+          "backend/tests/test_seed.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".claude/agents/logs/rex-worklog.md"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "capture": {
+        "status": "legacy-partial",
+        "reason": "completed scope predates explicit capture metadata",
+        "scope_kind": null,
+        "capture_window": null,
+        "started_at": "2026-06-14T07:32:41+00:00",
+        "ended_at": "2026-06-14T07:42:25+00:00",
+        "zero_is_measured": false
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 2,
+        "planned_read_percent": 100.0,
+        "supporting_reads": [
+          "backend/app/models/product.py",
+          "backend/app/models/shipment.py",
+          "backend/app/models/shipment_event.py"
+        ],
+        "source": "spec-and-hook-derived"
+      }
     }
   ]
 }

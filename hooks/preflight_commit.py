@@ -502,7 +502,8 @@ def evaluate_direct(repo_root: Path, commit: str, owner: str) -> dict[str, Any]:
     Validates only the active spec, this commit's own dependencies (not the
     full pending graph), ownership agreement, planned/forbidden files, and
     verification command presence. Returns an ephemeral result -- no
-    `.context/preflight/*.json`, no context package, no dashboard render.
+    `.context/preflight/*.json`, no dashboard render. The caller may then use
+    `prepare_claude_direct.py` to build the deterministic execution package.
     """
     repo_root = Path(repo_root)
     key = vcs.commit_key(commit)
@@ -718,8 +719,8 @@ def main() -> int:
     parser.add_argument("--json", action="store_true", help="Print compact JSON instead of human-readable text")
     parser.add_argument(
         "--direct", action="store_true",
-        help="Run the lean Claude-direct readiness check (ephemeral, no persistence, "
-             "no context package, no dashboard render) instead of the full scored preflight.",
+        help="Run the lean Claude-direct readiness check (ephemeral, no persistence "
+             "or dashboard render) instead of the full scored preflight.",
     )
     args = parser.parse_args()
 

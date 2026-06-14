@@ -277,6 +277,9 @@ Example.
     telemetry_dir.mkdir(parents=True)
     (telemetry_dir / "C50-orchestrator.json").write_text(json.dumps({
         "commit": "C50", "status": "completed",
+        "owner": "claude", "executor": "claude",
+        "execution_mode": "claude-direct", "scope_kind": "execution",
+        "capture_window": "full-execution",
         "started_at": "2026-06-13T00:00:00+00:00", "ended_at": "2026-06-13T00:05:00+00:00",
         "tool_calls": 3, "read_paths": [], "write_paths": [], "searches": [], "commands": [],
     }), encoding="utf-8")
@@ -352,7 +355,7 @@ def test_missing_orchestrator_marker_blocks(tmp_path: Path) -> None:
     result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
 
     assert result.returncode == 2
-    assert "--start-orchestrator C50" in result.stdout
+    assert "prepare_claude_direct.py --commit C50 --owner OWNER" in result.stdout
     assert "--stop-orchestrator C50" in result.stdout
 
 
@@ -363,6 +366,9 @@ def test_completed_matching_orchestrator_marker_passes(tmp_path: Path) -> None:
     telemetry_dir.mkdir(parents=True)
     (telemetry_dir / "C50-orchestrator.json").write_text(json.dumps({
         "commit": "C50", "status": "completed",
+        "owner": "claude", "executor": "claude",
+        "execution_mode": "claude-direct", "scope_kind": "execution",
+        "capture_window": "full-execution",
         "started_at": "2026-06-13T00:00:00+00:00", "ended_at": "2026-06-13T00:05:00+00:00",
         "tool_calls": 3, "read_paths": [], "write_paths": [], "searches": [], "commands": [],
     }), encoding="utf-8")
@@ -371,6 +377,20 @@ def test_completed_matching_orchestrator_marker_passes(tmp_path: Path) -> None:
 
     assert result.returncode == 0
     assert "Pre-commit check passed" in result.stdout
+
+
+def test_completed_legacy_scope_blocks_direct_commit(tmp_path: Path) -> None:
+    repo, message = _setup_valid_c50_commit(tmp_path)
+    telemetry_dir = repo / ".context" / "telemetry"
+    telemetry_dir.mkdir(parents=True)
+    (telemetry_dir / "C50-orchestrator.json").write_text(json.dumps({
+        "commit": "C50", "status": "completed", "tool_calls": 0,
+    }), encoding="utf-8")
+
+    result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
+
+    assert result.returncode == 2
+    assert "prepare_claude_direct.py --commit C50 --owner OWNER" in result.stdout
 
 
 def test_running_orchestrator_marker_blocks(tmp_path: Path) -> None:
@@ -389,7 +409,7 @@ def test_running_orchestrator_marker_blocks(tmp_path: Path) -> None:
     result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
 
     assert result.returncode == 2
-    assert "--start-orchestrator C50" in result.stdout
+    assert "prepare_claude_direct.py --commit C50 --owner OWNER" in result.stdout
 
 
 def test_orchestrator_marker_commit_mismatch_blocks(tmp_path: Path) -> None:
@@ -408,7 +428,7 @@ def test_orchestrator_marker_commit_mismatch_blocks(tmp_path: Path) -> None:
     result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
 
     assert result.returncode == 2
-    assert "--start-orchestrator C50" in result.stdout
+    assert "prepare_claude_direct.py --commit C50 --owner OWNER" in result.stdout
 
 
 def test_chore_state_commit_exempt_from_orchestrator_marker(tmp_path: Path) -> None:

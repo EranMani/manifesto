@@ -48,6 +48,7 @@ from constraint_dashboard import render_dashboard  # noqa: E402
 
 REPO_ROOT = Path(__file__).parent.parent
 FINALIZE_DIR = REPO_ROOT / ".context" / "finalize"
+TELEMETRY_DIR = REPO_ROOT / ".context" / "telemetry"
 
 
 def marker_name(commit: str) -> str:
@@ -83,6 +84,47 @@ def step_verify(commit: str, agent: str, execution: str, tokens: int | None):
 
 def step_render_dashboard():
     render_dashboard()
+
+
+def step_validate_capture(commit: str, agent: str, execution: str) -> tuple[bool, str]:
+    """Fail closed when the current commit lacks the required Claude scope."""
+    commit_key = "C" + commit.zfill(2).upper()
+    path = TELEMETRY_DIR / f"{commit_key}-orchestrator.json"
+    try:
+        scope = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False, f"missing completed Claude telemetry scope: {path}"
+    if scope.get("status") != "completed" or scope.get("commit") != commit_key:
+        return False, "Claude telemetry scope is incomplete or belongs to another commit"
+    if execution == "claude-direct":
+        required = {
+            "owner": agent.lower(),
+            "executor": "claude",
+            "execution_mode": "claude-direct",
+            "scope_kind": "execution",
+            "capture_window": "full-execution",
+        }
+    else:
+        required = {
+            "owner": agent.lower(),
+            "executor": "claude",
+            "execution_mode": "delegated",
+            "scope_kind": "review",
+            "capture_window": "review-only",
+        }
+    mismatches = [
+        f"{key}={scope.get(key)!r} (expected {value!r})"
+        for key, value in required.items()
+        if str(scope.get(key, "")).lower() != value
+    ]
+    if mismatches:
+        return False, "Claude telemetry metadata mismatch: " + ", ".join(mismatches)
+    if execution == "claude-direct":
+        token_usage = scope.get("token_usage", {})
+        if token_usage.get("status") != "complete":
+            reason = token_usage.get("reason", "token snapshot did not complete")
+            return False, f"Claude-direct token capture unavailable: {reason}"
+    return True, "complete"
 
 
 def step_write_notify(what: str, why: str, commit: str, agent: str):
@@ -123,7 +165,16 @@ def main():
         "dashboard_rendered": False,
         "notify_written": False,
         "marker_written": False,
+        "capture": "unchecked",
     }
+
+    capture_ok, capture_message = step_validate_capture(
+        args.commit, args.agent, args.execution
+    )
+    summary["capture"] = capture_message
+    if not capture_ok:
+        print(json.dumps(summary, indent=2))
+        return 1
 
     all_pass, checks = step_verify(args.commit, args.agent, args.execution, args.tokens)
     summary["checks"] = checks

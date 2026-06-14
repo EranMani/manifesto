@@ -252,7 +252,8 @@ def _parse_context_block(spec: str) -> dict[str, list[str]]:
     block = block_match.group(1) if block_match else ""
     initial_context = _parse_list_block(block, "initial_context")
     return {
-        "tier0": initial_context or _parse_list_block(block, "tier0"),
+        "initial_context": initial_context,
+        "tier0": _parse_list_block(block, "tier0"),
         "tier1": _parse_list_block(block, "tier1"),
         "tier2": _parse_list_block(block, "tier2"),
         "forbidden": _parse_list_block(block, "forbidden"),
@@ -448,6 +449,16 @@ class ContextPackageBuilder:
             category = "test" if is_test_path(path) else "primary"
             self._add(selected, path, category, "commit spec change table")
 
+        for path in context["initial_context"]:
+            clean = path.split(" (", 1)[0]
+            if clean in change_files:
+                category = "test" if is_test_path(clean) else "primary"
+            elif is_test_path(clean):
+                category = "test"
+            else:
+                category = "contract"
+            self._add(selected, clean, category, "commit spec initial_context")
+
         for path in context["tier1"]:
             clean = path.split(" (", 1)[0]
             if clean in change_files:
@@ -486,7 +497,7 @@ class ContextPackageBuilder:
 
         explicit_change_context = any(
             path.split(" (", 1)[0] in change_files
-            for path in context["tier0"]
+            for path in [*context["initial_context"], *context["tier0"]]
         )
         expansion_anchors = [] if explicit_change_context else [
             path for path, item in selected.items()
@@ -565,7 +576,12 @@ class ContextPackageBuilder:
         }
         ordered = sorted(
             selected.values(),
-            key=lambda item: (priority.get(item.category, 9), item.path),
+            key=lambda item: (
+                1
+                if "commit spec initial_context" in item.reasons
+                else priority.get(item.category, 9),
+                item.path,
+            ),
         )
 
         included: list[dict[str, Any]] = []

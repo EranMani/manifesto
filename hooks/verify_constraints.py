@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from constraint_dashboard import render_dashboard
-from context_metrics import build_metric_record, upsert_metric
+from context_metrics import build_metric_record, load_orchestrator_telemetry, upsert_metric
 from validate_commit_spec import validate_commit_spec
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -450,7 +450,13 @@ def main():
 
     if not args.no_persist:
         if args.execution == "claude-direct":
-            tokens = None
+            scope = load_orchestrator_telemetry(args.commit)
+            token_usage = (scope or {}).get("token_usage", {})
+            tokens = (
+                token_usage.get("total_tokens")
+                if token_usage.get("status") == "complete"
+                else None
+            )
         else:
             tokens = args.tokens if args.tokens is not None else get_tokens_from_records(args.commit)
         append_to_log(args.commit, args.agent, results, all_pass, tokens)

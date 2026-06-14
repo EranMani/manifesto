@@ -17,13 +17,25 @@ import constraint_dashboard as cd  # noqa: E402
 # ---------------------------------------------------------------------------
 
 
-def test_package_cell_claude_direct_not_created():
-    assert "Not created (Claude-direct)" in cd._package_cell({}, "claude-direct")
+def test_package_cell_claude_direct_scope_unavailable():
+    assert "Execution scope unavailable" in cd._package_cell({}, "claude-direct")
 
 
 def test_package_cell_claude_direct_legacy_preview():
     pkg = {"budget_utilization_percent": None}
-    assert "Legacy preview package (unused)" in cd._package_cell(pkg, "claude-direct")
+    assert "Execution scope unavailable" in cd._package_cell(pkg, "claude-direct")
+
+
+def test_package_cell_claude_direct_renders_scope_coverage():
+    rendered = cd._package_cell({}, "claude-direct", {
+        "planned_files": 2,
+        "planned_files_read": 2,
+        "planned_read_percent": 100.0,
+        "supporting_reads": ["backend/app/models.py"],
+    })
+    assert "2 / 2 (100.0%)" in rendered
+    assert "1 preselected support" in rendered
+    assert "Graph-selected dependency" in rendered
 
 
 def test_package_cell_delegated_with_data():
@@ -36,6 +48,20 @@ def test_package_cell_delegated_with_data():
 def test_package_cell_delegated_unknown_falls_back():
     rendered = cd._package_cell({}, "delegated")
     assert "Unknown" in rendered
+
+
+def test_file_evidence_supporting_change_has_explanation():
+    rendered = cd._file_evidence_cell({
+        "coverage": {
+            "planned_files": 2,
+            "planned_files_changed": 2,
+            "planned_change_percent": 100.0,
+            "supporting_changes": [".claude/agents/logs/rex-worklog.md"],
+            "missing_planned_files": [],
+        }
+    })
+    assert "2 / 2 (100.0%)" in rendered
+    assert "Changed files outside the planned product files" in rendered
 
 
 # ---------------------------------------------------------------------------
@@ -56,6 +82,15 @@ def test_claude_direct_orch_cell_renders_measured_scope():
     rendered = cd._claude_direct_orch_cell(scope)
     assert "Not tracked" not in rendered
     assert "5" in rendered
+    assert "partial" in rendered
+
+
+def test_claude_direct_zero_requires_complete_capture():
+    scope = {"status": "available", "tool_calls": 0}
+    assert "Capture incomplete" in cd._claude_direct_orch_cell(scope, {})
+    measured = cd._claude_direct_orch_cell(scope, {"status": "complete"})
+    assert "Capture incomplete" not in measured
+    assert "0" in measured
 
 
 # ---------------------------------------------------------------------------
@@ -219,10 +254,10 @@ def test_render_dashboard_claude_direct_row_not_created(tmp_path):
     cd.render_dashboard(tmp_path, output_path=out_path)
     html_out = out_path.read_text(encoding="utf-8")
 
-    assert "Not created (Claude-direct)" in html_out
+    assert "Execution scope unavailable" in html_out
     assert "Not delegated" in html_out
     assert "Not captured" in html_out
-    assert "<th>Owner</th><th>Executor</th>" in html_out
+    assert "<th>Commit</th><th>Domain</th><th>Owner</th><th>Executor</th>" in html_out
 
 
 def test_render_dashboard_legacy_preview_package_label(tmp_path):
@@ -246,7 +281,7 @@ def test_render_dashboard_legacy_preview_package_label(tmp_path):
     cd.render_dashboard(tmp_path, output_path=out_path)
     html_out = out_path.read_text(encoding="utf-8")
 
-    assert "Legacy preview package (unused)" in html_out
+    assert "Execution scope unavailable" in html_out
 
 
 def test_render_dashboard_delegated_row_shows_tokens_and_package(tmp_path):

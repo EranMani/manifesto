@@ -178,14 +178,16 @@ class TestPostCommitPersistence(unittest.TestCase):
             self._run(["--worktree", "--render-dashboard"])
             mock_dash.assert_called_once()
 
-    def test_claude_direct_execution_forces_tokens_none(self):
-        """--execution claude-direct must force tokens=None into build_metric_record
-        and append_to_log, even if --tokens or TOKEN_RECORDS.md would supply a value."""
+    def test_claude_direct_execution_uses_captured_scope_tokens(self):
+        """Claude-direct tokens come only from the completed transcript scope."""
         with (
             patch("verify_constraints.load_spec", return_value=MINIMAL_SPEC),
             patch("verify_constraints.load_worklog", return_value=""),
             patch("verify_constraints.git_files_changed", return_value=[]),
             patch("verify_constraints.get_tokens_from_records", return_value=12345),
+            patch("verify_constraints.load_orchestrator_telemetry", return_value={
+                "token_usage": {"status": "complete", "total_tokens": 54321}
+            }),
             patch("verify_constraints.build_metric_record",
                   return_value={"commit": "C25", "agent": "nova"}) as mock_build,
             patch("verify_constraints.append_to_log") as mock_log,
@@ -195,11 +197,11 @@ class TestPostCommitPersistence(unittest.TestCase):
             self._run(["--worktree", "--execution", "claude-direct"])
 
             _, _, tokens_arg, *_ = mock_build.call_args[0]
-            self.assertIsNone(tokens_arg)
+            self.assertEqual(tokens_arg, 54321)
             self.assertEqual(mock_build.call_args.kwargs.get("execution"), "claude-direct")
 
             log_args = mock_log.call_args[0]
-            self.assertIsNone(log_args[-1])
+            self.assertEqual(log_args[-1], 54321)
 
     def test_delegated_execution_uses_tokens_from_records(self):
         with (
