@@ -103,6 +103,55 @@ def load_commit_spec_summary(repo_root: Path, relative_path: str | None) -> dict
     return {"title": title, "summary": summary}
 
 
+def _spec_path_for_commit(repo_root: Path, commit: str) -> Path | None:
+    match = re.fullmatch(r"C(\d+)([A-Z]?)", str(commit).upper())
+    if not match:
+        return None
+    number, suffix = match.groups()
+    path = repo_root / "commit-specs" / f"commit-{int(number):02d}{suffix.lower()}.md"
+    return path if path.is_file() else None
+
+
+def _planned_files_from_spec(path: Path | None) -> list[str]:
+    if path is None or not path.is_file():
+        return []
+    text = path.read_text(encoding="utf-8", errors="replace")
+    match = re.search(
+        r"^## Files To Modify Or Add\s*$\n(.*?)(?=^## |\Z)",
+        text,
+        re.MULTILINE | re.DOTALL,
+    )
+    if not match:
+        return []
+    planned: list[str] = []
+    for line in match.group(1).splitlines():
+        if not line.strip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 2:
+            continue
+        candidate = cells[0].strip("`").strip()
+        action = cells[1].lower()
+        if candidate.lower() == "file" or set(candidate) <= {"-"}:
+            continue
+        if action in {"new", "add", "edit", "delete", "remove"}:
+            planned.append(candidate.replace("\\", "/"))
+    return planned
+
+
+def _metric_scope_paths(record: dict[str, Any], key: str) -> list[str]:
+    telemetry = record.get("telemetry", {})
+    paths: list[str] = []
+    for scope_name in ("agent", "orchestrator"):
+        scope = telemetry.get(scope_name, {})
+        values = scope.get(key)
+        if isinstance(values, list):
+            for value in values:
+                if isinstance(value, str) and value not in paths:
+                    paths.append(value.replace("\\", "/"))
+    return paths
+
+
 def build_graph_view_data(repo_root: Path) -> dict[str, Any]:
     graph = load_json(repo_root / ".context" / "index" / "codebase-graph.json") or {}
     categories = graph.get("categories", {})
@@ -147,7 +196,7 @@ def build_graph_view_data(repo_root: Path) -> dict[str, Any]:
             if payload:
                 telemetry_by_key[f"{payload.get('commit')}-{payload.get('agent')}"] = payload
 
-    overlays: dict[str, dict[str, Any]] = {}
+    packages_by_key: dict[str, dict[str, Any]] = {}
     runs_dir = repo_root / ".context" / "runs"
     if runs_dir.is_dir():
         for path in sorted(runs_dir.glob("C*-*-live.json")):
@@ -155,31 +204,124 @@ def build_graph_view_data(repo_root: Path) -> dict[str, Any]:
             if not package:
                 continue
             key = f"{package.get('commit')}-{package.get('agent')}"
-            telemetry = telemetry_by_key.get(key, {})
-            spec = load_commit_spec_summary(repo_root, package.get("spec"))
-            overlays[key] = {
-                "label": f"{package.get('commit')} - {str(package.get('agent', '')).title()}",
-                "commit": package.get("commit"),
-                "agent": package.get("agent"),
-                "task_kind": package.get("task_kind"),
-                "spec": package.get("spec"),
-                "title": spec.get("title", ""),
-                "summary": spec.get("summary", ""),
-                "budget": package.get("budget", {}),
-                "files": {
-                    item["path"]: {
-                        "category": item.get("category", "selected"),
-                        "reasons": item.get("reasons", []),
-                        "read_strategy": item.get("read_strategy", "full file"),
-                    }
-                    for item in package.get("files", [])
-                },
-                "excluded": [item.get("path") for item in package.get("excluded_candidates", [])],
-                "forbidden": package.get("forbidden_edits", []),
-                "read": telemetry.get("selected_read_paths", []),
-                "expanded": telemetry.get("outside_read_paths", []),
-                "status": telemetry.get("status", "package-only"),
+            packages_by_key[key] = package
+
+    overlays: dict[str, dict[str, Any]] = {}
+    for record in load_metrics(repo_root / "CONTEXT_METRICS.json").get("records", []):
+        commit = str(record.get("commit", ""))
+        owner = str(record.get("agent", "")).lower()
+        if not commit or not owner:
+            continue
+        execution = record.get("execution") or "delegated"
+        executor = "claude" if execution == "claude-direct" else owner
+        key = f"{commit}-{owner}"
+        package = packages_by_key.get(key, {})
+        package_spec = package.get("spec")
+        spec_path = (
+            repo_root / package_spec
+            if isinstance(package_spec, str)
+            else _spec_path_for_commit(repo_root, commit)
+        )
+        spec_rel = (
+            package_spec
+            if isinstance(package_spec, str)
+            else spec_path.relative_to(repo_root).as_posix() if spec_path else None
+        )
+        spec = load_commit_spec_summary(repo_root, spec_rel)
+        selected_files = {
+            item["path"]: {
+                "category": item.get("category", "selected"),
+                "reasons": item.get("reasons", []),
+                "read_strategy": item.get("read_strategy", "full file"),
             }
+            for item in package.get("files", [])
+            if isinstance(item, dict) and item.get("path")
+        }
+        planned = _planned_files_from_spec(spec_path)
+        committed = [
+            path.replace("\\", "/")
+            for path in record.get("boundaries", {}).get("changed_files", [])
+            if isinstance(path, str)
+        ]
+        read = _metric_scope_paths(record, "read_paths")
+        written = _metric_scope_paths(record, "write_paths")
+        expanded = (
+            record.get("telemetry", {}).get("agent", {}).get("expansions")
+            if execution != "claude-direct"
+            else []
+        )
+        if not isinstance(expanded, list):
+            expanded = []
+        files = dict(selected_files)
+        for path in planned:
+            files.setdefault(path, {"category": "planned", "reasons": ["commit specification"]})
+        for path in committed:
+            files.setdefault(path, {"category": "committed", "reasons": ["Git-derived changed file"]})
+        overlays[key] = {
+            "label": f"{commit} · Owner {owner.title()} · Executor {executor.title()}",
+            "commit": commit,
+            "owner": owner,
+            "executor": executor,
+            "execution": execution,
+            "agent": owner,
+            "task_kind": package.get("task_kind", "commit"),
+            "spec": spec_rel,
+            "title": spec.get("title", ""),
+            "summary": spec.get("summary", ""),
+            "budget": package.get("budget", {}),
+            "files": files,
+            "planned": planned,
+            "committed": committed,
+            "written": written,
+            "excluded": [item.get("path") for item in package.get("excluded_candidates", [])],
+            "forbidden": package.get("forbidden_edits", []),
+            "read": read,
+            "expanded": [path.replace("\\", "/") for path in expanded if isinstance(path, str)],
+            "status": "measured" if read or written else "git-and-spec-only",
+            "provenance": {
+                "planned": "spec-derived" if planned else "not-captured",
+                "committed": "git-derived",
+                "read": "hook-measured" if read else "not-captured",
+                "written": "hook-measured" if written else "not-captured",
+            },
+        }
+
+    # Keep package-only overlays visible while a delegated run is prepared but not finalized.
+    for key, package in packages_by_key.items():
+        if key in overlays:
+            continue
+        telemetry = telemetry_by_key.get(key, {})
+        spec = load_commit_spec_summary(repo_root, package.get("spec"))
+        overlays[key] = {
+            "label": f"{package.get('commit')} · Owner {str(package.get('agent', '')).title()} · Prepared",
+            "commit": package.get("commit"),
+            "owner": package.get("agent"),
+            "executor": package.get("agent"),
+            "execution": "delegated",
+            "agent": package.get("agent"),
+            "task_kind": package.get("task_kind"),
+            "spec": package.get("spec"),
+            "title": spec.get("title", ""),
+            "summary": spec.get("summary", ""),
+            "budget": package.get("budget", {}),
+            "files": {
+                item["path"]: {
+                    "category": item.get("category", "selected"),
+                    "reasons": item.get("reasons", []),
+                    "read_strategy": item.get("read_strategy", "full file"),
+                }
+                for item in package.get("files", [])
+            },
+            "planned": [],
+            "committed": [],
+            "written": telemetry.get("write_paths", []),
+            "excluded": [item.get("path") for item in package.get("excluded_candidates", [])],
+            "forbidden": package.get("forbidden_edits", []),
+            "read": telemetry.get("selected_read_paths", []),
+            "expanded": telemetry.get("outside_read_paths", []),
+            "status": telemetry.get("status", "package-only"),
+            "provenance": {"committed": "not-captured"},
+        }
     known_paths = {node["path"] for node in nodes}
     overlay_paths: dict[str, str] = {}
     for overlay in overlays.values():
@@ -191,6 +333,10 @@ def build_graph_view_data(repo_root: Path) -> dict[str, Any]:
         for path in overlay.get("expanded", []):
             if path:
                 overlay_paths.setdefault(path, "expanded")
+        for field in ("committed", "written", "read", "planned"):
+            for path in overlay.get(field, []):
+                if path:
+                    overlay_paths.setdefault(path, field)
     for path, role in sorted(overlay_paths.items()):
         if path in known_paths:
             continue
@@ -641,14 +787,17 @@ def render_dashboard(
         agent_scope = telemetry.get("agent") if telemetry else None
         orch_scope = telemetry.get("orchestrator") if telemetry else None
         execution = record.get("execution", "unknown")
+        owner = str(record.get("agent", "-")).title()
+        executor = "Claude" if execution == "claude-direct" else owner
 
         if execution == "claude-direct":
-            tokens_cell = _not_applicable("Not tracked")
+            tokens_cell = _not_applicable("Not captured")
             package_cell = _package_cell(pkg, execution)
-            used_cell = _not_applicable()
+            changed_count = len(boundary.get("changed_files", []))
+            used_cell = f"<strong>{changed_count}</strong> committed <span style=\"color:#64748b\">(Git-derived)</span>"
             agent_cell = _not_applicable("Not delegated")
             orch_cell = _claude_direct_orch_cell(orch_scope)
-            combined_cell = _not_applicable()
+            combined_cell = _combined_cell(None, orch_scope)
             expansion_cell = _not_applicable()
         else:
             selected = pkg.get("selected_files")
@@ -666,7 +815,8 @@ def render_dashboard(
         metric_rows += (
             "<tr>"
             f"<td>{badge(record.get('commit', '-'))}</td>"
-            f"<td>{html.escape(record.get('agent', '-').title())}</td>"
+            f"<td>{html.escape(owner)}</td>"
+            f"<td>{html.escape(executor)}</td>"
             f"<td>{tokens_cell}</td>"
             f"<td>{package_cell}</td>"
             f"<td>{used_cell}</td>"
@@ -679,7 +829,7 @@ def render_dashboard(
         )
     if not metric_rows:
         metric_rows = (
-            '<tr><td colspan="10" class="empty">Phase B measurements begin with the next '
+            '<tr><td colspan="11" class="empty">Phase B measurements begin with the next '
             'verified live delegation.</td></tr>'
         )
 
@@ -771,10 +921,10 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
 <section><div class="section-head"><div><h2>Phase B context efficiency</h2>
 <p>Measures whether the prepared package was concise and sufficient.</p></div></div>
 <div class="cards">{cards_html}</div>
-<div class="table-wrap"><table><thead><tr><th>Commit</th><th>Agent</th><th>Tokens</th><th>Package</th>
-<th>Selected used</th><th>Agent calls</th><th>Orch calls</th><th>Combined</th><th>Expansions</th><th>Boundary</th></tr></thead>
+<div class="table-wrap"><table><thead><tr><th>Commit</th><th>Owner</th><th>Executor</th><th>Tokens</th><th>Context package</th>
+<th>File evidence</th><th>Delegated calls</th><th>Claude calls</th><th>Combined</th><th>Expansions</th><th>Boundary</th></tr></thead>
 <tbody>{metric_rows}</tbody></table></div>
-<p class="legend">Agent / Orch calls = tool calls per scope with source badge. N/A = telemetry unavailable for that scope. Expansion = paths read outside the selected package (Unknown when path-level data missing).</p></section>
+<p class="legend">Owner comes from the commit record; Executor identifies Claude-direct versus delegated work. Committed files are Git-derived. N/A or Not captured means the measurement is unavailable, never zero.</p></section>
 <section><div class="section-head"><div><h2>Constraint history</h2>
 <p>Existing checks for upfront context, forbidden paths, tool budget, and result.</p></div></div>
 <div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>Agent</th><th>Tokens</th>
@@ -795,7 +945,7 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
 </main>
 <main id="graph" class="tab-panel">
 <section><div class="section-head"><div><h2>Codebase context graph</h2>
-<p>Drag category frames to rearrange groups. Select a commit to inspect its context package over the network.</p></div>
+<p>Drag category frames to rearrange groups. Select a commit to inspect planned, measured, and Git-derived file evidence.</p></div>
 {badge(graph_summary)}</div>
 <div class="graph-controls">
 <div class="field"><label for="commitOverlay">Commit overlay</label><select id="commitOverlay"><option value="">Whole codebase</option></select></div>
@@ -813,6 +963,8 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
 <span class="overlay-key"><i class="overlay-mark" style="border-color:#f97316"></i>hub</span>
 <span class="overlay-key"><i class="overlay-mark" style="border-color:#ef4444"></i>forbidden</span>
 <span class="overlay-key"><i class="overlay-mark" style="border-color:#facc15"></i>expanded</span>
+<span class="overlay-key"><i class="overlay-mark" style="border-color:#f8fafc"></i>committed</span>
+<span class="overlay-key"><i class="overlay-mark" style="border-color:#38bdf8"></i>written</span>
 </div><div id="graphStatus" class="graph-status"></div></div></div></section></main>
 </div>
 <script>const GRAPH_DATA={graph_json};
@@ -838,8 +990,8 @@ function resize(){{const r=svg.getBoundingClientRect();width=r.width||900;height
 function overlay(){{return GRAPH_DATA.overlays[activeOverlay]||null;}}
 function forbidden(path,o){{return !!o&&(o.forbidden||[]).some(p=>path===p.replace(/\\/$/,"")||path.startsWith(p));}}
 function visible(n){{return enabled.has(n.category)&&(!query||n.path.toLowerCase().includes(query));}}
-function nodeStyle(n){{const o=overlay(),f=o&&o.files[n.path],read=o&&(o.read||[]).includes(n.path),expanded=o&&(o.expanded||[]).includes(n.path),excluded=o&&(o.excluded||[]).includes(n.path),blocked=forbidden(n.path,o);
-let stroke="#111827",sw=1,opacity=visible(n)?1:.08;if(o){{opacity=(f||expanded||blocked||excluded)?0.98:0.15;if(blocked){{stroke="#ef4444";sw=3;}}else if(expanded){{stroke="#facc15";sw=4;}}else if(f){{stroke=ROLE_COLORS[f.category]||"#22d3ee";sw=read?5:3;}}else if(excluded){{stroke="#94a3b8";sw=3;opacity=.45;}}}}return{{fill:COLORS[n.category]||COLORS.unclassified,stroke,sw,opacity}};}}
+function nodeStyle(n){{const o=overlay(),f=o&&o.files[n.path],read=o&&(o.read||[]).includes(n.path),written=o&&(o.written||[]).includes(n.path),committed=o&&(o.committed||[]).includes(n.path),expanded=o&&(o.expanded||[]).includes(n.path),excluded=o&&(o.excluded||[]).includes(n.path),blocked=forbidden(n.path,o);
+let stroke="#111827",sw=1,opacity=visible(n)?1:.08;if(o){{opacity=(f||read||written||committed||expanded||blocked||excluded)?0.98:0.15;if(blocked){{stroke="#ef4444";sw=3;}}else if(committed){{stroke="#f8fafc";sw=6;}}else if(written){{stroke="#38bdf8";sw=5;}}else if(expanded){{stroke="#facc15";sw=4;}}else if(f){{stroke=ROLE_COLORS[f.category]||"#22d3ee";sw=read?5:3;}}else if(read){{stroke="#22d3ee";sw=4;}}else if(excluded){{stroke="#94a3b8";sw=3;opacity=.45;}}}}return{{fill:COLORS[n.category]||COLORS.unclassified,stroke,sw,opacity}};}}
 function layout(reset=false){{if(reset){{resetCategoryCenters();seedLayout();}}
 for(let tick=0;tick<80;tick++){{for(let i=0;i<GRAPH_DATA.nodes.length;i++)for(let j=i+1;j<GRAPH_DATA.nodes.length;j++){{const a=GRAPH_DATA.nodes[i],b=GRAPH_DATA.nodes[j];if(a.category!==b.category)continue;const dx=a.x-b.x,dy=a.y-b.y,d=Math.max(Math.hypot(dx,dy),.1),minimum=a.category==="backend"?38:34;if(d<minimum){{const force=(minimum-d)*.055;a.vx+=dx/d*force;a.vy+=dy/d*force;b.vx-=dx/d*force;b.vy-=dy/d*force;}}}}
 GRAPH_DATA.nodes.forEach(n=>{{n.vx+=(n.homeX-n.x)*.08;n.vy+=(n.homeY-n.y)*.08;n.vx*=.62;n.vy*=.62;n.x+=n.vx;n.y+=n.vy;}});}}}}
@@ -851,7 +1003,7 @@ GRAPH_DATA.nodes.forEach(n=>{{const s=nodeStyle(n),group=document.createElementN
 const label=document.createElementNS(ns,"text");label.setAttribute("x",n.x);label.setAttribute("y",n.y-radius-4);label.setAttribute("fill","#f1f5f9");label.setAttribute("font-size","7");label.setAttribute("font-weight","600");label.setAttribute("text-anchor","middle");label.setAttribute("paint-order","stroke");label.setAttribute("stroke","#111827");label.setAttribute("stroke-width","2");label.setAttribute("stroke-linejoin","round");label.setAttribute("opacity",s.opacity);label.style.pointerEvents="none";label.textContent=n.name;group.appendChild(label);g.appendChild(group);}});
 const o=overlay();statusEl.textContent=o?`${{o.label}} · ${{Object.keys(o.files).length}} selected · ${{(o.expanded||[]).length}} expanded`:`Whole codebase · ${{GRAPH_DATA.nodes.length}} files · ${{GRAPH_DATA.edges.length}} imports`;}}
 function drawCategoryFrame(g,ns,category){{const nodes=GRAPH_DATA.nodes.filter(n=>n.category===category);if(!nodes.length)return;const color=COLORS[category]||COLORS.unclassified,pad=27,minX=Math.min(...nodes.map(n=>n.x))-pad,maxX=Math.max(...nodes.map(n=>n.x))+pad,minY=Math.min(...nodes.map(n=>n.y))-pad-8,maxY=Math.max(...nodes.map(n=>n.y))+pad;const group=document.createElementNS(ns,"g"),rect=document.createElementNS(ns,"rect"),label=document.createElementNS(ns,"text");rect.setAttribute("x",minX);rect.setAttribute("y",minY);rect.setAttribute("width",maxX-minX);rect.setAttribute("height",maxY-minY);rect.setAttribute("rx","14");rect.setAttribute("fill",color);rect.setAttribute("fill-opacity",enabled.has(category)?".055":".015");rect.setAttribute("stroke",color);rect.setAttribute("stroke-width","1.25");rect.setAttribute("stroke-dasharray","6 4");rect.setAttribute("opacity",enabled.has(category)?".8":".15");rect.style.cursor="move";rect.onpointerdown=e=>startCategoryDrag(category,e);label.setAttribute("x",minX+11);label.setAttribute("y",minY+15);label.setAttribute("fill",color);label.setAttribute("font-size","8");label.setAttribute("font-weight","700");label.setAttribute("letter-spacing",".08em");label.style.pointerEvents="none";label.textContent=category.toUpperCase();group.appendChild(rect);group.appendChild(label);g.appendChild(group);}}
-function renderCommitSummary(){{const o=overlay();if(!o){{commitSummary.classList.remove("visible");commitSummary.innerHTML="";return;}}const entries=Object.entries(o.files),primary=entries.filter(([,file])=>file.category==="primary"),shown=primary.length?primary:entries,roles={{}};entries.forEach(([,file])=>roles[file.category]=(roles[file.category]||0)+1);const roleText=Object.entries(roles).map(([role,count])=>`${{count}} ${{role}}`).join(" · "),files=shown.slice(0,8).map(([path])=>`<li><a href="#" class="commit-file-link" data-node-path="${{escapeHtml(path)}}">${{escapeHtml(path)}}</a></li>`).join(""),budget=o.budget||{{}},why=o.summary||[...new Set(shown.flatMap(([,file])=>file.reasons||[]))].join("; ")||"Prepared context package for this commit.";commitSummary.innerHTML=`<h3>${{escapeHtml(o.title||o.label)}}</h3><p>${{escapeHtml(why)}}</p><div class="commit-meta"><span>${{escapeHtml(o.task_kind||"task")}}</span><span>${{entries.length}} selected</span><span>${{roleText||"context selected"}}</span><span>${{(o.read||[]).length}} read</span><span>${{(o.expanded||[]).length}} expanded</span>${{budget.estimated_selected_chars?`<span>${{Number(budget.estimated_selected_chars).toLocaleString()}} chars</span>`:""}}</div><p><strong>${{primary.length?"Primary change files":"Selected context"}}</strong></p><ul class="commit-files">${{files}}</ul>${{o.forbidden&&o.forbidden.length?`<p><strong>Boundaries:</strong> ${{escapeHtml(o.forbidden.join(", "))}}</p>`:""}}`;commitSummary.querySelectorAll(".commit-file-link").forEach(link=>link.onclick=e=>{{e.preventDefault();focusGraphNode(link.dataset.nodePath);}});commitSummary.classList.add("visible");}}
+function renderCommitSummary(){{const o=overlay();if(!o){{commitSummary.classList.remove("visible");commitSummary.innerHTML="";return;}}const entries=Object.entries(o.files),committed=(o.committed||[]),shown=committed.length?committed:entries.map(([path])=>path),files=shown.slice(0,10).map(path=>`<li><a href="#" class="commit-file-link" data-node-path="${{escapeHtml(path)}}">${{escapeHtml(path)}}</a></li>`).join(""),budget=o.budget||{{}},why=o.summary||"Deterministic commit evidence from the specification, telemetry, and Git.";commitSummary.innerHTML=`<h3>${{escapeHtml(o.title||o.label)}}</h3><p>${{escapeHtml(why)}}</p><div class="commit-meta"><span>Owner: ${{escapeHtml(String(o.owner||"unavailable"))}}</span><span>Executor: ${{escapeHtml(String(o.executor||"unavailable"))}}</span><span>${{escapeHtml(o.execution||"unavailable")}}</span><span>${{(o.planned||[]).length}} planned</span><span>${{(o.read||[]).length}} read</span><span>${{(o.written||[]).length}} written</span><span>${{committed.length}} committed</span>${{budget.estimated_selected_chars?`<span>${{Number(budget.estimated_selected_chars).toLocaleString()}} context chars</span>`:""}}</div><p><strong>${{committed.length?"Git-derived committed files":"Available file evidence"}}</strong></p><ul class="commit-files">${{files}}</ul><p class="legend">Committed: ${{escapeHtml(o.provenance?.committed||"not-captured")}} · Reads: ${{escapeHtml(o.provenance?.read||"not-captured")}} · Writes: ${{escapeHtml(o.provenance?.written||"not-captured")}}</p>${{o.forbidden&&o.forbidden.length?`<p><strong>Boundaries:</strong> ${{escapeHtml(o.forbidden.join(", "))}}</p>`:""}}`;commitSummary.querySelectorAll(".commit-file-link").forEach(link=>link.onclick=e=>{{e.preventDefault();focusGraphNode(link.dataset.nodePath);}});commitSummary.classList.add("visible");}}
 function focusGraphNode(path){{const node=nodeMap.get(path);if(!node)return;query="";searchInput.value="";hideTooltip();resize();focusedNode=node.id;hoveredNode=null;scale=Math.max(scale,2.15);panX=width*.62-node.x*scale;panY=height*.5-node.y*scale;render();}}
 function startCategoryDrag(category,e){{e.stopPropagation();hideTooltip();const r=svg.getBoundingClientRect(),x=(e.clientX-r.left-panX)/scale,y=(e.clientY-r.top-panY)/scale,nodes=GRAPH_DATA.nodes.filter(n=>n.category===category).map(n=>({{node:n,x:n.x,y:n.y,homeX:n.homeX,homeY:n.homeY}})),center=categoryCenters.get(category);dragCategory=category;categoryDragStart={{pointerId:e.pointerId,x,y,nodes,centerX:center.x,centerY:center.y}};svg.setPointerCapture(e.pointerId);}}
 function updateEdgeStyles(){{const activeNode=hoveredNode||focusedNode;edgeElements.forEach(line=>{{const source=nodeMap.get(line.dataset.source),target=nodeMap.get(line.dataset.target),connected=activeNode&&(line.dataset.source===activeNode||line.dataset.target===activeNode),shown=source&&target&&visible(source)&&visible(target);line.setAttribute("stroke",connected?"#e2e8f0":line.dataset.same==="1"?"#8fa2ba":"#64748b");line.setAttribute("stroke-width",connected?"2.4":line.dataset.same==="1"?".9":".65");line.setAttribute("opacity",shown?(connected?".92":line.dataset.same==="1"?".12":".035"):".012");}});}}

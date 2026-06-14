@@ -104,6 +104,100 @@ def _write_metrics(repo: Path, records: list[dict]) -> None:
     )
 
 
+def _write_graph(repo: Path) -> None:
+    path = repo / ".context" / "index" / "codebase-graph.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        json.dumps({
+            "categories": {"backend/app/existing.py": "backend"},
+            "imports": {"backend/app/existing.py": []},
+            "hubs": [],
+        }),
+        encoding="utf-8",
+    )
+
+
+def test_graph_overlay_uses_direct_commit_metrics_without_live_package(tmp_path):
+    _write_graph(tmp_path)
+    _write_metrics(tmp_path, [{
+        "commit": "C41",
+        "agent": "rex",
+        "execution": "claude-direct",
+        "package": {},
+        "telemetry": {
+            "agent": {"status": "unavailable"},
+            "orchestrator": {
+                "status": "available",
+                "read_paths": ["backend/app/existing.py"],
+                "write_paths": ["backend/app/new_model.py"],
+            },
+        },
+        "boundaries": {
+            "forbidden_clean": True,
+            "changed_files": ["backend/app/new_model.py"],
+        },
+        "usage": {},
+        "result": "PASS",
+    }])
+
+    graph = cd.build_graph_view_data(tmp_path)
+    overlay = graph["overlays"]["C41-rex"]
+
+    assert overlay["owner"] == "rex"
+    assert overlay["executor"] == "claude"
+    assert overlay["execution"] == "claude-direct"
+    assert overlay["committed"] == ["backend/app/new_model.py"]
+    assert overlay["provenance"]["committed"] == "git-derived"
+    assert "backend/app/existing.py" in overlay["read"]
+    assert "backend/app/new_model.py" in overlay["written"]
+    assert any(node["path"] == "backend/app/new_model.py" for node in graph["nodes"])
+
+
+def test_graph_overlay_merges_delegated_package_and_committed_files(tmp_path):
+    _write_graph(tmp_path)
+    _write_metrics(tmp_path, [{
+        "commit": "C39",
+        "agent": "nova",
+        "execution": "delegated",
+        "package": {"selected_files": 1},
+        "telemetry": {
+            "agent": {
+                "status": "available",
+                "read_paths": ["backend/app/existing.py"],
+                "write_paths": ["backend/app/new_service.py"],
+                "expansions": [],
+            },
+            "orchestrator": {"status": "unavailable"},
+        },
+        "boundaries": {
+            "forbidden_clean": True,
+            "changed_files": ["backend/app/new_service.py"],
+        },
+        "usage": {},
+        "result": "PASS",
+    }])
+    run = tmp_path / ".context" / "runs" / "C39-nova-live.json"
+    run.parent.mkdir(parents=True)
+    run.write_text(json.dumps({
+        "commit": "C39",
+        "agent": "nova",
+        "spec": "commit-specs/commit-39.md",
+        "files": [{
+            "path": "backend/app/existing.py",
+            "category": "contract",
+            "reasons": ["dependency"],
+        }],
+    }), encoding="utf-8")
+
+    graph = cd.build_graph_view_data(tmp_path)
+    overlay = graph["overlays"]["C39-nova"]
+
+    assert overlay["executor"] == "nova"
+    assert overlay["files"]["backend/app/existing.py"]["category"] == "contract"
+    assert overlay["committed"] == ["backend/app/new_service.py"]
+    assert "backend/app/new_service.py" in overlay["files"]
+
+
 def test_render_dashboard_claude_direct_row_not_created(tmp_path):
     record = {
         "commit": "C30",
@@ -127,7 +221,8 @@ def test_render_dashboard_claude_direct_row_not_created(tmp_path):
 
     assert "Not created (Claude-direct)" in html_out
     assert "Not delegated" in html_out
-    assert "Not tracked" in html_out
+    assert "Not captured" in html_out
+    assert "<th>Owner</th><th>Executor</th>" in html_out
 
 
 def test_render_dashboard_legacy_preview_package_label(tmp_path):
