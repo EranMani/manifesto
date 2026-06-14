@@ -447,3 +447,33 @@ Tool usage: orchestrator direct write, 0 agent invocations.
 **Handoffs out:** None.
 
 Tool usage: orchestrator direct write, 0 agent invocations.
+
+---
+
+## Session 19 — Commit 43: `shipment-event-storage`
+*2026-06-14*
+
+**Approach:** Orchestrator direct write (Claude-direct, Eran-approved) — no Rex invocation.
+
+**Files created:**
+- `backend/app/models/shipment_event.py` — `ShipmentEvent` model: UUID PK (`gen_random_uuid()`), `shipment_id` FK to `shipments.id` with `ON DELETE CASCADE`, `event_type` (check constraint, 13 allowed values: `ordered|dispatched|departed|arrived_hub|customs_hold|customs_released|delay_reported|damaged|partial_delivery|delivered|cancelled|returned|lost`), `occurred_at`, `location`, nullable `details`, `created_at`. Composite index `(shipment_id, occurred_at, id)` for deterministic chronology.
+- `backend/alembic/versions/0005_shipment_event_storage.py` — creates `shipment_events`, its check constraint, and the timeline index. `down_revision = "0004_shipment_lifecycle_fields"`. `downgrade()` drops the index then the table.
+- `backend/tests/models/test_shipment_event_storage.py` — covers: events sort deterministically by `(occurred_at, id)`; invalid `event_type` rejected (DBAPIError via `shipment_event_type_check`); deleting a shipment cascades to delete its events; migration upgrade creates `shipment_events` and downgrade (to `0004_shipment_lifecycle_fields`) removes it without affecting `shipments`.
+
+**Files updated:**
+- `backend/app/models/__init__.py` — exports `ShipmentEvent`.
+
+**Test gate results:**
+- `docker compose run --rm backend uv run pytest tests/models/test_shipment_event_storage.py -q` -> 4 passed.
+- `docker compose run --rm backend uv run pytest -q` (full suite) -> 152 passed, 1 failed (regression, see below).
+- verify_constraints all_pass (--execution claude-direct): files=4/4, diff_lines=279/350.
+
+**Decisions made:**
+- Cascade delete (`ON DELETE CASCADE`) on `shipment_id`, matching the contract's "deleting a shipment deletes its events" requirement.
+
+**Regression found (not fixed in this commit — see C43A):**
+- The new 0005 migration moves the alembic head past 0004, which breaks `test_shipment_lifecycle.py::test_migration_upgrade_adds_lifecycle_columns_and_downgrade_removes_them`: its `command.downgrade(cfg, "-1")` now only undoes 0005, so the 0004 lifecycle columns (`tracking_code`, etc.) are still present when the test asserts they're removed. Same C42A pattern, one revision later. Queued as **C43A** (letter-suffix pattern) — explicit downgrade target `0003_purchase_order_storage` (0004's down_revision) to restore 153/153.
+
+**Handoffs out:** None.
+
+Tool usage: orchestrator direct write, 0 agent invocations.

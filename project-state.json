@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C42A (purchase-order-migration-downgrade-fix, Rex, Claude-direct) is complete: test_purchase_order_storage.py's downgrade target changed from \"-1\" to \"0002_rag_storage_hardening\", restoring the full suite to 149/149 after C42's 0004 migration shifted the alembic head. C43 (shipment-event-storage, Rex) is next. Normal review cadence resumes at C45 (Viktor every-5th-commit wave).",
+  "tldr": "C43 (shipment-event-storage, Rex, Claude-direct) is complete: added ShipmentEvent model, the 0005_shipment_event_storage migration, and 4 focused tests (152/153 full suite). C43's 0005 migration shifted the alembic head past 0004, breaking test_shipment_lifecycle.py's downgrade-target assertion the same way C42 broke test_purchase_order_storage.py (fixed by C42A). C43A (shipment-lifecycle-migration-downgrade-fix, Rex, Claude-direct) is next: 1-line downgrade-target fix to restore 153/153. Normal review cadence resumes at C45 (Viktor every-5th-commit wave).",
   "phase": 2,
-  "last_completed_commit": "42A",
-  "next_commit": "43",
-  "next_commit_name": "shipment-event-storage",
+  "last_completed_commit": "43",
+  "next_commit": "43A",
+  "next_commit_name": "shipment-lifecycle-migration-downgrade-fix",
   "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
@@ -92,6 +92,13 @@
       "summary": "Inserted C42A (purchase-order-migration-downgrade-fix) between C42 (done) and C43 (pending), using the Rule 10 letter-suffix convention so C43-C76 keep their existing numbers. C42A is a 1-line fix: change the downgrade target in test_purchase_order_storage.py from \"-1\" to the explicit revision \"0002_rag_storage_hardening\" so the downgrade always removes both 0004 and 0003. Eran initially approved folding this fix directly into C42, but validate_commit_spec.py hard-locks max_changed_files at 4 (not overridable in the spec), so the 5th file could not be added; the fix was reverted out of C42 and queued as this letter-suffix commit instead. Owned by Rex (backend/tests/ domain).",
       "agents_activated": [],
       "files_updated": ["commit-protocol.md", "commit-specs/commit-42A.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-14",
+      "trigger": "C43's 0005_shipment_event_storage migration moved the alembic head past 0004_shipment_lifecycle_fields, breaking test_shipment_lifecycle.py::test_migration_upgrade_adds_lifecycle_columns_and_downgrade_removes_them (its command.downgrade(cfg, \"-1\") now only undoes 0005, leaving the 0004 lifecycle columns present when the assertion expects them removed; full suite 152/153 after C43). Same pattern as C42A, one revision later.",
+      "summary": "Inserted C43A (shipment-lifecycle-migration-downgrade-fix) between C43 (done) and C44 (pending), using the Rule 10 letter-suffix convention so C44-C76 keep their existing numbers. C43A is a 1-line fix: change the downgrade target in test_shipment_lifecycle.py from \"-1\" to the explicit revision \"0003_purchase_order_storage\" so the downgrade always removes both 0005 and 0004. Owned by Rex (backend/tests/ domain).",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "commit-specs/commit-43A.md", "project-state.json"]
     }
   ],
   "rollback_history": [],
