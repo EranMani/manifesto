@@ -91,6 +91,64 @@ def test_existing_matching_scope_is_reused(tmp_path):
     prepare.assert_not_called()
 
 
+def test_finalize_command_cannot_rearm_scope_from_notify_text(tmp_path):
+    repo = _repo(tmp_path)
+    with patch("direct_execution_lifecycle.prepare_direct") as prepare:
+        allowed, message = lifecycle.ensure_direct_scope({
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": (
+                    "python hooks/finalize_commit.py --commit 48 "
+                    '--notify-what "Updated rag_logistics.py"'
+                )
+            },
+        }, repo)
+    assert allowed is True
+    assert message is None
+    prepare.assert_not_called()
+
+
+def test_completed_matching_scope_passes_without_reactivation(tmp_path):
+    repo = _repo(tmp_path)
+    active = repo / ".context" / "telemetry" / "orchestrator-active.json"
+    active.parent.mkdir(parents=True)
+    active.write_text(json.dumps({
+        "commit": "C48",
+        "status": "completed",
+        "execution_mode": "claude-direct",
+    }), encoding="utf-8")
+    with patch("direct_execution_lifecycle.prepare_direct") as prepare:
+        allowed, message = lifecycle.ensure_direct_scope({
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "backend/app/services/rag_logistics.py"},
+        }, repo)
+    assert allowed is True
+    assert message is None
+    prepare.assert_not_called()
+
+
+def test_matching_review_scope_passes_without_reactivation(tmp_path):
+    repo = _repo(tmp_path)
+    active = repo / ".context" / "telemetry" / "orchestrator-active.json"
+    active.parent.mkdir(parents=True)
+    active.write_text(json.dumps({
+        "commit": "C48",
+        "status": "running",
+        "execution_mode": "delegated",
+        "scope_kind": "review",
+    }), encoding="utf-8")
+    with patch("direct_execution_lifecycle.prepare_direct") as prepare:
+        allowed, message = lifecycle.ensure_direct_scope({
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "pytest backend/tests/services/test_rag_logistics.py"
+            },
+        }, repo)
+    assert allowed is True
+    assert message is None
+    prepare.assert_not_called()
+
+
 def test_activation_failure_blocks_implementation_tool(tmp_path):
     repo = _repo(tmp_path)
     with patch(

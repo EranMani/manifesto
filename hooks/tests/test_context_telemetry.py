@@ -176,6 +176,28 @@ class ContextTelemetryTests(unittest.TestCase):
                 (root / ".context" / "telemetry" / "C30-orchestrator.json").exists()
             )
 
+    def test_matching_completed_scope_cannot_be_finalized_again(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            context_telemetry.initialize_orchestrator_scope("C30", root)
+            first = context_telemetry.finalize_orchestrator_scope("C30", root)
+            output = root / ".context" / "telemetry" / "C30-orchestrator.json"
+            original = output.read_text(encoding="utf-8")
+
+            second = context_telemetry.finalize_orchestrator_scope("C30", root)
+
+            self.assertIsNotNone(first)
+            self.assertIsNone(second)
+            self.assertEqual(output.read_text(encoding="utf-8"), original)
+
+    def test_matching_scope_cannot_be_reinitialized(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            context_telemetry.initialize_orchestrator_scope("C30", root)
+
+            with self.assertRaisesRegex(ValueError, "already exists"):
+                context_telemetry.initialize_orchestrator_scope("C30", root)
+
     def test_execution_scope_persists_full_capture_identity(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

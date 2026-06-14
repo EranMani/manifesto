@@ -314,9 +314,27 @@ def initialize_orchestrator_scope(
     capture_window: str = "review-only",
 ) -> dict[str, Any]:
     """Open a Claude telemetry scope with explicit execution semantics."""
+    path = repo_root / ".context" / "telemetry" / "orchestrator-active.json"
+    try:
+        existing = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        existing = None
+    commit_key = _commit_key(commit)
+    if existing:
+        existing_commit = _commit_key(existing.get("commit", ""))
+        existing_status = existing.get("status")
+        if existing_commit.upper() == commit_key.upper():
+            raise ValueError(
+                f"{commit_key} telemetry scope already exists with status "
+                f"{existing_status!r}"
+            )
+        if existing_status == "running":
+            raise ValueError(
+                f"cannot replace running {existing_commit} telemetry scope"
+            )
     scope = {
         "schema_version": 2,
-        "commit": _commit_key(commit),
+        "commit": commit_key,
         "owner": owner.lower() if owner else None,
         "executor": "claude",
         "execution_mode": execution_mode,
@@ -332,7 +350,6 @@ def initialize_orchestrator_scope(
         "commands": [],
         "token_usage": _token_snapshot(repo_root),
     }
-    path = repo_root / ".context" / "telemetry" / "orchestrator-active.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
     return scope
@@ -411,6 +428,8 @@ def finalize_orchestrator_scope(commit: str, repo_root: Path = REPO_ROOT) -> dic
     commit_key = _commit_key(commit)
     scope_commit_key = _commit_key(scope.get("commit", ""))
     if scope_commit_key.upper() != commit_key.upper():
+        return None
+    if scope.get("status") != "running":
         return None
     scope["status"] = "completed"
     scope["ended_at"] = utc_now()

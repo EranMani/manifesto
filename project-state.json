@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C47 (shipment-identifier-evidence, Nova, Claude-direct) is complete: added ShipmentEvidence/ShipmentNotFoundError and lookup_shipment(db, tracking_code) to backend/app/services/rag_logistics.py (normalizes tracking codes, one parameterized SELECT, returns id/status/route/lifecycle timestamps/delay_reason); 4 new tests pass (-k identifier). A separate tooling fix (aa1fa2a, Claude) exempts .context/direct/C{NN}.md from verify_constraints.py's actual-scope unplanned-files check (it was flagging every Claude-direct commit's prepare_claude_direct.py brief). C48 (procurement-relationship-evidence, Nova) is next. Viktor's every-5th-commit wave (due since C45, not yet run) remains pending.",
+  "tldr": "C47 is complete. During C48, the valid telemetry scope was successfully stopped, but finalize_commit.py notification text containing rag_logistics.py was misclassified as implementation; the lifecycle hook opened a fresh empty scope and finalization overwrote the valid record. C47B (telemetry-lifecycle-overwrite-fix, Claude owner, recovery/Codex-derived executor) is inserted before C48 to land the lifecycle guards and exact transcript-derived C48 recovery. C48's implementation is complete and unstaged, pending C47B landing. Viktor's every-5th-commit wave remains pending.",
   "phase": 2,
   "last_completed_commit": "47",
-  "next_commit": "48",
-  "next_commit_name": "procurement-relationship-evidence",
-  "next_commit_assignee": "nova",
+  "next_commit": "47B",
+  "next_commit_name": "telemetry-lifecycle-overwrite-fix",
+  "next_commit_assignee": "claude",
   "status": "phase-2-active",
   "open_handoffs": [
     {
@@ -99,6 +99,13 @@
       "summary": "Inserted C43A (shipment-lifecycle-migration-downgrade-fix) between C43 (done) and C44 (pending), using the Rule 10 letter-suffix convention so C44-C76 keep their existing numbers. C43A is a 1-line fix: change the downgrade target in test_shipment_lifecycle.py from \"-1\" to the explicit revision \"0003_purchase_order_storage\" so the downgrade always removes both 0005 and 0004. Owned by Rex (backend/tests/ domain).",
       "agents_activated": [],
       "files_updated": ["commit-protocol.md", "commit-specs/commit-43A.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-14",
+      "trigger": "During C48, the valid 26-tool-call scope was successfully stopped. The subsequent finalize_commit.py command included rag_logistics.py in notification text, so the lifecycle hook misclassified it as implementation, opened a fresh empty scope, and overwrote the valid completed record.",
+      "summary": "Inserted C47B between C47 and C48. Control commands cannot activate direct telemetry; existing same-commit records pass through without reactivation or tool lockout; explicit initialization cannot overwrite same-commit or different running scopes; only running scopes can be finalized; and finalize_commit.py accepts an already-completed matching scope. C48 telemetry was recovered solely from exact transcript evidence. C47B is recovery/Codex-derived and claims no implementor telemetry.",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "commit-specs/commit-47B.md", "project-state.json"]
     }
   ],
   "rollback_history": [],

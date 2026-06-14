@@ -19,6 +19,12 @@ RULES_PATH = Path(__file__).resolve().parent / "context_rules.json"
 ACTIVE_PATH = REPO_ROOT / ".context" / "telemetry" / "orchestrator-active.json"
 IMPLEMENTATION_TOOLS = {"Read", "Grep", "Glob", "Write", "Edit", "MultiEdit", "NotebookEdit", "Bash"}
 PATH_KEYS = ("file_path", "path", "notebook_path")
+CONTROL_COMMANDS = (
+    "hooks/context_telemetry.py",
+    "hooks/finalize_commit.py",
+    "hooks/prepare_claude_direct.py",
+    "hooks/verify_constraints.py",
+)
 
 
 def _load_json(path: Path) -> dict[str, Any] | None:
@@ -93,7 +99,11 @@ def _targets_commit(
             for item in planned
         )
     if tool_name == "Bash":
-        command = str((event.get("tool_input") or {}).get("command", ""))
+        command = str((event.get("tool_input") or {}).get("command", "")).replace(
+            "\\", "/"
+        )
+        if any(control in command.lower() for control in CONTROL_COMMANDS):
+            return False
         return any(path in command or Path(path).name in command for path in planned)
     return False
 
@@ -110,12 +120,14 @@ def ensure_direct_scope(
         return True, None
 
     active = _load_json(repo_root / ".context" / "telemetry" / "orchestrator-active.json")
-    if (
-        active
-        and str(active.get("commit", "")).upper() == commit
-        and active.get("status") == "running"
-        and active.get("execution_mode") == "claude-direct"
-    ):
+    if active and str(active.get("commit", "")).upper() == commit:
+        if (
+            active.get("status") == "running"
+            and active.get("execution_mode") == "claude-direct"
+        ):
+            return True, None
+        # Preserve existing evidence without trapping later tools. Explicit
+        # initialization remains protected by the lower-level overwrite guard.
         return True, None
     try:
         prepare_direct(
