@@ -65,7 +65,8 @@
         "hooks/tests/test_finalize_commit.py",
         "hooks/bash_command_lint.py",
         "hooks/tests/test_bash_command_lint.py",
-        ".context/finalize/"
+        ".context/finalize/",
+        ".context/direct/"
       ]
     },
     "rex.stockagent@gmail.com": {
