@@ -1765,4 +1765,84 @@ drafted as a concrete protocol addition for Eran's approval, per CLAUDE.md rule 
 
 ---
 
+## D50 — Adopted: Deterministic Trigger List for Direct-vs-Delegate Default (Finalizes D49)
+
+- **Date:** 2026-06-14
+- **Decided by:** Eran and Claude
+- **Context:** Finalizes D49's proposal. D49 sketched four candidate triggers (T1–T4)
+  plus an unresolved question of how broad T1 should be. This entry adopts the
+  refined version and wires it into the operative protocol.
+
+### Changes from D49
+
+- **T4 dropped.** Grepping COMMIT_HEALTH_RUBRIC.md/CONSTRAINT_LOG.md on every commit
+  adds per-commit token overhead — the opposite of this optimization's goal (save
+  tokens, not spend more).
+- **T1 expanded.** Beyond auth/secrets/JWT/password, T1 now also covers:
+  DB schema/migrations/models, new business logic (services), and infrastructure
+  (Celery, Redis, Docker, queues).
+- **T2 threshold set to >4 files** (was a placeholder ">3").
+
+### Final trigger list
+
+| # | Trigger | Detection |
+|---|---|---|
+| T1 | Planned files touch auth/secrets/JWT/password, DB schema/migrations/models, new business logic (services), or infrastructure (Celery, Redis, Docker, queues) | Match against `Files To Modify Or Add` |
+| T2 | `Files To Modify Or Add` lists more than 4 files | Count rows |
+
+Mechanics unchanged from D49: if either trigger fires, the default flips to
+delegate-first, and Claude must write a justification to execute directly instead
+(mirroring, in reverse, the existing delegation-justification requirement).
+
+### The capability-vs-context framework (why T1's categories were chosen)
+
+Eran asked whether there's a real quality difference between Claude-direct output
+and an agent's output for the same file — i.e., does Rex/Adam/Aria/Nova "know
+something" Claude structurally doesn't.
+
+Claude's answer, recorded here because it's the reasoning behind T1's category
+choices: **the underlying model is identical across Claude and all agents.** Where
+a quality difference exists, it comes from three contextual/process factors, not
+raw capability:
+
+1. **Context cleanliness.** Claude-direct carries the full orchestration session
+   (preflight, prior commits, governance discussion, etc.). A delegated agent gets
+   only a narrow, curated brief. For mechanical work this doesn't matter; for
+   business logic with subtle edge cases, session clutter can cause anchoring on
+   irrelevant prior context or reduce "fresh eyes."
+2. **Domain identity files as a forcing function.** Agent identity files encode
+   domain-specific conventions and gotchas. Claude-direct *can* read the same docs,
+   but for an agent it's part of the role, not optional — so consistency of
+   application is higher for an agent.
+3. **Independent second pass.** The value of delegation for novel/high-ripple work
+   isn't that the agent is "smarter" — it's that a second invocation with fresh
+   framing is more likely to catch what a single pass misses.
+
+**Where Claude-direct is reliably "perfect":** small, well-precedented, templated
+changes — fields/routes/config that mirror existing patterns, doc updates. Low
+novelty, low ripple effect, the codebase already shows the answer.
+
+**Where the gap is real (and drives T1):** DB schema changes (invisible ripple into
+migrations/relationships/data integrity), new business logic (no pattern to mirror,
+more ways to misjudge edge cases), and infrastructure (operational failure modes not
+visible from code alone, e.g. Celery worker-restart behavior).
+
+### Status
+
+Adopted. Wired into:
+- `CLAUDE.md` → "How to Invoke an Agent"
+- `team-preferences.md` → item 5
+- `ORCHESTRATION.md` → Commit Loop Step 3
+
+### Consequences
+
+- Step 3 of the commit loop now runs this pre-check before the existing
+  judgment-based executor decision, for every commit.
+- No new hooks or scripts — both triggers are checkable by reading the active commit
+  spec already loaded in Step 2/3.
+- Future refinement (per D48/D49) may add an outcome-tracking metric later; not
+  part of this adoption.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

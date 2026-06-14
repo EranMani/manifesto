@@ -443,6 +443,18 @@ delegation. Delegate only for unresolved specialist uncertainty, independent
 implementation needed for risk control, or a clearly bounded specialist unit whose
 expected value exceeds invocation overhead.
 
+**Deterministic pre-check (D50) — run before the judgment call above:**
+If either trigger fires, the default flips: delegation becomes the default, and Claude
+must instead write a justification to execute directly.
+
+- **T1 — Domain-sensitive category:** planned files touch auth/secrets/JWT/password
+  handling, DB schema/migrations/models, new business logic (services), or
+  infrastructure (Celery, Redis, Docker, queues).
+- **T2 — Size outlier:** the commit spec's `Files To Modify Or Add` table lists more
+  than 4 files.
+
+If neither fires, Claude-direct remains the default per Non-Negotiable 10.
+
 **Live context package — mandatory before every implementor spawn:**
 Run `python hooks/prepare_agent_delegation.py --commit NN --agent NAME`.
 The command refreshes the cached codebase graph only when stale, combines the active

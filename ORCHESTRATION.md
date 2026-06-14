@@ -53,8 +53,14 @@ STEP 3 — Claude validates scope, then checks readiness for the decided executo
     hooks/validate_commit_spec.py --all-pending --json
     (otherwise this graph-wide check is skipped)
     Claude decides the executor before running any preflight tooling:
-    Claude-direct is the default (Non-Negotiable 10); delegation requires a
-    written justification (unresolved specialist uncertainty, independent
+    First, the deterministic pre-check (D50) — if either trigger fires, the default
+    flips to delegate-first and Claude must justify direct execution instead:
+      T1: planned files touch auth/secrets/JWT/password, DB schema/migrations/models,
+          new business logic (services), or infrastructure (Celery, Redis, Docker,
+          queues)
+      T2: `Files To Modify Or Add` lists more than 4 files
+    If neither fires, Claude-direct is the default (Non-Negotiable 10); delegation
+    requires a written justification (unresolved specialist uncertainty, independent
     implementation for risk control, or a clearly bounded specialist unit whose
     expected value exceeds invocation overhead).
     - Claude-direct (default): runs

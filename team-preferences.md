@@ -48,6 +48,14 @@ Public-facing:     internal tool (future AWS deployment)
    `Files To Modify Or Add` table. The approval card names the executor and shows
    `Delegation justification: Not delegated.` when Claude executes directly.
 
+   **Deterministic pre-check (D50):** before applying the judgment above, check two
+   triggers. If either fires, the default flips to delegate-first (Claude must justify
+   going direct instead):
+     - T1: planned files touch auth/secrets/JWT/password, DB schema/migrations/models,
+       new business logic (services), or infrastructure (Celery, Redis, Docker, queues)
+     - T2: `Files To Modify Or Add` lists more than 4 files
+   Neither fires → Claude-direct stands as the default.
+
 5. DEBATES AND DECISIONS GO INTO DECISIONS.md IMMEDIATELY.
    Eran reads DECISIONS.md to build his understanding of the process.
    Every non-obvious choice and every Andrej/Boris debate gets recorded there.
