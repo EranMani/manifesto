@@ -5,10 +5,10 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-14 · C39 committed*
+*Last updated: 2026-06-14 · C47 pending approval*
 
 **Last completed:** C39 `policy-vector-candidates` — committed 2026-06-14 (1f47067)
-**Currently active:** none
+**Currently active:** C47 `shipment-identifier-evidence` — pending approval (Claude-direct)
 **Blocked by:** none
 
 Tool usage (C39): reads=5 (within 10), writes=2, total=11 (within 18 cap); 1 expansion used
@@ -376,3 +376,45 @@ field against `active_profile.provider`/`.model`/`.dimensions`. Updated
 `docker compose run --rm backend uv run pytest tests/services/test_rag_policy.py -q`
 → **6 passed**.
 No gate wave at C39 (next wave at C40).
+
+---
+
+## Session 7 — C47 `shipment-identifier-evidence` · 2026-06-14
+
+**Executor:** Claude (direct, per Eran's approval)
+**Status:** pending approval
+**Tool usage (orchestrator):** 0 agent calls
+
+### What was built
+
+`backend/app/services/rag_logistics.py`:
+- `ShipmentNotFoundError` — raised for blank or unmatched tracking codes.
+- `ShipmentEvidence` (frozen dataclass) — id, tracking_code, status, origin,
+  destination, dispatched_at, expected_arrival_at, actual_arrival_at, delay_reason.
+- `lookup_shipment(db, tracking_code)` — trims and uppercases the identifier,
+  rejects blank input via `ShipmentNotFoundError`, executes one parameterized
+  `SELECT` against `Shipment.tracking_code`, and maps the row to `ShipmentEvidence`
+  or raises `ShipmentNotFoundError` if no row matches.
+
+`backend/tests/services/test_rag_logistics.py` (new) — transaction-rollback
+`session` fixture (same pattern as `test_shipment_lifecycle.py`):
+- `test_identifier_lookup_resolves_known_shipment` — lowercase/whitespace-padded
+  tracking code normalizes and resolves to the seeded shipment's evidence.
+- `test_identifier_lookup_unknown_identifier_raises` / `..._blank_identifier_raises`
+  — both raise `ShipmentNotFoundError`.
+- `test_identifier_lookup_executes_no_write_statement` — asserts the session has
+  no new/dirty/deleted objects after a lookup.
+
+### Tooling fix (separate commit, not part of C47's diff)
+
+`hooks/verify_constraints.py`'s `check_actual_scope()` flagged `.context/direct/C47.md`
+(written by `prepare_claude_direct.py`, step 5) as an unplanned file. Fixed by treating
+`.context/direct/C{NN}.md` as always-planned, same as the owner worklog — committed
+separately (aa1fa2a, Claude, hooks narrow exception) before C47.
+
+### Verification
+
+`docker compose run --rm backend uv run pytest tests/services/test_rag_logistics.py -k identifier -q`
+→ **4 passed**.
+verify_constraints all_pass (--execution claude-direct): files=3/4, diff_lines=202/350.
+No gate wave at C47 (next wave at C50).

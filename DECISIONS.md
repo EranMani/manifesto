@@ -1571,4 +1571,29 @@ C33B/C38A fail-closed-gate precedent. Tracked as **OI-17**.
 
 ---
 
+## D46 — `.context/direct/CNN.md` Actual-Scope Exemption + Two-Commit Split For Tooling Fixes (C47)
+
+- **Date:** 2026-06-14
+- **Decided by:** Claude, approved by Eran
+- **Context:** C47 (`shipment-identifier-evidence`, Nova) was the first
+  Claude-direct commit run after `prepare_claude_direct.py` (C46) started
+  writing `.context/direct/CNN.md` on every Claude-direct commit. `/verify-commit`
+  failed: `check_actual_scope()` in `hooks/verify_constraints.py` had a
+  worklog exemption but no exemption for this new brief file, so it was
+  flagged as an unplanned file.
+- **Decision:** Fix `check_actual_scope()` to also exempt
+  `.context/direct/C{NN}.md` (new `commit_num` parameter, mirrors the
+  existing worklog exemption) rather than special-case C47 only.
+- **Sequencing:** The hooks fix itself touches `hooks/verify_constraints.py`,
+  which is outside Nova's domain and outside C47's planned files. Following
+  the C33A/C33B precedent, it was committed standalone first (aa1fa2a,
+  `fix(hooks): ...`, Claude domain, Co-Authored-By: Claude, **no** `Commit #NN`
+  line so the finalize/telemetry primary-commit gates don't apply to it), then
+  C47's own two files (cc937ff) were committed against the now-passing check.
+- **Result:** Both commits passed `/verify-commit` and `verify_constraints.py`
+  cleanly. This exemption now applies to every future Claude-direct commit
+  automatically — no repeat of this gate-fix pass expected for C48+.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C46 (bundled-policy-seed, Rex, Claude-direct) is complete: bundled 7-document mock policy corpus (backend/app/data/demo_policies.json) seeded into ready PolicyDocument/PolicyChunk rows with real Ollama embeddings via EmbeddingService, idempotent on sha256+profile; 2 new tests pass (-k bundled_policy). OI-20 (ollama not wired into docker-compose depends_on / model pull undocumented, open — Adam) logged. D45 records the first live result of prepare_claude_direct.py's context package (80% read coverage, one justified expansion). C47 (shipment-identifier-evidence, Nova) is next. Viktor's every-5th-commit wave (due since C45, not yet run) remains pending.",
+  "tldr": "C47 (shipment-identifier-evidence, Nova, Claude-direct) is complete: added ShipmentEvidence/ShipmentNotFoundError and lookup_shipment(db, tracking_code) to backend/app/services/rag_logistics.py (normalizes tracking codes, one parameterized SELECT, returns id/status/route/lifecycle timestamps/delay_reason); 4 new tests pass (-k identifier). A separate tooling fix (aa1fa2a, Claude) exempts .context/direct/C{NN}.md from verify_constraints.py's actual-scope unplanned-files check (it was flagging every Claude-direct commit's prepare_claude_direct.py brief). C48 (procurement-relationship-evidence, Nova) is next. Viktor's every-5th-commit wave (due since C45, not yet run) remains pending.",
   "phase": 2,
-  "last_completed_commit": "46",
-  "next_commit": "47",
-  "next_commit_name": "shipment-identifier-evidence",
+  "last_completed_commit": "47",
+  "next_commit": "48",
+  "next_commit_name": "procurement-relationship-evidence",
   "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
