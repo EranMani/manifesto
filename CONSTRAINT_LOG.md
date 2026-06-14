@@ -62,3 +62,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-14 | C42A | rex | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-14 | C43 | rex | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-14 | C43A | rex | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
+| 2026-06-14 | C44 | rex | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |

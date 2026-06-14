@@ -5,9 +5,9 @@
 ---
 
 ## Current State
-*Last updated: Commit 43A · 2026-06-14*
+*Last updated: Commit 44 · 2026-06-14*
 
-**Last completed:** Commit 43A `shipment-lifecycle-migration-downgrade-fix` ✅ (pending Eran approval/commit)
+**Last completed:** Commit 44 `procurement-foundation-seed` ✅
 **Currently active:** none
 **Blocked by:** none
 
@@ -493,6 +493,27 @@ Tool usage: orchestrator direct write, 0 agent invocations.
 - verify_constraints all_pass (--execution claude-direct): files=1/1, diff_lines=2/20.
 
 **Decisions made:** None — single-line mechanical fix per the C43A spec contract; no other lines changed.
+
+**Handoffs out:** None.
+
+Tool usage: orchestrator direct write, 0 agent invocations.
+
+## Session 21 — Commit 44: `procurement-foundation-seed`
+*2026-06-14*
+
+**Approach:** Orchestrator direct write (Claude-direct, Eran-approved) — no Rex invocation.
+
+**Files updated:**
+- `backend/seed.py` — rewritten to idempotently seed the procurement foundation: the existing admin plus two managers (`morgan.reyes@manifesto.local`, `priya.nair@manifesto.local`) as buyers, eight vendors, six categories, and twenty purchase orders. Order numbers (`PO-2026-0001`..`PO-2026-0020`) and `ordered_at`/`requested_delivery_at` timestamps (fixed 2026 dates, 3-day cadence with a 14-day delivery window) are deterministic. Each `_ensure_*` helper looks up by natural key (email/name/order_number) before inserting, so re-running creates nothing new.
+- `backend/tests/test_seed.py` (new) — `test_procurement_foundation_seed_creates_expected_entities` (admin/manager roles, vendor/category/order counts, orders reference seeded buyers and vendors) and `test_procurement_foundation_seed_is_idempotent` (running `seed.seed()` twice produces identical row IDs). Added an autouse fixture disposing the app's module-level `engine` before/after each test, since `seed.seed()` uses `AsyncSessionLocal` and pytest-asyncio gives each test its own event loop.
+
+**Test gate results:**
+- `docker compose run --rm backend uv run pytest tests/test_seed.py -k procurement_foundation -q` -> 2 passed.
+- `docker compose run --rm backend uv run pytest -q` (full suite) -> 155 passed (was 153).
+- verify_constraints all_pass (--execution claude-direct): files=2/4, diff_lines=268/350.
+
+**Decisions made:**
+- Purchase order statuses cycle through `["approved", "approved", "fulfilled", "draft"]` by index for varied demo data, deterministically.
 
 **Handoffs out:** None.
 

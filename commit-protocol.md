@@ -65,7 +65,7 @@
 | 42A | purchase-order-migration-downgrade-fix | rex | ✅ done · 2026-06-14 |
 | 43 | shipment-event-storage | rex | ✅ done · 2026-06-14 |
 | 43A | shipment-lifecycle-migration-downgrade-fix | rex | ✅ done · 2026-06-14 |
-| 44 | procurement-foundation-seed | rex | pending |
+| 44 | procurement-foundation-seed | rex | ✅ done · 2026-06-14 |
 | 45 | shipment-scenario-seed | rex | pending |
 | 46 | bundled-policy-seed | rex | pending |
 | 47 | shipment-identifier-evidence | nova | pending |

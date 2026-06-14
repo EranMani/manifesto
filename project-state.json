@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C43A (shipment-lifecycle-migration-downgrade-fix, Rex, Claude-direct) is complete: 1-line downgrade-target fix in test_shipment_lifecycle.py restores 153/153. C44 (procurement-foundation-seed, Rex) is next. Normal review cadence resumes at C45 (Viktor every-5th-commit wave).",
+  "tldr": "C44 (procurement-foundation-seed, Rex, Claude-direct) is complete: backend/seed.py idempotently seeds admin + 2 managers as buyers, 8 vendors, 6 categories, 20 purchase orders with deterministic identifiers; 2 new tests, full suite 155/155. C45 (shipment-scenario-seed, Rex) is next. Viktor's every-5th-commit wave is due at C45.",
   "phase": 2,
-  "last_completed_commit": "43A",
-  "next_commit": "44",
-  "next_commit_name": "procurement-foundation-seed",
+  "last_completed_commit": "44",
+  "next_commit": "45",
+  "next_commit_name": "shipment-scenario-seed",
   "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
