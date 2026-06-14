@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C39 is complete. Eran approved a fast-delivery replan centered on a unified procurement-logistics and policy assistant. C40 records the milestone-led roadmap and reusable planning method; C41-C62 remain planned until individually specified and activated. Eran explicitly waived Viktor for documentation-only C40; the normal review cadence resumes at C45.",
+  "tldr": "C40 (product-delivery-replan) is complete. The roadmap now prioritizes a unified procurement-logistics and policy assistant through five developer-test milestones, with C41-C62 kept atomic and planned until individually specified. Eran explicitly waived Viktor for documentation-only C40; the normal review cadence resumes at C45. C41 (purchase-order-storage, Rex) is next and still requires an exact validated spec before activation.",
   "phase": 2,
-  "last_completed_commit": "39",
-  "next_commit": "40",
-  "next_commit_name": "product-delivery-replan",
-  "next_commit_assignee": "claude",
+  "last_completed_commit": "40",
+  "next_commit": "41",
+  "next_commit_name": "purchase-order-storage",
+  "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
     {
