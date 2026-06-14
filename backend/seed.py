@@ -6,7 +6,10 @@ from sqlalchemy import select
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.category import Category
+from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
+from app.models.shipment import Shipment
+from app.models.shipment_event import ShipmentEvent
 from app.models.user import User
 from app.models.vendor import Vendor
 
@@ -40,9 +43,121 @@ CATEGORIES = [
 PURCHASE_ORDER_STATUSES = ["approved", "approved", "fulfilled", "draft"]
 PURCHASE_ORDER_COUNT = 20
 
+SHIPMENT_COUNT = 50
+SHIPMENT_BASE_DATE = datetime.datetime(2026, 2, 2, tzinfo=datetime.timezone.utc)
+
+ROUTES = [
+    ("Los Angeles, US", "Chicago, US"),
+    ("Shenzhen, CN", "Rotterdam, NL"),
+    ("Mumbai, IN", "Hamburg, DE"),
+    ("Mexico City, MX", "Dallas, US"),
+    ("Toronto, CA", "New York, US"),
+    ("Sao Paulo, BR", "Lisbon, PT"),
+    ("Dubai, AE", "Mombasa, KE"),
+    ("Tokyo, JP", "Vancouver, CA"),
+    ("Hamburg, DE", "Casablanca, MA"),
+    ("Singapore, SG", "Melbourne, AU"),
+]
+
+PRODUCT_CATALOG = [
+    ("Steel Brackets", "box"),
+    ("Laptop Docking Stations", "unit"),
+    ("Packing Foam Sheets", "roll"),
+    ("Industrial Gloves", "case"),
+    ("LED Panel Lights", "unit"),
+    ("Corrugated Boxes", "bundle"),
+    ("Office Chairs", "unit"),
+    ("Conveyor Belts", "unit"),
+    ("Stainless Fasteners", "box"),
+    ("Warehouse Shelving", "unit"),
+    ("Printer Toner Cartridges", "case"),
+    ("Pallet Wrap", "roll"),
+]
+
+# Each outcome's "events" entries are (event_type, day_offset_from_dispatch, location_role, details).
+SHIPMENT_OUTCOMES = [
+    dict(kind="delivered", status="delivered", delay_reason=None, arrival_offset=6, events=[
+        ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None),
+        ("departed", 0, "origin", None), ("arrived_hub", 3, "hub", None), ("delivered", 6, "destination", None),
+    ]),
+    dict(kind="in_transit", status="in_transit", delay_reason=None, arrival_offset=None, events=[
+        ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None),
+        ("departed", 0, "origin", None), ("arrived_hub", 3, "hub", None),
+    ]),
+    dict(kind="pending", status="pending", delay_reason=None, arrival_offset=None, events=[
+        ("ordered", -2, "origin", None),
+    ]),
+    dict(kind="weather_delay", status="delayed", arrival_offset=None,
+         delay_reason="Severe weather conditions delayed transit", events=[
+        ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
+        ("delay_reported", 4, "route", "Severe winter storm closed the transit corridor"),
+    ]),
+    dict(kind="customs_hold", status="delayed", arrival_offset=None,
+         delay_reason="Shipment held for customs inspection", events=[
+        ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
+        ("arrived_hub", 3, "hub", None), ("customs_hold", 4, "border", "Held pending customs documentation review"),
+    ]),
+    dict(kind="carrier_delay", status="delayed", arrival_offset=None,
+         delay_reason="Carrier capacity shortage delayed pickup and transit", events=[
+        ("ordered", -7, "origin", None), ("dispatched", 2, "origin", None), ("departed", 2, "origin", None),
+        ("delay_reported", 5, "route", "Carrier rescheduled the pickup due to a capacity shortage"),
+    ]),
+    dict(kind="vendor_delay", status="delayed", arrival_offset=None,
+         delay_reason="Vendor production delay pushed back the shipment date", events=[
+        ("ordered", -7, "origin", None),
+        ("delay_reported", -1, "origin", "Vendor reported a production delay before dispatch"),
+        ("dispatched", 3, "origin", None), ("departed", 3, "origin", None),
+    ]),
+    dict(kind="partial", status="partial", arrival_offset=6,
+         delay_reason="Partial shipment due to inventory shortage at origin", events=[
+        ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
+        ("arrived_hub", 3, "hub", None),
+        ("partial_delivery", 6, "destination", "Only part of the order quantity was available for shipment"),
+    ]),
+    dict(kind="damaged", status="damaged", arrival_offset=None,
+         delay_reason="Cargo damaged in transit", events=[
+        ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
+        ("arrived_hub", 3, "hub", None),
+        ("damaged", 5, "hub", "Inspection found damaged packaging on arrival at the hub"),
+    ]),
+    dict(kind="cancelled", status="cancelled", arrival_offset=None,
+         delay_reason="Order cancelled before dispatch", events=[
+        ("ordered", -7, "origin", None), ("cancelled", -1, "origin", "Buyer cancelled the order before dispatch"),
+    ]),
+    dict(kind="returned", status="returned", arrival_offset=None,
+         delay_reason="Recipient refused delivery; shipment returned to vendor", events=[
+        ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
+        ("arrived_hub", 3, "hub", None), ("delivered", 6, "destination", None),
+        ("returned", 8, "destination", "Recipient refused delivery; shipment returned to origin"),
+    ]),
+    dict(kind="lost", status="lost", arrival_offset=None,
+         delay_reason="Shipment lost in transit; carrier investigation opened", events=[
+        ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
+        ("lost", 5, "route", "Carrier reported the shipment lost in transit and opened an investigation"),
+    ]),
+]
+
 
 def purchase_order_number(index: int) -> str:
     return f"PO-2026-{index + 1:04d}"
+
+
+def shipment_tracking_code(index: int) -> str:
+    return f"SHP-{1001 + index:04d}"
+
+
+def _event_location(role: str, origin: str, destination: str) -> str:
+    if role == "origin":
+        return origin
+    if role == "destination":
+        return destination
+    if role == "hub":
+        return f"{destination} regional hub"
+    if role == "border":
+        return f"{origin}/{destination} border crossing"
+    if role == "route":
+        return f"{origin} to {destination} route"
+    return origin
 
 
 def _purchase_order_dates(index: int) -> tuple[datetime.datetime, datetime.datetime]:
@@ -110,6 +225,63 @@ async def _ensure_purchase_order(
     await session.flush()
 
 
+async def _ensure_shipment(
+    session,
+    *,
+    tracking_code: str,
+    vendor_id: str,
+    origin: str,
+    destination: str,
+    status: str,
+    dispatched_at: datetime.datetime,
+    expected_arrival_at: datetime.datetime,
+    actual_arrival_at: datetime.datetime | None,
+    delay_reason: str | None,
+) -> tuple[str, bool]:
+    result = await session.execute(select(Shipment).where(Shipment.tracking_code == tracking_code))
+    existing = result.scalar_one_or_none()
+    if existing:
+        return existing.id, False
+    shipment = Shipment(
+        tracking_code=tracking_code,
+        vendor_id=vendor_id,
+        origin=origin,
+        destination=destination,
+        status=status,
+        dispatched_at=dispatched_at,
+        expected_arrival_at=expected_arrival_at,
+        actual_arrival_at=actual_arrival_at,
+        delay_reason=delay_reason,
+    )
+    session.add(shipment)
+    await session.flush()
+    return shipment.id, True
+
+
+def _add_product(session, *, shipment_id: str, category_id: str, name: str, unit: str, quantity: int) -> None:
+    session.add(Product(shipment_id=shipment_id, category_id=category_id, name=name, unit=unit, quantity=quantity))
+
+
+def _add_shipment_event(
+    session,
+    *,
+    shipment_id: str,
+    event_type: str,
+    occurred_at: datetime.datetime,
+    location: str,
+    details: str | None,
+) -> None:
+    session.add(
+        ShipmentEvent(
+            shipment_id=shipment_id,
+            event_type=event_type,
+            occurred_at=occurred_at,
+            location=location,
+            details=details,
+        )
+    )
+
+
 async def seed() -> None:
     async with AsyncSessionLocal() as session:
         buyer_ids = [await _ensure_user(session, name="Admin", email=ADMIN_EMAIL, password="admin123", role="admin")]
@@ -118,8 +290,9 @@ async def seed() -> None:
 
         vendor_ids = [await _ensure_vendor(session, **vendor) for vendor in VENDORS]
 
+        category_ids = []
         for category_name in CATEGORIES:
-            await _ensure_category(session, name=category_name)
+            category_ids.append(await _ensure_category(session, name=category_name))
 
         for index in range(PURCHASE_ORDER_COUNT):
             ordered_at, requested_delivery_at = _purchase_order_dates(index)
@@ -133,8 +306,55 @@ async def seed() -> None:
                 status=PURCHASE_ORDER_STATUSES[index % len(PURCHASE_ORDER_STATUSES)],
             )
 
+        for index in range(SHIPMENT_COUNT):
+            outcome = SHIPMENT_OUTCOMES[index % len(SHIPMENT_OUTCOMES)]
+            origin, destination = ROUTES[index % len(ROUTES)]
+            dispatched_at = SHIPMENT_BASE_DATE + datetime.timedelta(days=index * 2)
+            expected_arrival_at = dispatched_at + datetime.timedelta(days=10)
+            arrival_offset = outcome["arrival_offset"]
+            actual_arrival_at = (
+                dispatched_at + datetime.timedelta(days=arrival_offset) if arrival_offset is not None else None
+            )
+
+            shipment_id, created = await _ensure_shipment(
+                session,
+                tracking_code=shipment_tracking_code(index),
+                vendor_id=vendor_ids[index % len(vendor_ids)],
+                origin=origin,
+                destination=destination,
+                status=outcome["status"],
+                dispatched_at=dispatched_at,
+                expected_arrival_at=expected_arrival_at,
+                actual_arrival_at=actual_arrival_at,
+                delay_reason=outcome["delay_reason"],
+            )
+            if not created:
+                continue
+
+            product_count = 1 + (index % 4)
+            for offset in range(product_count):
+                product_name, unit = PRODUCT_CATALOG[(index + offset) % len(PRODUCT_CATALOG)]
+                _add_product(
+                    session,
+                    shipment_id=shipment_id,
+                    category_id=category_ids[(index + offset) % len(category_ids)],
+                    name=product_name,
+                    unit=unit,
+                    quantity=10 + ((index + offset) % 5) * 5,
+                )
+
+            for event_type, day_offset, role, details in outcome["events"]:
+                _add_shipment_event(
+                    session,
+                    shipment_id=shipment_id,
+                    event_type=event_type,
+                    occurred_at=dispatched_at + datetime.timedelta(days=day_offset),
+                    location=_event_location(role, origin, destination),
+                    details=details,
+                )
+
         await session.commit()
-        print("Seed complete — procurement foundation data ready")
+        print("Seed complete — procurement foundation and shipment scenario data ready")
 
 
 if __name__ == "__main__":

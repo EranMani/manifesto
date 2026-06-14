@@ -5,10 +5,10 @@
 ---
 
 ## Current State
-*Last updated: Commit 44 · 2026-06-14*
+*Last updated: Commit 45 · 2026-06-14*
 
 **Last completed:** Commit 44 `procurement-foundation-seed` ✅
-**Currently active:** none
+**Currently active:** Commit 45 `shipment-scenario-seed` — pending approval
 **Blocked by:** none
 
 Tool usage: orchestrator direct write (Claude-direct), 0 agent invocations.
@@ -514,6 +514,30 @@ Tool usage: orchestrator direct write, 0 agent invocations.
 
 **Decisions made:**
 - Purchase order statuses cycle through `["approved", "approved", "fulfilled", "draft"]` by index for varied demo data, deterministically.
+
+**Handoffs out:** None.
+
+Tool usage: orchestrator direct write, 0 agent invocations.
+
+## Session 22 — Commit 45: `shipment-scenario-seed`
+*2026-06-14*
+
+**Approach:** Orchestrator direct write (Claude-direct, Eran-approved) — no Rex invocation.
+
+**Files updated:**
+- `backend/seed.py` — added `SHIPMENT_COUNT` (50), `SHIPMENT_OUTCOMES` (12 outcome templates: delivered, in_transit, pending, weather_delay, customs_hold, carrier_delay, vendor_delay, partial, damaged, cancelled, returned, lost — each with a status, optional `delay_reason`, ordered `events` list of `(event_type, day_offset, location_role, details)`, and optional `arrival_offset`), `ROUTES` (10 origin/destination pairs), `PRODUCT_CATALOG` (12 product/unit pairs), `shipment_tracking_code()` (`SHP-1001`..`SHP-1050`), `_event_location()`, and `_ensure_shipment`/`_add_product`/`_add_shipment_event` helpers. `seed()` now also captures `category_ids` and seeds 50 shipments cycling through the 12 outcome templates (each kind repeats ~4x across the 50), 1-4 products each (cycling `PRODUCT_CATALOG`/`CATEGORIES`), and chronological events computed from `SHIPMENT_BASE_DATE + index*2 days` plus each event's day offset. `_ensure_shipment` looks up by `tracking_code`; if the shipment already exists, products/events are skipped (idempotent).
+- `backend/tests/test_seed.py` — `test_shipment_scenarios_seed_creates_expected_entities` (50 shipments created, every `SHIPMENT_OUTCOMES` status represented, 1-4 products per shipment, each shipment's events match its outcome's event count and are chronological, and every exceptional outcome — weather/customs/carrier/vendor delay, partial, damaged, cancelled, returned, lost — has a non-null `delay_reason` plus its evidence event type) and `test_shipment_scenarios_seed_is_idempotent` (re-running `seed.seed()` produces identical shipment IDs and the same product/event counts).
+
+**Test gate results:**
+- `docker compose run --rm backend uv run pytest tests/test_seed.py -k shipment_scenarios -q` -> 2 passed.
+- verify_constraints all_pass (--execution claude-direct): files=2/4, diff_lines=321/350.
+
+**Decisions made:**
+- Compacted `SHIPMENT_OUTCOMES` to one `dict(...)` literal per outcome (events inlined on 2-3 lines) instead of a fully expanded multi-line dict, to fit the 350-line diff cap (initial draft was 407 lines).
+- `purchase_order_id` left `None` for all seeded shipments — not required by the C45 contract and keeps the seed independent of PO-to-shipment matching logic.
+
+**Regression found (pre-existing, NOT caused by this commit):**
+- `docker compose run --rm backend uv run pytest -q` (full suite) returns `1 failed, 142 passed, 14 errors` on this branch. Reproduced the same failure pattern (`1 failed, 142 passed, 12 errors`) on HEAD *before* this commit's changes (via `git stash`), so this is pre-existing and unrelated to C45. The first failure is `test_purchase_order_storage.py::test_migration_upgrade_creates_table_and_downgrade_removes_it`, followed by a cascade of `RuntimeError: ... got Future ... attached to a different loop` / `asyncpg.exceptions._base.InterfaceError: cannot perform operation: another operation is in progress` errors across `test_shipment_event_storage.py`, `test_shipment_lifecycle.py`, and `test_seed.py` (all 4 seed tests, including the 2 new ones). All of these are outside C45's forbidden/allowed file set. The focused C45 verification command (`-k shipment_scenarios`) passes cleanly in isolation (2 passed). Flagging for Eran — likely needs a new open issue and a letter-suffix investigation/fix commit, similar to the C42A/C43A pattern but for cross-module migration/event-loop interaction rather than a downgrade-target mismatch.
 
 **Handoffs out:** None.
 
