@@ -5,13 +5,104 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-14 · C48 committed*
+*Last updated: 2026-06-15 · C49 pending approval*
 
-**Last completed:** C48 `procurement-relationship-evidence` — committed 2026-06-14 (e22e885)
-**Currently active:** none — C49 `shipment-timeline-evidence` next
+**Last completed:** C49 `shipment-timeline-evidence` — pending approval (Eran)
+**Currently active:** none
 **Blocked by:** none
 
-Tool usage (C39): reads=5 (within 10), writes=2, total=11 (within 18 cap); 1 expansion used
+Tool usage: reads=6 (within 10), writes=2, total=18 (within 18 cap); 1 expansion used
+(Grep over backend/app/models/shipment.py for `ShipmentStatus` values, to confirm
+`EXCEPTION_STATUSES` matches the model's literal exactly).
+
+C49 added `ShipmentEventEvidence`/`DelayEvidence` (frozen dataclasses), `EXCEPTION_STATUSES`/
+`EXCEPTION_EVENT_TYPES` constants, `_shipment_event_evidence()`/`_load_timeline()`/
+`_delay_evidence()` helpers to `backend/app/services/rag_logistics.py`. `ProcurementEvidence`
+gains `timeline: list[ShipmentEventEvidence]` (all `ShipmentEvent` rows for the shipment,
+ordered by `(occurred_at, id)`) and `delay: DelayEvidence | None` — populated only when
+`shipment.status` is one of `delayed/damaged/partial/cancelled/returned/lost` AND
+`shipment.delay_reason` is set; `exception_event` is the latest timeline event whose
+`event_type` is in `EXCEPTION_EVENT_TYPES` (`delay_reported/damaged/partial_delivery/
+cancelled/returned/lost`), or `None` if no such event exists. No reason is invented when
+`delay_reason` is null. 6 new tests added to `backend/tests/services/test_rag_logistics.py`
+(all named `test_timeline_*` so `-k timeline` matches): chronological ordering, tie-break
+by id for simultaneous events, latest-exception-event mapping, on-track shipments have no
+delay evidence, missing-reason -> `delay is None`, missing-supporting-event ->
+`exception_event is None`.
+
+**Orchestrator correction:** Nova hit the 18-tool-call cap with implementation complete
+but two new test functions still named without "timeline"
+(`test_delay_evidence_without_reason_is_not_invented` and
+`test_delay_evidence_without_supporting_event_has_no_exception_event`), so `-k timeline`
+would not have selected them. Claude renamed both to `test_timeline_delay_evidence_*`
+(mechanical rename only, no logic change).
+
+**Developer attention:** None — full file (13/13) and focused (`-k timeline`, 6/6) tests
+pass.
+
+---
+
+## Session 9 — C49 `shipment-timeline-evidence` · 2026-06-15
+
+**Executor:** Nova (delegated), orchestrator correction applied
+**Status:** pending approval
+
+Tool usage: reads=6, writes=2, total=18 (within 18 cap); 1 expansion used (Grep over
+backend/app/models/shipment.py for `ShipmentStatus` values, to confirm
+`EXCEPTION_STATUSES` matches the model's literal exactly).
+
+### What was built
+
+`backend/app/services/rag_logistics.py`:
+- `ShipmentEventEvidence` (id, event_type, occurred_at, location, details) and
+  `DelayEvidence` (reason, exception_event) frozen dataclasses.
+- `EXCEPTION_STATUSES` (`delayed/damaged/partial/cancelled/returned/lost`) and
+  `EXCEPTION_EVENT_TYPES` (`delay_reported/damaged/partial_delivery/cancelled/returned/lost`).
+- `_shipment_event_evidence()`, `_load_timeline()` (all `ShipmentEvent` rows for a
+  shipment, ordered by `(occurred_at, id)`), `_delay_evidence()` (current `delay_reason`
+  plus the latest timeline event whose type is in `EXCEPTION_EVENT_TYPES`, or `None` if
+  no reason or no matching event).
+- `ProcurementEvidence` extended with `timeline` and `delay`; `lookup_procurement()`
+  wires both in.
+
+`backend/tests/services/test_rag_logistics.py` (+6 tests, `-k timeline`):
+- chronological ordering by `(occurred_at, id)`, including a tie-break test for
+  simultaneous `occurred_at` values
+- latest exception event mapped correctly (two `delay_reported` events + one
+  `customs_hold`; picks the later `delay_reported`)
+- on-track shipment has `delay is None`
+- exception-status shipment with no stored `delay_reason` has `delay is None`
+  (reason not invented)
+- exception-status shipment with a reason but no matching timeline event has
+  `delay.exception_event is None`
+
+### Orchestrator correction (separate from Nova's diff)
+
+Nova reached the 18-tool-call cap with the implementation and all 6 new tests
+functionally complete, but two test names lacked "timeline" (so the verification
+command's `-k timeline` filter would not select them):
+`test_delay_evidence_without_reason_is_not_invented` ->
+`test_timeline_delay_evidence_without_reason_is_not_invented`, and
+`test_delay_evidence_without_supporting_event_has_no_exception_event` ->
+`test_timeline_delay_evidence_without_supporting_event_has_no_exception_event`.
+Claude applied both renames (no logic change).
+
+### Telemetry note
+
+A stale `.context/telemetry/orchestrator-active.json` scope tagged `C48`/`running`
+(opened after C48 was already committed, accumulated by post-C48 governance commits)
+blocked the lifecycle hook from opening a C49 scope for Nova's first invocation,
+consuming that invocation with zero reads/writes. Claude closed the stale C48 scope
+(`--stop-orchestrator 48`, backing up the prior recovered `C48-orchestrator.json` to
+`C48-orchestrator.recovered.json` first) and reset `hooks/tool_cap.json` before
+re-invoking Nova. Eran approved this repair.
+
+### Verification
+
+`docker compose run --rm backend uv run pytest tests/services/test_rag_logistics.py -k timeline -q`
+→ **6 passed**; full file → **13 passed**.
+verify_constraints (--execution delegated): files=3/4, diff_lines=238/350.
+No gate wave at C49 (next wave at C50).
 (grep over backend/app/models for policy.py field names — blocked at expansion 2, so
 implemented PolicyChunkCandidate/profile fields from handoff-documented C26/C27
 provenance contracts instead of reading the model file directly).
@@ -81,6 +172,7 @@ No archived sessions yet.
 | 6 | C39 `policy-vector-candidates` | committed 2026-06-14 (1f47067) | `RAGPolicy.fetch_vector_candidates()` filters to `status == "ready"` and a matching `EmbeddingProfile` (provider/model/dimensions), scores by cosine similarity, sorts by (-score, chunk_index) |
 | 7 | C47 `shipment-identifier-evidence` | committed 2026-06-14 (cc937ff) | `lookup_shipment()` normalizes tracking codes and returns `ShipmentEvidence` via one parameterized SELECT, raising `ShipmentNotFoundError` for blank/unmatched codes |
 | 8 | C48 `procurement-relationship-evidence` | committed 2026-06-14 (e22e885) | `lookup_procurement()` expands a shipment to its vendor, optional purchase order/buyer, and products (sorted by name then id) via allowlisted ORM selects |
+| 9 | C49 `shipment-timeline-evidence` | pending approval 2026-06-15 | `ProcurementEvidence` gains `timeline` (events ordered by `(occurred_at, id)`) and `delay` (current `delay_reason` plus latest matching exception event, never inferred) |
 
 ---
 

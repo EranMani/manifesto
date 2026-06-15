@@ -7,8 +7,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder, PurchaseOrderStatus
 from app.models.shipment import Shipment, ShipmentStatus
+from app.models.shipment_event import ShipmentEvent, ShipmentEventType
 from app.models.user import User
 from app.models.vendor import Vendor
+
+# Statuses for which a delay/exception explanation is expected.
+EXCEPTION_STATUSES: frozenset[ShipmentStatus] = frozenset(
+    {"delayed", "damaged", "partial", "cancelled", "returned", "lost"}
+)
+
+# Event types that can support a delay/exception explanation, ordered by
+# nothing in particular here — selection picks the latest by (occurred_at, id).
+EXCEPTION_EVENT_TYPES: frozenset[ShipmentEventType] = frozenset(
+    {"delay_reported", "damaged", "partial_delivery", "cancelled", "returned", "lost"}
+)
 
 
 class ShipmentNotFoundError(Exception):
@@ -60,12 +72,29 @@ class ProductEvidence:
 
 
 @dataclass(frozen=True)
+class ShipmentEventEvidence:
+    id: str
+    event_type: ShipmentEventType
+    occurred_at: datetime.datetime
+    location: str
+    details: str | None
+
+
+@dataclass(frozen=True)
+class DelayEvidence:
+    reason: str
+    exception_event: ShipmentEventEvidence | None
+
+
+@dataclass(frozen=True)
 class ProcurementEvidence:
     shipment: ShipmentEvidence
     purchase_order: PurchaseOrderEvidence | None
     buyer: BuyerEvidence | None
     vendor: VendorEvidence
     products: list[ProductEvidence]
+    timeline: list[ShipmentEventEvidence]
+    delay: DelayEvidence | None
 
 
 def _shipment_evidence(shipment: Shipment) -> ShipmentEvidence:
@@ -95,6 +124,43 @@ async def _load_shipment(db: AsyncSession, tracking_code: str) -> Shipment:
         raise ShipmentNotFoundError(f"no shipment found for tracking code {normalized!r}")
 
     return shipment
+
+
+def _shipment_event_evidence(event: ShipmentEvent) -> ShipmentEventEvidence:
+    return ShipmentEventEvidence(
+        id=event.id,
+        event_type=event.event_type,
+        occurred_at=event.occurred_at,
+        location=event.location,
+        details=event.details,
+    )
+
+
+async def _load_timeline(db: AsyncSession, shipment_id: str) -> list[ShipmentEventEvidence]:
+    events = (
+        await db.execute(
+            select(ShipmentEvent)
+            .where(ShipmentEvent.shipment_id == shipment_id)
+            .order_by(ShipmentEvent.occurred_at, ShipmentEvent.id)
+        )
+    ).scalars().all()
+    return [_shipment_event_evidence(event) for event in events]
+
+
+def _delay_evidence(
+    shipment: Shipment, timeline: list[ShipmentEventEvidence]
+) -> DelayEvidence | None:
+    if shipment.status not in EXCEPTION_STATUSES:
+        return None
+    if not shipment.delay_reason:
+        return None
+
+    exception_event: ShipmentEventEvidence | None = None
+    for event in timeline:
+        if event.event_type in EXCEPTION_EVENT_TYPES:
+            exception_event = event
+
+    return DelayEvidence(reason=shipment.delay_reason, exception_event=exception_event)
 
 
 async def lookup_shipment(db: AsyncSession, tracking_code: str) -> ShipmentEvidence:
@@ -139,6 +205,8 @@ async def lookup_procurement(db: AsyncSession, tracking_code: str) -> Procuremen
         )
     ).scalars().all()
 
+    timeline = await _load_timeline(db, shipment.id)
+
     return ProcurementEvidence(
         shipment=_shipment_evidence(shipment),
         purchase_order=purchase_order_evidence,
@@ -154,6 +222,8 @@ async def lookup_procurement(db: AsyncSession, tracking_code: str) -> Procuremen
             )
             for product in products
         ],
+        timeline=timeline,
+        delay=_delay_evidence(shipment, timeline),
     )
 
 

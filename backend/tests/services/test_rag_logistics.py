@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.shipment import Shipment
+from app.models.shipment_event import ShipmentEvent
 from app.models.user import User
 from app.models.vendor import Vendor
 from app.services.rag_logistics import (
@@ -156,6 +157,138 @@ async def _make_product(session: AsyncSession, shipment_id: str, **overrides) ->
     session.add(product)
     await session.flush()
     return product
+
+
+async def _make_event(session: AsyncSession, shipment_id: str, **overrides) -> ShipmentEvent:
+    defaults = dict(
+        shipment_id=shipment_id,
+        event_type="dispatched",
+        occurred_at=_NOW,
+        location="Shenzhen, CN",
+    )
+    defaults.update(overrides)
+    event = ShipmentEvent(**defaults)
+    session.add(event)
+    await session.flush()
+    return event
+
+
+@pytest.mark.asyncio
+async def test_timeline_orders_events_by_occurred_at_then_id(session: AsyncSession):
+    shipment = await _make_shipment(session)
+
+    middle = await _make_event(
+        session, shipment.id, event_type="departed", occurred_at=_NOW + datetime.timedelta(hours=1)
+    )
+    earliest = await _make_event(
+        session, shipment.id, event_type="ordered", occurred_at=_NOW
+    )
+    latest = await _make_event(
+        session, shipment.id, event_type="arrived_hub", occurred_at=_NOW + datetime.timedelta(hours=2)
+    )
+
+    evidence = await lookup_procurement(session, shipment.tracking_code)
+
+    assert isinstance(evidence, ProcurementEvidence)
+    assert [event.id for event in evidence.timeline] == [earliest.id, middle.id, latest.id]
+    assert [event.event_type for event in evidence.timeline] == [
+        "ordered",
+        "departed",
+        "arrived_hub",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_timeline_orders_simultaneous_events_by_id(session: AsyncSession):
+    shipment = await _make_shipment(session)
+
+    first = await _make_event(session, shipment.id, event_type="ordered", occurred_at=_NOW)
+    second = await _make_event(session, shipment.id, event_type="dispatched", occurred_at=_NOW)
+
+    evidence = await lookup_procurement(session, shipment.tracking_code)
+
+    expected_order = sorted([first.id, second.id])
+    assert [event.id for event in evidence.timeline] == expected_order
+
+
+@pytest.mark.asyncio
+async def test_timeline_delay_evidence_maps_to_latest_exception_event(session: AsyncSession):
+    shipment = await _make_shipment(
+        session,
+        status="delayed",
+        delay_reason="Customs hold",
+        actual_arrival_at=None,
+    )
+
+    await _make_event(
+        session,
+        shipment.id,
+        event_type="delay_reported",
+        occurred_at=_NOW + datetime.timedelta(hours=1),
+        details="First delay notice",
+    )
+    latest_exception = await _make_event(
+        session,
+        shipment.id,
+        event_type="delay_reported",
+        occurred_at=_NOW + datetime.timedelta(hours=2),
+        details="Customs hold confirmed",
+    )
+    await _make_event(
+        session,
+        shipment.id,
+        event_type="customs_hold",
+        occurred_at=_NOW + datetime.timedelta(hours=3),
+    )
+
+    evidence = await lookup_procurement(session, shipment.tracking_code)
+
+    assert evidence.delay is not None
+    assert evidence.delay.reason == "Customs hold"
+    assert evidence.delay.exception_event is not None
+    assert evidence.delay.exception_event.id == latest_exception.id
+    assert evidence.delay.exception_event.details == "Customs hold confirmed"
+
+
+@pytest.mark.asyncio
+async def test_timeline_delay_evidence_absent_for_on_track_shipment(session: AsyncSession):
+    shipment = await _make_shipment(session, status="in_transit")
+
+    await _make_event(session, shipment.id, event_type="dispatched", occurred_at=_NOW)
+
+    evidence = await lookup_procurement(session, shipment.tracking_code)
+
+    assert evidence.delay is None
+
+
+@pytest.mark.asyncio
+async def test_timeline_delay_evidence_without_reason_is_not_invented(session: AsyncSession):
+    shipment = await _make_shipment(
+        session,
+        status="lost",
+        delay_reason=None,
+        actual_arrival_at=None,
+    )
+
+    evidence = await lookup_procurement(session, shipment.tracking_code)
+
+    assert evidence.delay is None
+
+
+@pytest.mark.asyncio
+async def test_timeline_delay_evidence_without_supporting_event_has_no_exception_event(session: AsyncSession):
+    shipment = await _make_shipment(
+        session,
+        status="damaged",
+        delay_reason="Container damaged in transit",
+        actual_arrival_at=None,
+    )
+
+    evidence = await lookup_procurement(session, shipment.tracking_code)
+
+    assert evidence.delay is not None
+    assert evidence.delay.reason == "Container damaged in transit"
+    assert evidence.delay.exception_event is None
 
 
 @pytest.mark.asyncio
