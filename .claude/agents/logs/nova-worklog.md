@@ -5,11 +5,23 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-15 · C51 pending approval*
+*Last updated: 2026-06-15 · C52 pending approval*
 
-**Last completed:** C51 `minimal-policy-evidence` — pending approval (Eran)
+**Last completed:** C52 `assistant-intent-routing` — pending approval (Eran)
 **Currently active:** none
 **Blocked by:** none
+
+See Session 12 for C52 details and Session 11 for C51 details.
+
+**Developer attention:** None.
+
+---
+
+## Session 11 — C51 `minimal-policy-evidence` · 2026-06-15
+
+**Executor:** Nova (delegated, implementation) + Claude (direct, test completion per
+Eran's approval)
+**Status:** pending approval
 
 Tool usage: reads=7 (within 10), writes=1, total=18 (hit 18 cap, returned SPLIT_REQUIRED
 for the test file); 2 expansions used.
@@ -23,11 +35,32 @@ batch-fetches `policy_documents.title` for citations.
 
 **Orchestrator correction:** Nova hit the 18-tool-call cap with `rag_policy.py` complete
 but `test_rag_policy.py` only partially updated (fixtures/helpers applied, 4 planned
-tests not written) and returned `SPLIT_REQUIRED`. Eran approved Claude-direct to finish
+tests not written) and returned SPLIT_REQUIRED. Eran approved Claude-direct to finish
 this mechanical work: added `_unit_vector()`/`FixedQueryEmbeddingService` test doubles
 and `TestRetrieveEvidence` (4 tests) against Nova's fixtures, no logic change.
 
 **Developer attention:** None — full file (10/10) tests pass.
+
+---
+
+## Session 12 — C52 `assistant-intent-routing` · 2026-06-15
+
+**Executor:** Nova (delegated)
+**Status:** pending approval
+
+Tool usage: reads=4, writes=2, total=7 (commands=1; within 18); 0 expansions used.
+
+C52 added `AssistantIntent`, `IntentRouting` (frozen dataclass), and
+`classify_intent(text)` to `backend/app/services/rag_logistics.py`. Regex patterns
+match `SHP-####`/`PO-YYYY-###` (case-insensitive, normalized to uppercase, deduped,
+sorted); a frozenset of policy-topic terms (return, refund, warranty, policy, etc.)
+selects policy. Both present -> mixed (confidence 1.0); identifier only -> logistics
+(1.0); policy term only -> policy (1.0); neither -> logistics with confidence 0.5 and
+no guessed identifiers. 8 new tests in `test_rag_logistics.py` (golden cases,
+normalization, dedup, no-invented-identifiers, ambiguous default) all pass via
+`pytest tests/services/test_rag_logistics.py -k intent -q`.
+
+**Developer attention:** None — all 8 `intent`-keyed tests pass.
 
 ---
 

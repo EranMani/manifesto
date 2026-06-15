@@ -22,10 +22,12 @@ from app.models.shipment_event import ShipmentEvent
 from app.models.user import User
 from app.models.vendor import Vendor
 from app.services.rag_logistics import (
+    IntentRouting,
     ProcurementEvidence,
     ProcurementGraph,
     ShipmentEvidence,
     ShipmentNotFoundError,
+    classify_intent,
     lookup_procurement,
     lookup_procurement_graph,
     lookup_shipment,
@@ -498,3 +500,68 @@ async def test_graph_retrieved_at_is_recent_utc(session: AsyncSession):
 
     assert graph.retrieved_at.tzinfo is not None
     assert before <= graph.retrieved_at <= after
+
+
+def test_intent_routing_explicit_shipment_id_selects_logistics():
+    routing = classify_intent("What is the status of SHP-1234?")
+
+    assert isinstance(routing, IntentRouting)
+    assert routing.intent == "logistics"
+    assert routing.confidence == 1.0
+    assert routing.tracking_codes == ["SHP-1234"]
+    assert routing.purchase_order_numbers == []
+
+
+def test_intent_routing_explicit_purchase_order_id_selects_logistics():
+    routing = classify_intent("Where is order PO-2026-001 right now?")
+
+    assert routing.intent == "logistics"
+    assert routing.confidence == 1.0
+    assert routing.purchase_order_numbers == ["PO-2026-001"]
+    assert routing.tracking_codes == []
+
+
+def test_intent_routing_normalizes_lowercase_identifiers():
+    routing = classify_intent("any update on shp-5678 or po-2026-099?")
+
+    assert routing.tracking_codes == ["SHP-5678"]
+    assert routing.purchase_order_numbers == ["PO-2026-099"]
+
+
+def test_intent_routing_policy_terms_select_policy():
+    routing = classify_intent("What is our return policy for damaged goods?")
+
+    assert routing.intent == "policy"
+    assert routing.confidence == 1.0
+    assert routing.tracking_codes == []
+    assert routing.purchase_order_numbers == []
+
+
+def test_intent_routing_identifier_and_policy_terms_select_mixed():
+    routing = classify_intent("Can I get a refund for shipment SHP-1234?")
+
+    assert routing.intent == "mixed"
+    assert routing.confidence == 1.0
+    assert routing.tracking_codes == ["SHP-1234"]
+
+
+def test_intent_routing_ambiguous_question_defaults_to_logistics_no_identifier():
+    routing = classify_intent("Where is my shipment?")
+
+    assert routing.intent == "logistics"
+    assert routing.confidence < 1.0
+    assert routing.tracking_codes == []
+    assert routing.purchase_order_numbers == []
+
+
+def test_intent_routing_does_not_invent_identifiers_from_unrelated_numbers():
+    routing = classify_intent("I ordered 1234 units last week, any news?")
+
+    assert routing.tracking_codes == []
+    assert routing.purchase_order_numbers == []
+
+
+def test_intent_routing_deduplicates_repeated_identifiers():
+    routing = classify_intent("SHP-1234 and shp-1234 both refer to the same shipment.")
+
+    assert routing.tracking_codes == ["SHP-1234"]

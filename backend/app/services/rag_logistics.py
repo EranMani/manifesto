@@ -1,4 +1,5 @@
 import datetime
+import re
 from dataclasses import dataclass
 from typing import Literal
 
@@ -366,3 +367,117 @@ async def lookup_procurement_graph(db: AsyncSession, tracking_code: str) -> Proc
 class RAGLogistics:
     async def query(self, text: str, top_k: int = 5) -> list[dict]:
         raise NotImplementedError
+
+
+# --- Assistant intent routing ------------------------------------------------
+
+# A routing decision selects which evidence sources (logistics, policy, or
+# both) a downstream retrieval/generation step should consult.
+AssistantIntent = Literal["logistics", "policy", "mixed"]
+
+# Matches a shipment tracking identifier, e.g. "SHP-1234".
+_SHIPMENT_ID_PATTERN = re.compile(r"\bSHP-\d{4,}\b", re.IGNORECASE)
+
+# Matches a purchase order identifier, e.g. "PO-2026-001".
+_PURCHASE_ORDER_ID_PATTERN = re.compile(r"\bPO-\d{4}-\d{3,}\b", re.IGNORECASE)
+
+# Vocabulary that indicates a policy-topic question (returns, warranties,
+# terms, eligibility, compliance, etc.). Matched as whole words against the
+# lowercased question text.
+_POLICY_TERMS: frozenset[str] = frozenset(
+    {
+        "policy",
+        "policies",
+        "return",
+        "returns",
+        "refund",
+        "refunds",
+        "warranty",
+        "warranties",
+        "terms",
+        "eligibility",
+        "eligible",
+        "compliance",
+        "guideline",
+        "guidelines",
+        "procedure",
+        "procedures",
+        "handbook",
+    }
+)
+
+_POLICY_TERM_PATTERN = re.compile(
+    r"\b(" + "|".join(re.escape(term) for term in _POLICY_TERMS) + r")\b",
+    re.IGNORECASE,
+)
+
+
+@dataclass(frozen=True)
+class IntentRouting:
+    """A deterministic routing decision for an assistant question.
+
+    `tracking_codes` and `purchase_order_numbers` hold normalized identifiers
+    extracted from the question text -- never guessed. `confidence` is 1.0
+    when an explicit identifier or policy term was matched, and a lower
+    value for ambiguous questions routed by default.
+    """
+
+    intent: AssistantIntent
+    confidence: float
+    tracking_codes: list[str]
+    purchase_order_numbers: list[str]
+    reason: str
+
+
+def classify_intent(text: str) -> IntentRouting:
+    """Classify a question as logistics, policy, or mixed.
+
+    Explicit ``SHP-####`` or ``PO-YYYY-###`` identifiers select logistics.
+    Policy-topic terms (return, refund, warranty, policy, etc.) select
+    policy. If both are present, the intent is mixed. Ambiguous operational
+    questions with no identifier and no policy term default to logistics
+    with no guessed identifier and a lower confidence.
+    """
+    tracking_codes = sorted(
+        {match.group(0).upper() for match in _SHIPMENT_ID_PATTERN.finditer(text)}
+    )
+    purchase_order_numbers = sorted(
+        {match.group(0).upper() for match in _PURCHASE_ORDER_ID_PATTERN.finditer(text)}
+    )
+    has_identifier = bool(tracking_codes or purchase_order_numbers)
+    has_policy_term = _POLICY_TERM_PATTERN.search(text) is not None
+
+    if has_identifier and has_policy_term:
+        return IntentRouting(
+            intent="mixed",
+            confidence=1.0,
+            tracking_codes=tracking_codes,
+            purchase_order_numbers=purchase_order_numbers,
+            reason="Question contains both a shipment/order identifier and policy terms.",
+        )
+
+    if has_identifier:
+        return IntentRouting(
+            intent="logistics",
+            confidence=1.0,
+            tracking_codes=tracking_codes,
+            purchase_order_numbers=purchase_order_numbers,
+            reason="Question contains an explicit shipment or purchase order identifier.",
+        )
+
+    if has_policy_term:
+        return IntentRouting(
+            intent="policy",
+            confidence=1.0,
+            tracking_codes=[],
+            purchase_order_numbers=[],
+            reason="Question contains policy-topic terms.",
+        )
+
+    return IntentRouting(
+        intent="logistics",
+        confidence=0.5,
+        tracking_codes=[],
+        purchase_order_numbers=[],
+        reason="Ambiguous operational question with no identifier; defaulting to logistics.",
+    )
