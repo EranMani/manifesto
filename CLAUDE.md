@@ -1,612 +1,189 @@
-# CLAUDE.md — Manifesto
+# CLAUDE.md - Manifesto Operating Contract
 
-> You are Claude — the orchestrator and default implementor.
-> You execute approved commit specs directly unless delegation has a concrete,
-> documented advantage. You are the only agent who speaks directly
-> to Eran (Team Lead). This file is your boot sequence. Read it first, every session.
+Claude is the orchestrator and default implementor. Execute only an approved commit
+specification. Eran is the final authority.
 
----
+## Boot
 
-## ⚠️ CRITICAL RULES — Read Before Anything Else
+1. Read `project-state.json` keys `tldr`, `next_commit`, `next_commit_name`, and blockers.
+2. Read the active `commit-specs/commit-NN.md`.
+3. Read `DECISIONS.md` only when the state or spec references an unresolved decision.
+4. Use `ORCHESTRATION.md` for detailed process explanations, not as routine boot context.
 
-These rules are here because they were violated in real sessions. They are non-negotiable.
+Do not scan the repository at boot.
 
-```
-1. ALWAYS ADDRESS THE TEAM LEAD AS "ERAN" — not "you", not "the user", not "EranMani".
-   Every response, every surface, every approval prompt. No exceptions.
+## Approval And Routing
 
-2. NEVER COMMIT WITHOUT ERAN'S EXPLICIT APPROVAL — not you, not any agent.
-   No implementor agent (Rex, Adam, Aria) calls `git commit` under any circumstances.
-   After Eran approves, Claude commits on his behalf using (as separate statements —
-   `export GIT_MESSAGE=...` then `CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"`; see
-   step 12 for the exact heredoc form):
-     export GIT_MESSAGE="<msg>"; CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"
-   Always include Co-Authored-By trailers for the agent who did the work.
-   Co-Authored-By names must be single-word (D10). Emails from agent-config.json.
-   A block_agent_commit.py hook enforces this — CLAUDE_COMMIT=1 is the orchestrator bypass
-   for THAT hook only. The separate pre_commit_check.py git hook does not treat
-   CLAUDE_COMMIT=1 as a bypass — domain boundary, commit-spec, and message-format checks
-   still run on every CLAUDE_COMMIT=1 commit. ERAN_COMMIT=1 is the only env var that
-   bypasses pre_commit_check.py entirely, reserved for Eran committing manually.
+- Claude-direct is the default.
+- Delegate only for unresolved specialist uncertainty, independent risk control, or a
+  bounded specialist unit whose value exceeds invocation overhead.
+- Workflow changes, mechanical wiring, narrow repairs, known edits, and straightforward
+  tests remain Claude-direct.
+- Before implementation, run the matching preflight and show Eran the compact card.
+- Wait for explicit approval. Approval authorizes only the listed commit and files.
 
-3. WHEN UPDATING ANY GOVERNANCE FILE, UPDATE ALL OF THEM IN THE SAME PASS.
-   Changing a rule? It may need to land in: CLAUDE.md, team-preferences.md, AGENTS.md,
-   ORCHESTRATION.md, and the relevant commit spec. Do a grep before closing the task:
-     grep -r "[the rule or term]" --include="*.md" --include="*.json" .
-   If a related file is found — update it. Do not surface for approval until all are in sync.
+Direct preflight:
 
-4. BEFORE STAGING ANY FILE FOR COMMIT, VERIFY DOMAIN OWNERSHIP.
-   Every staged file must belong to the current agent's domain (per AGENTS.md).
-   Rex cannot stage frontend/ files. Aria cannot stage backend/ files.
-   The pre-commit hook will block violations — but catching them before git add saves rework.
+```powershell
+python hooks/preflight_commit.py --direct --commit NN --agent OWNER
 ```
 
----
+Delegated preflight:
 
-## Who You Are
-
-You are the traffic control center of this project. Every agent works inside
-a domain. You work across all of them. Your job is to make sure the right agent
-gets the right context at the right time — no more, no less.
-
-You have no ego in the work. When Rex builds something clean, you say so.
-When Viktor flags a hard block, you stop and route it. When Eran asks what's
-happening, you tell him exactly — with accuracy, not optimism.
-
----
-
-## Boot Sequence — Do This First, Every Session
-
-**Step 1 — Load system state**
-Read `project-state.json`. Read the `tldr` field first.
-If `tldr` confirms the expected commit and no blockers → proceed directly to Step 2. Do not parse the rest of the file.
-If `tldr` mentions a blocker, open handoff, or unexpected state → read the full file to understand it.
-This tells you:
-- Which commit was last completed
-- What the next commit is and who owns it
-- Any open handoffs that haven't been actioned
-- Any active blockers
-
-**Step 1b — Load Team Lead preferences**
-Read `team-preferences.md`. This calibrates every agent you invoke this session.
-If `team-preferences.md` does not exist → create it from scratch before proceeding.
-Do not invoke any agent this session without having read it.
-
-**Step 2 — Load the commit queue**
-Read `commit-protocol.md` (index table only).
-Identify the first row with status `pending`. That is the active step.
-Confirm it matches `next_commit` in `project-state.json`.
-If they disagree → `project-state.json` is authoritative. Flag the discrepancy.
-Then read `commit-specs/commit-XX.md` for the active commit's full specification.
-Do not load any other spec file.
-
-**Step 3 — Load open handoffs**
-Read `open_handoffs` in `project-state.json`.
-For each unactioned handoff: verify the receiving agent's worklog has received it.
-If not → route it now before any new work begins.
-
-**Step 4 — Surface the situation to Eran**
-One paragraph: what's done, what's next, any blockers or open handoffs.
-Then present the **Commit Preview** for the next pending commit.
-Wait for explicit approval before invoking any agent.
-
-Do not begin Step 4 without completing Steps 1–3.
-
----
-
-## Commit Preview Format
-
-For C29B and every later commit, use this compact preflight approval card:
-
-```
-C[N] PREFLIGHT: [READY|BLOCKED] ([score]/100)
-
-Owner: [Name] ([Domain])
-Executor: [Claude (direct)|Agent name (delegated)]
-Goal: [one plain-language sentence]
-
-Files:
-- [Add|Edit|Delete]: path/to/file
-
-Warnings:
-- [Exact warning text, or "None."]
-- Delegation justification: [Reason, or "Not delegated."]
-- Decision required: [Yes|No]
-
-Proceed? [yes/no]
+```powershell
+python hooks/preflight_commit.py --commit NN --agent OWNER
 ```
 
-Resolve the display name and domain from `hooks/agent-config.json`. Always list every
-planned file with its action and every warning in plain language, not counts alone.
+The card must state goal, files, owner, executor, verification, risks, and delegation
+justification. Do not dump the full specification when the compact card is ready.
 
-For Claude-direct execution, the preflight comes from `hooks/preflight_commit.py --direct`,
-which returns `status: "ready"|"blocked"` with no numeric score — render the first line
-as `C[N] PREFLIGHT: [READY|BLOCKED]` (omit `([score]/100)`) and list any `violations`
-under Warnings. The `[score]/100` form is shown only for delegated execution, where
-`hooks/prepare_agent_delegation.py --preview` produces the scored card.
+## Execution
 
-Do not load or summarize the full spec when preflight is ready and no warning requires a
-decision. Show details only when preflight blocks, a warning requires Eran's decision,
-scope changed after approval, or a repair/split commit is proposed.
+### Claude Direct
 
-Do not implement or invoke an agent until Eran responds with explicit approval.
+The `direct_execution_lifecycle.py` hook prepares `.context/direct/CNN.md` and starts
+full execution telemetry before the first implementation tool event. Follow its file
+order. Edit only files in the approved spec.
 
----
+### Delegated
 
-## What You Read Before Each Agent Invocation
+Run:
 
-| What | Why |
-|---|---|
-| Agent's `Current State` header (≤50 lines) | Who they are right now |
-| Current commit spec | What they're building this session |
-| Relevant handoff notes | What teammates need from them |
-| `project-state.json` blockers | So they don't build on a broken foundation |
-
-You do **not** load full worklog history by default.
-You do **not** load files from other agents' domains unless this step explicitly depends on them.
-
----
-
-## The Commit Loop (abbreviated)
-
-1. Read state, identify active commit, check blockers
-2. Verify prerequisite handoffs are in place
-3. Run `hooks/validate_commit_spec.py --all-pending --json` after creating or renumbering
-   pending specs (skip this graph-wide check otherwise). Then decide the executor:
-   Claude-direct is the default (Non-Negotiable 10); delegate only with a written
-   justification (see "How to Invoke an Agent").
-   - **Claude-direct (default):** run
-     `python hooks/preflight_commit.py --direct --commit NN --agent OWNER`, where
-     `OWNER` is the commit's owner from the spec (not `"claude"` — executor and owner
-     are separate). This is a lean, ephemeral check: it validates only the active
-     spec, this commit's own dependencies, ownership agreement, planned/forbidden
-     files, and verification-command presence. It persists nothing and never touches
-     the dashboard. If it returns `proceed: false`, stop and propose a smaller
-     sequential commit.
-   - **Delegated (justified only):** run `hooks/prepare_agent_delegation.py --preview`
-     for the scored approval card. Preview mode must not initialize tool-cap state,
-     telemetry, or the tracked dashboard.
-4. **Present compact preflight approval to Eran — wait for explicit approval**
-5. After approval, open the matching Claude capture scope before any implementation
-   read, search, edit, or command:
-   - Claude-direct:
-     The `direct_execution_lifecycle.py` PreToolUse hook automatically runs
-     `prepare_claude_direct.py` before the first implementation-facing tool event.
-     Read `.context/direct/CNN.md` first and follow its selected-file order.
-     Do not manually start or stop telemetry.
-   - Delegated: activate the agent runtime, invoke the agent, then open Claude review
-     capture after the agent returns with
-     `python hooks/context_telemetry.py --start-review CNN OWNER`.
-   Delegate only when the approved card names a delegated executor and gives a concrete
-   justification.
-5a. **Parse agent self-report** — applies only to delegated execution (an agent was
-    actually invoked this step). For Claude-direct commits, skip this step entirely —
-    do not call `--agent-report`; `telemetry.agent` correctly records as `"unavailable"`
-    (see C36). `hooks/context_telemetry.py` enforces this: it checks `hooks/tool_cap.json`
-    for a matching commit/agent invocation and raises `NoMatchingInvocationError` (exit 1)
-    if `--agent-report` is called without one — this is what caught the fabricated C37
-    self-report (COMMIT_HEALTH_RUBRIC.md C37, B4/C3).
-    For delegated execution, extract the telemetry JSON block from the agent's final
-    message (Return Contract section) and persist it immediately:
-    ```
-    python hooks/context_telemetry.py --agent-report NN AGENT '{"tool_calls":N,...}'
-    ```
-    If the agent omitted the report: persist with `tool_calls` from worklog and all arrays `null`.
-    Never skip — missing report becomes `status: partial`, not zero.
-5b. **Confirm Claude review capture** — before reading delegated output:
-    ```
-    python hooks/context_telemetry.py --start-review CNN OWNER
-    ```
-    Claude-direct capture is already active from step 5. Delegated review capture starts
-    here before Claude reads any returned file.
-6. Receive work; verify agent updated worklog and handoffs
-6a. **Inspect changed logic against the commit contract** — read every edited file.
-    Check validators, defaults, and business rules against the spec. Do not rely on
-    test results alone. Structure checks miss logic bugs (wrong defaults, off-by-ones).
-    Scope expansions must have reason, path, expected decision, and tradeoff in worklog.
-6b. **Inspect the test suite** — does each test fail when the requirement is violated?
-    Tests that pass because the implementation happens to allow something are not
-    evidence of correctness. Require negative tests for invalid values, boundaries,
-    and conflicting configurations before accepting the suite as complete.
-7. Run automated test gate (must pass before diff review, gate wave, or notification)
-7a. Run `git status --short` — report every modified and untracked file explicitly.
-    Run `git diff --check` and `git diff --stat` — review every changed line.
-7b. Run `/verify-commit` — always, before any notification or approval prompt, without
-    exception. If it fails: stop, fix, re-run. Never notify before it passes.
-    `/verify-commit` checks structural compliance only (context block present, no
-    forbidden-path files, tool budget respected) — it does not verify test results,
-    logic correctness, or spec conformance. Step 6a/6b's independent inspection is
-    what verifies correctness; passing `/verify-commit` is not a substitute.
-7c. **Close Claude capture scope** — immediately after /verify-commit passes:
-    ```
-    python hooks/context_telemetry.py --stop-orchestrator CNN
-    ```
-    This finalises `.context/telemetry/CNN-orchestrator.json` so `verify_constraints.py`
-    (step 12) can read it and write the complete dual-scope record into CONTEXT_METRICS.json.
-    Never skip. Finalization rejects missing, mismatched, or incomplete capture.
-8. Spawn Viktor (every 5 commits), Sage (conditional), Mira (conditional) — Haiku model, parallel
-9. Apply blocking rules. Any blocker becomes its own next commit and follows the same
-   Claude-direct-default execution routing — no gate-fix passes.
-10. Correct any stale worklog entries or handoffs caused by orchestrator corrections.
-    Worklog Current State stays "pending approval" until the git commit succeeds — not
-    when the agent finishes, not when the notification fires. Do NOT touch
-    TOKEN_RECORDS.md yet — it is added in step 12.3's chore sweep, after the primary
-    commit lands.
-11. Run `hooks/finalize_commit.py` — only after /verify-commit passes and the worklog/
-    handoff corrections from step 10 are current. The working tree must otherwise be
-    clean (in particular, TOKEN_RECORDS.md must NOT be edited yet): this command's
-    verify_constraints (--worktree) check only treats the owner's own worklog file as
-    "always planned" — any other dirty file, including TOKEN_RECORDS.md, is flagged as
-    an unplanned file and returns `status: blocked`. This single command runs, in fixed
-    order: close the active telemetry scope, verify_constraints (--worktree),
-    dashboard rendering after every successful
-    commit, writing the pending-notify flag, and writing the
-    `.context/finalize/CNN.json` marker that step 12's commit requires (via
-    `pre_commit_check.py`'s `check_finalize_marker()`). It stops at the first failure.
-    ```
-    python hooks/finalize_commit.py --commit NN --agent OWNER --execution EXEC \
-      --notify-what "..." --notify-why "..."
-    ```
-    `OWNER` is the commit's owner from the spec (not `"claude"`) — same convention as
-    `preflight_commit.py --direct`. Add `--tokens N` for delegated commits. Token count
-    for the email is still read automatically from TOKEN_RECORDS.md — do NOT pass
-    NOTIFY_TOKENS. If the result is `"status": "blocked"`, stop and fix before
-    proceeding — do not present a commit proposal.
-    This writes `hooks/.pending_notify.json`; the Stop hook (notify_on_stop.py) fires
-    the moment Claude stops, so Eran gets the email while reviewing the commit proposal.
-    Then surface to Eran for approval. Clearly distinguish agent-written work from any
-    orchestrator corrections in the approval prompt.
-12. After approval: Claude commits using CLAUDE_COMMIT=1 with Co-Authored-By for the
-    actual executor. Claude-direct commits also include `Execution: Claude-direct`;
-    delegated commits credit the implementing agent. Hooks update protocol and state.
-    Commit message format — required every time:
-    ```
-    type(scope): short subject line
-
-    Commit #NN
-
-    Execution: Claude-direct
-
-    What: [1-2 sentences — what was built or changed. Be specific: name files, routes, patterns.]
-    Why:  [1 sentence — why this commit exists now; what it unblocks or satisfies.]
-
-    Co-Authored-By: AgentName <agent@email.com>
-    ```
-    Include `Execution: Claude-direct` only for direct execution. Omit it for delegated
-    commits and credit the actual delegated implementor.
-    The What/Why block is mandatory. The email notification hook reads it verbatim.
-    No What/Why = Eran gets a content-free email and cannot approve remotely.
-
-    Step 11 already ran `hooks/finalize_commit.py`, which wrote both the pending-notify
-    flag and the `.context/finalize/CNN.json` marker this commit requires — do not call
-    `notify_agent_done.py` separately.
-
-    Commit command format — run AFTER Eran approves:
-    ```
-    export GIT_MESSAGE="$(cat <<'EOF'
-    ...full message including trailers...
-    EOF
-    )"
-    CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"
-    python hooks/verify_constraints.py --commit NN --agent NAME --execution EXEC [--tokens N]
-    ```
-    Always set `GIT_MESSAGE` with `export` as its own statement before the commit
-    (separate statement, or `;`-chained — never `&&` with a heredoc body). The form
-    `GIT_MESSAGE="..." CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"` does NOT work: an
-    env-prefix assignment is scoped to that command's environment only, so `$GIT_MESSAGE`
-    expands to empty in the *current* shell before the prefix even applies, and git
-    aborts with "Aborting commit due to empty commit message."
-    Three steps after approval, always in this order:
-    1. git commit — CLAUDE_COMMIT=1 bypasses block_agent_commit.py only; pre_commit_check.py
-       still runs domain boundary, commit-spec table, and message-format checks on this commit
-    2. verify_constraints.py — updates CONSTRAINT_LOG.md, CONTEXT_METRICS.json, and (only
-       if `--render-dashboard` is passed) constraint-dashboard.html. Pass
-       `--execution claude-direct` for Claude-direct commits — this forces `tokens: null`
-       in CONTEXT_METRICS.json automatically; do not pass `--tokens` for these. Pass
-       `--execution delegated` and `--tokens N` (actual token count) for delegated
-       invocations (`--agent NAME` already identifies who). constraint-dashboard.html
-       is not regenerated on every commit — render
-       it manually or during the five-commit Viktor review wave (Non-Negotiable 5) via
-       `--render-dashboard`.
-    Never skip step 2 — this is what keeps CONTEXT_METRICS.json accurate.
-    3. Immediate doc sweep (mandatory — no exceptions):
-       Stage and commit ALL post-commit protocol files as a chore commit:
-         project-state.json, commit-protocol.md, TOKEN_RECORDS.md,
-         CONSTRAINT_LOG.md, CONTEXT_METRICS.json, constraint-dashboard.html (only if
-         re-rendered this commit), .context/finalize/CNN.json (written by step 11),
-         .claude/agents/logs/<agent>-worklog.md,
-         backend/DOMAIN_MAP.md, frontend/DOMAIN_MAP.md,
-         ARCHITECTURE.md and GLOSSARY.md (if date headers were updated)
-       Commit message: `chore(state): advance state after C-NN`, body describing what
-       changed, `Co-Authored-By: Claude <claude@anthropic.com>`.
-       Do NOT include a "Commit #NN" line or "Execution: Claude-direct" — that combined
-       with any Co-Authored-By trailer makes `check_finalize_marker()` treat this chore
-       commit itself as a primary commit needing its own fresh marker, which it won't
-       have. Always attribute to Claude (not the primary commit's owner): this sweep
-       always includes `.context/finalize/CNN.json`, which is in Claude's domain per
-       `hooks/agent-config.json`, regardless of who owned the primary commit.
-       Then run: git status
-       If ANY modified or untracked files remain in protocol-managed paths — commit them.
-       Do NOT present the next Commit Preview until git status is clean.
-13. Brief Eran on next step with Commit Preview; ask to proceed
-
-**Quality gate rule:** Tests must pass before the gate wave runs.
-**No gate-fix passes.** A blocking finding becomes its own next commit — never a re-review within the same loop.
-
----
-
-## Post-Commit File Checklist
-
-After every agent completes work — before presenting the next Commit Preview.
-**No exceptions. No partial updates.**
-
-```
-□ /verify-commit       — ALWAYS: run first. If any check FAILS, stop. Fix before proceeding.
-□ project-state.json   — ALWAYS: advance commit pointer, clear resolved handoffs
-□ TOKEN_RECORDS.md     — ALWAYS: add commit row + session total row, in the step
-                          12.3 chore sweep (after the primary commit) — never before
-                          step 11's finalize_commit.py, which will flag it as an
-                          unplanned file
-□ CONTEXT_METRICS.json — ALWAYS: updated automatically by verify_constraints
-□ DECISIONS.md         — if a non-obvious design choice was made
-□ ARCHITECTURE.md      — if a new component, pattern, or data flow was introduced
-□ GLOSSARY.md          — if a new term was introduced
-□ team-preferences.md  — if execution constraints, protocol rules, or agent
-                          calibration changed this commit
-□ Agent identity files — if an agent's domain, standards, or interfaces changed
-□ git status clean     — ALWAYS LAST: stage and commit ALL updated files in a
-                          chore(state) commit. git status must show no modified or
-                          untracked files in protocol paths before the next Commit
-                          Preview is presented. No exceptions.
+```powershell
+python hooks/prepare_agent_delegation.py --commit NN --agent AGENT
 ```
 
-These are your job — no agent needed.
-Full checklist rules in `team-preferences.md` → "Post-Commit File Checklist".
+Pass the generated brief to the named agent. Agents read selected files first, avoid
+directory scans, and expand context only for a missing contract, unresolved symbol,
+failing test, or contradictory evidence.
 
----
+After the agent returns:
 
-## Files You Own
+1. Persist its structured telemetry report.
+2. Start or confirm Claude's review-only telemetry scope.
+3. Inspect the diff and run the specified verification.
+4. If Claude must implement or repair work, record both the delegated agent and Claude
+   in telemetry and dashboard execution history.
 
-```
-CLAUDE.md                ← this file
-ORCHESTRATION.md         ← full system ruleset
-AGENTS.md                ← cross-agent protocol and roster
-team-preferences.md      ← Team Lead calibration (read every boot)
-DECISIONS.md             ← design decisions + debates (you maintain it)
-ARCHITECTURE.md          ← living architecture doc (you maintain it)
-GLOSSARY.md              ← term definitions (you maintain it)
-TOKEN_RECORDS.md         ← token usage per commit (you maintain it)
-COMMIT_HEALTH_RUBRIC.md  ← on-demand commit scoring log (you maintain it)
-commit-protocol.md       ← build sequence (index table only)
-commit-specs/            ← per-commit full specs (load active commit only)
-project-state.json       ← machine-readable project state
-.claude/settings.json    ← hook configuration
-.claude/commands/        ← all slash commands
-hooks/agent-config.json           ← agent identity/domain registry (narrow exception)
-hooks/tool_cap_end.py             ← orchestrator token-accounting (narrow exception)
-hooks/tests/test_tool_cap.py      ← its test file (narrow exception)
-hooks/tool_cap_start.py           ← orchestrator invocation/budget gating (narrow exception)
-hooks/tool_cap_enforce.py         ← orchestrator tool-cap enforcement (narrow exception)
-hooks/tool_cap.json               ← runtime state written by the above scripts (narrow exception)
-hooks/post_commit_next_step.py    ← orchestrator post-commit protocol advance (narrow exception)
-hooks/generate_domain_map.py      ← orchestrator domain-map regeneration (narrow exception)
-hooks/tests/test_post_commit_next_step.py ← its test file (narrow exception)
-hooks/tests/test_generate_domain_map.py ← its test file (narrow exception)
-hooks/pre_commit_check.py         ← commit-gate hook enforcing this protocol (narrow exception)
-hooks/tests/test_pre_commit_check.py ← its test file (narrow exception)
-hooks/context_telemetry.py        ← dual-scope telemetry capture/persistence (narrow exception)
-hooks/tests/test_context_telemetry.py ← its test file (narrow exception)
-hooks/tests/test_telemetry_scopes.py ← dual-scope telemetry scenario tests for context_telemetry.py (narrow exception)
-hooks/verify_constraints.py       ← quality-gate verification script (narrow exception)
-hooks/tests/test_verify_constraints.py ← its test file (narrow exception)
-hooks/preflight_commit.py          ← Claude-direct readiness check + full preflight scoring (narrow exception)
-hooks/tests/test_preflight_commit.py ← its test file (narrow exception)
-hooks/prepare_agent_delegation.py  ← delegated-path context package + brief preparation (narrow exception)
-hooks/tests/test_prepare_agent_delegation.py ← its test file (narrow exception)
-hooks/context_metrics.py           ← context-efficiency metric record schema (narrow exception)
-hooks/tests/test_context_metrics.py ← its test file (narrow exception)
-hooks/constraint_dashboard.py      ← dashboard rendering (narrow exception)
-hooks/tests/test_constraint_dashboard.py ← its test file (narrow exception)
-hooks/bash_command_lint.py         ← deterministic Bash PreToolUse safety lint (narrow exception)
-hooks/tests/test_bash_command_lint.py ← its test file (narrow exception)
+Never label a delegated commit as "not delegated" merely because Claude finished it.
+
+## Live Budgets
+
+`hooks/claude_budget.py` mechanically enforces these top-level Claude limits:
+
+| Scope | Warn | Stop |
+|---|---:|---:|
+| Direct | 25 actions / 25 turns / 100K active tokens | 40 / 40 / 150K |
+| Delegated review | 15 actions / 20 turns / 75K active tokens | 20 / 25 / 100K |
+
+Active tokens are input + output + cache creation. Cache-read tokens remain visible but
+do not trigger a stop. At a hard stop, split the work or obtain Eran's explicit approval
+for a one-use override:
+
+```powershell
+python hooks/claude_budget.py --authorize-override "Eran approved: REASON"
 ```
 
-`hooks/` as a whole is Adam's domain (DevOps workflow automation, per AGENTS.md). The
-files above are a narrow, explicitly listed exception in `hooks/agent-config.json`
-itself for orchestrator-owned identity registry, token telemetry, the commit-gate
-hook that enforces this protocol, the orchestrator-scope telemetry capture used
-by Steps 5b/7c, the quality-gate verification script used by Step 7b, the tool-cap
-invocation/budget-gating and enforcement scripts, the post-commit protocol-advance
-and domain-map-regeneration scripts that drive the commit loop's automated state
-transitions, the Claude-direct readiness check (`--direct`) and full preflight
-scoring used to decide and validate execution mode, the delegated-path context
-package/brief preparation used only when delegation is justified, the
-context-efficiency metric record schema, the constraint dashboard renderer
-and its manual/five-commit-wave rendering cadence, and the deterministic
-Bash-command safety lint (OI-13/OI-14, DECISIONS.md D38) that protects the
-orchestrator's own session token budget — not a general claim on `hooks/`.
+Do not authorize an override without Eran's approval.
 
-For Claude-direct execution, you receive temporary, exact-file authority from the active
-approved commit spec's `Files To Modify Or Add` table. This does not grant directory-wide
-ownership and does not allow unrelated cleanup. Claude-direct does not grant Claude
-broad domain ownership — an explicit `Execution: Claude-direct` marker grants narrow,
-commit-specific authorization only for the exact files listed in `Files To Modify Or
-Add`. See ORCHESTRATION.md "Claude-Direct Authorization" for the full authorization
-chain and fail-closed behavior.
+Delegated agents retain the limits in their generated brief and `tool_cap_*` hooks.
 
----
+## Verification And Commit
 
-## How to Invoke an Agent
+1. Run the spec's focused verification command.
+2. Run constraint verification:
 
-Agent invocation is exceptional, not the default. Domain ownership alone never justifies
-delegation. Delegate only for unresolved specialist uncertainty, independent
-implementation needed for risk control, or a clearly bounded specialist unit whose
-expected value exceeds invocation overhead.
+```powershell
+python hooks/verify_constraints.py --commit NN --agent OWNER --execution claude-direct
+```
 
-**Deterministic pre-check (D50) — run before the judgment call above:**
-If either trigger fires, the default flips: delegation becomes the default, and Claude
-must instead write a justification to execute directly.
+For delegated execution, use `--execution delegated --tokens N`.
 
-- **T1 — Domain-sensitive category:** planned files touch auth/secrets/JWT/password
-  handling, DB schema/migrations/models, new business logic (services), or
-  infrastructure (Celery, Redis, Docker, queues).
-- **T2 — Size outlier:** the commit spec's `Files To Modify Or Add` table lists 4 or
-  more files (the `max_changed_files` cap in `validate_commit_spec.py`'s
-  `LOCKED_BUDGET` — a commit at its full file-count budget).
+3. Run `python hooks/finalize_commit.py --commit NN` before the primary commit.
+4. Inspect `git diff --check` and the staged diff.
+5. Commit only after all required checks pass.
 
-If neither fires, Claude-direct remains the default per Non-Negotiable 10.
+Direct commit message:
 
-**Live context package — mandatory before every implementor spawn:**
-Run `python hooks/prepare_agent_delegation.py --commit NN --agent NAME`.
-The command refreshes the cached codebase graph only when stale, combines the active
-commit specification with ownership boundaries, contract bridges, direct dependencies,
-callers, tests, and nearby domain hubs, then writes:
+```text
+type(scope): description
 
-- `.context/runs/CNN-name-live.json` — explainable machine-readable package
-- `.context/delegations/CNN-name.md` — concise invocation brief
+Commit #NN
+Execution: Claude-direct
 
-Read the delegation brief only and pass it verbatim to the agent. Do not duplicate full
-file contents in the prompt. Do not invoke when a blocking authoritative contract is
-unresolved.
+Co-Authored-By: Claude <claude@anthropic.com>
+```
 
-**Pre-invocation check — mandatory before every agent spawn:**
-> Do I already know the exact file, the exact lines, and the exact new content?
-> If yes → use Edit directly. Do NOT spawn an agent.
-> Agent overhead = 10–30k tokens. Edit = ~200 tokens.
+Delegated commits credit the actual implementing agent and omit
+`Execution: Claude-direct`. Hooks advance protocol state after a successful commit.
 
-Frame invocations as briefings:
-> "Rex — here's what we're building in Commit 05. Adam completed C01 and has a
-> handoff about the DATABASE_URL env var. No open blockers. Here's your commit spec. Go."
+Never amend or rewrite history unless Eran explicitly asks. Never revert unrelated user
+changes. A blocking gate finding becomes a new commit; there are no gate-fix passes.
 
-The agent reads selected files first and does not scan directories. Additional search is
-allowed only for an unresolved symbol, missing contract, failing test, or contradictory
-implementation evidence. Before expansion, require: reason, exact query/path, expected
-decision, and tradeoff. The worklog records every expansion and outcome.
+## Scope And Ownership
 
----
+- The active spec's `Files To Modify Or Add` table is the exact write boundary.
+- Claude-direct authority is commit-specific, not broad domain ownership.
+- Respect `AGENTS.md` domain boundaries and cross-domain finding format.
+- Do not perform unrelated cleanup.
+- If the task cannot fit the approved file, diff, action, or token budget, stop and
+  return `SPLIT_REQUIRED` with completed work, remaining work, and a proposed split.
+
+Claude owns orchestration documents, commit specs, `.claude/settings.json`, and the
+narrow workflow hooks explicitly listed under Claude in `hooks/agent-config.json`.
+
+## Quality Gates
+
+Use the trigger matrix in `AGENTS.md`.
+
+- Viktor: batch review every fifth commit.
+- Sage: security-sensitive changes.
+- Mira: user-facing behavior.
+- Blocking findings become the next commit.
+
+All agent-to-agent communication routes through Claude.
+
+## Return Contract
+
+Every implementor starts with:
+
+```markdown
+## Human Summary
+**What I completed:** ...
+**What changed:** ...
+**What went wrong:** None.
+**What remains:** None.
+**Recommended next commit:** ...
+**Developer attention:** None.
+```
+
+Delegated implementors then return:
+
+```json
+{
+  "tool_calls": 0,
+  "read_paths": [],
+  "write_paths": [],
+  "searches": [],
+  "commands": [],
+  "expansions": []
+}
+```
+
+`tool_calls` is required. Use `null` for path arrays only when detail is unavailable.
 
 ## Non-Negotiables
 
-1. One commit per protocol step — no combining
-2. Eran approves the Commit Preview before implementation or delegation — no exceptions
-3. Eran approves the commit after quality gates — no exceptions
-4. Tests pass before approval surfaces — no bypassing the gate
-5. Viktor reviews every 5 commits — no skipping
-6. No agent touches another's domain — findings are routed, not fixed in place
-7. Worklogs are written in real time — not reconstructed after the fact
-8. Secrets never appear in code — not in defaults, not in comments
-9. Scope overflows are flagged immediately — not silently built
-10. Claude-direct is the default. Never spawn an agent when the work is mechanical,
-    narrowly bounded, or already understood.
-11. Budget failures are non-waivable. Unfinished work becomes a new numbered commit.
-12. An implementor may return `SPLIT_REQUIRED`; Claude drafts the spec and Eran approves it.
+1. One approved commit at a time.
+2. No implementation before explicit approval.
+3. No secrets, fabricated telemetry, or hidden overrides.
+4. No agent may commit.
+5. No direct agent-to-agent contact.
+6. No repository-wide scans when targeted reads suffice.
+7. No claiming tests passed unless they were run.
+8. No changing execution attribution after the fact.
+9. Stop on scope ambiguity rather than silently broadening work.
+10. Keep founder-facing summaries plain and outcome-oriented.
 
----
-
-## Orchestrator Debugging Circuit Breaker (D37)
-
-During orchestrator-led debugging or repair work (diagnosing a failing test, a
-hook/telemetry defect, repairing corrupted state, etc.): stop after 2 failed
-repair/verification cycles OR 25 orchestrator tool calls (self-monitored via
-`.context/telemetry/orchestrator-active.json`'s `tool_calls` counter — no new
-enforcement hook). On hitting either limit, report the blocker, the evidence
-gathered, and a minimal proposed correction, then wait for Eran's explicit
-approval before continuing. Does not apply to the normal Step 5b–7c
-post-agent verification sequence when it proceeds without repeated failures.
-
----
-
-## Token Management
-
-When a session approaches 80% of context capacity:
-1. Trigger `/archive-worklog` for any agent with >3 completed sessions
-2. Compress long context packages to Tier 0 + Tier 1 only
-3. Alert Eran that context compression has occurred
-
-After every commit: `/clear` — all state is in project files, nothing is lost.
-Mid-commit at ~60k tokens without a commit yet: `/compact`.
-
----
-
-## Claude Behaviour Rules
-
-```
-1. Always address the Team Lead as "Eran" when raising issues, surfacing blockers,
-   flagging findings, or asking for approval.
-
-2. Before saying "I don't have X", check project files first.
-
-3. Before every agent spawn, require a written delegation justification. If the expected
-   specialist value does not clearly exceed invocation overhead, execute directly.
-
-4. Debates and non-obvious decisions go into DECISIONS.md immediately.
-
-5. Never treat "agent returned" as "work is correct." Every agent output is inspected
-   against the commit contract — logic, defaults, validators, business rules — before
-   any verification or approval step is triggered.
-
-6. Inspect changed logic, not just structure. A validator with the wrong default or a
-   test that mirrors a bug instead of catching it are invisible to structure checks.
-
-7. Tests must enforce requirements, not mirror implementation. Before accepting a test
-   suite, ask: does each test fail when the requirement is violated?
-
-8. Always require negative tests for invalid values, boundary conditions, and conflicting
-   configurations. A test suite with no rejection tests is incomplete.
-
-9. Worklog Current State stays "currently active / pending approval" until git commit
-   succeeds — not when the agent finishes, not when the notification fires.
-
-10. Send the completion notification (via finalize_commit.py) only after /verify-commit
-    passes and the worklog/handoff corrections are current. TOKEN_RECORDS.md is added
-    afterward, in the step 12.3 chore sweep — never on agent completion alone, and
-    never before finalize_commit.py.
-
-11. After any orchestrator correction pass: update the worklog, outbound handoffs,
-    and test counts to reflect the corrected state before re-presenting for approval.
-    Fold any TOKEN_RECORDS.md correction into the step 12.3 chore sweep alongside the
-    new commit's row — do not write it to the working tree before finalize_commit.py.
-
-12. Read Co-Authored-By emails from hooks/agent-config.json before every commit.
-    Never recall from memory or prior sessions. Memory entries for emails are
-    convenience references only — the file is authoritative.
-
-13. Clearly distinguish agent-written work from orchestrator corrections in worklogs,
-    commit messages, and approval prompts. Attribution pattern:
-    "Rex built X; orchestrator corrected Y after review."
-
-14. After every agent return: persist the self-report (step 5a), open the orchestrator
-    scope (step 5b), close it after /verify-commit (step 7c) — in that order, every time.
-    Dashboard columns that show N/A instead of real data are a missed step, not a data
-    absence. Skipping any of the three is a protocol violation. Step 5a applies only
-    when an agent was actually invoked (delegated execution) — for Claude-direct
-    commits, "after every agent return" does not apply at all, so step 5a is skipped
-    and only 5b/7c run.
-```
-
----
-
-## Execution Constraints — Include Verbatim in Every Agent Invocation
-
-### Implementors (Rex, Adam, Aria, Nova)
-```
-EXECUTION CONSTRAINTS:
-- One normal implementor invocation per commit.
-- Total cap: 18 tool uses. Call 19 is mechanically blocked.
-- Phase 1 (Reads): max 10 tool uses. Read only what is listed in the live delegation brief.
-  Do not scan directories. Use targeted symbol search before adding a full-file read.
-  If you approach 10 reads and still need more, STOP and report — scope is too large for one agent invocation.
-- Maximum two justified context expansions. Expansion 3 is mechanically blocked.
-- By calls 6-8, implementation should normally have started.
-- At call 12, report budget status and remaining acceptance criteria.
-- By call 16, finish by call 18 or return SPLIT_REQUIRED.
-- Implementor tokens: green through 35k, warning through 45k, hard stop above 45k.
-- A second invocation is allowed only for one authorized failing-test repair with a
-  delta brief below 6,000 characters. It may not restart discovery.
-- Include focused tests, update the worklog, and return structured telemetry.
-- No commits. Claude stages and commits only after Eran's approval.
-```
-
-`SPLIT_REQUIRED` includes completed scope, remaining scope, reason, suggested commit
-name/owner, required files, acceptance criteria, verification command, dependencies,
-and tool-call count. The agent proposes; Claude plans; Eran approves.
+Detailed rationale, rollback, replanning, context selection, slash commands, and examples
+live in `ORCHESTRATION.md`.

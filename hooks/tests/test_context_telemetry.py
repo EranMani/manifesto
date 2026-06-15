@@ -437,7 +437,7 @@ class ConstraintDashboardTests(unittest.TestCase):
             document = render_dashboard(root, output)
             self.assertIn("Prepared next delegation", document)
             self.assertIn("Execution observability", document)
-            self.assertIn("77.8%", document)
+            self.assertIn("Reviewed 7 of 9", document)
             self.assertIn("C24", document)
             self.assertIn("Commit measurements", document)
             self.assertIn("Codebase graph", document)

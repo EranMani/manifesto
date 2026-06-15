@@ -1,0 +1,87 @@
+from __future__ import annotations
+
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+
+HOOKS_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(HOOKS_DIR))
+
+import claude_budget  # noqa: E402
+
+
+class ClaudeBudgetTests(unittest.TestCase):
+    def scope(self, actions: int = 0, mode: str = "claude-direct") -> dict:
+        return {
+            "status": "running",
+            "execution_mode": mode,
+            "tool_calls": actions,
+            "token_usage": {"status": "running"},
+        }
+
+    def test_cache_reads_do_not_count_as_active_tokens(self) -> None:
+        usage = {
+            "status": "complete",
+            "assistant_turns": 3,
+            "components": {
+                "input_tokens": 10,
+                "output_tokens": 20,
+                "cache_creation_input_tokens": 30,
+                "cache_read_input_tokens": 9000,
+            },
+        }
+        with patch.object(claude_budget, "_finalize_token_snapshot", return_value=usage):
+            metrics = claude_budget.measure(self.scope())
+        self.assertEqual(metrics["active_tokens"], 60)
+        self.assertEqual(metrics["cache_read_tokens"], 9000)
+
+    def test_direct_scope_warns_on_twenty_fifth_action(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            path.write_text(json.dumps(self.scope(actions=24)), encoding="utf-8")
+            allowed, message = claude_budget.evaluate(
+                {"tool_name": "Read", "tool_input": {}}, path
+            )
+        self.assertTrue(allowed)
+        self.assertIn("budget warn", message)
+
+    def test_review_scope_blocks_twentieth_action(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            path.write_text(
+                json.dumps(self.scope(actions=19, mode="delegated")),
+                encoding="utf-8",
+            )
+            allowed, message = claude_budget.evaluate(
+                {"tool_name": "Edit", "tool_input": {}}, path
+            )
+        self.assertFalse(allowed)
+        self.assertIn("budget stop", message)
+
+    def test_closeout_command_remains_available_after_stop(self) -> None:
+        event = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "python hooks/finalize_commit.py --commit 52A"},
+        }
+        self.assertTrue(claude_budget.allowed_after_stop(event))
+
+    def test_override_is_consumed_once(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            scope = self.scope(actions=40)
+            scope["budget_override"] = {"uses_remaining": 1, "reason": "approved"}
+            path.write_text(json.dumps(scope), encoding="utf-8")
+            allowed, _ = claude_budget.evaluate(
+                {"tool_name": "Edit", "tool_input": {}}, path
+            )
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertTrue(allowed)
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
