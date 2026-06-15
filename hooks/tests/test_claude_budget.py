@@ -69,18 +69,69 @@ class ClaudeBudgetTests(unittest.TestCase):
         }
         self.assertTrue(claude_budget.allowed_after_stop(event))
 
-    def test_override_is_consumed_once(self) -> None:
+    def test_override_is_consumed_for_closeout_action(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "active.json"
             scope = self.scope(actions=40)
-            scope["budget_override"] = {"uses_remaining": 1, "reason": "approved"}
+            scope["budget_override"] = {"uses_remaining": 5, "reason": "approved"}
             path.write_text(json.dumps(scope), encoding="utf-8")
             allowed, _ = claude_budget.evaluate(
-                {"tool_name": "Edit", "tool_input": {}}, path
+                {
+                    "tool_name": "Edit",
+                    "tool_input": {"file_path": ".context/telemetry/scope.json"},
+                },
+                path,
             )
             saved = json.loads(path.read_text(encoding="utf-8"))
         self.assertTrue(allowed)
-        self.assertEqual(saved["budget_override"]["uses_remaining"], 0)
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 4)
+
+    def test_override_does_not_cover_non_closeout_action(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            scope = self.scope(actions=40)
+            scope["budget_override"] = {"uses_remaining": 5, "reason": "approved"}
+            path.write_text(json.dumps(scope), encoding="utf-8")
+            allowed, message = claude_budget.evaluate(
+                {
+                    "tool_name": "Edit",
+                    "tool_input": {"file_path": "backend/app/main.py"},
+                },
+                path,
+            )
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertFalse(allowed)
+        self.assertIn("closeout", message)
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 5)
+
+    def test_authorize_override_grants_five_closeout_uses(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            path.write_text(json.dumps(self.scope(actions=40)), encoding="utf-8")
+            claude_budget.authorize_override("Eran approved: closeout", path)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 5)
+
+    def test_authorize_override_command_allowed_after_stop(self) -> None:
+        event = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": 'python hooks/claude_budget.py --authorize-override "reason"'
+            },
+        }
+        self.assertTrue(claude_budget.allowed_after_stop(event))
+
+    def test_read_only_tools_are_closeout_actions(self) -> None:
+        self.assertTrue(
+            claude_budget.is_closeout_action({"tool_name": "Read", "tool_input": {}})
+        )
+
+    def test_unrelated_edit_is_not_closeout_action(self) -> None:
+        self.assertFalse(
+            claude_budget.is_closeout_action(
+                {"tool_name": "Edit", "tool_input": {"file_path": "backend/app/main.py"}}
+            )
+        )
 
 
 if __name__ == "__main__":

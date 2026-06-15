@@ -71,3 +71,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-15 | C50 | nova | 3,577,240 | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
 | 2026-06-15 | C51 | nova | 4,533,147 | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-15 | C52 | nova | 65,322 | PASS | PASS | PASS r=4 w=2 t=7 | PASS |
+| 2026-06-15 | C53A | claude | 429,120 | PASS | PASS | PASS r=0 w=0 t=0 | PASS |

@@ -33,7 +33,18 @@ CONTROL_COMMANDS = (
     "hooks/claude_budget.py",
     "git status",
     "git diff",
+    "pytest",
 )
+
+CLOSEOUT_EDIT_HINTS = (
+    ".context/telemetry",
+    ".context/direct",
+    "commit-protocol.md",
+    "project-state.json",
+    "/tests/",
+)
+
+READ_ONLY_TOOLS = {"Read", "Grep", "Glob"}
 
 
 def _profile(scope: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -75,6 +86,18 @@ def allowed_after_stop(event: dict[str, Any]) -> bool:
     return any(item.lower() in command for item in CONTROL_COMMANDS)
 
 
+def is_closeout_action(event: dict[str, Any]) -> bool:
+    """Closeout actions cover telemetry correction, verification, and finalization."""
+    tool_name = event.get("tool_name")
+    if tool_name == "Bash":
+        return allowed_after_stop(event)
+    if tool_name in READ_ONLY_TOOLS:
+        return True
+    tool_input = event.get("tool_input") or {}
+    path = str(tool_input.get("file_path") or tool_input.get("path") or "").replace("\\", "/")
+    return any(hint in path for hint in CLOSEOUT_EDIT_HINTS)
+
+
 def evaluate(event: dict[str, Any], active_path: Path = ACTIVE_PATH) -> tuple[bool, str]:
     try:
         scope = json.loads(active_path.read_text(encoding="utf-8"))
@@ -97,28 +120,40 @@ def evaluate(event: dict[str, Any], active_path: Path = ACTIVE_PATH) -> tuple[bo
         "cache_read_policy": "observational only",
     }
 
-    override = scope.get("budget_override") or {}
-    if state == "stop" and override.get("uses_remaining", 0) > 0:
-        override["uses_remaining"] -= 1
-        scope["budget_override"] = override
-        state = "warn"
-        scope["live_budget"]["state"] = "override-used"
-
-    active_path.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
     message = (
         f"Claude {name} budget {state}: "
         f"{metrics['actions']} actions, {metrics['turns']} turns, "
         f"{metrics['active_tokens']:,} active tokens, "
         f"{metrics['cache_read_tokens']:,} cached tokens."
     )
-    if state == "stop" and not allowed_after_stop(event):
-        return False, message + " Split the work or request an explicit one-use override."
+
+    allowed = True
+    if state == "stop":
+        if allowed_after_stop(event):
+            pass
+        else:
+            override = scope.get("budget_override") or {}
+            if override.get("uses_remaining", 0) > 0 and is_closeout_action(event):
+                override["uses_remaining"] -= 1
+                scope["budget_override"] = override
+                scope["live_budget"]["state"] = "override-used"
+                message += " Override applied to closeout action."
+            else:
+                allowed = False
+                message += (
+                    " Split the work or request an override for closeout"
+                    " actions (telemetry correction, verification, finalization)."
+                )
+
+    active_path.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
+    if not allowed:
+        return False, message
     return True, message if state != "ok" else ""
 
 
 def authorize_override(reason: str, active_path: Path = ACTIVE_PATH) -> None:
     scope = json.loads(active_path.read_text(encoding="utf-8"))
-    scope["budget_override"] = {"uses_remaining": 1, "reason": reason}
+    scope["budget_override"] = {"uses_remaining": 5, "reason": reason}
     active_path.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
 
 

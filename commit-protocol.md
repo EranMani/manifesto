@@ -77,6 +77,7 @@
 | 51 | minimal-policy-evidence | nova | ✅ done · 2026-06-15 |
 | 52 | assistant-intent-routing | nova | ✅ done · 2026-06-15 |
 | 52A | claude-budget-and-cache-reduction | claude | ✅ done · retrospective · 796ef48 · 2026-06-15 |
+| 53A | budget-override-closeout-fix | claude | pending |
 | 53 | grounded-logistics-answer | nova | pending |
 | 54 | grounded-policy-answer | nova | pending |
 | 55 | assistant-role-authorization | rex | pending |
