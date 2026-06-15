@@ -1862,4 +1862,95 @@ condition. `_D50_T2_MIN_FILES = 4` in `hooks/preflight_commit.py`.
 
 ---
 
+---
+
+## D51 — C50 Incident Log: Budget Overrun, Actual-Scope Override, Stray Email, and Gate-Wave Deferral
+
+- **Date:** 2026-06-15
+- **Decided by:** Claude, with Eran's approvals during the session
+- **Status:** Recorded for later joint analysis with Eran — no structural fix
+  applied yet. This entry is the input to that discussion, not the resolution.
+
+### What happened (chronological)
+
+1. **Nova hit budget caps mid-commit.** C50 (`logistics-graph-evidence`,
+   delegated to Nova) implemented the graph projection
+   (`GraphNode`/`GraphEdge`/`ProcurementGraph`, `_project_procurement_graph`,
+   `lookup_procurement_graph`) but exhausted its tool-call cap (18) and token
+   budget (61,276 vs. 45,000 implementor / 60,000 absolute-commit) before
+   writing the spec's 6 required tests. Returned `SPLIT_REQUIRED` with
+   implementation complete, tests missing.
+2. **Claude-direct finished the tests**, per Eran's choice ("Claude-direct
+   finishes tests"). 6 new tests added to
+   `backend/tests/services/test_rag_logistics.py`; one simplification made to
+   Nova's `_project_procurement_graph` (collapsed a redundant if/else branch
+   that appended the same value either way). 19/19 tests pass.
+3. **`/verify-commit` failed `actual_scope`**: `changed_files=5/4`,
+   `diff_lines=469/350`, and `backend/DOMAIN_MAP.md` flagged as unplanned.
+   Root cause: the overage is entirely protocol-mandated files —
+   `.claude/agents/logs/nova-worklog.md` (+131 lines: Session 10 entry +
+   index correction), `.context/direct/C50.md` (+36 lines: auto-generated
+   Claude-direct brief), and `backend/DOMAIN_MAP.md` (+12 lines: regenerated
+   by the Stop hook's `generate_domain_map.py`). The true implementation diff
+   is 290/350 lines across the 2 planned files. Per Eran's choice
+   ("One-time override, like C45/OI-18"), `.context/finalize/C50.json` was
+   written manually with `checks_passed: true` and an `override_note`;
+   `CONSTRAINT_LOG.md`/`CONTEXT_METRICS.json` still record the honest `FAIL`.
+   **This is the same gap class as D46 (C47)** — D46 exempted
+   `.context/direct/CNN.md` from `check_actual_scope()`, but
+   `backend/DOMAIN_MAP.md` (and the worklog overage pattern generally) was
+   not covered, and recurred here.
+4. **Accidental email sent.** While checking `notify_agent_done.py`'s CLI for
+   the correct way to write the pending-notify flag, Claude ran
+   `python hooks/notify_agent_done.py --help`. The script has no argparse
+   `--help` handling — an unrecognized flag falls through to the *default*
+   path (real SMTP send, since `PRE_COMMIT` was false), which sent a stale
+   email to Eran referencing "commit 49 — Claude finished". Disclosed to Eran
+   immediately. The correct flag (`--write-flag` with `NOTIFY_WHAT`/
+   `NOTIFY_WHY`/etc. env vars) was used afterward to write C50's real
+   pending-notify flag.
+5. **Gate-wave (Viktor, every 5 commits) blocked by the absolute-commit token
+   stop.** `hooks/tool_cap.json` recorded `stop_reason:
+   "absolute_commit_token_stop"` for C50 (Nova's 61,276 > 60,000 absolute
+   cap from step 1). This is commit-scoped and made `tool_cap_start.py`
+   mechanically refuse **any** further Agent invocation under C50 — including
+   the due Viktor C46-C50 wave review, which is a cross-cutting protocol step,
+   not C50 implementation work. **Resolution (Eran-approved):** commit C50 as
+   planned, then run Viktor's C46-C50 wave review as the first action under
+   C51's preflight/tool_cap scope, reviewing the C46-C50 diff from git history
+   (validity doesn't depend on when it's reviewed).
+
+### Open questions for joint analysis (not actioned)
+
+- Should `backend/DOMAIN_MAP.md` (and similar Stop-hook-regenerated files) join
+  the always-planned/exempt set in `check_actual_scope()`, the way
+  `.context/direct/CNN.md` did for D46? This is the second occurrence of the
+  same gap class in 4 commits (C47, C50).
+- `notify_agent_done.py` has no real argument parsing — any unrecognized flag
+  (typo, `--help`, etc.) silently falls through to a live email send. Should
+  it validate `sys.argv` and no-op/error on unknown flags?
+- `tool_cap.json`'s `absolute_commit_token_stop` blocks reviewer (Viktor/Sage/
+  Mira, haiku, read-only) invocations along with implementor re-invocations.
+  Should reviewer invocations be exempt from a *commit's* token circuit
+  breaker, since they review the diff regardless of which commit's budget
+  produced it?
+- Is 45,000 implementor tokens too tight for commits that pair a non-trivial
+  service module with a comprehensive (6+ function) test file? Nova used
+  61,276 for C50. Consider whether large-test-surface commits should default
+  to a follow-up test-only commit rather than SPLIT_REQUIRED mid-commit.
+
+### Addendum — Gate-wave deferred to C55 (Eran's call)
+
+After C50 was committed, the proposed resolution to item 5 (run the C46-C50
+Viktor wave as the first step of C51's preflight) was superseded: Eran chose
+instead to skip the wave entirely at this point and run it at **C55**,
+effectively combining it with the next scheduled wave (covering C46-C55).
+No code change required — `team-preferences.md`'s "batch wave every 5
+commits" cadence is being treated as a soft schedule this once, by explicit
+Team Lead override, same as the prior "remains pending" deferrals through
+C46-C49. Recorded here so the C55 wave reviewer is briefed on the full
+C46-C55 range, not just C51-C55.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

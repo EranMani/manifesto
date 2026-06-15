@@ -73,7 +73,7 @@
 | 47C | telemetry-finalize-idempotency | claude | ✅ done · 2026-06-14 |
 | 48 | procurement-relationship-evidence | nova | ✅ done · 2026-06-14 |
 | 49 | shipment-timeline-evidence | nova | ✅ done · 2026-06-15 |
-| 50 | logistics-graph-evidence | nova | pending |
+| 50 | logistics-graph-evidence | nova | ✅ done · 2026-06-15 |
 | 51 | minimal-policy-evidence | nova | pending |
 | 52 | assistant-intent-routing | nova | pending |
 | 53 | grounded-logistics-answer | nova | pending |

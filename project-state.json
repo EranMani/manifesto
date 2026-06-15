@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C49 (shipment-timeline-evidence) is committed (727a340). ProcurementEvidence gains timeline (ShipmentEvent rows ordered by (occurred_at, id)) and delay (current delay_reason plus the latest matching exception event, never inferred) in backend/app/services/rag_logistics.py; 6 new tests pass (13/13 full file). A stale orchestrator telemetry scope from C48 blocked Nova's first invocation and was repaired (logged in nova-worklog.md Session 9). Next is C50 (logistics-graph-evidence, Nova).",
+  "tldr": "C50 (logistics-graph-evidence) is committed (0a98a06). backend/app/services/rag_logistics.py gains GraphNodeType/GraphRelationship Literals, frozen GraphNode/GraphEdge/ProcurementGraph dataclasses, _project_procurement_graph(), and lookup_procurement_graph(): projects ProcurementEvidence into typed nodes (buyer|purchase_order|vendor|shipment|product|event, stable <type>:<id> ids), allowlisted edges, and a highlighted path from buyer to the exception event/first product. Nova returned SPLIT_REQUIRED (61,276/45,000 tokens, implementation done, tests missing); Claude-direct wrote the 6 new -k graph tests (19/19 full file). One-time actual_scope override applied (.context/finalize/C50.json, DECISIONS.md D51) for protocol-generated-file overage (469/350, root cause not implementation). Viktor's C46-C50 gate wave (due since C45) is deferred again, per Eran, to run at C55 (combined C46-C55 range). Next is C51 (minimal-policy-evidence, Nova).",
   "phase": 2,
-  "last_completed_commit": "49",
-  "next_commit": "50",
-  "next_commit_name": "logistics-graph-evidence",
+  "last_completed_commit": "50",
+  "next_commit": "51",
+  "next_commit_name": "minimal-policy-evidence",
   "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
@@ -263,6 +263,14 @@
       "detail": "C46 (bundled-policy-seed) is the first commit whose tests call EmbeddingService.embed_documents() against a real provider. docker-compose.yml defines an `ollama` service but `backend` does not declare `depends_on: ollama`, so `docker compose run --rm backend ...` never starts it; the container also had zero models pulled. Both `docker compose up -d ollama` and `docker exec manifesto-ollama-1 ollama pull nomic-embed-text` (the Phase 2 default per config.py's resolve_and_validate_embedding_model) were run manually during C46 verification. The pulled model persists in the `ollama_data` named volume, so this specific environment is now fixed, but any fresh environment or CI run will hit the same `httpx.ConnectError: Name or service not known` until someone repeats this. Needs a devops fix (Adam, docker-compose.yml/scripts/ domain): add `ollama` to backend's `depends_on` and document or automate the `nomic-embed-text` model pull (e.g. an init script or compose healthcheck) before C47+ (retrieval) and any future embedding-dependent seed/test runs.",
       "priority": "medium",
       "opened": "2026-06-14",
+      "status": "open"
+    },
+    {
+      "id": "OI-21",
+      "title": "Viktor's C46-C50 gate wave deferred to C55 (combined C46-C55 range)",
+      "detail": "Viktor's every-5th-commit wave has been due since C45 (C46-C49 each logged it as 'remains pending'). At C50, spawning Viktor failed: hooks/tool_cap.json tripped stop_reason='absolute_commit_token_stop' (Nova's C50 invocation used 61,276 > the 60,000 absolute-commit cap), and tool_cap_start.py mechanically blocks any further Agent invocation scoped to C50, including reviewer invocations. Per Eran's explicit instruction (2026-06-15), the wave is not run as a pre-C51 step; instead it runs at C55, covering the combined C46-C55 diff. Full incident recorded in DECISIONS.md D51 (including open questions for joint analysis: DOMAIN_MAP.md actual_scope exemption, notify_agent_done.py argument validation, reviewer exemption from commit-scoped token circuit breakers, and the 45k implementor token budget for test-heavy commits). Action for C55: before C55 implementation, spawn Viktor (haiku) reviewing `git diff <C45-commit>..HEAD` scoped to backend/app/services/rag_logistics.py and related tests/seed data across C46-C55.",
+      "priority": "medium",
+      "opened": "2026-06-15",
       "status": "open"
     }
   ],

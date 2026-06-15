@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "commit": "C49",
+  "commit": "C50",
   "agent": "nova",
   "status": "blocked",
   "active": false,
@@ -11,22 +11,21 @@
   "count": 0,
   "limit": 18,
   "tool_calls": 18,
-  "expansions": 2,
+  "expansions": 1,
   "expanded_paths": [
-    "commit-specs/commit-49.md",
-    "backend/app/models/shipment.py"
+    "commit-specs/commit-50.md"
   ],
   "selected_paths": [
     ".claude/agents/ai-engineer.md",
     ".claude/agents/logs/nova-worklog.md",
-    "backend/app/models/shipment_event.py",
     "backend/app/services/__init__.py",
     "backend/app/services/rag_logistics.py",
-    "backend/tests/services/test_rag_logistics.py"
+    "backend/tests/services/test_rag_logistics.py",
+    "commit-specs/PHASE-3-GRAPH-RAG-DESIGN.md"
   ],
   "write_started": true,
-  "known_implementor_tokens": 56495,
-  "known_total_tokens": 56495,
+  "known_implementor_tokens": 61276,
+  "known_total_tokens": 61276,
   "limits": {
     "max_agent_invocations": 1,
     "max_tool_calls": 18,
@@ -35,21 +34,21 @@
     "max_total_tokens": 60000
   },
   "repair_authorization": null,
-  "stop_reason": "implementor_token_hard_stop",
+  "stop_reason": "absolute_commit_token_stop",
   "stop_scope": {
-    "commit": "C49",
+    "commit": "C50",
     "agent": "nova",
     "kind": "normal"
   },
-  "prepared_at": "2026-06-15T03:32:35+00:00",
+  "prepared_at": "2026-06-15T03:59:22+00:00",
   "invocations": [
     {
       "agent": "nova",
       "kind": "normal",
       "tool_calls": 18,
-      "started_at": "2026-06-15T03:32:57+00:00",
-      "ended_at": "2026-06-15T03:34:48+00:00",
-      "tokens": 56495
+      "started_at": "2026-06-15T03:59:50+00:00",
+      "ended_at": "2026-06-15T04:01:56+00:00",
+      "tokens": 61276
     }
   ]
 }
