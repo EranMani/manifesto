@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C48 (procurement-relationship-evidence) is committed (e22e885). lookup_procurement() expands a shipment to its vendor, optional purchase order/buyer, and products (sorted by name then id) in backend/app/services/rag_logistics.py; 3 new tests pass (7/7 full file). C47B/C47C telemetry lifecycle hotfixes are in place; C48's telemetry was finalized from the recovered transcript-derived record. Next is C49 (shipment-timeline-evidence, Nova).",
+  "tldr": "C49 (shipment-timeline-evidence) is committed (727a340). ProcurementEvidence gains timeline (ShipmentEvent rows ordered by (occurred_at, id)) and delay (current delay_reason plus the latest matching exception event, never inferred) in backend/app/services/rag_logistics.py; 6 new tests pass (13/13 full file). A stale orchestrator telemetry scope from C48 blocked Nova's first invocation and was repaired (logged in nova-worklog.md Session 9). Next is C50 (logistics-graph-evidence, Nova).",
   "phase": 2,
-  "last_completed_commit": "48",
-  "next_commit": "49",
-  "next_commit_name": "shipment-timeline-evidence",
+  "last_completed_commit": "49",
+  "next_commit": "50",
+  "next_commit_name": "logistics-graph-evidence",
   "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [

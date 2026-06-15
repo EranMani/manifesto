@@ -67,3 +67,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-14 | C46 | rex | 6,405,291 | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-14 | C47 | nova | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-14 | C48 | nova | 3,406,839 | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
+| 2026-06-15 | C49 | nova | 56,495 | PASS | PASS | PASS r=6 w=2 t=18 | PASS |
