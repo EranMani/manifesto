@@ -74,7 +74,7 @@
 | 48 | procurement-relationship-evidence | nova | ✅ done · 2026-06-14 |
 | 49 | shipment-timeline-evidence | nova | ✅ done · 2026-06-15 |
 | 50 | logistics-graph-evidence | nova | ✅ done · 2026-06-15 |
-| 51 | minimal-policy-evidence | nova | pending |
+| 51 | minimal-policy-evidence | nova | ✅ done · 2026-06-15 |
 | 52 | assistant-intent-routing | nova | pending |
 | 53 | grounded-logistics-answer | nova | pending |
 | 54 | grounded-policy-answer | nova | pending |

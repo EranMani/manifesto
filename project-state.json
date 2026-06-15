@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C50 (logistics-graph-evidence) is committed (0a98a06). backend/app/services/rag_logistics.py gains GraphNodeType/GraphRelationship Literals, frozen GraphNode/GraphEdge/ProcurementGraph dataclasses, _project_procurement_graph(), and lookup_procurement_graph(): projects ProcurementEvidence into typed nodes (buyer|purchase_order|vendor|shipment|product|event, stable <type>:<id> ids), allowlisted edges, and a highlighted path from buyer to the exception event/first product. Nova returned SPLIT_REQUIRED (61,276/45,000 tokens, implementation done, tests missing); Claude-direct wrote the 6 new -k graph tests (19/19 full file). One-time actual_scope override applied (.context/finalize/C50.json, DECISIONS.md D51) for protocol-generated-file overage (469/350, root cause not implementation). Viktor's C46-C50 gate wave (due since C45) is deferred again, per Eran, to run at C55 (combined C46-C55 range). Next is C51 (minimal-policy-evidence, Nova).",
+  "tldr": "C51 (minimal-policy-evidence) is committed (4ebe64f). backend/app/services/rag_policy.py gains MIN_EVIDENCE_SCORE (0.35), PolicyEvidence (frozen TypedDict), fetch_chunk_candidates(), and RAGPolicy.retrieve_evidence(db, text): embeds the query once, reuses C39's fetch_vector_candidates for profile/status filtering and top-5 truncation, discards scores below 0.35, and batch-fetches policy_documents.title for citations. Nova implemented rag_policy.py fully but returned SPLIT_REQUIRED (18/18 tool calls, 59,387 tokens) with test_rag_policy.py only partially updated; Claude-direct wrote the 4 TestRetrieveEvidence tests (10/10 full file). verify_constraints all_pass (--execution claude-direct): files=3/4, diff_lines=325/350. No gate wave at C51 (Viktor's C46-C50 wave remains deferred to C55, combined as C46-C55 per OI-21). Next is C52 (assistant-intent-routing, Nova).",
   "phase": 2,
-  "last_completed_commit": "50",
-  "next_commit": "51",
-  "next_commit_name": "minimal-policy-evidence",
+  "last_completed_commit": "51",
+  "next_commit": "52",
+  "next_commit_name": "assistant-intent-routing",
   "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
@@ -12,9 +12,9 @@
       "from": "nova",
       "to": "nova",
       "regarding": "C38-C49 — use EmbeddingService.embed_documents()/embed_query() for corpus/query vectors; LLMService.chat() only for generation; profile on EmbeddingService.profile",
-      "detail": "EmbeddingService and LLMService contracts are frozen by C25. Policy retrieval and generation commits must import only from backend/app/services/llm.py and never use provider SDK types directly. C27 ingestion already uses EmbeddingService.embed_documents() exclusively.",
+      "detail": "EmbeddingService and LLMService contracts are frozen by C25. Policy retrieval and generation commits must import only from backend/app/services/llm.py and never use provider SDK types directly. C27 ingestion already uses EmbeddingService.embed_documents() exclusively. C51's retrieve_evidence() satisfies this via RAGPolicy.embed_query()/EmbeddingService.profile, no provider SDK types.",
       "date": "2026-06-09",
-      "actioned": false
+      "actioned": true
     },
     {
       "from": "nova",

@@ -12,10 +12,10 @@
 - `app.models.shipment` — imported by 6 modules
 - `app.dependencies` — imported by 5 modules
 - `app.models.vendor` — imported by 4 modules
+- `app.models.policy` — imported by 4 modules
 - `app.core.security` — imported by 3 modules
 - `app.core.config` — imported by 3 modules
 - `app.models.product` — imported by 3 modules
-- `app.models.policy` — imported by 3 modules
 - `app.services.llm` — imported by 3 modules
 
 ## Entry Points (import others, not imported themselves)
@@ -88,4 +88,4 @@
 | `services\ingestion.py` | `app.services.llm`, `app.models.policy` |
 | `services\llm.py` | — |
 | `services\rag_logistics.py` | `app.models.product`, `app.models.purchase_order`, `app.models.shipment`, `app.models.shipment_event`, `app.models.user` (+1 more) |
-| `services\rag_policy.py` | `app.services.llm` |
+| `services\rag_policy.py` | `app.models.policy`, `app.services.llm` |
