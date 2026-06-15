@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C52A (claude-budget-and-cache-reduction) is implemented in 796ef48 and documented retrospectively. It adds live warn/stop budgets for Claude-direct and delegated-review scopes, excludes cache reads from active-token enforcement, supports an explicitly approved one-use override, and reduces CLAUDE.md from 34,798 to 6,064 bytes. Focused verification passed (28 tests). Governance exception: implementation was committed before a commit spec or protocol row existed and combined three planned steps; Eran identified the omission. The retrospective spec records the true sequence without fabricating preflight approval. Next remains C53 (grounded-logistics-answer, Nova).",
+  "tldr": "C53A (budget-override-closeout-fix, Claude, e4f263c) widened the Claude budget override to 5 closeout-scoped uses via is_closeout_action(), resolving the deadlock that had stalled C53's closeout (10/10 tests). C53 (grounded-logistics-answer, Nova, f73c22d) added LogisticsAnswer and generate_grounded_logistics_answer() to rag_logistics.py, with an evidence-only prompt and a deterministic fallback on LLMError (4/4 grounded_answer tests); its review telemetry was corrected to delegated/review/review-only (OI-23) and it finalized using the corrected override. Next is C54 (grounded-policy-answer, Nova).",
   "phase": 2,
-  "last_completed_commit": "52A",
-  "next_commit": "53",
-  "next_commit_name": "grounded-logistics-answer",
+  "last_completed_commit": "53",
+  "next_commit": "54",
+  "next_commit_name": "grounded-policy-answer",
   "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
