@@ -1953,4 +1953,50 @@ C46-C55 range, not just C51-C55.
 
 ---
 
+## D52 — Open Proposal: Structured Attribution for SPLIT_REQUIRED + Claude-Direct Completion
+
+- **Date:** 2026-06-15
+- **Decided by:** Not yet decided — recorded as an open proposal at Eran's request
+- **Status:** Open (tracked as OI-22 in project-state.json). No template or tooling
+  change applied yet.
+
+### Context
+
+C50 and C51 both followed the same pattern: Nova (delegated) implemented the
+core module but returned `SPLIT_REQUIRED` before finishing the required
+tests (budget exhaustion). Claude-direct then wrote the remaining tests with
+no logic changes. Both commits landed with `Execution: Claude-direct` plus
+`Co-Authored-By: Nova` and a free-text `Note:` paragraph explaining the split.
+
+### The concern
+
+`Execution: Claude-direct` alone can misread as "Claude did the substantive
+work" when the delegated agent actually built the core logic/module and
+Claude only completed a small, bounded remainder (e.g. a test file). The real
+division of labor is currently only discoverable by reading the free-text
+`Note:` block.
+
+### Proposal under consideration
+
+A structured way to record the split, e.g.:
+- An `Execution: Nova (primary, SPLIT_REQUIRED) + Claude-direct (completion)`
+  line in the commit message template, replacing the single `Execution:` value
+  for this case, or
+- A dedicated field (commit message and/or worklog/dashboard) distinguishing
+  "primary implementor" from "completing executor" for split commits.
+
+### Related gap noted
+
+The C51 commit message cites "DECISIONS.md D52" for this split, but D52 did
+not exist until this entry. If this proposal is adopted, fold the C50 and C51
+incidents into the resulting design rather than writing separate retroactive
+entries.
+
+### Next step
+
+Design and approve a concrete template/dashboard change with Eran before
+applying it to future split commits (C55+).
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
