@@ -5,40 +5,29 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-15 · C50 pending approval*
+*Last updated: 2026-06-15 · C51 pending approval*
 
-**Last completed:** C50 `logistics-graph-evidence` — pending approval (Eran)
+**Last completed:** C51 `minimal-policy-evidence` — pending approval (Eran)
 **Currently active:** none
 **Blocked by:** none
 
-Tool usage: reads=6 (within 10), writes=1, total=18 (hit 18 cap, returned SPLIT_REQUIRED
-for the test file); 0 expansions used.
+Tool usage: reads=7 (within 10), writes=1, total=18 (hit 18 cap, returned SPLIT_REQUIRED
+for the test file); 2 expansions used.
 
-C50 added `GraphNode`/`GraphEdge`/`ProcurementGraph` (frozen dataclasses), `GraphNodeType`
-(`buyer|purchase_order|vendor|shipment|product|event`) and `GraphRelationship`
-(`placed_order|ordered_from|fulfilled_by|ships_via|contains|has_event`) Literal types,
-`_project_procurement_graph()`, and `lookup_procurement_graph()` to
-`backend/app/services/rag_logistics.py`. Node IDs are stable `<type>:<database-id>`.
-`highlighted_path` is ordered buyer -> purchase_order -> shipment -> (exception event if
-`evidence.delay.exception_event` is set, else the first product), matching the C50
-contract.
+C51 added `MIN_EVIDENCE_SCORE` (`0.35`), `PolicyEvidence` (frozen TypedDict),
+`fetch_chunk_candidates()` (joins `policy_chunks`/`policy_documents`), and
+`RAGPolicy.retrieve_evidence(db, text)` to `backend/app/services/rag_policy.py`. It
+embeds the query once, reuses C39's `fetch_vector_candidates` for profile/status
+filtering and top-5 truncation, discards scores below `MIN_EVIDENCE_SCORE`, and
+batch-fetches `policy_documents.title` for citations.
 
-**Orchestrator correction:** Nova hit the 18-tool-call cap with the implementation
-complete but the test file (`backend/tests/services/test_rag_logistics.py`) still only
-had the import-list update (`ProcurementGraph`/`lookup_procurement_graph` added to the
-import block) and returned `SPLIT_REQUIRED` with the 6 planned test names and a
-description of each. Eran approved Claude-direct to finish this mechanical work: Claude
-wrote the 6 test functions (`test_graph_full_procurement_chain_has_expected_nodes_and_edges`,
-`test_graph_node_ids_are_stable_and_typed`, `test_graph_no_orphan_edges`,
-`test_graph_highlighted_path_ordered_buyer_to_event`,
-`test_graph_highlighted_path_excludes_unrelated_products_and_events`,
-`test_graph_retrieved_at_is_recent_utc`) against Nova's existing fixtures/helpers, and
-simplified a redundant `if/else` in `_project_procurement_graph()` (both branches
-appended `shipment_node_id` to `highlighted_path`; collapsed to a single unconditional
-append, no logic change).
+**Orchestrator correction:** Nova hit the 18-tool-call cap with `rag_policy.py` complete
+but `test_rag_policy.py` only partially updated (fixtures/helpers applied, 4 planned
+tests not written) and returned `SPLIT_REQUIRED`. Eran approved Claude-direct to finish
+this mechanical work: added `_unit_vector()`/`FixedQueryEmbeddingService` test doubles
+and `TestRetrieveEvidence` (4 tests) against Nova's fixtures, no logic change.
 
-**Developer attention:** None — full file (19/19) and focused (`-k graph`, 6/6) tests
-pass.
+**Developer attention:** None — full file (10/10) tests pass.
 
 ---
 
