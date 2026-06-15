@@ -21,13 +21,16 @@ from app.models.shipment import Shipment
 from app.models.shipment_event import ShipmentEvent
 from app.models.user import User
 from app.models.vendor import Vendor
+from app.services.llm import ChatMessage, LLMError, LLMTimeoutError
 from app.services.rag_logistics import (
     IntentRouting,
+    LogisticsAnswer,
     ProcurementEvidence,
     ProcurementGraph,
     ShipmentEvidence,
     ShipmentNotFoundError,
     classify_intent,
+    generate_grounded_logistics_answer,
     lookup_procurement,
     lookup_procurement_graph,
     lookup_shipment,
@@ -565,3 +568,137 @@ def test_intent_routing_deduplicates_repeated_identifiers():
     routing = classify_intent("SHP-1234 and shp-1234 both refer to the same shipment.")
 
     assert routing.tracking_codes == ["SHP-1234"]
+
+
+class _FakeLLMService:
+    """Records the prompt passed to ``chat()`` and yields a fixed answer."""
+
+    def __init__(self, answer: str = "Generated answer.") -> None:
+        self.answer = answer
+        self.last_messages: list[ChatMessage] | None = None
+
+    async def chat(self, messages, *, stream: bool = True):
+        self.last_messages = list(messages)
+
+        async def _generator():
+            yield self.answer
+
+        return _generator()
+
+
+class _FailingLLMService:
+    """Raises ``LLMError`` (or a subclass) whenever ``chat()`` is called."""
+
+    def __init__(self, error: LLMError | None = None) -> None:
+        self.error = error or LLMTimeoutError("simulated timeout")
+
+    async def chat(self, messages, *, stream: bool = True):
+        raise self.error
+
+
+@pytest.mark.asyncio
+async def test_grounded_answer_prompt_contains_only_evidence(session: AsyncSession):
+    shipment = await _make_shipment(
+        session,
+        status="delayed",
+        delay_reason="Customs hold",
+        actual_arrival_at=None,
+    )
+    buyer = await _make_buyer(session)
+    order = await _make_purchase_order(session, shipment.vendor_id, buyer.id)
+    shipment.purchase_order_id = order.id
+    await session.flush()
+    await _make_product(session, shipment.id, name="Widget A")
+
+    llm = _FakeLLMService(answer="Your shipment is delayed due to a customs hold.")
+
+    result = await generate_grounded_logistics_answer(
+        session, llm, shipment.tracking_code, "What is the status of my shipment?"
+    )
+
+    assert isinstance(result, LogisticsAnswer)
+    assert result.answer == "Your shipment is delayed due to a customs hold."
+
+    assert llm.last_messages is not None
+    prompt_text = "\n".join(message.content for message in llm.last_messages)
+
+    # Evidence values appear in the prompt.
+    assert shipment.tracking_code in prompt_text
+    assert "delayed" in prompt_text
+    assert "Customs hold" in prompt_text
+    assert order.order_number in prompt_text
+    assert buyer.name in prompt_text
+    assert "Widget A" in prompt_text
+
+    # No SQL or internal query language leaks into the prompt.
+    assert "SELECT" not in prompt_text
+    assert "FROM " not in prompt_text
+
+
+@pytest.mark.asyncio
+async def test_grounded_answer_success_keeps_graph_unchanged(session: AsyncSession):
+    shipment = await _make_shipment(session)
+    buyer = await _make_buyer(session)
+    order = await _make_purchase_order(session, shipment.vendor_id, buyer.id)
+    shipment.purchase_order_id = order.id
+    await session.flush()
+    product = await _make_product(session, shipment.id, name="Widget")
+
+    expected_graph = await lookup_procurement_graph(session, shipment.tracking_code)
+
+    llm = _FakeLLMService(answer="Everything is on track.")
+
+    result = await generate_grounded_logistics_answer(
+        session, llm, shipment.tracking_code, "Is my shipment on track?"
+    )
+
+    assert result.answer == "Everything is on track."
+    assert {node.id for node in result.graph.nodes} == {node.id for node in expected_graph.nodes}
+    assert {(e.source, e.target, e.relationship) for e in result.graph.edges} == {
+        (e.source, e.target, e.relationship) for e in expected_graph.edges
+    }
+    assert result.graph.highlighted_path == expected_graph.highlighted_path
+    assert f"product:{product.id}" in {node.id for node in result.graph.nodes}
+
+
+@pytest.mark.asyncio
+async def test_grounded_answer_provider_failure_returns_deterministic_fallback(session: AsyncSession):
+    shipment = await _make_shipment(
+        session,
+        status="delayed",
+        delay_reason="Customs hold",
+        actual_arrival_at=None,
+    )
+    buyer = await _make_buyer(session)
+    order = await _make_purchase_order(session, shipment.vendor_id, buyer.id)
+    shipment.purchase_order_id = order.id
+    await session.flush()
+    await _make_product(session, shipment.id, name="Widget A", quantity=3, unit="box")
+
+    llm = _FailingLLMService()
+
+    result = await generate_grounded_logistics_answer(
+        session, llm, shipment.tracking_code, "What is the status of my shipment?"
+    )
+
+    assert isinstance(result, LogisticsAnswer)
+    assert shipment.tracking_code in result.answer
+    assert "delayed" in result.answer
+    assert "Customs hold" in result.answer
+    assert "Widget A" in result.answer
+    assert order.order_number in result.answer
+    assert buyer.name in result.answer
+
+    # Graph evidence is still returned even on provider failure.
+    assert isinstance(result.graph, ProcurementGraph)
+    assert any(node.id == f"shipment:{shipment.id}" for node in result.graph.nodes)
+
+
+@pytest.mark.asyncio
+async def test_grounded_answer_unknown_shipment_raises_not_found(session: AsyncSession):
+    llm = _FakeLLMService()
+
+    with pytest.raises(ShipmentNotFoundError):
+        await generate_grounded_logistics_answer(
+            session, llm, "TRK-DOES-NOT-EXIST", "Where is my shipment?"
+        )

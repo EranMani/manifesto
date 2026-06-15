@@ -1,7 +1,7 @@
 import datetime
 import re
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +12,9 @@ from app.models.shipment import Shipment, ShipmentStatus
 from app.models.shipment_event import ShipmentEvent, ShipmentEventType
 from app.models.user import User
 from app.models.vendor import Vendor
+
+if TYPE_CHECKING:
+    from app.services.llm import ChatMessage, LLMService
 
 # Statuses for which a delay/exception explanation is expected.
 EXCEPTION_STATUSES: frozenset[ShipmentStatus] = frozenset(
@@ -362,6 +365,206 @@ def _project_procurement_graph(evidence: ProcurementEvidence) -> ProcurementGrap
 async def lookup_procurement_graph(db: AsyncSession, tracking_code: str) -> ProcurementGraph:
     evidence = await lookup_procurement(db, tracking_code)
     return _project_procurement_graph(evidence)
+
+
+# --- Grounded logistics answer generation -------------------------------------
+
+
+@dataclass(frozen=True)
+class LogisticsAnswer:
+    """A grounded logistics response: complete answer text, evidence graph,
+    and suggested follow-up questions.
+
+    ``answer`` is either the LLM's generation (grounded only in
+    ``ProcurementEvidence``) or, on any ``LLMError``, a deterministic
+    fallback summary built directly from the evidence.
+    """
+
+    answer: str
+    graph: ProcurementGraph
+    follow_ups: list[str]
+
+
+_SYSTEM_PROMPT = (
+    "You are a logistics assistant. Answer the user's question using only the "
+    "evidence provided below. Do not invent shipment, order, vendor, buyer, "
+    "product, or timeline details that are not present in the evidence. If the "
+    "evidence does not contain the answer, say so plainly. Never mention SQL, "
+    "databases, or internal identifiers that are not part of the evidence."
+)
+
+_DEFAULT_FOLLOW_UPS: list[str] = [
+    "Would you like the full shipment timeline?",
+    "Do you want details on the products in this shipment?",
+    "Should I check the related purchase order status?",
+]
+
+
+def _format_timestamp(value: datetime.datetime | None) -> str:
+    if value is None:
+        return "unknown"
+    return value.isoformat()
+
+
+def _format_evidence_for_prompt(evidence: ProcurementEvidence) -> str:
+    """Render ``evidence`` as a plain-text block containing only retrieved facts.
+
+    No field is invented: optional relationships (purchase order, buyer, delay)
+    are described as "not on file" when absent rather than omitted silently,
+    so the model cannot fill the gap with a guess.
+    """
+    shipment = evidence.shipment
+    lines: list[str] = [
+        "Shipment:",
+        f"  tracking_code: {shipment.tracking_code}",
+        f"  status: {shipment.status}",
+        f"  origin: {shipment.origin}",
+        f"  destination: {shipment.destination}",
+        f"  dispatched_at: {_format_timestamp(shipment.dispatched_at)}",
+        f"  expected_arrival_at: {_format_timestamp(shipment.expected_arrival_at)}",
+        f"  actual_arrival_at: {_format_timestamp(shipment.actual_arrival_at)}",
+    ]
+
+    lines.append("Vendor:")
+    lines.append(f"  name: {evidence.vendor.name}")
+    lines.append(f"  country: {evidence.vendor.country or 'not on file'}")
+
+    if evidence.purchase_order is not None:
+        order = evidence.purchase_order
+        lines.append("Purchase order:")
+        lines.append(f"  order_number: {order.order_number}")
+        lines.append(f"  status: {order.status}")
+        lines.append(f"  ordered_at: {_format_timestamp(order.ordered_at)}")
+        lines.append(
+            f"  requested_delivery_at: {_format_timestamp(order.requested_delivery_at)}"
+        )
+    else:
+        lines.append("Purchase order: not on file")
+
+    if evidence.buyer is not None:
+        lines.append("Buyer:")
+        lines.append(f"  name: {evidence.buyer.name}")
+    else:
+        lines.append("Buyer: not on file")
+
+    if evidence.products:
+        lines.append("Products:")
+        for product in evidence.products:
+            unit = product.unit or "unit"
+            lines.append(f"  - {product.name}: {product.quantity} {unit}")
+    else:
+        lines.append("Products: not on file")
+
+    if evidence.timeline:
+        lines.append("Timeline:")
+        for event in evidence.timeline:
+            details = f" ({event.details})" if event.details else ""
+            lines.append(
+                f"  - {_format_timestamp(event.occurred_at)} {event.event_type}"
+                f" at {event.location}{details}"
+            )
+    else:
+        lines.append("Timeline: not on file")
+
+    if evidence.delay is not None:
+        lines.append("Delay:")
+        lines.append(f"  reason: {evidence.delay.reason}")
+        if evidence.delay.exception_event is not None:
+            exception_event = evidence.delay.exception_event
+            details = f" ({exception_event.details})" if exception_event.details else ""
+            lines.append(
+                f"  exception_event: {_format_timestamp(exception_event.occurred_at)}"
+                f" {exception_event.event_type} at {exception_event.location}{details}"
+            )
+        else:
+            lines.append("  exception_event: not on file")
+    else:
+        lines.append("Delay: none reported")
+
+    return "\n".join(lines)
+
+
+def _build_logistics_prompt(question: str, evidence: ProcurementEvidence) -> "list[ChatMessage]":
+    from app.services.llm import ChatMessage
+
+    evidence_block = _format_evidence_for_prompt(evidence)
+    user_content = (
+        f"Evidence:\n{evidence_block}\n\n"
+        f"Question: {question}\n\n"
+        "Answer using only the evidence above."
+    )
+    return [
+        ChatMessage(role="system", content=_SYSTEM_PROMPT),
+        ChatMessage(role="user", content=user_content),
+    ]
+
+
+def _deterministic_fallback(evidence: ProcurementEvidence) -> str:
+    """Build a deterministic summary of ``evidence`` for use when the LLM is
+    unavailable. Reports status, delay reason, vendor, buyer/order, products,
+    and timing -- never invents fields absent from the evidence.
+    """
+    shipment = evidence.shipment
+    parts: list[str] = [
+        f"Shipment {shipment.tracking_code} is currently '{shipment.status}'.",
+        f"It shipped from {shipment.origin} to {shipment.destination}, "
+        f"dispatched {_format_timestamp(shipment.dispatched_at)} with an expected "
+        f"arrival of {_format_timestamp(shipment.expected_arrival_at)}.",
+    ]
+
+    if shipment.actual_arrival_at is not None:
+        parts.append(f"It actually arrived {_format_timestamp(shipment.actual_arrival_at)}.")
+
+    if evidence.delay is not None:
+        parts.append(f"Delay reason: {evidence.delay.reason}.")
+
+    parts.append(f"Vendor: {evidence.vendor.name}.")
+
+    if evidence.purchase_order is not None:
+        order = evidence.purchase_order
+        buyer_part = f" placed by {evidence.buyer.name}" if evidence.buyer is not None else ""
+        parts.append(
+            f"Purchase order {order.order_number} ({order.status}){buyer_part}."
+        )
+
+    if evidence.products:
+        product_list = ", ".join(
+            f"{product.name} ({product.quantity} {product.unit or 'unit'})"
+            for product in evidence.products
+        )
+        parts.append(f"Products: {product_list}.")
+
+    return " ".join(parts)
+
+
+async def generate_grounded_logistics_answer(
+    db: AsyncSession,
+    llm: "LLMService",
+    tracking_code: str,
+    question: str,
+) -> LogisticsAnswer:
+    """Generate a grounded logistics answer for ``question`` about ``tracking_code``.
+
+    Builds a provider-neutral prompt containing only retrieved
+    ``ProcurementEvidence`` and the user's question, then calls
+    ``LLMService.chat()`` with ``stream=False`` to obtain a complete answer.
+    On any ``LLMError`` (timeout, rate limit, provider unavailable, etc.),
+    returns a deterministic summary of the evidence instead. The evidence
+    graph is always returned unchanged regardless of generation outcome.
+    """
+    from app.services.llm import LLMError
+
+    evidence = await lookup_procurement(db, tracking_code)
+    graph = _project_procurement_graph(evidence)
+
+    try:
+        messages = _build_logistics_prompt(question, evidence)
+        chunks = await llm.chat(messages, stream=False)
+        answer = "".join([chunk async for chunk in chunks])
+    except LLMError:
+        answer = _deterministic_fallback(evidence)
+
+    return LogisticsAnswer(answer=answer, graph=graph, follow_ups=list(_DEFAULT_FOLLOW_UPS))
 
 
 class RAGLogistics:
