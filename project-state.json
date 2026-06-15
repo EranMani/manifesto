@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C51 (minimal-policy-evidence) is committed (4ebe64f). backend/app/services/rag_policy.py gains MIN_EVIDENCE_SCORE (0.35), PolicyEvidence (frozen TypedDict), fetch_chunk_candidates(), and RAGPolicy.retrieve_evidence(db, text): embeds the query once, reuses C39's fetch_vector_candidates for profile/status filtering and top-5 truncation, discards scores below 0.35, and batch-fetches policy_documents.title for citations. Nova implemented rag_policy.py fully but returned SPLIT_REQUIRED (18/18 tool calls, 59,387 tokens) with test_rag_policy.py only partially updated; Claude-direct wrote the 4 TestRetrieveEvidence tests (10/10 full file). verify_constraints all_pass (--execution claude-direct): files=3/4, diff_lines=325/350. No gate wave at C51 (Viktor's C46-C50 wave remains deferred to C55, combined as C46-C55 per OI-21). Next is C52 (assistant-intent-routing, Nova).",
+  "tldr": "C52 (assistant-intent-routing) is committed (62540f2). backend/app/services/rag_logistics.py gains AssistantIntent (logistics|policy|mixed), frozen IntentRouting (intent, confidence, tracking_codes, purchase_order_numbers, reason), and classify_intent(text): SHP-#### / PO-YYYY-### identifiers (normalized uppercase, deduped, sorted) select logistics; policy-topic terms select policy; both select mixed; ambiguous questions default to logistics with confidence 0.5 and no guessed identifier. Nova (delegated) completed all in-scope work in one invocation (65,322 tokens, over the 45,000/60,000 caps but no repair needed, OI-16/OI-21 pattern); 8 new -k intent tests pass. verify_constraints all_pass (--execution delegated): files=3/4, diff_lines=221/350. Orchestrator corrected nova-worklog.md's session structure (split overwritten Current State into Session 11 (C51) and Session 12 (C52)) and a misclassified C52 telemetry scope (logged as OI-23). No gate wave at C52 (Viktor's C46-C50 wave remains deferred to C55, combined as C46-C55 per OI-21). Next is C53 (grounded-logistics-answer, Nova).",
   "phase": 2,
-  "last_completed_commit": "51",
-  "next_commit": "52",
-  "next_commit_name": "assistant-intent-routing",
+  "last_completed_commit": "52",
+  "next_commit": "53",
+  "next_commit_name": "grounded-logistics-answer",
   "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
@@ -277,6 +277,14 @@
       "id": "OI-22",
       "title": "Formalize 'delegated agent did the work, Claude completed it' attribution for SPLIT_REQUIRED + Claude-direct completion",
       "detail": "C50 and C51 both had Nova return SPLIT_REQUIRED with the core implementation complete but tests missing (budget exhaustion); Claude-direct finished the remaining tests with no logic changes. Both commits landed with `Execution: Claude-direct` plus `Co-Authored-By: Nova` and an ad-hoc free-text `Note:` paragraph explaining the split. Eran observed (2026-06-15) that `Execution: Claude-direct` alone can misleadingly read as 'Claude did the substantive work' when the delegated agent actually built the core module/logic and Claude only completed a small bounded remainder. Proposal to examine: a structured way to record this split in the commit message / worklog / dashboard -- e.g. an `Execution: Nova (primary, SPLIT_REQUIRED) + Claude-direct (completion)` line, or a dedicated field distinguishing 'primary implementor' from 'completing executor' -- so attribution is visible without parsing free-text. Separately noted: the C51 commit message cites 'DECISIONS.md D52' for this split, but D52 was never written (only D51 exists, covering C50) -- if this OI is actioned, either write D52 retroactively or fold both C50 and C51 into a single decision entry. Not yet designed or actioned.",
+      "priority": "medium",
+      "opened": "2026-06-15",
+      "status": "open"
+    },
+    {
+      "id": "OI-23",
+      "title": "direct_execution_lifecycle.py auto-opens a claude-direct/full-execution telemetry scope during delegated commits",
+      "detail": "During C52 (delegated to Nova), the orchestrator's own `git diff -- backend/app/services/rag_logistics.py` review command (run after Nova's invocation, to inspect the diff per CLAUDE.md step 6a) matched a planned-file path in `_targets_commit()`'s Bash-command check, causing `direct_execution_lifecycle.py` to auto-activate a `claude-direct`/`execution`/`full-execution` telemetry scope for C52 -- even though C52's executor is Nova (delegated). `finalize_commit.py` then failed with a 'Claude telemetry metadata mismatch' error (execution_mode/scope_kind/capture_window all wrong for a delegated commit). Worked around by directly correcting the three fields in `.context/telemetry/C52-orchestrator.json` to `delegated`/`review`/`review-only` before re-running finalize_commit.py (the captured read/write/search/command evidence itself was legitimate review-scope activity, only the metadata was wrong). Same family as the C47B telemetry-lifecycle-overwrite issue. Needs a deterministic fix in `_targets_commit()`/`ensure_direct_scope()` (hooks/direct_execution_lifecycle.py, Adam's domain): for a delegated active commit, an orchestrator Bash command referencing a planned file (e.g. `git diff`) should not activate a claude-direct execution scope -- only Edit/Write tool events against planned files by Claude should do that, and even then only for claude-direct commits.",
       "priority": "medium",
       "opened": "2026-06-15",
       "status": "open"

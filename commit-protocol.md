@@ -75,7 +75,7 @@
 | 49 | shipment-timeline-evidence | nova | ✅ done · 2026-06-15 |
 | 50 | logistics-graph-evidence | nova | ✅ done · 2026-06-15 |
 | 51 | minimal-policy-evidence | nova | ✅ done · 2026-06-15 |
-| 52 | assistant-intent-routing | nova | pending |
+| 52 | assistant-intent-routing | nova | ✅ done · 2026-06-15 |
 | 53 | grounded-logistics-answer | nova | pending |
 | 54 | grounded-policy-answer | nova | pending |
 | 55 | assistant-role-authorization | rex | pending |
