@@ -18,12 +18,12 @@ import constraint_dashboard as cd  # noqa: E402
 
 
 def test_package_cell_claude_direct_scope_unavailable():
-    assert "Execution scope unavailable" in cd._package_cell({}, "claude-direct")
+    assert "File review unavailable" in cd._package_cell({}, "claude-direct")
 
 
 def test_package_cell_claude_direct_legacy_preview():
     pkg = {"budget_utilization_percent": None}
-    assert "Execution scope unavailable" in cd._package_cell(pkg, "claude-direct")
+    assert "File review unavailable" in cd._package_cell(pkg, "claude-direct")
 
 
 def test_package_cell_claude_direct_renders_scope_coverage():
@@ -33,21 +33,24 @@ def test_package_cell_claude_direct_renders_scope_coverage():
         "planned_read_percent": 100.0,
         "supporting_reads": ["backend/app/models.py"],
     })
-    assert "2 / 2 (100.0%)" in rendered
-    assert "1 preselected support" in rendered
-    assert "Graph-selected dependency" in rendered
+    assert "reviewed 2 of 2 target files" in rendered
+    assert "0 extra context" in rendered
+    assert "Extra context files were opened" in rendered
 
 
 def test_package_cell_delegated_with_data():
     pkg = {"selected_files": 4, "estimated_chars": 14889}
-    rendered = cd._package_cell(pkg, "delegated")
-    assert "4" in rendered
-    assert "14,889" in rendered
+    rendered = cd._package_cell(
+        pkg, "delegated", usage={"selected_files_read": 3}
+    )
+    assert "Reviewed 3 of 4" in rendered
+    assert "context files" in rendered
 
 
 def test_package_cell_delegated_unknown_falls_back():
     rendered = cd._package_cell({}, "delegated")
-    assert "Unknown" in rendered
+    assert "Reviewed" in rendered
+    assert "context files" in rendered
 
 
 def test_file_evidence_supporting_change_has_explanation():
@@ -60,8 +63,22 @@ def test_file_evidence_supporting_change_has_explanation():
             "missing_planned_files": [],
         }
     })
-    assert "2 / 2 (100.0%)" in rendered
-    assert "Changed files outside the planned product files" in rendered
+    assert "Changed 2 main files" in rendered
+    assert "1 support file" in rendered
+    assert "Support files are related tests" in rendered
+
+
+def test_file_evidence_calls_out_unfinished_planned_files():
+    rendered = cd._file_evidence_cell({
+        "coverage": {
+            "planned_files": 3,
+            "planned_files_changed": 2,
+            "supporting_changes": [],
+            "missing_planned_files": ["backend/app/missing.py"],
+        }
+    })
+    assert "Changed 2 of 3 main files" in rendered
+    assert "1 not changed" in rendered
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +99,7 @@ def test_claude_direct_orch_cell_renders_measured_scope():
     rendered = cd._claude_direct_orch_cell(scope)
     assert "Not tracked" not in rendered
     assert "5" in rendered
-    assert "partial" in rendered
+    assert "covered only part" in rendered
 
 
 def test_claude_direct_zero_requires_complete_capture():
@@ -254,10 +271,15 @@ def test_render_dashboard_claude_direct_row_not_created(tmp_path):
     cd.render_dashboard(tmp_path, output_path=out_path)
     html_out = out_path.read_text(encoding="utf-8")
 
-    assert "Execution scope unavailable" in html_out
+    assert "File review unavailable" in html_out
     assert "Not delegated" in html_out
-    assert "Not captured" in html_out
-    assert "<th>Commit</th><th>Domain</th><th>Owner</th><th>Executor</th>" in html_out
+    assert "N/A" in html_out
+    assert 'class="badge execution-direct">Direct</span>' in html_out
+    assert "<th>Execution</th><th>Final executor</th>" in html_out
+    assert (
+        "<th>Agent usage</th><th>Agent actions</th>"
+        "<th>Claude active</th><th>Claude actions</th>"
+    ) in html_out
 
 
 def test_render_dashboard_legacy_preview_package_label(tmp_path):
@@ -281,7 +303,7 @@ def test_render_dashboard_legacy_preview_package_label(tmp_path):
     cd.render_dashboard(tmp_path, output_path=out_path)
     html_out = out_path.read_text(encoding="utf-8")
 
-    assert "Execution scope unavailable" in html_out
+    assert "File review unavailable" in html_out
 
 
 def test_render_dashboard_delegated_row_shows_tokens_and_package(tmp_path):
@@ -305,9 +327,70 @@ def test_render_dashboard_delegated_row_shows_tokens_and_package(tmp_path):
     cd.render_dashboard(tmp_path, output_path=out_path)
     html_out = out_path.read_text(encoding="utf-8")
 
-    assert "348889" in html_out
-    assert "5" in html_out
-    assert "20,000" in html_out
+    assert "<strong>349K</strong>" in html_out
+    assert "348,889 tokens" in html_out
+    assert "Reviewed 3 of 5" in html_out
+    assert "Delegated</span>" in html_out
+
+
+def test_render_dashboard_delegated_then_claude_shows_split_attribution(tmp_path):
+    record = {
+        "commit": "C50",
+        "agent": "nova",
+        "execution": "claude-direct",
+        "tokens": 3577240,
+        "identity": {
+            "owner": "nova",
+            "executor": "claude",
+            "execution_mode": "claude-direct",
+            "domain": "AI/ML",
+        },
+        "execution_attribution": {
+            "delegated": True,
+            "delegated_agent": "nova",
+            "claude_intervened": True,
+            "final_executor": "claude",
+            "tokens": {"agent": 61276, "claude": 3577240},
+        },
+        "package": {},
+        "scope": {},
+        "evidence": {},
+        "capture": {"status": "complete"},
+        "telemetry": {
+            "agent": {"status": "available", "tool_calls": 18},
+            "orchestrator": {
+                "status": "available",
+                "tool_calls": 37,
+                "token_usage": {
+                    "status": "complete",
+                    "components": {
+                        "input_tokens": 78,
+                        "output_tokens": 32089,
+                        "cache_creation_input_tokens": 66652,
+                        "cache_read_input_tokens": 3478421,
+                    },
+                },
+            },
+        },
+        "usage": {},
+        "boundaries": {"forbidden_clean": True, "changed_files": []},
+        "result": "PASS",
+    }
+    _write_metrics(tmp_path, [record])
+
+    out_path = tmp_path / "constraint-dashboard.html"
+    cd.render_dashboard(tmp_path, output_path=out_path)
+    html_out = out_path.read_text(encoding="utf-8")
+
+    assert 'class="badge execution-intervened">Delegated &rarr; Claude' in html_out
+    assert "<strong>61K</strong>" in html_out
+    assert "61,276 tokens" in html_out
+    assert "<strong>99K</strong> active" in html_out
+    assert "3.5M cached" in html_out
+    assert "Cached context read: 3,478,421 tokens" in html_out
+    assert "<strong>Nova:</strong> reviewed" in html_out
+    assert "<strong>Claude:</strong>" in html_out
+    assert "Not delegated" not in html_out
 
 
 def test_render_dashboard_unknown_execution_treated_as_delegated(tmp_path):
@@ -332,5 +415,6 @@ def test_render_dashboard_unknown_execution_treated_as_delegated(tmp_path):
     cd.render_dashboard(tmp_path, output_path=out_path)
     html_out = out_path.read_text(encoding="utf-8")
 
-    assert "37486" in html_out
+    assert "<strong>37K</strong>" in html_out
+    assert "37,486 tokens" in html_out
     assert "Not created (Claude-direct)" not in html_out

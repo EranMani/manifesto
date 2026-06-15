@@ -5489,6 +5489,16 @@
       "commit": "C50",
       "agent": "nova",
       "execution": "claude-direct",
+      "execution_attribution": {
+        "delegated": true,
+        "delegated_agent": "nova",
+        "claude_intervened": true,
+        "final_executor": "claude",
+        "tokens": {
+          "agent": 61276,
+          "claude": 3577240
+        }
+      },
       "identity": {
         "owner": "nova",
         "executor": "claude",
@@ -5771,6 +5781,16 @@
       "commit": "C51",
       "agent": "nova",
       "execution": "claude-direct",
+      "execution_attribution": {
+        "delegated": true,
+        "delegated_agent": "nova",
+        "claude_intervened": true,
+        "final_executor": "claude",
+        "tokens": {
+          "agent": 59387,
+          "claude": 4533147
+        }
+      },
       "identity": {
         "owner": "nova",
         "executor": "claude",

@@ -382,38 +382,124 @@ def json_for_script(value: Any) -> str:
 
 
 def _scope_cell(scope: dict[str, Any] | None) -> str:
-    """Render an agent or orchestrator tool-call count with a source badge."""
+    """Render an action count, with technical provenance in a tooltip."""
     if scope is None or scope.get("status") == "unavailable":
         return '<span style="color:#94a3b8">N/A</span>'
     tool_calls = scope.get("tool_calls")
     calls_text = str(tool_calls) if tool_calls is not None else "N/A"
     source = scope.get("source", "unknown")
-    source_styles = {
-        "self_report": ("background:#eff6ff;color:#1d4ed8", "self-report"),
-        "hooks": ("background:#f0fdf4;color:#166534", "hooks"),
+    source_labels = {
+        "self_report": "Reported by the delegated agent.",
+        "hooks": "Measured automatically by workflow telemetry.",
     }
-    style, label = source_styles.get(source, ("background:#f8fafc;color:#64748b", source))
-    badge_html = (
-        f'<span style="{style};border-radius:3px;padding:1px 5px;'
-        f'font-size:10px;font-weight:500;margin-left:4px">{label}</span>'
-    )
-    return f"{calls_text}{badge_html}"
+    explanation = source_labels.get(source, f"Telemetry source: {source}.")
+    return f"{calls_text} {_info_tip(explanation)}"
 
 
 def _expansion_cell(agent_scope: dict[str, Any] | None) -> str:
-    """Render expansion count, or Unknown when path-level data is absent."""
+    """Render extra research in business-readable language."""
     if agent_scope is None or agent_scope.get("status") == "unavailable":
-        return '<span style="color:#94a3b8">Unknown</span>'
+        return _not_applicable()
     expansions = agent_scope.get("expansions")
     if expansions is None:
-        return '<span style="color:#94a3b8">Unknown</span>'
+        return _not_applicable()
     n = len(expansions) if isinstance(expansions, list) else int(expansions)
-    color = "#16a34a" if n == 0 else "#dc2626"
-    return f'<span style="color:{color};font-weight:500">{n}</span>'
+    if n == 0:
+        return '<span style="color:#16a34a;font-weight:500">None</span>'
+    return (
+        f'<span style="color:#9a3412;font-weight:500">{n} extra '
+        f'{"file" if n == 1 else "files"}</span> '
+        + _info_tip("Files opened beyond the context originally prepared for the agent.")
+    )
 
 
-def _not_applicable(label: str = "Not applicable") -> str:
+def _not_applicable(label: str = "N/A") -> str:
     return f'<span style="color:#94a3b8">{label}</span>'
+
+
+def _execution_badge(record: dict[str, Any]) -> str:
+    attribution = record.get("execution_attribution", {})
+    if attribution.get("delegated") and attribution.get("claude_intervened"):
+        return '<span class="badge execution-intervened">Delegated &rarr; Claude</span>'
+    execution = (
+        record.get("identity", {}).get("execution_mode")
+        or record.get("execution", "unknown")
+    )
+    if execution == "claude-direct":
+        return '<span class="badge execution-direct">Direct</span>'
+    if execution == "delegated":
+        return '<span class="badge good">Delegated</span>'
+    return '<span class="badge neutral">Unknown</span>'
+
+
+def _execution_tokens(
+    record: dict[str, Any], participant: str
+) -> int | None:
+    attribution = record.get("execution_attribution", {})
+    token_usage = attribution.get("tokens", {})
+    if participant in token_usage:
+        return token_usage[participant]
+    execution = (
+        record.get("identity", {}).get("execution_mode")
+        or record.get("execution", "unknown")
+    )
+    if participant == "agent" and execution != "claude-direct":
+        return record.get("tokens")
+    if participant == "claude" and execution == "claude-direct":
+        return record.get("tokens")
+    return None
+
+
+def _execution_token_cell(record: dict[str, Any], participant: str) -> str:
+    tokens = _execution_tokens(record, participant)
+    if participant == "claude":
+        token_usage = (
+            record.get("telemetry", {})
+            .get("orchestrator", {})
+            .get("token_usage", {})
+        )
+        components = token_usage.get("components", {})
+        if token_usage.get("status") == "complete" and components:
+            input_tokens = int(components.get("input_tokens", 0))
+            output_tokens = int(components.get("output_tokens", 0))
+            cache_created = int(components.get("cache_creation_input_tokens", 0))
+            cache_read = int(components.get("cache_read_input_tokens", 0))
+            active = input_tokens + output_tokens + cache_created
+            active_text = _compact_tokens(active)
+            cached_text = _compact_tokens(cache_read)
+            tooltip = (
+                f"Active: {active:,} tokens "
+                f"(input {input_tokens:,}, output {output_tokens:,}, "
+                f"cache creation {cache_created:,}). "
+                f"Cached context read: {cache_read:,} tokens."
+            )
+            cached_line = (
+                f'<span style="color:#64748b;font-size:11px">{cached_text} cached</span>'
+                if cache_read
+                else ""
+            )
+            return (
+                f"<strong>{active_text}</strong> active {_info_tip(tooltip)}"
+                f"{'<br>' + cached_line if cached_line else ''}"
+            )
+    if tokens is not None:
+        compact = _compact_tokens(tokens)
+        return f"<strong>{compact}</strong> {_info_tip(f'Exact usage: {tokens:,} tokens.')}"
+    execution = (
+        record.get("identity", {}).get("execution_mode")
+        or record.get("execution", "unknown")
+    )
+    if participant == "claude" and execution == "claude-direct":
+        return _not_applicable()
+    return _not_applicable()
+
+
+def _compact_tokens(tokens: int) -> str:
+    if tokens >= 1_000_000:
+        return f"{tokens / 1_000_000:.1f}M"
+    if tokens >= 1_000:
+        return f"{round(tokens / 1_000):.0f}K"
+    return str(tokens)
 
 
 def _info_tip(text: str) -> str:
@@ -441,87 +527,90 @@ def _claude_direct_orch_cell(
         return _not_applicable("Capture incomplete")
     rendered = _scope_cell(orch_scope)
     if not capture or capture.get("status") != "complete":
-        rendered += (
-            '<span style="background:#fff7ed;color:#9a3412;border-radius:3px;'
-            'padding:1px 5px;font-size:10px;font-weight:500;margin-left:4px">'
-            "partial</span>"
-        )
+        rendered += _info_tip("Activity capture covered only part of the execution.")
     return rendered
 
 
 def _package_cell(
-    pkg: dict[str, Any], execution: str, scope: dict[str, Any] | None = None
+    pkg: dict[str, Any],
+    execution: str,
+    scope: dict[str, Any] | None = None,
+    usage: dict[str, Any] | None = None,
+    attribution: dict[str, Any] | None = None,
 ) -> str:
-    """Render deterministic direct scope or the delegated context package."""
-    if execution == "claude-direct":
-        if scope and scope.get("planned_files"):
-            planned = int(scope["planned_files"])
-            read = int(scope.get("planned_files_read", 0))
-            percent = scope.get("planned_read_percent")
-            supporting = len(scope.get("supporting_reads", []))
-            expansions = len(scope.get("expansion_reads", []))
-            extra = (
-                f" · {supporting} preselected support "
-                + _info_tip(
-                    "Graph-selected dependency or contract files included before Claude started, so no repository-wide discovery was needed."
-                )
-                if supporting
-                else ""
-            )
-            if expansions:
-                extra += (
-                    f" · {expansions} expansions "
-                    + _info_tip(
-                        "Files read outside the deterministic package during execution. Each expansion should have a recorded reason."
-                    )
-                )
-            return f"<strong>{read} / {planned} ({percent:.1f}%)</strong>{extra}"
-        return _not_applicable("Execution scope unavailable")
+    """Render a plain-language summary of context files used."""
+    usage = usage or {}
+    attribution = attribution or {}
     selected = pkg.get("selected_files")
-    chars = pkg.get("estimated_chars")
-    selected_text = str(selected) if selected is not None else "Unknown"
-    chars_text = f"{chars:,}" if chars is not None else "Unknown"
-    return f"<strong>{selected_text}</strong> files / {chars_text} chars"
+    agent_reviewed = usage.get("selected_files_read")
+    if attribution.get("delegated") and attribution.get("claude_intervened"):
+        agent = str(attribution.get("delegated_agent", "Agent")).title()
+        agent_line = (
+            f"<strong>{html.escape(agent)}:</strong> reviewed "
+            f"{metric_value(agent_reviewed)} of {metric_value(selected)} context files"
+        )
+        return f"{agent_line}<br>{_direct_file_summary(scope, 'Claude: ')}"
+    if execution == "claude-direct":
+        return _direct_file_summary(scope)
+    return (
+        f"<strong>Reviewed {metric_value(agent_reviewed)} of "
+        f"{metric_value(selected)}</strong> context files "
+        + _info_tip(
+            "Context files were provided to help the delegated agent understand the task. Reviewed files were actually opened."
+        )
+    )
+
+
+def _direct_file_summary(
+    scope: dict[str, Any] | None, prefix: str = ""
+) -> str:
+    if not scope or not scope.get("planned_files"):
+        if prefix:
+            return f"<strong>{html.escape(prefix.rstrip())}</strong> {_not_applicable()}"
+        return _not_applicable("File review unavailable")
+    planned = int(scope["planned_files"])
+    reviewed = int(scope.get("planned_files_read", 0))
+    additional = len(scope.get("expansion_reads", []))
+    label = (
+        f"<strong>{html.escape(prefix.rstrip())}</strong> "
+        if prefix
+        else ""
+    )
+    return (
+        f"{label}reviewed {reviewed} of {planned} target files"
+        f" &middot; {additional} extra context "
+        + _info_tip(
+            "Target files were the main files named for the task. Extra context files were opened when more information was needed."
+        )
+    )
 
 
 def _file_evidence_cell(evidence: dict[str, Any]) -> str:
     coverage = evidence.get("coverage", {})
     planned = coverage.get("planned_files")
     changed = coverage.get("planned_files_changed")
-    percent = coverage.get("planned_change_percent")
     if not planned:
-        return _not_applicable("Planned scope unavailable")
+        return _not_applicable("Change details unavailable")
     extras = len(coverage.get("supporting_changes", []))
     missing = len(coverage.get("missing_planned_files", []))
-    notes = []
+    main_label = "main file" if planned == 1 else "main files"
+    summary = (
+        f"<strong>Changed {changed} {main_label}</strong>"
+        if changed == planned
+        else f"<strong>Changed {changed} of {planned} {main_label}</strong>"
+    )
+    notes: list[str] = []
     if extras:
-        notes.append(
-            f"+{extras} supporting "
-            + _info_tip(
-                "Changed files outside the planned product files, such as required worklogs or generated records."
-            )
-        )
+        notes.append(f"{extras} support {'file' if extras == 1 else 'files'}")
     if missing:
-        notes.append(f"{missing} missing")
-    suffix = f" · {' · '.join(notes)}" if notes else ""
-    return f"<strong>{changed} / {planned} ({percent:.1f}%)</strong>{suffix}"
-
-
-def _combined_cell(
-    agent_scope: dict[str, Any] | None,
-    orch_scope: dict[str, Any] | None,
-) -> str:
-    """Render combined tool call total. N/A only when both scopes are unavailable."""
-    a_calls: int | None = None
-    o_calls: int | None = None
-    if agent_scope and agent_scope.get("status") != "unavailable":
-        a_calls = agent_scope.get("tool_calls")
-    if orch_scope and orch_scope.get("status") != "unavailable":
-        o_calls = orch_scope.get("tool_calls")
-    if a_calls is None and o_calls is None:
-        return '<span style="color:#94a3b8">N/A</span>'
-    total = (a_calls or 0) + (o_calls or 0)
-    return f'<strong>{total}</strong>'
+        notes.append(f"{missing} not changed")
+    suffix = f" &middot; {' &middot; '.join(notes)}" if notes else ""
+    return (
+        f"{summary}{suffix} "
+        + _info_tip(
+            "Main files deliver the task itself. Support files are related tests, worklogs, generated records, or other files needed to complete it."
+        )
+    )
 
 
 def _is_expansion_free(record: dict[str, Any]) -> bool | None:
@@ -878,35 +967,23 @@ def render_dashboard(
             or ("Claude" if execution == "claude-direct" else owner)
         ).title()
         domain = str(identity.get("domain") or "Unknown")
+        used_cell = _file_evidence_cell(evidence)
 
         if execution == "claude-direct":
-            tokens_cell = (
-                metric_value(record.get("tokens"))
-                if record.get("tokens") is not None
-                else _not_applicable("Not captured")
+            package_cell = _package_cell(
+                pkg, execution, scope, usage, record.get("execution_attribution")
             )
-            package_cell = _package_cell(pkg, execution, scope)
-            used_cell = _file_evidence_cell(evidence)
-            agent_cell = _not_applicable("Not delegated")
+            agent_cell = (
+                _scope_cell(agent_scope)
+                if record.get("execution_attribution", {}).get("delegated")
+                else _not_applicable("Not delegated")
+            )
             orch_cell = _claude_direct_orch_cell(orch_scope, capture)
-            combined_cell = (
-                _not_applicable("Capture incomplete")
-                if (not capture or capture.get("status") != "complete")
-                and (orch_scope or {}).get("tool_calls") == 0
-                else _combined_cell(None, orch_scope)
-            )
             expansion_cell = _not_applicable()
         else:
-            selected = pkg.get("selected_files")
-            selected_text = str(selected) if selected is not None else "Unknown"
-            used = usage.get("selected_files_read")
-            use_pct = usage.get("selected_utilization_percent")
-            tokens_cell = metric_value(record.get("tokens"))
-            package_cell = _package_cell(pkg, execution)
-            used_cell = f"{metric_value(used)} / {selected_text} ({metric_value(use_pct, '%')})"
+            package_cell = _package_cell(pkg, execution, usage=usage)
             agent_cell = _scope_cell(agent_scope)
             orch_cell = _scope_cell(orch_scope)
-            combined_cell = _combined_cell(agent_scope, orch_scope)
             expansion_cell = _expansion_cell(agent_scope)
 
         metric_rows += (
@@ -914,20 +991,21 @@ def render_dashboard(
             f"<td>{badge(record.get('commit', '-'))}</td>"
             f"<td>{html.escape(domain)}</td>"
             f"<td>{html.escape(owner)}</td>"
+            f"<td>{_execution_badge(record)}</td>"
             f"<td>{html.escape(executor)}</td>"
-            f"<td>{tokens_cell}</td>"
+            f"<td>{_execution_token_cell(record, 'agent')}</td>"
+            f"<td>{agent_cell}</td>"
+            f"<td>{_execution_token_cell(record, 'claude')}</td>"
+            f"<td>{orch_cell}</td>"
             f"<td>{package_cell}</td>"
             f"<td>{used_cell}</td>"
-            f"<td>{agent_cell}</td>"
-            f"<td>{orch_cell}</td>"
-            f"<td>{combined_cell}</td>"
             f"<td>{expansion_cell}</td>"
-            f"<td>{badge('clean' if boundary.get('forbidden_clean') else 'violation', boundary.get('forbidden_clean'))}</td>"
+            f"<td>{badge('Yes' if boundary.get('forbidden_clean') else 'No', boundary.get('forbidden_clean'))}</td>"
             "</tr>"
         )
     if not metric_rows:
         metric_rows = (
-            '<tr><td colspan="12" class="empty">Measurements begin with the next '
+            '<tr><td colspan="13" class="empty">Measurements begin with the next '
             'verified live delegation.</td></tr>'
         )
 
@@ -961,7 +1039,7 @@ def render_dashboard(
 .table-wrap{overflow:auto;border:1px solid #e3e9f1;border-radius:9px}table{width:100%;border-collapse:collapse;white-space:nowrap}
 th{background:#f7f9fc;color:#69778e;font-size:10px;text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:10px 12px}
 td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff}.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#edf2f7;color:#455468;font-size:11px;font-weight:600}
-.badge.good{background:#e8f7ef;color:#157347}.badge.bad{background:#fdebec;color:#b4232c}.empty{text-align:center;color:#7b8798;padding:24px}.legend{color:#67758a;font-size:12px;margin-top:10px}
+.badge.good{background:#e8f7ef;color:#157347}.badge.bad{background:#fdebec;color:#b4232c}.badge.execution-direct{background:#e0f2fe;color:#0369a1}.badge.execution-intervened{background:#fef3c7;color:#92400e}.empty{text-align:center;color:#7b8798;padding:24px}.legend{color:#67758a;font-size:12px;margin-top:10px}
 .info-tip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#e2e8f0;color:#475569;font-size:10px;font-weight:700;cursor:help;vertical-align:middle}.info-tip:after{content:attr(data-tip);display:none;position:absolute;z-index:20;left:50%;bottom:calc(100% + 7px);transform:translateX(-50%);width:230px;white-space:normal;padding:8px 10px;border-radius:6px;background:#172033;color:#fff;font-size:11px;font-weight:400;line-height:1.35;box-shadow:0 6px 18px #0f172a40}.info-tip:hover:after,.info-tip:focus:after{display:block}
 .graph-controls{display:grid;grid-template-columns:1.2fr 1.6fr auto auto;gap:10px;align-items:end;margin-bottom:12px}.field label{display:block;color:#718096;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
 .field input,.field select,.graph-button{width:100%;border:1px solid #cfd9e6;background:#fff;border-radius:7px;padding:8px 10px;color:#263449}.graph-button{width:auto;cursor:pointer;font-weight:600}
@@ -986,7 +1064,7 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
         ("Full capture", f"{full_capture}/{measured}" if measured else "-"),
         ("Claude-direct", direct_commits),
         ("Delegated", delegated_commits),
-        ("Boundary clean", f"{boundary_clean}/{measured}" if measured else "-"),
+        ("Stayed in scope", f"{boundary_clean}/{measured}" if measured else "-"),
     ]
     cards_html = "".join(
         f'<div class="card"><span>{label}</span><strong>{value}</strong></div>'
@@ -1014,10 +1092,10 @@ td{padding:10px 12px;border-top:1px solid #edf1f5}tr:hover td{background:#fafcff
 <section><div class="section-head"><div><h2>Execution observability</h2>
 <p>Deterministic evidence for direct and delegated work, with capture limits shown explicitly.</p></div></div>
 <div class="cards">{cards_html}</div>
-<div class="table-wrap"><table><thead><tr><th>Commit</th><th>Domain</th><th>Owner</th><th>Executor</th><th>Tokens</th><th>Execution scope</th>
-<th>File evidence</th><th>Delegated calls</th><th>Claude calls</th><th>Combined</th><th>Expansions</th><th>Boundary</th></tr></thead>
+<div class="table-wrap"><table><thead><tr><th>Commit</th><th>Domain</th><th>Owner</th><th>Execution</th><th>Final executor</th><th>Agent usage</th><th>Agent actions</th><th>Claude active</th><th>Claude actions</th><th>Context used</th>
+<th>Delivery</th><th>Extra research</th><th>Stayed in scope</th></tr></thead>
 <tbody>{metric_rows}</tbody></table></div>
-<p class="legend">Domain comes from the owner registry. File evidence compares spec-planned files with Git-derived changes. Claude token totals remain unavailable unless they can be attributed to one commit. Partial means the hook count is real but its capture window did not cover the full execution.</p></section>
+<p class="legend">Context used shows what each executor read. Delivery shows the main task files and support files changed. Claude token totals remain unavailable unless they can be attributed to one commit. Partial means the hook count is real but its capture window did not cover the full execution.</p></section>
 <section><div class="section-head"><div><h2>Constraint history</h2>
 <p>Existing checks for upfront context, forbidden paths, tool budget, and result.</p></div></div>
 <div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>Agent</th><th>Tokens</th>
