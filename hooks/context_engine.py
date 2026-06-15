@@ -268,6 +268,21 @@ def _parse_change_files(spec: str) -> list[str]:
     ]
 
 
+def _parse_execution_budget(spec: str) -> dict[str, int]:
+    block_match = re.search(
+        r"## execution budget\s*```(?:yaml)?\s*(.*?)```",
+        spec,
+        re.DOTALL | re.IGNORECASE,
+    )
+    block = block_match.group(1) if block_match else ""
+    parsed: dict[str, int] = {}
+    for key in ("max_context_files", "max_context_chars"):
+        match = re.search(rf"^\s*{key}:\s*(\d+)\s*$", block, re.MULTILINE)
+        if match:
+            parsed[key] = int(match.group(1))
+    return parsed
+
+
 def infer_task_kind(spec: str, change_files: list[str]) -> str:
     heading = spec.splitlines()[0].lower() if spec else ""
     if "fix-" in heading or "bug" in heading:
@@ -429,6 +444,7 @@ class ContextPackageBuilder:
             raise FileNotFoundError(f"Commit spec not found: {spec_path}")
         spec = spec_path.read_text(encoding="utf-8")
         context = _parse_context_block(spec)
+        execution_budget = _parse_execution_budget(spec)
         change_files = _parse_change_files(spec)
         selected: dict[str, SelectedFile] = {}
 
@@ -559,34 +575,66 @@ class ContextPackageBuilder:
                 unresolved.append({"path": path, "reason": "selected file does not exist yet"})
 
         budget = self.rules.get("budget", {})
-        max_files = int(budget.get("max_files", 12))
+        configured_max_files = int(budget.get("max_files", 12))
+        max_files = (
+            min(
+                configured_max_files,
+                execution_budget.get("max_context_files", configured_max_files),
+            )
+            if self.mode in {"preflight", "live"}
+            else configured_max_files
+        )
         max_chars_per_file = int(budget.get("max_chars_per_file", 6000))
         usable_chars = int(budget.get("max_total_chars", 30000)) - int(
             budget.get("reserve_chars", 6000)
         )
-        priority = {
-            "primary": 0,
-            "identity": 1,
-            "worklog": 1,
-            "contract": 2,
-            "test": 3,
-            "structural": 4,
-            "dependency": 5,
-            "hub": 6,
-        }
+        if self.mode in {"preflight", "live"}:
+            usable_chars = min(
+                usable_chars,
+                execution_budget.get("max_context_chars", usable_chars),
+            )
+        priority = (
+            {
+                "primary": 0,
+                "test": 1,
+                "identity": 2,
+                "worklog": 3,
+                "contract": 4,
+                "structural": 4,
+                "dependency": 5,
+                "hub": 6,
+            }
+            if self.mode in {"preflight", "live"}
+            else {
+                "primary": 0,
+                "identity": 1,
+                "worklog": 1,
+                "contract": 2,
+                "test": 3,
+                "structural": 4,
+                "dependency": 5,
+                "hub": 6,
+            }
+        )
         ordered = sorted(
             selected.values(),
             key=lambda item: (
-                1
-                if "commit spec initial_context" in item.reasons
-                else priority.get(item.category, 9),
+                (
+                    priority.get(item.category, 9)
+                    if self.mode in {"preflight", "live"}
+                    else 1
+                    if "commit spec initial_context" in item.reasons
+                    else priority.get(item.category, 9)
+                ),
                 item.path,
             ),
         )
 
         included: list[dict[str, Any]] = []
         excluded: list[dict[str, Any]] = []
+        pruned_optional: list[dict[str, Any]] = []
         used_chars = 0
+        required_categories = {"primary", "test", "identity", "worklog"}
         for item in ordered:
             charged = min(item.chars, max_chars_per_file) if item.exists else 0
             record = {
@@ -604,8 +652,13 @@ class ContextPackageBuilder:
                 ),
             }
             if len(included) >= max_files or used_chars + charged > usable_chars:
-                record["excluded_reason"] = "context budget"
-                excluded.append(record)
+                if item.category in required_categories:
+                    record["excluded_reason"] = "required file exceeds context budget"
+                    excluded.append(record)
+                else:
+                    record["excluded_reason"] = "optional file pruned by deterministic rank"
+                    record["prune_rank"] = priority.get(item.category, 9)
+                    pruned_optional.append(record)
                 continue
             included.append(record)
             used_chars += charged
@@ -619,7 +672,11 @@ class ContextPackageBuilder:
         if unresolved:
             expansion_triggers.append("one or more selected files do not exist yet")
         if excluded:
-            expansion_triggers.append("candidate files excluded by context budget")
+            expansion_triggers.append("required candidate files excluded by context budget")
+        if pruned_optional:
+            expansion_triggers.append(
+                "optional context pruned to fit budget; use targeted expansion if required"
+            )
 
         return {
             "schema_version": 2,
@@ -631,6 +688,7 @@ class ContextPackageBuilder:
             "graph": self.graph_metadata,
             "files": included,
             "excluded_candidates": excluded,
+            "pruned_optional_candidates": pruned_optional,
             "forbidden_edits": context["forbidden"],
             "unresolved": unresolved,
             "expansion_triggers": expansion_triggers,

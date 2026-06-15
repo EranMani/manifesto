@@ -15,7 +15,7 @@ HOOKS_DIR = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "context_repo"
 sys.path.insert(0, str(HOOKS_DIR))
 
-from context_engine import load_rules  # noqa: E402
+from context_engine import ContextPackageBuilder, load_rules  # noqa: E402
 from prepare_agent_delegation import PreflightBlocked, main, prepare  # noqa: E402
 
 
@@ -307,6 +307,68 @@ class PrepareAgentDelegationTests(unittest.TestCase):
             self.assertIn("Implementor token budget: 45000. Absolute commit token budget: 60000.", brief)
             self.assertIn("If the work cannot finish by call 18, also return:", brief)
             self.assertNotIn("By call 6, implementation must have started", brief)
+
+    def test_optional_context_is_pruned_deterministically_to_spec_budget(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            shutil.copytree(FIXTURE_ROOT, root)
+            (root / "project-state.json").write_text(
+                json.dumps({
+                    "next_commit": "1",
+                    "next_commit_assignee": "aria",
+                    "open_handoffs": [],
+                }),
+                encoding="utf-8",
+            )
+            spec_path = root / "commit-specs" / "commit-01.md"
+            spec = spec_path.read_text(encoding="utf-8")
+            spec = spec.replace(
+                "## context",
+                "## Execution Budget\n\n"
+                "```yaml\n"
+                "execution_budget:\n"
+                "  max_context_files: 6\n"
+                "  max_context_chars: 350\n"
+                "```\n\n"
+                "## context",
+            ).replace(
+                "tier0:\n",
+                "initial_context:\n"
+                "  - frontend/src/optional-a.ts\n"
+                "  - frontend/src/optional-b.ts\n\n"
+                "tier0:\n",
+            )
+            spec_path.write_text(spec, encoding="utf-8")
+            (root / "frontend" / "src" / "optional-a.ts").write_text(
+                "a" * 200, encoding="utf-8"
+            )
+            (root / "frontend" / "src" / "optional-b.ts").write_text(
+                "b" * 200, encoding="utf-8"
+            )
+            package = ContextPackageBuilder(
+                root,
+                self.rules,
+                mode="preflight",
+            ).build("1", "aria")
+
+            self.assertLessEqual(
+                package["budget"]["estimated_selected_chars"],
+                350,
+            )
+            self.assertEqual(package["excluded_candidates"], [])
+            pruned_paths = [
+                item["path"] for item in package["pruned_optional_candidates"]
+            ]
+            self.assertEqual(pruned_paths, sorted(pruned_paths))
+            self.assertIn("frontend/src/optional-a.ts", pruned_paths)
+            self.assertIn("frontend/src/optional-b.ts", pruned_paths)
+            self.assertTrue(
+                all(
+                    item["excluded_reason"]
+                    == "optional file pruned by deterministic rank"
+                    for item in package["pruned_optional_candidates"]
+                )
+            )
 
     def test_brief_execution_constraints_match_greenfield_budget(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
