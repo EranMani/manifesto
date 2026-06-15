@@ -23,9 +23,11 @@ from app.models.user import User
 from app.models.vendor import Vendor
 from app.services.rag_logistics import (
     ProcurementEvidence,
+    ProcurementGraph,
     ShipmentEvidence,
     ShipmentNotFoundError,
     lookup_procurement,
+    lookup_procurement_graph,
     lookup_shipment,
 )
 
@@ -344,3 +346,155 @@ async def test_procurement_relationships_excludes_sensitive_user_fields(session:
     vendor_fields = vars(evidence.vendor)
     assert "email" not in vendor_fields
     assert "contact" not in vendor_fields
+
+
+@pytest.mark.asyncio
+async def test_graph_full_procurement_chain_has_expected_nodes_and_edges(session: AsyncSession):
+    shipment = await _make_shipment(session)
+    buyer = await _make_buyer(session)
+    order = await _make_purchase_order(session, shipment.vendor_id, buyer.id)
+    shipment.purchase_order_id = order.id
+    await session.flush()
+
+    product = await _make_product(session, shipment.id, name="Widget")
+    event = await _make_event(session, shipment.id, event_type="dispatched", occurred_at=_NOW)
+
+    graph = await lookup_procurement_graph(session, shipment.tracking_code)
+
+    assert isinstance(graph, ProcurementGraph)
+    node_ids = {node.id for node in graph.nodes}
+    assert f"buyer:{buyer.id}" in node_ids
+    assert f"purchase_order:{order.id}" in node_ids
+    assert f"vendor:{shipment.vendor_id}" in node_ids
+    assert f"shipment:{shipment.id}" in node_ids
+    assert f"product:{product.id}" in node_ids
+    assert f"event:{event.id}" in node_ids
+
+    edge_tuples = {(edge.source, edge.target, edge.relationship) for edge in graph.edges}
+    assert (f"buyer:{buyer.id}", f"purchase_order:{order.id}", "placed_order") in edge_tuples
+    assert (f"purchase_order:{order.id}", f"vendor:{shipment.vendor_id}", "ordered_from") in edge_tuples
+    assert (f"purchase_order:{order.id}", f"shipment:{shipment.id}", "fulfilled_by") in edge_tuples
+    assert (f"vendor:{shipment.vendor_id}", f"shipment:{shipment.id}", "ships_via") in edge_tuples
+    assert (f"shipment:{shipment.id}", f"product:{product.id}", "contains") in edge_tuples
+    assert (f"shipment:{shipment.id}", f"event:{event.id}", "has_event") in edge_tuples
+
+
+@pytest.mark.asyncio
+async def test_graph_node_ids_are_stable_and_typed(session: AsyncSession):
+    shipment = await _make_shipment(session)
+    buyer = await _make_buyer(session)
+    order = await _make_purchase_order(session, shipment.vendor_id, buyer.id)
+    shipment.purchase_order_id = order.id
+    await session.flush()
+    await _make_product(session, shipment.id)
+
+    graph = await lookup_procurement_graph(session, shipment.tracking_code)
+
+    for node in graph.nodes:
+        prefix, _, database_id = node.id.partition(":")
+        assert prefix == node.type
+        assert database_id
+    assert {node.type for node in graph.nodes} >= {
+        "buyer",
+        "purchase_order",
+        "vendor",
+        "shipment",
+        "product",
+    }
+
+
+@pytest.mark.asyncio
+async def test_graph_no_orphan_edges(session: AsyncSession):
+    shipment = await _make_shipment(session)
+    buyer = await _make_buyer(session)
+    order = await _make_purchase_order(session, shipment.vendor_id, buyer.id)
+    shipment.purchase_order_id = order.id
+    await session.flush()
+    await _make_product(session, shipment.id)
+    await _make_event(session, shipment.id)
+
+    graph = await lookup_procurement_graph(session, shipment.tracking_code)
+
+    node_ids = {node.id for node in graph.nodes}
+    for edge in graph.edges:
+        assert edge.source in node_ids
+        assert edge.target in node_ids
+    for highlighted_id in graph.highlighted_path:
+        assert highlighted_id in node_ids
+
+
+@pytest.mark.asyncio
+async def test_graph_highlighted_path_ordered_buyer_to_event(session: AsyncSession):
+    shipment = await _make_shipment(
+        session,
+        status="delayed",
+        delay_reason="Customs hold",
+        actual_arrival_at=None,
+    )
+    buyer = await _make_buyer(session)
+    order = await _make_purchase_order(session, shipment.vendor_id, buyer.id)
+    shipment.purchase_order_id = order.id
+    await session.flush()
+
+    exception_event = await _make_event(
+        session,
+        shipment.id,
+        event_type="delay_reported",
+        occurred_at=_NOW + datetime.timedelta(hours=1),
+        details="Customs hold confirmed",
+    )
+
+    graph = await lookup_procurement_graph(session, shipment.tracking_code)
+
+    assert graph.highlighted_path == [
+        f"buyer:{buyer.id}",
+        f"purchase_order:{order.id}",
+        f"shipment:{shipment.id}",
+        f"event:{exception_event.id}",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_graph_highlighted_path_excludes_unrelated_products_and_events(session: AsyncSession):
+    shipment = await _make_shipment(
+        session,
+        status="delayed",
+        delay_reason="Customs hold",
+        actual_arrival_at=None,
+    )
+    buyer = await _make_buyer(session)
+    order = await _make_purchase_order(session, shipment.vendor_id, buyer.id)
+    shipment.purchase_order_id = order.id
+    await session.flush()
+
+    product_a = await _make_product(session, shipment.id, name="Widget A")
+    product_b = await _make_product(session, shipment.id, name="Widget B")
+    dispatch_event = await _make_event(
+        session, shipment.id, event_type="dispatched", occurred_at=_NOW
+    )
+    exception_event = await _make_event(
+        session,
+        shipment.id,
+        event_type="delay_reported",
+        occurred_at=_NOW + datetime.timedelta(hours=1),
+        details="Customs hold confirmed",
+    )
+
+    graph = await lookup_procurement_graph(session, shipment.tracking_code)
+
+    assert graph.highlighted_path[-1] == f"event:{exception_event.id}"
+    assert f"product:{product_a.id}" not in graph.highlighted_path
+    assert f"product:{product_b.id}" not in graph.highlighted_path
+    assert f"event:{dispatch_event.id}" not in graph.highlighted_path
+
+
+@pytest.mark.asyncio
+async def test_graph_retrieved_at_is_recent_utc(session: AsyncSession):
+    shipment = await _make_shipment(session)
+
+    before = datetime.datetime.now(datetime.timezone.utc)
+    graph = await lookup_procurement_graph(session, shipment.tracking_code)
+    after = datetime.datetime.now(datetime.timezone.utc)
+
+    assert graph.retrieved_at.tzinfo is not None
+    assert before <= graph.retrieved_at <= after

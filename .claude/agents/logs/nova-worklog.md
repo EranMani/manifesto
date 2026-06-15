@@ -5,39 +5,39 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-15 · C49 pending approval*
+*Last updated: 2026-06-15 · C50 pending approval*
 
-**Last completed:** C49 `shipment-timeline-evidence` — pending approval (Eran)
+**Last completed:** C50 `logistics-graph-evidence` — pending approval (Eran)
 **Currently active:** none
 **Blocked by:** none
 
-Tool usage: reads=6 (within 10), writes=2, total=18 (within 18 cap); 1 expansion used
-(Grep over backend/app/models/shipment.py for `ShipmentStatus` values, to confirm
-`EXCEPTION_STATUSES` matches the model's literal exactly).
+Tool usage: reads=6 (within 10), writes=1, total=18 (hit 18 cap, returned SPLIT_REQUIRED
+for the test file); 0 expansions used.
 
-C49 added `ShipmentEventEvidence`/`DelayEvidence` (frozen dataclasses), `EXCEPTION_STATUSES`/
-`EXCEPTION_EVENT_TYPES` constants, `_shipment_event_evidence()`/`_load_timeline()`/
-`_delay_evidence()` helpers to `backend/app/services/rag_logistics.py`. `ProcurementEvidence`
-gains `timeline: list[ShipmentEventEvidence]` (all `ShipmentEvent` rows for the shipment,
-ordered by `(occurred_at, id)`) and `delay: DelayEvidence | None` — populated only when
-`shipment.status` is one of `delayed/damaged/partial/cancelled/returned/lost` AND
-`shipment.delay_reason` is set; `exception_event` is the latest timeline event whose
-`event_type` is in `EXCEPTION_EVENT_TYPES` (`delay_reported/damaged/partial_delivery/
-cancelled/returned/lost`), or `None` if no such event exists. No reason is invented when
-`delay_reason` is null. 6 new tests added to `backend/tests/services/test_rag_logistics.py`
-(all named `test_timeline_*` so `-k timeline` matches): chronological ordering, tie-break
-by id for simultaneous events, latest-exception-event mapping, on-track shipments have no
-delay evidence, missing-reason -> `delay is None`, missing-supporting-event ->
-`exception_event is None`.
+C50 added `GraphNode`/`GraphEdge`/`ProcurementGraph` (frozen dataclasses), `GraphNodeType`
+(`buyer|purchase_order|vendor|shipment|product|event`) and `GraphRelationship`
+(`placed_order|ordered_from|fulfilled_by|ships_via|contains|has_event`) Literal types,
+`_project_procurement_graph()`, and `lookup_procurement_graph()` to
+`backend/app/services/rag_logistics.py`. Node IDs are stable `<type>:<database-id>`.
+`highlighted_path` is ordered buyer -> purchase_order -> shipment -> (exception event if
+`evidence.delay.exception_event` is set, else the first product), matching the C50
+contract.
 
-**Orchestrator correction:** Nova hit the 18-tool-call cap with implementation complete
-but two new test functions still named without "timeline"
-(`test_delay_evidence_without_reason_is_not_invented` and
-`test_delay_evidence_without_supporting_event_has_no_exception_event`), so `-k timeline`
-would not have selected them. Claude renamed both to `test_timeline_delay_evidence_*`
-(mechanical rename only, no logic change).
+**Orchestrator correction:** Nova hit the 18-tool-call cap with the implementation
+complete but the test file (`backend/tests/services/test_rag_logistics.py`) still only
+had the import-list update (`ProcurementGraph`/`lookup_procurement_graph` added to the
+import block) and returned `SPLIT_REQUIRED` with the 6 planned test names and a
+description of each. Eran approved Claude-direct to finish this mechanical work: Claude
+wrote the 6 test functions (`test_graph_full_procurement_chain_has_expected_nodes_and_edges`,
+`test_graph_node_ids_are_stable_and_typed`, `test_graph_no_orphan_edges`,
+`test_graph_highlighted_path_ordered_buyer_to_event`,
+`test_graph_highlighted_path_excludes_unrelated_products_and_events`,
+`test_graph_retrieved_at_is_recent_utc`) against Nova's existing fixtures/helpers, and
+simplified a redundant `if/else` in `_project_procurement_graph()` (both branches
+appended `shipment_node_id` to `highlighted_path`; collapsed to a single unconditional
+append, no logic change).
 
-**Developer attention:** None — full file (13/13) and focused (`-k timeline`, 6/6) tests
+**Developer attention:** None — full file (19/19) and focused (`-k graph`, 6/6) tests
 pass.
 
 ---
@@ -160,6 +160,76 @@ No archived sessions yet.
 
 ---
 
+## Session 10 — C50 `logistics-graph-evidence` · 2026-06-15
+
+**Executor:** Nova (delegated, implementation) + Claude (direct, test completion per
+Eran's approval)
+**Status:** pending approval
+
+Tool usage: reads=6, writes=1, total=18 (Nova; hit cap, returned `SPLIT_REQUIRED` for
+the test file); 0 expansions used; 61,276 tokens (over the 45,000 implementor budget
+and the 60,000 absolute commit budget).
+
+### What was built
+
+`backend/app/services/rag_logistics.py` (Nova):
+- `GraphNodeType` (`buyer|purchase_order|vendor|shipment|product|event`) and
+  `GraphRelationship` (`placed_order|ordered_from|fulfilled_by|ships_via|contains|
+  has_event`) Literal types.
+- `GraphNode` (id, type, label), `GraphEdge` (source, target, relationship), and
+  `ProcurementGraph` (nodes, edges, highlighted_path, retrieved_at) frozen dataclasses.
+- `_project_procurement_graph(evidence)` projects a `ProcurementEvidence` into a
+  `ProcurementGraph`: stable `<type>:<database-id>` node IDs for buyer, purchase order,
+  vendor, shipment, products, and timeline events; allowlisted edges
+  (buyer-placed_order->order, order-ordered_from->vendor, order-fulfilled_by->shipment,
+  vendor-ships_via->shipment, shipment-contains->product, shipment-has_event->event).
+  `highlighted_path` is ordered buyer -> purchase_order -> shipment, extended with the
+  delay's `exception_event` if `evidence.delay.exception_event` is set, else the first
+  product if any products exist.
+- `lookup_procurement_graph(db, tracking_code)` — calls `lookup_procurement()` then
+  projects the graph.
+
+`backend/tests/services/test_rag_logistics.py` (+6 tests, `-k graph`):
+- `test_graph_full_procurement_chain_has_expected_nodes_and_edges` — full chain
+  (buyer/order/vendor/shipment/product/event) produces every expected node and edge
+  tuple.
+- `test_graph_node_ids_are_stable_and_typed` — every node id's `<type>:` prefix matches
+  `node.type`, and all six core node types are present.
+- `test_graph_no_orphan_edges` — every edge source/target and every highlighted-path id
+  resolves to a node in `graph.nodes`.
+- `test_graph_highlighted_path_ordered_buyer_to_event` — delayed shipment with a
+  `delay_reported` exception event produces
+  `highlighted_path == [buyer, purchase_order, shipment, event]` in that order.
+- `test_graph_highlighted_path_excludes_unrelated_products_and_events` — with two
+  products and a non-exception `dispatched` event plus the exception event, the
+  highlighted path ends at the exception event and excludes both products and the
+  unrelated event.
+- `test_graph_retrieved_at_is_recent_utc` — `retrieved_at` is timezone-aware and falls
+  between timestamps taken immediately before/after the call.
+
+### Orchestrator correction (Claude, per Eran's approval)
+
+Nova's implementation was complete and matched the contract, but Nova hit the
+18-tool-call cap before writing the test file — only the import-list update
+(`ProcurementGraph`/`lookup_procurement_graph` added to the import block) had been
+applied. Nova's `SPLIT_REQUIRED` report named the 6 test functions and described their
+intent but did not include test code. Eran approved Claude-direct to finish this as
+mechanical work (Nova's implementation was already fully understood and the existing
+fixtures/helpers in the test file were sufficient): Claude wrote all 6 test functions
+against Nova's `_make_shipment`/`_make_buyer`/`_make_purchase_order`/`_make_product`/
+`_make_event` helpers.
+
+Claude also simplified a redundant `if/else` in `_project_procurement_graph()`: both
+branches appended `shipment_node_id` to `highlighted_path` unconditionally — collapsed
+to one statement, no logic change.
+
+### Verification
+
+`docker compose run --rm backend uv run pytest tests/services/test_rag_logistics.py -k graph -q`
+→ **6 passed**; full file → **19 passed**.
+
+---
+
 ## Session Index
 
 | # | Commit | Status | Key Decision |
@@ -172,7 +242,8 @@ No archived sessions yet.
 | 6 | C39 `policy-vector-candidates` | committed 2026-06-14 (1f47067) | `RAGPolicy.fetch_vector_candidates()` filters to `status == "ready"` and a matching `EmbeddingProfile` (provider/model/dimensions), scores by cosine similarity, sorts by (-score, chunk_index) |
 | 7 | C47 `shipment-identifier-evidence` | committed 2026-06-14 (cc937ff) | `lookup_shipment()` normalizes tracking codes and returns `ShipmentEvidence` via one parameterized SELECT, raising `ShipmentNotFoundError` for blank/unmatched codes |
 | 8 | C48 `procurement-relationship-evidence` | committed 2026-06-14 (e22e885) | `lookup_procurement()` expands a shipment to its vendor, optional purchase order/buyer, and products (sorted by name then id) via allowlisted ORM selects |
-| 9 | C49 `shipment-timeline-evidence` | pending approval 2026-06-15 | `ProcurementEvidence` gains `timeline` (events ordered by `(occurred_at, id)`) and `delay` (current `delay_reason` plus latest matching exception event, never inferred) |
+| 9 | C49 `shipment-timeline-evidence` | committed 2026-06-15 (727a340) | `ProcurementEvidence` gains `timeline` (events ordered by `(occurred_at, id)`) and `delay` (current `delay_reason` plus latest matching exception event, never inferred) |
+| 10 | C50 `logistics-graph-evidence` | pending approval 2026-06-15 | Graph projection (`GraphNode`/`GraphEdge`/`ProcurementGraph`) with stable `<type>:<id>` node IDs, allowlisted edge relationships, and a `highlighted_path` ordered buyer -> purchase_order -> shipment -> event/product |
 
 ---
 

@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass
+from typing import Literal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -95,6 +96,44 @@ class ProcurementEvidence:
     products: list[ProductEvidence]
     timeline: list[ShipmentEventEvidence]
     delay: DelayEvidence | None
+
+
+# Stable node types for the logistics evidence graph.
+GraphNodeType = Literal[
+    "buyer", "purchase_order", "vendor", "shipment", "product", "event"
+]
+
+# Allowlisted edge relationships between node types.
+GraphRelationship = Literal[
+    "placed_order",
+    "ordered_from",
+    "fulfilled_by",
+    "ships_via",
+    "contains",
+    "has_event",
+]
+
+
+@dataclass(frozen=True)
+class GraphNode:
+    id: str
+    type: GraphNodeType
+    label: str
+
+
+@dataclass(frozen=True)
+class GraphEdge:
+    source: str
+    target: str
+    relationship: GraphRelationship
+
+
+@dataclass(frozen=True)
+class ProcurementGraph:
+    nodes: list[GraphNode]
+    edges: list[GraphEdge]
+    highlighted_path: list[str]
+    retrieved_at: datetime.datetime
 
 
 def _shipment_evidence(shipment: Shipment) -> ShipmentEvidence:
@@ -225,6 +264,103 @@ async def lookup_procurement(db: AsyncSession, tracking_code: str) -> Procuremen
         timeline=timeline,
         delay=_delay_evidence(shipment, timeline),
     )
+
+
+def _project_procurement_graph(evidence: ProcurementEvidence) -> ProcurementGraph:
+    nodes: list[GraphNode] = []
+    edges: list[GraphEdge] = []
+    highlighted_path: list[str] = []
+
+    shipment_node_id = f"shipment:{evidence.shipment.id}"
+    vendor_node_id = f"vendor:{evidence.vendor.id}"
+
+    buyer_node_id: str | None = None
+    order_node_id: str | None = None
+
+    if evidence.buyer is not None:
+        buyer_node_id = f"buyer:{evidence.buyer.id}"
+        nodes.append(GraphNode(id=buyer_node_id, type="buyer", label=evidence.buyer.name))
+        highlighted_path.append(buyer_node_id)
+
+    if evidence.purchase_order is not None:
+        order_node_id = f"purchase_order:{evidence.purchase_order.id}"
+        nodes.append(
+            GraphNode(
+                id=order_node_id,
+                type="purchase_order",
+                label=evidence.purchase_order.order_number,
+            )
+        )
+        if buyer_node_id is not None:
+            edges.append(
+                GraphEdge(
+                    source=buyer_node_id, target=order_node_id, relationship="placed_order"
+                )
+            )
+            highlighted_path.append(order_node_id)
+
+    nodes.append(GraphNode(id=vendor_node_id, type="vendor", label=evidence.vendor.name))
+    if order_node_id is not None:
+        edges.append(
+            GraphEdge(
+                source=order_node_id, target=vendor_node_id, relationship="ordered_from"
+            )
+        )
+
+    nodes.append(
+        GraphNode(
+            id=shipment_node_id, type="shipment", label=evidence.shipment.tracking_code
+        )
+    )
+    if order_node_id is not None:
+        edges.append(
+            GraphEdge(
+                source=order_node_id, target=shipment_node_id, relationship="fulfilled_by"
+            )
+        )
+    edges.append(
+        GraphEdge(source=vendor_node_id, target=shipment_node_id, relationship="ships_via")
+    )
+
+    highlighted_path.append(shipment_node_id)
+
+    for product in evidence.products:
+        product_node_id = f"product:{product.id}"
+        nodes.append(GraphNode(id=product_node_id, type="product", label=product.name))
+        edges.append(
+            GraphEdge(
+                source=shipment_node_id, target=product_node_id, relationship="contains"
+            )
+        )
+
+    for event in evidence.timeline:
+        event_node_id = f"event:{event.id}"
+        nodes.append(GraphNode(id=event_node_id, type="event", label=event.event_type))
+        edges.append(
+            GraphEdge(
+                source=shipment_node_id, target=event_node_id, relationship="has_event"
+            )
+        )
+
+    # Extend the highlighted path to the most relevant terminal node: the
+    # exception event explaining a delay, if one exists; otherwise the first
+    # product on the shipment, if any.
+    if evidence.delay is not None and evidence.delay.exception_event is not None:
+        highlighted_path.append(f"event:{evidence.delay.exception_event.id}")
+    elif evidence.products:
+        highlighted_path.append(f"product:{evidence.products[0].id}")
+
+    return ProcurementGraph(
+        nodes=nodes,
+        edges=edges,
+        highlighted_path=highlighted_path,
+        retrieved_at=datetime.datetime.now(datetime.timezone.utc),
+    )
+
+
+async def lookup_procurement_graph(db: AsyncSession, tracking_code: str) -> ProcurementGraph:
+    evidence = await lookup_procurement(db, tracking_code)
+    return _project_procurement_graph(evidence)
 
 
 class RAGLogistics:
