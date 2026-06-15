@@ -76,6 +76,7 @@
 | 50 | logistics-graph-evidence | nova | ✅ done · 2026-06-15 |
 | 51 | minimal-policy-evidence | nova | ✅ done · 2026-06-15 |
 | 52 | assistant-intent-routing | nova | ✅ done · 2026-06-15 |
+| 52A | claude-budget-and-cache-reduction | claude | done retrospectively · 796ef48 · 2026-06-15 |
 | 53 | grounded-logistics-answer | nova | pending |
 | 54 | grounded-policy-answer | nova | pending |
 | 55 | assistant-role-authorization | rex | pending |
