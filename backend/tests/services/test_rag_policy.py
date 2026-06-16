@@ -1,14 +1,18 @@
 """Tests for backend/app/services/rag_policy.py — query normalization, embedding,
-and vector candidate retrieval.
+vector candidate retrieval, and grounded policy/mixed answer generation.
 
 The minimal evidence retrieval tests run against a real PostgreSQL database
 (the docker-compose ``db`` service, resolved via DATABASE_URL inside the
 backend container). Each test runs inside its own transaction that is rolled
 back on teardown.
+
+Grounded-answer tests use async generator stubs for LLMService.chat() to
+avoid any provider dependency.
 """
 
 import math
 import os
+from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
@@ -16,7 +20,16 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.models.policy import PolicyChunk, PolicyDocument
 from app.services.llm import EmbeddingProfile
-from app.services.rag_policy import EmptyQueryError, MIN_EVIDENCE_SCORE, PolicyChunkCandidate, RAGPolicy
+from app.services.rag_policy import (
+    EmptyQueryError,
+    MIN_EVIDENCE_SCORE,
+    MixedAnswer,
+    PolicyAnswer,
+    PolicyChunkCandidate,
+    RAGPolicy,
+    generate_grounded_mixed_answer,
+    generate_grounded_policy_answer,
+)
 
 ACTIVE_PROFILE = EmbeddingProfile(provider="ollama", model="nomic-embed-text", dimensions=768)
 
@@ -299,3 +312,182 @@ class TestRetrieveEvidence:
         evidence = await policy.retrieve_evidence(session, "What is the policy?")
 
         assert len(evidence) == 5
+
+
+# ---------------------------------------------------------------------------
+# Grounded answer generation stubs
+# ---------------------------------------------------------------------------
+
+
+class _StubLLMService:
+    """Minimal LLM stub that returns a fixed answer string from chat()."""
+
+    def __init__(self, answer: str) -> None:
+        self._answer = answer
+
+    async def chat(self, messages: object, *, stream: bool = True) -> AsyncGenerator[str, None]:
+        answer = self._answer
+
+        async def _gen() -> AsyncGenerator[str, None]:
+            yield answer
+
+        return _gen()
+
+
+class _ErrorLLMService:
+    """LLM stub that raises LLMError on chat() to exercise the fallback path."""
+
+    async def chat(self, messages: object, *, stream: bool = True) -> AsyncGenerator[str, None]:
+        from app.services.llm import LLMError
+
+        raise LLMError("provider unavailable")
+
+
+class _StubLogisticsAnswer:
+    """Minimal logistics answer stub with a graph attribute."""
+
+    def __init__(self, answer: str, graph: object) -> None:
+        self.answer = answer
+        self.graph = graph
+
+
+class _StubProcurementEvidence:
+    """Placeholder evidence object — not inspected by generate_grounded_mixed_answer."""
+
+
+# ---------------------------------------------------------------------------
+# TestGroundedPolicyAnswer
+# ---------------------------------------------------------------------------
+
+
+class TestGroundedPolicyAnswer:
+    @pytest.mark.asyncio
+    async def test_grounded_answer_returns_citations(self, session: AsyncSession) -> None:
+        """When evidence is found, the answer comes from the LLM and citations trace to stored chunks."""
+        query_vector = _unit_vector(0)
+        document = await _make_document(session, title="Leave Policy Handbook")
+        chunk = await _make_chunk(
+            session,
+            document,
+            chunk_index=0,
+            content="Employees receive 20 days of annual leave.",
+            embedding=query_vector,
+            page_number=5,
+            section="Leave Entitlement",
+        )
+
+        llm = _StubLLMService("You are entitled to 20 days of annual leave.")
+        embeddings = FixedQueryEmbeddingService(query_vector)
+
+        result = await generate_grounded_policy_answer(session, llm, "How much leave do I get?", embeddings)  # type: ignore[arg-type]
+
+        assert isinstance(result, PolicyAnswer)
+        assert result.answer == "You are entitled to 20 days of annual leave."
+        assert len(result.citations) == 1
+        assert result.citations[0]["source_title"] == "Leave Policy Handbook"
+        assert result.citations[0]["chunk_id"] == chunk.id
+        assert result.citations[0]["section"] == "Leave Entitlement"
+        assert result.citations[0]["page_number"] == 5
+
+    @pytest.mark.asyncio
+    async def test_grounded_answer_insufficient_evidence_is_explicit(self, session: AsyncSession) -> None:
+        """When no evidence meets the threshold the answer is an explicit not-found statement."""
+        query_vector = _unit_vector(0)
+
+        # Insert a chunk with a weak (below-threshold) embedding so retrieve_evidence returns [].
+        weak_embedding = [0.2, math.sqrt(1 - 0.2**2)] + [0.0] * 766
+        document = await _make_document(session, title="Unrelated Policy")
+        await _make_chunk(
+            session,
+            document,
+            chunk_index=0,
+            content="Unrelated content.",
+            embedding=weak_embedding,
+        )
+
+        llm = _StubLLMService("should not be called")
+        embeddings = FixedQueryEmbeddingService(query_vector)
+
+        result = await generate_grounded_policy_answer(session, llm, "What is the leave policy?", embeddings)  # type: ignore[arg-type]
+
+        assert isinstance(result, PolicyAnswer)
+        assert "not found" in result.answer.lower()
+        assert result.citations == []
+
+    @pytest.mark.asyncio
+    async def test_grounded_answer_llm_error_returns_excerpt_summary(self, session: AsyncSession) -> None:
+        """On LLMError the answer is a deterministic excerpt summary; citations still trace to chunks."""
+        query_vector = _unit_vector(0)
+        document = await _make_document(session, title="Code of Conduct")
+        chunk = await _make_chunk(
+            session,
+            document,
+            chunk_index=0,
+            content="All employees must adhere to the code of conduct.",
+            embedding=query_vector,
+            page_number=1,
+            section="Introduction",
+        )
+
+        llm = _ErrorLLMService()
+        embeddings = FixedQueryEmbeddingService(query_vector)
+
+        result = await generate_grounded_policy_answer(session, llm, "What conduct is expected?", embeddings)  # type: ignore[arg-type]
+
+        assert isinstance(result, PolicyAnswer)
+        # The fallback must reference the source title, not invented content.
+        assert "Code of Conduct" in result.answer
+        assert "All employees must adhere" in result.answer
+        # Citations are still returned — the error is in generation, not retrieval.
+        assert len(result.citations) == 1
+        assert result.citations[0]["chunk_id"] == chunk.id
+
+
+# ---------------------------------------------------------------------------
+# TestGroundedMixedAnswer
+# ---------------------------------------------------------------------------
+
+
+class TestGroundedMixedAnswer:
+    @pytest.mark.asyncio
+    async def test_mixed_answer_preserves_separate_provenance(self, session: AsyncSession) -> None:
+        """Mixed answer keeps logistics graph and policy citations in distinct fields."""
+        query_vector = _unit_vector(0)
+        document = await _make_document(session, title="Procurement Policy")
+        chunk = await _make_chunk(
+            session,
+            document,
+            chunk_index=0,
+            content="All procurement must follow the approved vendor list.",
+            embedding=query_vector,
+            page_number=2,
+            section="Vendor Rules",
+        )
+
+        sentinel_graph = object()
+        logistics_answer = _StubLogisticsAnswer(
+            answer="Shipment SHP-001 is currently in transit.",
+            graph=sentinel_graph,
+        )
+        logistics_evidence = _StubProcurementEvidence()
+        llm = _StubLLMService("Shipment SHP-001 is in transit and must follow the approved vendor list.")
+        embeddings = FixedQueryEmbeddingService(query_vector)
+
+        result = await generate_grounded_mixed_answer(
+            session,
+            llm,  # type: ignore[arg-type]
+            "What is the policy for this shipment?",
+            embeddings,  # type: ignore[arg-type]
+            logistics_answer,  # type: ignore[arg-type]
+            logistics_evidence,  # type: ignore[arg-type]
+        )
+
+        assert isinstance(result, MixedAnswer)
+        # Graph is the unmodified logistics graph — not merged with policy.
+        assert result.graph is sentinel_graph
+        # Citations trace to the policy chunk, not the logistics evidence.
+        assert len(result.citations) == 1
+        assert result.citations[0]["chunk_id"] == chunk.id
+        assert result.citations[0]["source_title"] == "Procurement Policy"
+        # Answer text is set.
+        assert len(result.answer) > 0

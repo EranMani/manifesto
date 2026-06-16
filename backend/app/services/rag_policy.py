@@ -3,8 +3,8 @@
 Stage: normalize a user's policy query and embed it once with the deployment's
 active embedding profile (C38), then score profile-matched, ready chunk
 candidates by cosine similarity against that query vector (C39), and retrieve
-the top scoring chunks as cited evidence (C51). Fusion with lexical retrieval,
-answer generation, and metrics are later commits.
+the top scoring chunks as cited evidence (C51). Grounded answer generation and
+mixed logistics+policy answers are added in C54.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from __future__ import annotations
 import math
 import re
 import unicodedata
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypedDict
 
 from sqlalchemy import select
@@ -20,7 +21,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.policy import PolicyChunk, PolicyDocument
 
 if TYPE_CHECKING:
-    from app.services.llm import EmbeddingService
+    from app.services.llm import ChatMessage, EmbeddingService, LLMService
+    from app.services.rag_logistics import LogisticsAnswer, ProcurementEvidence
 
 _WHITESPACE_RUN = re.compile(r"\s+")
 
@@ -227,3 +229,194 @@ class RAGPolicy:
 
     async def query(self, text: str, top_k: int = 5) -> list[dict]:
         raise NotImplementedError
+
+
+# --- Grounded policy answer generation ----------------------------------------
+
+_POLICY_SYSTEM_PROMPT = (
+    "You are a policy assistant. Answer the user's question using only the "
+    "policy excerpts provided below. Do not invent policy rules, leave "
+    "entitlements, procedures, or document titles that are not present in the "
+    "excerpts. If the excerpts do not contain the answer, say so plainly. "
+    "Never mention databases, identifiers, or technical internals."
+)
+
+
+@dataclass(frozen=True)
+class PolicyAnswer:
+    """A grounded policy response: complete answer text and source citations.
+
+    ``answer`` is either the LLM's generation (grounded only in
+    ``PolicyEvidence``) or, on any ``LLMError``, a deterministic excerpt
+    summary built directly from the evidence. ``citations`` traces every
+    cited claim back to a stored ``policy_chunks`` row — nothing is invented.
+    If evidence was absent, ``citations`` is empty and ``answer`` states that
+    explicitly.
+    """
+
+    answer: str
+    citations: list[PolicyEvidence]
+
+
+@dataclass(frozen=True)
+class MixedAnswer:
+    """A grounded response combining logistics evidence and policy citations.
+
+    ``answer`` contains the full composite response text. ``graph`` carries the
+    unmodified logistics evidence graph (from ``LogisticsAnswer``). ``citations``
+    carries the policy ``PolicyEvidence`` items — the two provenances are always
+    kept separate so callers can distinguish logistics facts from policy rules.
+    """
+
+    answer: str
+    graph: object  # ProcurementGraph — typed as object to avoid circular import
+    citations: list[PolicyEvidence]
+
+
+def _format_policy_excerpts(evidence: list[PolicyEvidence]) -> str:
+    """Render ``evidence`` as a numbered plain-text block of policy excerpts.
+
+    Each item includes its source title, optional section and page, and the
+    chunk text. No content is invented: optional fields are omitted silently
+    when absent rather than filled with guesses.
+    """
+    parts: list[str] = []
+    for i, item in enumerate(evidence, start=1):
+        location_parts: list[str] = [item["source_title"]]
+        if item["section"]:
+            location_parts.append(item["section"])
+        if item["page_number"] is not None:
+            location_parts.append(f"p. {item['page_number']}")
+        location = ", ".join(location_parts)
+        parts.append(f"[{i}] {location}\n{item['excerpt']}")
+    return "\n\n".join(parts)
+
+
+def _build_policy_prompt(question: str, evidence: list[PolicyEvidence]) -> "list[ChatMessage]":
+    from app.services.llm import ChatMessage
+
+    excerpt_block = _format_policy_excerpts(evidence)
+    user_content = (
+        f"Policy excerpts:\n{excerpt_block}\n\n"
+        f"Question: {question}\n\n"
+        "Answer using only the excerpts above. Cite excerpt numbers where relevant."
+    )
+    return [
+        ChatMessage(role="system", content=_POLICY_SYSTEM_PROMPT),
+        ChatMessage(role="user", content=user_content),
+    ]
+
+
+def _excerpt_fallback(evidence: list[PolicyEvidence]) -> str:
+    """Build a deterministic excerpt summary when the LLM is unavailable.
+
+    Returns a plain concatenation of source labels and the first 200 characters
+    of each excerpt — never invented content.
+    """
+    parts: list[str] = []
+    for item in evidence:
+        location_parts: list[str] = [item["source_title"]]
+        if item["section"]:
+            location_parts.append(item["section"])
+        if item["page_number"] is not None:
+            location_parts.append(f"p. {item['page_number']}")
+        location = ", ".join(location_parts)
+        excerpt = item["excerpt"][:200]
+        parts.append(f"{location}: {excerpt}")
+    return " | ".join(parts)
+
+
+async def generate_grounded_policy_answer(
+    db: AsyncSession,
+    llm: "LLMService",
+    text: str,
+    embeddings: "EmbeddingService",
+) -> PolicyAnswer:
+    """Generate a grounded policy answer for ``text``.
+
+    Retrieves up to five ``PolicyEvidence`` items via ``RAGPolicy.retrieve_evidence``,
+    builds a provider-neutral prompt, and calls ``LLMService.chat()`` with
+    ``stream=False``. On any ``LLMError`` (timeout, rate limit, provider
+    unavailable) returns a deterministic excerpt summary instead. If no evidence
+    is retrieved, returns an explicit "not found" answer with empty citations.
+    """
+    from app.services.llm import LLMError
+
+    policy = RAGPolicy(embeddings=embeddings)
+    evidence = await policy.retrieve_evidence(db, text)
+
+    if not evidence:
+        return PolicyAnswer(
+            answer="The policy answer was not found in the available documents.",
+            citations=[],
+        )
+
+    try:
+        messages = _build_policy_prompt(text, evidence)
+        chunks = await llm.chat(messages, stream=False)
+        answer = "".join([chunk async for chunk in chunks])
+    except LLMError:
+        answer = _excerpt_fallback(evidence)
+
+    return PolicyAnswer(answer=answer, citations=list(evidence))
+
+
+async def generate_grounded_mixed_answer(
+    db: AsyncSession,
+    llm: "LLMService",
+    text: str,
+    embeddings: "EmbeddingService",
+    logistics_answer: "LogisticsAnswer",
+    logistics_evidence: "ProcurementEvidence",
+) -> MixedAnswer:
+    """Generate a grounded mixed answer combining logistics and policy evidence.
+
+    Retrieves policy evidence via ``RAGPolicy.retrieve_evidence``, then builds a
+    combined prompt that includes both the logistics answer and policy excerpts.
+    The resulting ``MixedAnswer`` always preserves ``graph`` (from
+    ``logistics_answer``) and ``citations`` (policy ``PolicyEvidence``) as
+    distinct fields — logistics facts and policy rules are never merged into a
+    single provenance. On any ``LLMError``, returns the logistics answer text
+    with a policy excerpt summary appended, and empty citations when no policy
+    evidence was found.
+    """
+    from app.services.llm import ChatMessage, LLMError
+
+    policy = RAGPolicy(embeddings=embeddings)
+    policy_evidence = await policy.retrieve_evidence(db, text)
+
+    policy_section = (
+        _format_policy_excerpts(policy_evidence)
+        if policy_evidence
+        else "No relevant policy excerpts found."
+    )
+
+    user_content = (
+        f"Logistics answer:\n{logistics_answer.answer}\n\n"
+        f"Policy excerpts:\n{policy_section}\n\n"
+        f"Question: {text}\n\n"
+        "Compose a combined answer using only the logistics answer and policy excerpts above. "
+        "Clearly distinguish logistics facts from policy rules. "
+        "Cite policy excerpt numbers where relevant."
+    )
+    messages: list[ChatMessage] = [
+        ChatMessage(role="system", content=_POLICY_SYSTEM_PROMPT),
+        ChatMessage(role="user", content=user_content),
+    ]
+
+    try:
+        chunks = await llm.chat(messages, stream=False)
+        answer = "".join([chunk async for chunk in chunks])
+    except LLMError:
+        policy_part = (
+            _excerpt_fallback(policy_evidence)
+            if policy_evidence
+            else "No relevant policy excerpts found."
+        )
+        answer = f"{logistics_answer.answer} Policy context: {policy_part}"
+
+    return MixedAnswer(
+        answer=answer,
+        graph=logistics_answer.graph,
+        citations=list(policy_evidence),
+    )
