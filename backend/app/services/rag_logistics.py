@@ -198,10 +198,10 @@ def _delay_evidence(
     if not shipment.delay_reason:
         return None
 
-    exception_event: ShipmentEventEvidence | None = None
-    for event in timeline:
-        if event.event_type in EXCEPTION_EVENT_TYPES:
-            exception_event = event
+    matching = [e for e in timeline if e.event_type in EXCEPTION_EVENT_TYPES]
+    exception_event = (
+        max(matching, key=lambda e: (e.occurred_at, e.id)) if matching else None
+    )
 
     return DelayEvidence(reason=shipment.delay_reason, exception_event=exception_event)
 
@@ -216,7 +216,11 @@ async def lookup_procurement(db: AsyncSession, tracking_code: str) -> Procuremen
 
     vendor = (
         await db.execute(select(Vendor).where(Vendor.id == shipment.vendor_id))
-    ).scalar_one()
+    ).scalar_one_or_none()
+    if vendor is None:
+        raise ShipmentNotFoundError(
+            f"vendor {shipment.vendor_id!r} for shipment {shipment.tracking_code!r} not found"
+        )
 
     purchase_order_evidence: PurchaseOrderEvidence | None = None
     buyer_evidence: BuyerEvidence | None = None

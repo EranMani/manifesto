@@ -702,3 +702,61 @@ async def test_grounded_answer_unknown_shipment_raises_not_found(session: AsyncS
         await generate_grounded_logistics_answer(
             session, llm, "TRK-DOES-NOT-EXIST", "Where is my shipment?"
         )
+
+
+@pytest.mark.asyncio
+async def test_lookup_procurement_raises_when_vendor_missing():
+    """Vendor lookup raises ShipmentNotFoundError (not NoResultFound) for a missing vendor row.
+
+    FK constraints make this unreachable in a well-constrained DB, so tested via mocks.
+    """
+    from unittest.mock import AsyncMock, MagicMock, patch
+    import app.services.rag_logistics as svc
+
+    mock_shipment = MagicMock()
+    mock_shipment.tracking_code = "TRK-ORPHAN"
+    mock_shipment.vendor_id = "dead-vendor-id"
+    mock_shipment.purchase_order_id = None
+    mock_shipment.id = "s-orphan"
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_session = MagicMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    with patch.object(svc, "_load_shipment", new_callable=AsyncMock, return_value=mock_shipment):
+        with pytest.raises(svc.ShipmentNotFoundError, match="dead-vendor-id"):
+            await svc.lookup_procurement(mock_session, "TRK-ORPHAN")
+
+
+@pytest.mark.asyncio
+async def test_delay_evidence_selects_latest_event_by_id_on_occurred_at_tie(session: AsyncSession):
+    """When two exception events share occurred_at, max() by id is the explicit tie-breaker."""
+    shipment = await _make_shipment(
+        session,
+        status="delayed",
+        delay_reason="Multiple alerts",
+        actual_arrival_at=None,
+    )
+    shared_time = _NOW + datetime.timedelta(hours=1)
+    first = await _make_event(
+        session,
+        shipment.id,
+        event_type="delay_reported",
+        occurred_at=shared_time,
+        details="Alert A",
+    )
+    second = await _make_event(
+        session,
+        shipment.id,
+        event_type="delay_reported",
+        occurred_at=shared_time,
+        details="Alert B",
+    )
+
+    evidence = await lookup_procurement(session, shipment.tracking_code)
+
+    assert evidence.delay is not None
+    expected_id = max(first.id, second.id)
+    assert evidence.delay.exception_event is not None
+    assert evidence.delay.exception_event.id == expected_id

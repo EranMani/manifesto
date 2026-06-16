@@ -1,0 +1,8 @@
+{
+  "commit": "54B",
+  "agent": "rex",
+  "execution": "claude-direct",
+  "checks_passed": true,
+  "timestamp": "2026-06-16T18:46:17.420603+00:00",
+  "override_note": "actual_scope FAIL has two components: (1) governance-file-ordering artifact — commit-protocol.md, project-state.json, and commit-specs/commit-54B.md were edited before the primary commit rather than in the subsequent chore commit, inflating changed_files and diff_lines counts; (2) diff_lines for the two implementation files (~98) exceeds the spec cap of 60 because both focused regression tests (vendor-missing mock and delay-event tie-breaking) each added ~40 lines, more than the conservative estimate. True implementation scope: 2 planned files only. All tests pass 33/33. Closeout override approved by Eran (covers verify_constraints, finalize_commit, commit)."
+}
