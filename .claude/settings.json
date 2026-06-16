@@ -89,6 +89,9 @@
       "Read",
       "Write",
       "Edit",
+      "Glob",
+      "Grep",
+      "PowerShell",
       "WebFetch",
       "WebSearch",
       "mcp__"

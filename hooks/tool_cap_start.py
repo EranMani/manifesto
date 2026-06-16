@@ -212,11 +212,49 @@ def start_invocation(
         "agent": agent,
         "kind": kind,
         "tool_calls": 0,
+        "expansions": 0,
+        "expanded_paths": [],
         "started_at": utc_now(),
     }
     state["count"] = 0
     state["limit"] = limit
     state["status"] = f"{kind}_active"
+    return state
+
+
+def reset_invocation_state(
+    state: dict[str, Any],
+    *,
+    agent: str,
+    kind: str = "normal",
+) -> dict[str, Any]:
+    """Clear a failed active invocation without erasing commit history."""
+    agent = normalize_agent_name(agent)
+    active = state.get("active_invocation") or {}
+    if state.get("active") and (
+        active.get("agent") != agent or active.get("kind") != kind
+    ):
+        raise ValueError(
+            f"active invocation is {active.get('agent')}/{active.get('kind')}, "
+            f"not {agent}/{kind}"
+        )
+    state["active"] = False
+    state["active_invocation"] = None
+    state["count"] = 0
+    state["tool_calls"] = 0
+    state["expansions"] = 0
+    state["expanded_paths"] = []
+    state["write_started"] = False
+    state["stop_reason"] = None
+    state["stop_scope"] = None
+    state["status"] = "prepared"
+    if kind == "normal":
+        state["invocation_count"] = 0
+    elif kind == "repair":
+        state["repair_invocation_count"] = 0
+        authorization = state.get("repair_authorization")
+        if isinstance(authorization, dict):
+            authorization["consumed"] = False
     return state
 
 

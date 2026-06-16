@@ -41,6 +41,7 @@
         "hooks/tests/test_tool_cap.py",
         "hooks/tool_cap_start.py",
         "hooks/tool_cap_enforce.py",
+        "hooks/tool_cap_reset.py",
         "hooks/claude_budget.py",
         "hooks/tests/test_claude_budget.py",
         "hooks/tests/test_instruction_budget.py",

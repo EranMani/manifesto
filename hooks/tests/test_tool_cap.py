@@ -20,6 +20,7 @@ from tool_cap_start import (  # noqa: E402
     authorize_repair,
     initialize_commit_state,
     main as tool_cap_start_main,
+    reset_invocation_state,
     resolve_invocation,
     start_invocation,
     write_state,
@@ -160,6 +161,49 @@ class ToolCapTests(unittest.TestCase):
         allowed, message = enforce_tool_event(state, "Read", {"file_path": "three.py"})
         self.assertFalse(allowed)
         self.assertIn("expansion 3", message)
+
+    def test_reviewer_expansions_do_not_consume_implementor_expansions(self) -> None:
+        state = self.state()
+        start_invocation(state, "viktor", "review")
+        for path in ("backend/app/other.py", "backend/app/policy.py"):
+            allowed, _ = enforce_tool_event(state, "Read", {"file_path": path})
+            self.assertTrue(allowed)
+        self.assertEqual(state["active_invocation"]["expansions"], 2)
+        self.assertEqual(state["expansions"], 0)
+        self.assertEqual(state["expanded_paths"], [])
+        close_invocation(state, 1000)
+
+        start_invocation(state, "rex", "normal")
+        allowed, _ = enforce_tool_event(
+            state, "Read", {"file_path": "backend/app/first_rex_expansion.py"}
+        )
+        self.assertTrue(allowed)
+        self.assertEqual(state["active_invocation"]["expansions"], 1)
+        self.assertEqual(state["expansions"], 1)
+        self.assertEqual(state["expanded_paths"], ["backend/app/first_rex_expansion.py"])
+
+    def test_reset_invocation_state_clears_failed_implementor_retry(self) -> None:
+        state = self.state()
+        start_invocation(state, "rex", "normal")
+        enforce_tool_event(state, "Read", {"file_path": "backend/app/other.py"})
+        state["stop_reason"] = "expansion_limit:2"
+        state["stop_scope"] = {"commit": "C30", "agent": "rex", "kind": "normal"}
+
+        reset_invocation_state(state, agent="rex", kind="normal")
+
+        self.assertFalse(state["active"])
+        self.assertEqual(state["invocation_count"], 0)
+        self.assertIsNone(state["stop_reason"])
+        self.assertEqual(state["expanded_paths"], [])
+        start_invocation(state, "rex", "normal")
+        self.assertTrue(state["active"])
+
+    def test_reset_refuses_to_clear_different_active_invocation(self) -> None:
+        state = self.state()
+        start_invocation(state, "viktor", "review")
+
+        with self.assertRaisesRegex(ValueError, "active invocation is viktor/review"):
+            reset_invocation_state(state, agent="rex", kind="normal")
 
     def test_absolute_selected_path_is_not_an_expansion(self) -> None:
         root = Path("D:/repo")

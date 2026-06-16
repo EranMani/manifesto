@@ -119,7 +119,7 @@ def enforce_tool_event(
         and path
         and not selected(path, state.get("selected_paths", []), repo_root)
     ):
-        expanded = state.setdefault("expanded_paths", [])
+        expanded = invocation.setdefault("expanded_paths", [])
         if path not in expanded:
             next_expansion = len(expanded) + 1
             max_expansions = state.get("limits", {}).get("max_expansions", 2)
@@ -127,7 +127,10 @@ def enforce_tool_event(
                 stop(f"expansion_limit:{max_expansions}")
                 return False, f"context expansion {next_expansion} exceeds the limit of {max_expansions}"
             expanded.append(path)
-            state["expansions"] = len(expanded)
+            invocation["expansions"] = len(expanded)
+            if invocation.get("kind") in {"normal", "repair"}:
+                state["expanded_paths"] = list(expanded)
+                state["expansions"] = len(expanded)
 
     invocation["tool_calls"] = next_call
     state["count"] = next_call
