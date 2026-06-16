@@ -31,6 +31,7 @@ CONTROL_COMMANDS = (
     "hooks/verify_constraints.py",
     "hooks/context_telemetry.py",
     "hooks/claude_budget.py",
+    "hooks/tool_cap_reset.py",
     "git status",
     "git diff",
     "pytest",
@@ -45,6 +46,7 @@ CLOSEOUT_EDIT_HINTS = (
 )
 
 READ_ONLY_TOOLS = {"Read", "Grep", "Glob"}
+RECOVERY_TOOLS = {"Agent"}
 
 
 def _profile(scope: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -89,13 +91,20 @@ def allowed_after_stop(event: dict[str, Any]) -> bool:
 def is_closeout_action(event: dict[str, Any]) -> bool:
     """Closeout actions cover telemetry correction, verification, and finalization."""
     tool_name = event.get("tool_name")
-    if tool_name == "Bash":
+    if tool_name in {"Bash", "PowerShell"}:
         return allowed_after_stop(event)
     if tool_name in READ_ONLY_TOOLS:
         return True
     tool_input = event.get("tool_input") or {}
     path = str(tool_input.get("file_path") or tool_input.get("path") or "").replace("\\", "/")
     return any(hint in path for hint in CLOSEOUT_EDIT_HINTS)
+
+
+def is_recovery_action(event: dict[str, Any]) -> bool:
+    """Recovery allows a bounded re-invocation/reset path after budget corruption."""
+    if event.get("tool_name") in RECOVERY_TOOLS:
+        return True
+    return is_closeout_action(event)
 
 
 def evaluate(event: dict[str, Any], active_path: Path = ACTIVE_PATH) -> tuple[bool, str]:
@@ -133,11 +142,16 @@ def evaluate(event: dict[str, Any], active_path: Path = ACTIVE_PATH) -> tuple[bo
             pass
         else:
             override = scope.get("budget_override") or {}
-            if override.get("uses_remaining", 0) > 0 and is_closeout_action(event):
+            action_allowed = (
+                is_recovery_action(event)
+                if override.get("mode") == "recovery"
+                else is_closeout_action(event)
+            )
+            if override.get("uses_remaining", 0) > 0 and action_allowed:
                 override["uses_remaining"] -= 1
                 scope["budget_override"] = override
                 scope["live_budget"]["state"] = "override-used"
-                message += " Override applied to closeout action."
+                message += f" Override applied to {override.get('mode', 'closeout')} action."
             else:
                 allowed = False
                 message += (
@@ -151,15 +165,35 @@ def evaluate(event: dict[str, Any], active_path: Path = ACTIVE_PATH) -> tuple[bo
     return True, message if state != "ok" else ""
 
 
-def authorize_override(reason: str, active_path: Path = ACTIVE_PATH) -> None:
+def authorize_override(
+    reason: str,
+    active_path: Path = ACTIVE_PATH,
+    *,
+    mode: str = "closeout",
+) -> None:
     scope = json.loads(active_path.read_text(encoding="utf-8"))
-    scope["budget_override"] = {"uses_remaining": 5, "reason": reason}
+    uses = 10 if mode == "recovery" else 5
+    scope["budget_override"] = {
+        "uses_remaining": uses,
+        "reason": reason,
+        "mode": mode,
+    }
     active_path.write_text(json.dumps(scope, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> int:
     if len(sys.argv) >= 3 and sys.argv[1] == "--authorize-override":
-        authorize_override(" ".join(sys.argv[2:]))
+        args = sys.argv[2:]
+        mode = "closeout"
+        if "--mode" in args:
+            index = args.index("--mode")
+            if index + 1 < len(args):
+                mode = args[index + 1]
+            del args[index:index + 2]
+        if mode not in {"closeout", "recovery"}:
+            print("ERROR: --mode must be closeout or recovery", file=sys.stderr)
+            return 2
+        authorize_override(" ".join(args), mode=mode)
         return 0
     try:
         event = json.loads(sys.stdin.read() or "{}")

@@ -85,6 +85,7 @@ class ClaudeBudgetTests(unittest.TestCase):
             saved = json.loads(path.read_text(encoding="utf-8"))
         self.assertTrue(allowed)
         self.assertEqual(saved["budget_override"]["uses_remaining"], 4)
+        self.assertEqual(saved["budget_override"].get("mode", "closeout"), "closeout")
 
     def test_override_does_not_cover_non_closeout_action(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -111,12 +112,71 @@ class ClaudeBudgetTests(unittest.TestCase):
             claude_budget.authorize_override("Eran approved: closeout", path)
             saved = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(saved["budget_override"]["uses_remaining"], 5)
+        self.assertEqual(saved["budget_override"]["mode"], "closeout")
+
+    def test_authorize_recovery_override_grants_ten_uses(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            path.write_text(json.dumps(self.scope(actions=40)), encoding="utf-8")
+            claude_budget.authorize_override(
+                "Eran approved: recovery", path, mode="recovery"
+            )
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 10)
+        self.assertEqual(saved["budget_override"]["mode"], "recovery")
+
+    def test_recovery_override_allows_agent_invocation_after_stop(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            scope = self.scope(actions=40, mode="delegated")
+            scope["budget_override"] = {
+                "uses_remaining": 10,
+                "reason": "approved",
+                "mode": "recovery",
+            }
+            path.write_text(json.dumps(scope), encoding="utf-8")
+            allowed, message = claude_budget.evaluate(
+                {"tool_name": "Agent", "tool_input": {"subagent_type": "rex"}},
+                path,
+            )
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertTrue(allowed)
+        self.assertIn("recovery action", message)
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 9)
+
+    def test_closeout_override_does_not_allow_agent_invocation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            scope = self.scope(actions=40, mode="delegated")
+            scope["budget_override"] = {
+                "uses_remaining": 5,
+                "reason": "approved",
+                "mode": "closeout",
+            }
+            path.write_text(json.dumps(scope), encoding="utf-8")
+            allowed, message = claude_budget.evaluate(
+                {"tool_name": "Agent", "tool_input": {"subagent_type": "rex"}},
+                path,
+            )
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertFalse(allowed)
+        self.assertIn("request an override", message)
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 5)
 
     def test_authorize_override_command_allowed_after_stop(self) -> None:
         event = {
             "tool_name": "Bash",
             "tool_input": {
                 "command": 'python hooks/claude_budget.py --authorize-override "reason"'
+            },
+        }
+        self.assertTrue(claude_budget.allowed_after_stop(event))
+
+    def test_tool_cap_reset_command_allowed_after_stop(self) -> None:
+        event = {
+            "tool_name": "PowerShell",
+            "tool_input": {
+                "command": "python hooks/tool_cap_reset.py --commit C55 --agent rex --kind normal"
             },
         }
         self.assertTrue(claude_budget.allowed_after_stop(event))
