@@ -45,7 +45,22 @@ def test_unrelated_read_does_not_activate(tmp_path):
     prepare.assert_not_called()
 
 
-def test_first_planned_read_activates_before_tool_runs(tmp_path):
+def test_first_planned_read_does_not_activate(tmp_path):
+    repo = _repo(tmp_path)
+    with patch("direct_execution_lifecycle.prepare_direct") as prepare:
+        allowed, message = lifecycle.ensure_direct_scope({
+            "tool_name": "Read",
+            "tool_input": {
+                "file_path": str(repo / "backend/app/services/rag_logistics.py")
+            },
+        }, repo)
+
+    assert allowed is True
+    assert message is None
+    prepare.assert_not_called()
+
+
+def test_first_planned_edit_activates_before_tool_runs(tmp_path):
     repo = _repo(tmp_path)
 
     def activate(*args, **kwargs):
@@ -61,7 +76,7 @@ def test_first_planned_read_activates_before_tool_runs(tmp_path):
         "direct_execution_lifecycle.prepare_direct", side_effect=activate
     ) as prepare:
         allowed, message = lifecycle.ensure_direct_scope({
-            "tool_name": "Read",
+            "tool_name": "Edit",
             "tool_input": {
                 "file_path": str(repo / "backend/app/services/rag_logistics.py")
             },
@@ -101,6 +116,20 @@ def test_finalize_command_cannot_rearm_scope_from_notify_text(tmp_path):
                     "python hooks/finalize_commit.py --commit 48 "
                     '--notify-what "Updated rag_logistics.py"'
                 )
+            },
+        }, repo)
+    assert allowed is True
+    assert message is None
+    prepare.assert_not_called()
+
+
+def test_git_diff_review_command_cannot_activate_direct_scope(tmp_path):
+    repo = _repo(tmp_path)
+    with patch("direct_execution_lifecycle.prepare_direct") as prepare:
+        allowed, message = lifecycle.ensure_direct_scope({
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "git diff -- backend/app/services/rag_logistics.py"
             },
         }, repo)
     assert allowed is True

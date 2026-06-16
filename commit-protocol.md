@@ -79,8 +79,8 @@
 | 52A | claude-budget-and-cache-reduction | claude | ✅ done · retrospective · 796ef48 · 2026-06-15 |
 | 53A | budget-override-closeout-fix | claude | ✅ done · e4f263c · 2026-06-15 |
 | 53 | grounded-logistics-answer | nova | ✅ done · f73c22d · 2026-06-15 |
-| 54A | powershell-budget-closeout-fix | claude | pending |
-| 54 | grounded-policy-answer | nova | pending · closeout paused for C54A |
+| 54A | powershell-budget-closeout-fix | claude | ✅ done · d25de0a · 2026-06-16 |
+| 54 | grounded-policy-answer | nova | ✅ done · 7b269b2 · 2026-06-16 |
 | 55 | assistant-role-authorization | rex | pending |
 | 56 | unified-assistant-api | rex | pending |
 | 57 | assistant-client-session-state | aria | pending |

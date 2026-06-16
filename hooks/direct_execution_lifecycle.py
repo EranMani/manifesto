@@ -17,7 +17,7 @@ from context_engine import load_rules
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RULES_PATH = Path(__file__).resolve().parent / "context_rules.json"
 ACTIVE_PATH = REPO_ROOT / ".context" / "telemetry" / "orchestrator-active.json"
-IMPLEMENTATION_TOOLS = {"Read", "Grep", "Glob", "Write", "Edit", "MultiEdit", "NotebookEdit", "Bash"}
+IMPLEMENTATION_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 PATH_KEYS = ("file_path", "path", "notebook_path")
 CONTROL_COMMANDS = (
     "hooks/context_telemetry.py",
@@ -98,13 +98,6 @@ def _targets_commit(
             or normalized.startswith(item + "/")
             for item in planned
         )
-    if tool_name == "Bash":
-        command = str((event.get("tool_input") or {}).get("command", "")).replace(
-            "\\", "/"
-        )
-        if any(control in command.lower() for control in CONTROL_COMMANDS):
-            return False
-        return any(path in command or Path(path).name in command for path in planned)
     return False
 
 

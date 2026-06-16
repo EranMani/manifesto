@@ -21,6 +21,13 @@ Do not scan the repository at boot.
   tests remain Claude-direct.
 - Before implementation, run the matching preflight and show Eran the compact card.
 - Wait for explicit approval. Approval authorizes only the listed commit and files.
+- After Eran approves a READY preflight, routine execution choices are pre-approved:
+  delegation start, telemetry persistence, focused verification, constraint checks,
+  finalize/commit, chore state sweep, and dashboard/protocol/state updates required by
+  the approved commit. Do not ask again for each routine step.
+- Ask Eran again only for a real decision: new files outside the spec, changed behavior,
+  a failed test requiring implementation judgment, a non-routine override, destructive
+  git operation, or a split/replan.
 
 Direct preflight:
 
