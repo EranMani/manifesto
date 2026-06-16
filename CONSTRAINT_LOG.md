@@ -76,3 +76,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-16 | C54A | claude | 925,209 | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-16 | C54 | nova | 39,639 | PASS | PASS | PASS r=6 w=2 t=18 | FAIL |
 | 2026-06-16 | C54B | rex | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
+| 2026-06-16 | C55 | rex | 34,442 | PASS | PASS | PASS r=9 w=0 t=9 | PASS |

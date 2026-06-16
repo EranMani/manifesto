@@ -82,7 +82,7 @@
 | 54A | powershell-budget-closeout-fix | claude | ✅ done · d25de0a · 2026-06-16 |
 | 54 | grounded-policy-answer | nova | ✅ done · 7b269b2 · 2026-06-16 |
 | 54B | rag-logistics-vendor-lookup-fix | rex | ✅ done · 94452d1 · 2026-06-16 |
-| 55 | assistant-role-authorization | rex | pending |
+| 55 | assistant-role-authorization | rex | ✅ done · 2026-06-16 |
 | 56 | unified-assistant-api | rex | pending |
 | 57 | assistant-client-session-state | aria | pending |
 | 58 | focused-evidence-graph | aria | pending |

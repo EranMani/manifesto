@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C54B (rag-logistics-vendor-lookup-fix, Claude-direct/Rex-owner, 94452d1) fixed Viktor BLOCKING/HIGH findings from C46-C55 gate wave: scalar_one() -> scalar_one_or_none() + ShipmentNotFoundError for missing vendor in lookup_procurement(); loop reassignment -> explicit max(occurred_at,id) in _delay_evidence(); 33/33 tests pass. C54 (grounded-policy-answer, Nova, 7b269b2) added PolicyAnswer/MixedAnswer + generate_grounded_policy/mixed_answer(). Next is C55 (assistant-role-authorization, Rex). Viktor MEDIUM finding (graph path clarity) deferred.",
+  "tldr": "C55 (assistant-role-authorization, Rex primary + Claude-direct completion, 1aacf27) added backend/app/services/assistant.py with answer_question(*, user_role, message, db, llm, embeddings), DeniedAnswer, and role-aware dispatch: employees may receive policy answers but logistics/mixed questions return the literal denial with no retrieval; manager/admin may receive logistics and mixed answers. backend/tests/api/test_assistant.py adds 7 authorization tests; focused verification passed. Rex produced the design but returned SPLIT_REQUIRED before writes; Claude completed the two approved files. Next is C56 (unified-assistant-api, Rex).",
   "phase": 2,
-  "last_completed_commit": "54B",
-  "next_commit": "55",
-  "next_commit_name": "assistant-role-authorization",
+  "last_completed_commit": "55",
+  "next_commit": "56",
+  "next_commit_name": "unified-assistant-api",
   "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
