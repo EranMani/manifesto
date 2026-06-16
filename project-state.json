@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C53A (budget-override-closeout-fix, Claude, e4f263c) widened the Claude budget override to 5 closeout-scoped uses via is_closeout_action(), resolving the deadlock that had stalled C53's closeout (10/10 tests). C53 (grounded-logistics-answer, Nova, f73c22d) added LogisticsAnswer and generate_grounded_logistics_answer() to rag_logistics.py, with an evidence-only prompt and a deterministic fallback on LLMError (4/4 grounded_answer tests); its review telemetry was corrected to delegated/review/review-only (OI-23) and it finalized using the corrected override. Next is C54 (grounded-policy-answer, Nova).",
+  "tldr": "C54 (grounded-policy-answer, Nova, 7b269b2) added PolicyAnswer and MixedAnswer frozen dataclasses plus generate_grounded_policy_answer() and generate_grounded_mixed_answer() to rag_policy.py; 3/3 grounded_answer tests pass. C54A (powershell-budget-closeout-fix, Claude, d25de0a) extended allowed_after_stop() to accept PowerShell alongside Bash. C53 (grounded-logistics-answer, Nova, f73c22d) added LogisticsAnswer and generate_grounded_logistics_answer() to rag_logistics.py. Next is C55 (assistant-role-authorization, Rex).",
   "phase": 2,
-  "last_completed_commit": "53",
-  "next_commit": "54",
-  "next_commit_name": "grounded-policy-answer",
-  "next_commit_assignee": "nova",
+  "last_completed_commit": "54",
+  "next_commit": "55",
+  "next_commit_name": "assistant-role-authorization",
+  "next_commit_assignee": "rex",
   "status": "phase-2-active",
   "open_handoffs": [
     {

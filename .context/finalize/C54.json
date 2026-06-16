@@ -1,0 +1,8 @@
+{
+  "commit": "54",
+  "agent": "nova",
+  "execution": "delegated",
+  "checks_passed": true,
+  "timestamp": "2026-06-16T18:30:00+00:00",
+  "override_note": "diff_lines=414 exceeds cap of 350. Root cause: Nova's grounded answer implementation required detailed docstrings, two helper functions (_format_policy_excerpts, _build_policy_prompt, _excerpt_fallback), two frozen dataclasses (PolicyAnswer, MixedAnswer), and four test stubs plus four test classes. Scope is clean (2 spec files only), phase budget passes (18/18 calls), and 3/3 -k grounded_answer tests pass. One-time diff-cap override approved by Eran (2026-06-16). Does not generalize to future commits."
+}

@@ -5,15 +5,28 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-15 · C53 done*
+*Last updated: 2026-06-16 · C54 done*
 
-**Last completed:** C53 `grounded-logistics-answer` — done
+**Last completed:** C54 `grounded-policy-answer` — done
 **Currently active:** none
 **Blocked by:** none
 
-See Session 12 for C52 details and Session 11 for C51 details.
+See Session 14 for C54 details.
 
 **Developer attention:** None.
+
+---
+
+## Session 14 — Commit 54 `grounded-policy-answer` · 2026-06-16
+
+**Executor:** Nova (delegated, implementation); Claude (closeout — telemetry + worklog after budget cutoff at call 19)
+**Status:** complete
+
+Tool usage: reads=6, writes=2, total=18 (harness: 20; hit cap before worklog write); 0 expansions used.
+
+C54 added `PolicyAnswer` and `MixedAnswer` frozen dataclasses to `backend/app/services/rag_policy.py`, along with `generate_grounded_policy_answer()` (retrieves C51 evidence via `RAGPolicy.retrieve_evidence`, calls `LLMService.chat(stream=False)`, returns explicit not-found on empty evidence, falls back to `_excerpt_fallback` on `LLMError`) and `generate_grounded_mixed_answer()` (combines logistics answer/graph with policy citations, preserves separate `graph` and `citations` fields). `backend/tests/services/test_rag_policy.py` received 4 new tests: 3 in `TestGroundedPolicyAnswer` (citations match, insufficient evidence, LLMError fallback) and 1 in `TestGroundedMixedAnswer` (graph and citations stay separate). Verification: 3 passed under `-k grounded_answer`, 1 additional (mixed) not selected by that filter.
+
+**Developer attention:** `MixedAnswer.graph` typed as `object` to avoid circular import between `rag_policy` and `rag_logistics`; introduce a shared protocol type if strict typing is needed later.
 
 ---
 
