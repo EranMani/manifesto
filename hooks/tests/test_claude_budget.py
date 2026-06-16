@@ -121,6 +121,24 @@ class ClaudeBudgetTests(unittest.TestCase):
         }
         self.assertTrue(claude_budget.allowed_after_stop(event))
 
+    def test_powershell_closeout_command_allowed_after_stop(self) -> None:
+        event = {
+            "tool_name": "PowerShell",
+            "tool_input": {
+                "command": "python hooks/finalize_commit.py --commit 54A"
+            },
+        }
+        self.assertTrue(claude_budget.allowed_after_stop(event))
+
+    def test_powershell_authorize_override_allowed_after_stop(self) -> None:
+        event = {
+            "tool_name": "PowerShell",
+            "tool_input": {
+                "command": 'python hooks/claude_budget.py --authorize-override "Eran approved: closeout"'
+            },
+        }
+        self.assertTrue(claude_budget.allowed_after_stop(event))
+
     def test_read_only_tools_are_closeout_actions(self) -> None:
         self.assertTrue(
             claude_budget.is_closeout_action({"tool_name": "Read", "tool_input": {}})

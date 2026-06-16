@@ -6886,6 +6886,162 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "record_schema_version": 2,
+      "date": "2026-06-16",
+      "commit": "C54A",
+      "agent": "claude",
+      "execution": "claude-direct",
+      "identity": {
+        "owner": "claude",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Orchestration",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "hooks/claude_budget.py",
+          "hooks/tests/test_claude_budget.py",
+          "commit-specs/commit-54A.md",
+          "commit-protocol.md"
+        ],
+        "read_files": null,
+        "written_files": [
+          "hooks/claude_budget.py",
+          "hooks/tests/test_claude_budget.py"
+        ],
+        "changed_files": [
+          "commit-protocol.md",
+          "commit-specs/commit-54A.md",
+          "hooks/claude_budget.py",
+          "hooks/tests/test_claude_budget.py",
+          "hooks/tool_cap.json"
+        ],
+        "coverage": {
+          "planned_files": 4,
+          "planned_files_changed": 4,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            "hooks/tool_cap.json"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 4,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
+        "source": "spec-and-hook-derived"
+      },
+      "capture": {
+        "status": "complete",
+        "reason": null,
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-16T17:12:35+00:00",
+        "ended_at": "2026-06-16T17:14:15+00:00",
+        "zero_is_measured": true
+      },
+      "tokens": 925209,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "schema_version": 2,
+          "owner": "claude",
+          "executor": "claude",
+          "execution_mode": "claude-direct",
+          "scope_kind": "execution",
+          "capture_window": "full-execution",
+          "started_at": "2026-06-16T17:12:35+00:00",
+          "ended_at": "2026-06-16T17:14:15+00:00",
+          "tool_calls": 8,
+          "read_paths": [],
+          "write_paths": [
+            "hooks/claude_budget.py",
+            "hooks/tests/test_claude_budget.py"
+          ],
+          "searches": [
+            {
+              "tool": "Glob",
+              "path": ".",
+              "query": ".context/direct/C54A*"
+            }
+          ],
+          "commands": [
+            "ls .context/direct/ 2>/dev/null | grep 54A",
+            "python hooks/finalize_commit.py --commit 54A --notify-what \"hooks/claude_budget.py: PowerShell support in allowed_after_",
+            "python hooks/finalize_commit.py --commit 54A --agent claude --execution claude-direct --notify-what \"hooks/claude_budget"
+          ],
+          "token_usage": {
+            "status": "complete",
+            "source": "claude-transcript-jsonl",
+            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\1eb5af75-7de9-4280-9602-703ed1ff43d9.jsonl",
+            "start_offset": 405938,
+            "formula": "input + output + cache_creation_input + cache_read_input",
+            "excludes": "sidechain and separate delegated-agent transcripts",
+            "end_offset": 460588,
+            "assistant_turns": 13,
+            "components": {
+              "input_tokens": 13,
+              "output_tokens": 6571,
+              "cache_creation_input_tokens": 5115,
+              "cache_read_input_tokens": 913510
+            },
+            "total_tokens": 925209
+          },
+          "context_package": null,
+          "selected_read_paths": null,
+          "outside_read_paths": null
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          "commit-protocol.md",
+          "commit-specs/commit-54A.md",
+          "hooks/claude_budget.py",
+          "hooks/tests/test_claude_budget.py",
+          "hooks/tool_cap.json"
+        ]
+      },
+      "result": "PASS"
     }
   ]
 }

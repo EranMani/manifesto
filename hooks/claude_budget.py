@@ -80,7 +80,7 @@ def level(metrics: dict[str, int], profile: dict[str, Any]) -> tuple[str, list[s
 
 
 def allowed_after_stop(event: dict[str, Any]) -> bool:
-    if event.get("tool_name") != "Bash":
+    if event.get("tool_name") not in {"Bash", "PowerShell"}:
         return False
     command = str((event.get("tool_input") or {}).get("command", "")).lower()
     return any(item.lower() in command for item in CONTROL_COMMANDS)
