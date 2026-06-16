@@ -227,6 +227,7 @@ def reset_invocation_state(
     *,
     agent: str,
     kind: str = "normal",
+    discard_closed: bool = False,
 ) -> dict[str, Any]:
     """Clear a failed active invocation without erasing commit history."""
     agent = normalize_agent_name(agent)
@@ -255,6 +256,27 @@ def reset_invocation_state(
         authorization = state.get("repair_authorization")
         if isinstance(authorization, dict):
             authorization["consumed"] = False
+    if discard_closed:
+        kept = []
+        removed_tokens = 0
+        removed_implementor_tokens = 0
+        for invocation in state.get("invocations", []):
+            if invocation.get("agent") == agent and invocation.get("kind") == kind:
+                tokens = int(invocation.get("tokens") or 0)
+                removed_tokens += tokens
+                if kind in {"normal", "repair"}:
+                    removed_implementor_tokens += tokens
+                continue
+            kept.append(invocation)
+        state["invocations"] = kept
+        state["known_total_tokens"] = max(
+            0, int(state.get("known_total_tokens", 0)) - removed_tokens
+        )
+        state["known_implementor_tokens"] = max(
+            0,
+            int(state.get("known_implementor_tokens", 0))
+            - removed_implementor_tokens,
+        )
     return state
 
 

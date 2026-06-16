@@ -198,6 +198,27 @@ class ToolCapTests(unittest.TestCase):
         start_invocation(state, "rex", "normal")
         self.assertTrue(state["active"])
 
+    def test_reset_can_discard_failed_closed_implementor_invocation(self) -> None:
+        state = self.state()
+        start_invocation(state, "viktor", "review")
+        close_invocation(state, 1000)
+        start_invocation(state, "rex", "normal")
+        close_invocation(state, 24000)
+        self.assertEqual(state["known_total_tokens"], 25000)
+        self.assertEqual(state["known_implementor_tokens"], 24000)
+
+        reset_invocation_state(
+            state,
+            agent="rex",
+            kind="normal",
+            discard_closed=True,
+        )
+
+        self.assertEqual(state["known_total_tokens"], 1000)
+        self.assertEqual(state["known_implementor_tokens"], 0)
+        self.assertEqual(len(state["invocations"]), 1)
+        self.assertEqual(state["invocations"][0]["agent"], "viktor")
+
     def test_reset_refuses_to_clear_different_active_invocation(self) -> None:
         state = self.state()
         start_invocation(state, "viktor", "review")

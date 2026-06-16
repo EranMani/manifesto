@@ -18,6 +18,11 @@ def main() -> int:
         choices=["normal", "repair", "review", "explore"],
         default="normal",
     )
+    parser.add_argument(
+        "--discard-closed",
+        action="store_true",
+        help="Also remove prior closed invocations for the same agent/kind and subtract their tokens.",
+    )
     args = parser.parse_args()
 
     root = git_root()
@@ -38,7 +43,12 @@ def main() -> int:
         return 2
 
     try:
-        reset_invocation_state(state, agent=args.agent, kind=args.kind)
+        reset_invocation_state(
+            state,
+            agent=args.agent,
+            kind=args.kind,
+            discard_closed=args.discard_closed,
+        )
     except ValueError as exc:
         print(f"CIRCUIT BREAKER: {exc}", file=sys.stderr)
         return 2
