@@ -1,8 +1,8 @@
 {
   "project": "manifesto",
-  "tldr": "C54 (grounded-policy-answer, Nova, 7b269b2) added PolicyAnswer and MixedAnswer frozen dataclasses plus generate_grounded_policy_answer() and generate_grounded_mixed_answer() to rag_policy.py; 3/3 grounded_answer tests pass. C54A (powershell-budget-closeout-fix, Claude, d25de0a) extended allowed_after_stop() to accept PowerShell alongside Bash. C53 (grounded-logistics-answer, Nova, f73c22d) added LogisticsAnswer and generate_grounded_logistics_answer() to rag_logistics.py. Next is C55 (assistant-role-authorization, Rex).",
+  "tldr": "C54B (rag-logistics-vendor-lookup-fix, Claude-direct/Rex-owner, 94452d1) fixed Viktor BLOCKING/HIGH findings from C46-C55 gate wave: scalar_one() -> scalar_one_or_none() + ShipmentNotFoundError for missing vendor in lookup_procurement(); loop reassignment -> explicit max(occurred_at,id) in _delay_evidence(); 33/33 tests pass. C54 (grounded-policy-answer, Nova, 7b269b2) added PolicyAnswer/MixedAnswer + generate_grounded_policy/mixed_answer(). Next is C55 (assistant-role-authorization, Rex). Viktor MEDIUM finding (graph path clarity) deferred.",
   "phase": 2,
-  "last_completed_commit": "54",
+  "last_completed_commit": "54B",
   "next_commit": "55",
   "next_commit_name": "assistant-role-authorization",
   "next_commit_assignee": "rex",
