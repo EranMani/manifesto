@@ -181,6 +181,36 @@ class ClaudeBudgetTests(unittest.TestCase):
         }
         self.assertTrue(claude_budget.allowed_after_stop(event))
 
+    def test_preflight_command_allowed_after_stop(self) -> None:
+        event = {
+            "tool_name": "PowerShell",
+            "tool_input": {
+                "command": "python hooks/preflight_commit.py --direct --commit 55 --agent rex"
+            },
+        }
+        self.assertTrue(claude_budget.allowed_after_stop(event))
+
+    def test_stale_transcript_scope_does_not_block_new_session(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            scope = self.scope(actions=40, mode="delegated")
+            scope["token_usage"] = {
+                "status": "running",
+                "transcript_path": "old-session.jsonl",
+            }
+            path.write_text(json.dumps(scope), encoding="utf-8")
+            with patch.dict(
+                "os.environ",
+                {"CLAUDE_TRANSCRIPT_PATH": "new-session.jsonl"},
+                clear=False,
+            ):
+                allowed, message = claude_budget.evaluate(
+                    {"tool_name": "Edit", "tool_input": {"file_path": "backend/app.py"}},
+                    path,
+                )
+        self.assertTrue(allowed)
+        self.assertIn("stale running scope", message)
+
     def test_powershell_closeout_command_allowed_after_stop(self) -> None:
         event = {
             "tool_name": "PowerShell",

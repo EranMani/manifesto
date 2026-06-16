@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,8 @@ CONTROL_COMMANDS = (
     "hooks/context_telemetry.py",
     "hooks/claude_budget.py",
     "hooks/tool_cap_reset.py",
+    "hooks/preflight_commit.py",
+    "hooks/prepare_agent_delegation.py",
     "git status",
     "git diff",
     "pytest",
@@ -47,6 +50,15 @@ CLOSEOUT_EDIT_HINTS = (
 
 READ_ONLY_TOOLS = {"Read", "Grep", "Glob"}
 RECOVERY_TOOLS = {"Agent"}
+
+
+def stale_transcript_scope(scope: dict[str, Any]) -> bool:
+    """A running scope from a prior Claude transcript must not block a new session."""
+    current = os.environ.get("CLAUDE_TRANSCRIPT_PATH")
+    recorded = (scope.get("token_usage") or {}).get("transcript_path")
+    if not current or not recorded:
+        return False
+    return str(current).lower() != str(recorded).lower()
 
 
 def _profile(scope: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -114,6 +126,8 @@ def evaluate(event: dict[str, Any], active_path: Path = ACTIVE_PATH) -> tuple[bo
         return True, ""
     if scope.get("status") != "running":
         return True, ""
+    if stale_transcript_scope(scope):
+        return True, "Claude budget: ignoring stale running scope from a prior transcript."
 
     name, profile = _profile(scope)
     metrics = measure(scope)
