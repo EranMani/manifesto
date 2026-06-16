@@ -367,6 +367,27 @@ Tool usage: reads=6, writes=3, total=9
 
 Tool usage: orchestrator direct write, 0 agent invocations.
 
+## Session 24 — Commit 55: `assistant-role-authorization`
+*2026-06-16*
+
+**Approach:** Delegated to Rex, then Claude-direct completion after `SPLIT_REQUIRED`.
+
+**Files updated:**
+- `backend/app/services/assistant.py` (new) — added `answer_question(*, user_role, message, db, llm, embeddings)`, `DeniedAnswer`, `AssistantAnswer`, and the employee denial message. The service calls `classify_intent(message)`, denies employee logistics/mixed requests before retrieval, permits policy requests for all roles, and permits logistics/mixed requests for manager/admin.
+- `backend/tests/api/test_assistant.py` (new) — added authorization tests for employee policy, employee logistics denial, employee mixed denial, manager logistics, admin logistics, and manager mixed dispatch.
+
+**Test gate results:**
+- `docker compose run --rm backend uv run pytest tests/api/test_assistant.py -k authorization -q` -> 7 passed.
+- verify_constraints pending at time of worklog update.
+
+**Decisions made:**
+- Employee logistics and mixed requests return the literal denial string from the C55 design and do not call logistics or mixed retrieval/generation helpers.
+- For mixed manager/admin requests, the service preserves separate logistics and policy provenance by passing the logistics answer and procurement evidence into `generate_grounded_mixed_answer()`.
+
+**Handoffs out:** None.
+
+Tool usage: reads=9, writes=0, total=9. Rex returned SPLIT_REQUIRED before writes; Claude completed the two approved C55 files.
+
 Tool usage: reads=18, writes=4, total=51 (combined across two capped invocations, with read overlap)
 
 ---
