@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C56 (unified-assistant-api, Rex owner + Claude-direct, 4853404) added POST /api/v1/assistant/query — one authenticated endpoint accepting {message, context[]} and returning {intent, answer, graph|null, citations[], suggested_questions[]}. Role-based access via C55 answer_question service; employees denied logistics with safe message. Catches LLMError (never provider SDK exceptions), returns 502 on provider failure. Validates blank messages (422) and context limits (12 turns, 8000 chars). C56A (a4d52bf) fixed D50 override threading in direct lifecycle hooks. Next is C57 (assistant-client-session-state, Aria).",
+  "tldr": "C57 (assistant-client-session-state, Aria owner + Claude-direct, c5e32ed) added frontend/src/api/assistant.ts (typed wire types mirroring backend schemas, queryAssistant POST call) and frontend/src/store/assistant.ts (Zustand session-only message store with 12-turn context window, concurrent-send guard, reset action, no localStorage). Frontend build passes. Next is C58 (focused-evidence-graph, Aria).",
   "phase": 2,
-  "last_completed_commit": "56",
-  "next_commit": "57",
-  "next_commit_name": "assistant-client-session-state",
+  "last_completed_commit": "57",
+  "next_commit": "58",
+  "next_commit_name": "focused-evidence-graph",
   "next_commit_assignee": "aria",
   "status": "phase-2-active",
   "open_handoffs": [

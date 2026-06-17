@@ -78,3 +78,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-16 | C54B | rex | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
 | 2026-06-16 | C55 | rex | 34,442 | PASS | PASS | PASS r=9 w=0 t=9 | PASS |
 | 2026-06-17 | C56 | rex | 201,358 | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
+| 2026-06-17 | C57 | aria | 982,211 | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
