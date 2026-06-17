@@ -1,0 +1,8 @@
+{
+  "commit": "61",
+  "agent": "nova",
+  "execution": "delegated",
+  "checks_passed": true,
+  "override_note": "Eran approved diff-cap override: 18 golden cases + 5-class test suite inherently exceeds 350-line estimate; actual product diff 995 lines",
+  "timestamp": "2026-06-17T13:01:54.226505+00:00"
+}
