@@ -92,7 +92,7 @@
 | 62 | assembled-client-demo | adam | ✅ done · 2026-06-17 |
 | 63 | logistics-browse-intent | nova | ✅ done · 2026-06-17 |
 | 64 | list-shipments-service | rex | ✅ done · 2026-06-17 |
-| 65 | browse-answer-generation | nova | pending |
+| 65 | browse-answer-generation | nova | ✅ done · 2026-06-17 |
 | 66 | graph-node-status-metadata | rex | pending |
 | 67 | evidence-graph-visual-overhaul | aria | pending |
 

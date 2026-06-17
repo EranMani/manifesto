@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "commit": "C61",
+  "commit": "C65",
   "agent": "nova",
   "status": "blocked",
   "active": false,
@@ -10,24 +10,23 @@
   "active_invocation": null,
   "count": 0,
   "limit": 18,
-  "tool_calls": 16,
+  "tool_calls": 18,
   "expansions": 2,
   "expanded_paths": [
-    ".context/delegations/C61-nova.md",
-    "backend/app/services"
+    ".context/delegations/C65-nova.md",
+    "commit-specs/commit-65.md"
   ],
   "selected_paths": [
     ".claude/agents/ai-engineer.md",
     ".claude/agents/logs/nova-worklog.md",
+    "backend/app/services/__init__.py",
     "backend/app/services/assistant.py",
     "backend/app/services/rag_logistics.py",
-    "backend/tests/api/test_assistant.py",
-    "backend/tests/services/fixtures/assistant_golden.json",
-    "backend/tests/services/test_assistant_golden.py"
+    "backend/tests/services/test_rag_logistics.py"
   ],
   "write_started": true,
-  "known_implementor_tokens": 59694,
-  "known_total_tokens": 59694,
+  "known_implementor_tokens": 59139,
+  "known_total_tokens": 59139,
   "limits": {
     "max_agent_invocations": 1,
     "max_tool_calls": 18,
@@ -38,24 +37,24 @@
   "repair_authorization": null,
   "stop_reason": "implementor_token_hard_stop",
   "stop_scope": {
-    "commit": "C61",
+    "commit": "C65",
     "agent": "nova",
     "kind": "normal"
   },
-  "prepared_at": "2026-06-17T12:40:20+00:00",
+  "prepared_at": "2026-06-17T17:37:51+00:00",
   "invocations": [
     {
       "agent": "nova",
       "kind": "normal",
-      "tool_calls": 16,
+      "tool_calls": 18,
       "expansions": 2,
       "expanded_paths": [
-        ".context/delegations/C61-nova.md",
-        "backend/app/services"
+        ".context/delegations/C65-nova.md",
+        "commit-specs/commit-65.md"
       ],
-      "started_at": "2026-06-17T12:40:48+00:00",
-      "ended_at": "2026-06-17T12:45:48+00:00",
-      "tokens": 59694
+      "started_at": "2026-06-17T17:38:08+00:00",
+      "ended_at": "2026-06-17T17:41:44+00:00",
+      "tokens": 59139
     }
   ]
 }
