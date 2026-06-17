@@ -90,7 +90,7 @@
 | 60 | assistant-evidence-integration | aria | ✅ done · 2026-06-17 |
 | 61 | assistant-golden-evaluation | nova | ✅ done · 2026-06-17 |
 | 62 | assembled-client-demo | adam | ✅ done · 2026-06-17 |
-| 63 | logistics-browse-intent | nova | pending |
+| 63 | logistics-browse-intent | nova | ✅ done · 2026-06-17 |
 | 64 | list-shipments-service | rex | pending |
 | 65 | browse-answer-generation | nova | pending |
 | 66 | graph-node-status-metadata | rex | pending |
