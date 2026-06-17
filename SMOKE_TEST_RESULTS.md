@@ -1,3 +1,94 @@
+# Smoke Test Results — Commit 62 (`assembled-client-demo`)
+
+**Date:** 2026-06-17
+**Run by:** Adam (DevOps), Claude (direct)
+**Stack:** `docker compose up -d --wait` (db, ollama, backend) + frontend `npm run build` (Vite)
+
+---
+
+## Automated Smoke Script
+
+**Script:** `scripts/smoke_client_demo.ps1`
+**Run command:**
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/smoke_client_demo.ps1
+```
+
+### Steps Verified by Script
+
+| # | Step | What It Proves |
+|---|---|---|
+| 1 | `docker compose up -d --wait` | All services start and pass health checks. |
+| 2 | `alembic upgrade head` | Migrations apply cleanly against the running DB. |
+| 3 | `seed.py` (run twice) | Seed is idempotent; row counts are stable across runs. |
+| 4 | Login as manager + admin | Auth endpoints return valid JWTs for seeded users. |
+| 5 | `POST /assistant/query` — "Where is SHP-1001?" (manager) | Logistics intent routes correctly, returns graph with shipment nodes. |
+| 6 | `POST /assistant/query` — "What is the returns policy?" (admin) | Policy intent returns an answer with citations. |
+| 7 | `POST /assistant/query` — denial test | Role-based access restriction produces `denied` intent or confirms role access. |
+| 8 | `POST /assistant/query` — gibberish input | Fallback path handles nonsense gracefully without crashing. |
+| 9 | C61 golden evaluation suite (79 tests) | Deterministic intent classification, answer-type routing, accuracy thresholds, and authorization checks all pass. |
+| 10 | `npm ci && npm run build` | Frontend compiles and bundles without errors. |
+
+### Script Exit Code
+
+- `0` — all steps passed.
+- `1` — at least one step failed; failure names printed in summary.
+
+---
+
+## Manual Browser Rehearsal
+
+After the script passes, open `http://localhost:5173` and walk through these scenarios:
+
+### 1. Login
+
+- **URL:** `/login`
+- **Credentials:** `morgan.reyes@manifesto.local` / `manager123`
+- **Expected:** Login succeeds, redirect to `/dashboard`.
+
+### 2. Logistics Query (Manager)
+
+- **Navigate to:** `/assistant`
+- **Ask:** "Where is SHP-1001?"
+- **Expected:** Logistics intent response with a supply-chain graph showing shipment and vendor nodes, follow-up suggestions.
+
+### 3. Policy Query
+
+- **Ask:** "What is the returns policy?"
+- **Expected:** Policy intent response with an answer and source citations from seeded policy documents.
+
+### 4. Denial / Role-Based Access
+
+- Log out, log in as `admin@manifesto.local` / `admin123`.
+- Ask a logistics question — check whether access is granted or denied based on role.
+- Employee-role users should see `denied` intent for logistics queries.
+
+### 5. Fallback
+
+- **Ask:** "xyzzy plugh qwerty"
+- **Expected:** Graceful fallback response (no crash, no empty page).
+
+---
+
+## Environment Prerequisites
+
+- Docker and Docker Compose installed and running.
+- `.env` file present (copy from `.env.example` if missing).
+- Ollama model `nomic-embed-text` pulled (for embedding-dependent tests and seed). See OI-20 for manual pull steps if needed.
+- OpenAI credentials configured in `.env` for LLM-dependent assistant queries; deterministic fallback is also testable.
+
+## Known Limitations
+
+- The frontend dev server (`npm run dev`) is not started by the script — the script builds static assets. For interactive browser rehearsal, start `npm run dev` manually in the `frontend/` directory.
+- Assistant query results depend on the configured LLM provider. Intent routing may vary between OpenAI and Ollama backends; the golden suite (step 9) uses deterministic fixtures.
+- OI-08: Host port 5432 may conflict with a native PostgreSQL service on Windows. All DB-touching commands run inside Docker containers to avoid this.
+- OI-19: The full backend pytest suite has pre-existing cross-module event-loop failures unrelated to this demo; the focused golden suite (step 9) is unaffected.
+- OI-20: The `ollama` service is not auto-started by `depends_on` on the backend container; `docker compose up -d` starts all services including ollama, but the model must be pre-pulled.
+
+---
+
+---
+
 # Smoke Test Results — Commit 21 (`integration-smoke`)
 
 **Date:** 2026-06-07
