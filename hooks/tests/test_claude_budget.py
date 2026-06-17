@@ -263,5 +263,151 @@ class ClaudeBudgetTests(unittest.TestCase):
         )
 
 
+    def test_spec_write_override_allows_planned_file_edit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            scope = self.scope(actions=40)
+            scope["commit"] = "C62"
+            scope["budget_override"] = {
+                "uses_remaining": 5,
+                "reason": "Eran approved",
+                "mode": "spec-write",
+            }
+            path.write_text(json.dumps(scope), encoding="utf-8")
+            with patch.object(
+                claude_budget,
+                "_spec_planned_files",
+                return_value={"scripts/smoke_client_demo.ps1", "SMOKE_TEST_RESULTS.md"},
+            ):
+                allowed, message = claude_budget.evaluate(
+                    {
+                        "tool_name": "Edit",
+                        "tool_input": {
+                            "file_path": "D:/AI/_My_Projects/manifesto/scripts/smoke_client_demo.ps1"
+                        },
+                    },
+                    path,
+                )
+                saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertTrue(allowed)
+        self.assertIn("Override applied to spec-write action", message)
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 4)
+
+    def test_spec_write_override_blocks_unplanned_file_edit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            scope = self.scope(actions=40)
+            scope["commit"] = "C62"
+            scope["budget_override"] = {
+                "uses_remaining": 5,
+                "reason": "Eran approved",
+                "mode": "spec-write",
+            }
+            path.write_text(json.dumps(scope), encoding="utf-8")
+            with patch.object(
+                claude_budget,
+                "_spec_planned_files",
+                return_value={"scripts/smoke_client_demo.ps1", "SMOKE_TEST_RESULTS.md"},
+            ):
+                allowed, message = claude_budget.evaluate(
+                    {
+                        "tool_name": "Edit",
+                        "tool_input": {
+                            "file_path": "backend/app/services/assistant.py"
+                        },
+                    },
+                    path,
+                )
+                saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertFalse(allowed)
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 5)
+
+    def test_spec_write_override_still_allows_closeout_edits(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            scope = self.scope(actions=40)
+            scope["commit"] = "C62"
+            scope["budget_override"] = {
+                "uses_remaining": 5,
+                "reason": "Eran approved",
+                "mode": "spec-write",
+            }
+            path.write_text(json.dumps(scope), encoding="utf-8")
+            allowed, message = claude_budget.evaluate(
+                {
+                    "tool_name": "Edit",
+                    "tool_input": {
+                        "file_path": ".context/telemetry/C62-orchestrator.json"
+                    },
+                },
+                path,
+            )
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertTrue(allowed)
+        self.assertIn("Advisory only", message)
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 5)
+
+    def test_authorize_spec_write_override_grants_five_uses(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            path.write_text(json.dumps(self.scope(actions=40)), encoding="utf-8")
+            claude_budget.authorize_override(
+                "Eran approved: spec-write", path, mode="spec-write"
+            )
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 5)
+        self.assertEqual(saved["budget_override"]["mode"], "spec-write")
+
+    def test_spec_planned_files_parses_commit_spec(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            spec_dir = Path(temporary) / "commit-specs"
+            spec_dir.mkdir()
+            (spec_dir / "commit-62.md").write_text(
+                "## Files To Modify Or Add\n"
+                "| File | Type | Purpose |\n"
+                "|---|---|---|\n"
+                "| `scripts/smoke_client_demo.ps1` | add | Demo script |\n"
+                "| `SMOKE_TEST_RESULTS.md` | edit | Results |\n"
+                "\n## Contract\n",
+                encoding="utf-8",
+            )
+            result = claude_budget._spec_planned_files("C62", Path(temporary))
+        self.assertEqual(
+            result,
+            {"scripts/smoke_client_demo.ps1", "SMOKE_TEST_RESULTS.md"},
+        )
+
+    def test_spec_planned_files_returns_empty_for_missing_spec(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            result = claude_budget._spec_planned_files("C99", Path(temporary))
+        self.assertEqual(result, set())
+
+    def test_is_spec_write_matches_planned_file(self) -> None:
+        scope = {"commit": "C62"}
+        event = {
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "/repo/scripts/smoke_client_demo.ps1"},
+        }
+        with patch.object(
+            claude_budget,
+            "_spec_planned_files",
+            return_value={"scripts/smoke_client_demo.ps1"},
+        ):
+            self.assertTrue(claude_budget.is_spec_write(event, scope))
+
+    def test_is_spec_write_rejects_unplanned_file(self) -> None:
+        scope = {"commit": "C62"}
+        event = {
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "/repo/backend/app/main.py"},
+        }
+        with patch.object(
+            claude_budget,
+            "_spec_planned_files",
+            return_value={"scripts/smoke_client_demo.ps1"},
+        ):
+            self.assertFalse(claude_budget.is_spec_write(event, scope))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import os
 import sys
 from pathlib import Path
@@ -129,6 +130,40 @@ def is_product_write(event: dict[str, Any]) -> bool:
     return True
 
 
+def _spec_planned_files(commit: str, repo_root: Path = REPO_ROOT) -> set[str]:
+    """Parse the commit spec's 'Files To Modify Or Add' table into a set of paths."""
+    match = re.fullmatch(r"C(\d+)([A-Z]?)", commit.upper())
+    if not match:
+        return set()
+    number, suffix = match.groups()
+    spec = repo_root / "commit-specs" / f"commit-{int(number):02d}{suffix.lower()}.md"
+    if not spec.is_file():
+        return set()
+    text = spec.read_text(encoding="utf-8", errors="replace")
+    section = re.search(
+        r"^## Files To Modify Or Add\s*$\n(.*?)(?=^## |\Z)",
+        text,
+        re.MULTILINE | re.DOTALL,
+    )
+    if not section:
+        return set()
+    return set(re.findall(r"\|\s*`([^`]+)`\s*\|", section.group(1)))
+
+
+def is_spec_write(event: dict[str, Any], scope: dict[str, Any]) -> bool:
+    """True when the write targets a file in the active commit spec's planned files."""
+    tool_name = event.get("tool_name")
+    if tool_name not in WRITE_TOOLS:
+        return False
+    tool_input = event.get("tool_input") or {}
+    path = str(tool_input.get("file_path") or tool_input.get("path") or "").replace("\\", "/")
+    commit = str(scope.get("commit", ""))
+    if not commit:
+        return False
+    planned = _spec_planned_files(commit)
+    return any(path.endswith(p) or path.endswith(p.replace("/", "\\")) for p in planned)
+
+
 def evaluate(event: dict[str, Any], active_path: Path = ACTIVE_PATH) -> tuple[bool, str]:
     try:
         scope = json.loads(active_path.read_text(encoding="utf-8"))
@@ -169,11 +204,13 @@ def evaluate(event: dict[str, Any], active_path: Path = ACTIVE_PATH) -> tuple[bo
             pass
         else:
             override = scope.get("budget_override") or {}
-            action_allowed = (
-                is_recovery_action(event)
-                if override.get("mode") == "recovery"
-                else is_closeout_action(event)
-            )
+            override_mode = override.get("mode", "closeout")
+            if override_mode == "recovery":
+                action_allowed = is_recovery_action(event)
+            elif override_mode == "spec-write":
+                action_allowed = is_spec_write(event, scope) or is_closeout_action(event)
+            else:
+                action_allowed = is_closeout_action(event)
             if override.get("uses_remaining", 0) > 0 and action_allowed:
                 override["uses_remaining"] -= 1
                 scope["budget_override"] = override
@@ -217,8 +254,8 @@ def main() -> int:
             if index + 1 < len(args):
                 mode = args[index + 1]
             del args[index:index + 2]
-        if mode not in {"closeout", "recovery"}:
-            print("ERROR: --mode must be closeout or recovery", file=sys.stderr)
+        if mode not in {"closeout", "recovery", "spec-write"}:
+            print("ERROR: --mode must be closeout, recovery, or spec-write", file=sys.stderr)
             return 2
         authorize_override(" ".join(args), mode=mode)
         return 0
