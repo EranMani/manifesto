@@ -5,8 +5,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import VendorList from './pages/VendorList'
 import VendorDetail from './pages/VendorDetail'
-import ChatPolicy from './pages/ChatPolicy'
-import ChatLogistics from './pages/ChatLogistics'
+import Assistant from './pages/Assistant'
 import Admin from './pages/Admin'
 
 function RootRedirect() {
@@ -29,13 +28,16 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/vendors" element={<VendorList />} />
           <Route path="/vendors/:id" element={<VendorDetail />} />
-          <Route path="/chat/logistics" element={<ChatLogistics />} />
         </Route>
 
-        {/* manager + admin + employee */}
+        {/* all authenticated roles */}
         <Route element={<ProtectedRoute allowedRoles={['manager', 'admin', 'employee']} />}>
-          <Route path="/chat/policy" element={<ChatPolicy />} />
+          <Route path="/assistant" element={<Assistant />} />
         </Route>
+
+        {/* legacy chat redirects */}
+        <Route path="/chat/policy" element={<Navigate to="/assistant" replace />} />
+        <Route path="/chat/logistics" element={<Navigate to="/assistant" replace />} />
 
         {/* admin only */}
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
