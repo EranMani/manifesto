@@ -127,7 +127,14 @@ Co-Authored-By: Claude <claude@anthropic.com>
 ```
 
 Delegated commits credit the actual implementing agent and omit
-`Execution: Claude-direct`. Hooks advance protocol state after a successful commit.
+`Execution: Claude-direct`.
+
+6. After the primary commit, the chore(state) sweep must verify before staging:
+   - `project-state.json` pointers are advanced (last_completed, next_commit, name,
+     assignee).
+   - `commit-protocol.md` row is marked done.
+   - `TOKEN_RECORDS.md` has a row for this commit — no gaps, ever. Use `— (lost)` for
+     unavailable fields rather than omitting the entry.
 
 Never amend or rewrite history unless Eran explicitly asks. Never revert unrelated user
 changes. A blocking gate finding becomes a new commit; there are no gate-fix passes.

@@ -226,6 +226,22 @@ STEP 13 — verify_constraints + post-commit doc sweep (mandatory)
       .claude/agents/logs/<agent>-worklog.md,
       backend/DOMAIN_MAP.md, frontend/DOMAIN_MAP.md,
       ARCHITECTURE.md and GLOSSARY.md (if updated this commit)
+
+    Mandatory content checks before staging the chore commit:
+
+    a. project-state.json: `last_completed_commit` must equal the just-committed number.
+       `next_commit`, `next_commit_name`, and `next_commit_assignee` must point to the
+       next pending row in commit-protocol.md. Do not rely solely on
+       post_commit_next_step.py — verify the values are correct before staging.
+    b. commit-protocol.md: the just-committed row must be marked `✅ done · YYYY-MM-DD`.
+    c. TOKEN_RECORDS.md: a Commit Log row and Session Totals row must exist for the
+       just-committed number. No gaps — missing entries create permanent observability
+       holes that cannot be backfilled after the session ends. If token data was lost to
+       context compaction or transcript unavailability, record what is known and mark
+       unknown fields with `— (lost)` rather than omitting the row.
+
+    Do not stage the chore commit until all three checks pass.
+
     Commit: chore(state): advance state after C-NN, Co-Authored-By: Claude
     <claude@anthropic.com>. No "Commit #NN" or "Execution:" line — combined with any
     Co-Authored-By trailer, check_finalize_marker() would treat this chore commit as

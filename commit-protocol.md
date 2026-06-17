@@ -91,7 +91,7 @@
 | 61 | assistant-golden-evaluation | nova | ✅ done · 2026-06-17 |
 | 62 | assembled-client-demo | adam | ✅ done · 2026-06-17 |
 | 63 | logistics-browse-intent | nova | ✅ done · 2026-06-17 |
-| 64 | list-shipments-service | rex | pending |
+| 64 | list-shipments-service | rex | ✅ done · 2026-06-17 |
 | 65 | browse-answer-generation | nova | pending |
 | 66 | graph-node-status-metadata | rex | pending |
 | 67 | evidence-graph-visual-overhaul | aria | pending |
