@@ -94,6 +94,7 @@
 | 64 | list-shipments-service | rex | ✅ done · 2026-06-17 |
 | 65 | browse-answer-generation | nova | ✅ done · 2026-06-17 |
 | 66 | graph-node-status-metadata | rex | pending |
+| 66A | direct-brief-scope-exclusion | claude | pending |
 | 67 | evidence-graph-visual-overhaul | aria | pending |
 
 ---
@@ -118,6 +119,7 @@ green/orange/red status encoding, and a wider graph area (Aria).
 | C64 | Browse queries reach the DB and return deterministic shipment summaries |
 | C65 | LLM-grounded multi-shipment answers with fallback and count disclosure |
 | C66 | Graph nodes carry status and status-category metadata for color encoding |
+| C66A | Auto-generated direct briefs excluded from actual_scope file count |
 | C67 | Readable hub-and-spoke graph with green/orange/red status coloring |
 
 ### Execution plan

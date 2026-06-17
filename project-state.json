@@ -3,9 +3,9 @@
   "tldr": "Phase 2 complete (C41-C62). Phase 3 hardening begins: C63-C65 fix general logistics queries failing without a tracking code. C63 adds logistics_browse intent (Nova), C64 wires the DB list query (Rex), C65 adds LLM-grounded browse answers (Nova).",
   "phase": 3,
   "last_completed_commit": "65",
-  "next_commit": "66",
-  "next_commit_name": "graph-node-status-metadata",
-  "next_commit_assignee": "rex",
+  "next_commit": "66A",
+  "next_commit_name": "direct-brief-scope-exclusion",
+  "next_commit_assignee": "claude",
   "status": "active",
   "open_handoffs": [
     {
