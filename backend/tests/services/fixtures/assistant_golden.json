@@ -1,0 +1,385 @@
+{
+  "version": "1.0.0",
+  "description": "Golden evaluation cases for the assistant service. Each case defines the expected routing, evidence structure, and answer type for a given question and role.",
+  "cases": [
+    {
+      "id": "logistics-identifier-lookup",
+      "category": "identifier_lookup",
+      "question": "Where is SHP-1001?",
+      "role": "manager",
+      "expected_intent": "logistics",
+      "expected_answer_type": "LogisticsAnswer",
+      "expected_tracking_codes": ["SHP-1001"],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": true,
+        "citations_present": false,
+        "follow_ups_present": true,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": {
+        "min_nodes": 2,
+        "required_node_types": ["shipment", "vendor"],
+        "required_relationships": ["ships_via"]
+      },
+      "authorization": null
+    },
+    {
+      "id": "logistics-po-identifier",
+      "category": "identifier_lookup",
+      "question": "What is the status of PO-2026-001?",
+      "role": "admin",
+      "expected_intent": "logistics",
+      "expected_answer_type": "LogisticsAnswer",
+      "expected_tracking_codes": [],
+      "expected_po_numbers": ["PO-2026-001"],
+      "expected_facts": {
+        "graph_present": true,
+        "citations_present": false,
+        "follow_ups_present": true,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": {
+        "min_nodes": 1,
+        "required_node_types": ["shipment"],
+        "required_relationships": []
+      },
+      "authorization": null
+    },
+    {
+      "id": "logistics-buyer-vendor-products",
+      "category": "buyer_vendor_products",
+      "question": "Who is the vendor for SHP-2050 and what products are in it?",
+      "role": "manager",
+      "expected_intent": "logistics",
+      "expected_answer_type": "LogisticsAnswer",
+      "expected_tracking_codes": ["SHP-2050"],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": true,
+        "citations_present": false,
+        "follow_ups_present": true,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": {
+        "min_nodes": 2,
+        "required_node_types": ["shipment", "vendor"],
+        "required_relationships": ["ships_via"]
+      },
+      "authorization": null
+    },
+    {
+      "id": "logistics-timing",
+      "category": "timing",
+      "question": "When will SHP-3001 arrive?",
+      "role": "manager",
+      "expected_intent": "logistics",
+      "expected_answer_type": "LogisticsAnswer",
+      "expected_tracking_codes": ["SHP-3001"],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": true,
+        "citations_present": false,
+        "follow_ups_present": true,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": {
+        "min_nodes": 2,
+        "required_node_types": ["shipment", "vendor"],
+        "required_relationships": ["ships_via"]
+      },
+      "authorization": null
+    },
+    {
+      "id": "logistics-exceptional-delay",
+      "category": "exceptional_outcomes",
+      "question": "Why is SHP-4001 delayed?",
+      "role": "admin",
+      "expected_intent": "logistics",
+      "expected_answer_type": "LogisticsAnswer",
+      "expected_tracking_codes": ["SHP-4001"],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": true,
+        "citations_present": false,
+        "follow_ups_present": true,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": {
+        "min_nodes": 2,
+        "required_node_types": ["shipment", "vendor"],
+        "required_relationships": ["ships_via"]
+      },
+      "authorization": null
+    },
+    {
+      "id": "logistics-shipment-not-found",
+      "category": "exceptional_outcomes",
+      "question": "Where is SHP-9999?",
+      "role": "manager",
+      "expected_intent": "logistics",
+      "expected_answer_type": "ShipmentNotFoundError",
+      "expected_tracking_codes": ["SHP-9999"],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": false,
+        "citations_present": false,
+        "follow_ups_present": false,
+        "answer_nonempty": false
+      },
+      "expected_graph_paths": null,
+      "authorization": null
+    },
+    {
+      "id": "logistics-follow-ups",
+      "category": "follow_ups",
+      "question": "Tell me about SHP-1001",
+      "role": "manager",
+      "expected_intent": "logistics",
+      "expected_answer_type": "LogisticsAnswer",
+      "expected_tracking_codes": ["SHP-1001"],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": true,
+        "citations_present": false,
+        "follow_ups_present": true,
+        "follow_ups_min_count": 3,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": {
+        "min_nodes": 2,
+        "required_node_types": ["shipment", "vendor"],
+        "required_relationships": ["ships_via"]
+      },
+      "authorization": null
+    },
+    {
+      "id": "unknown-identifier-no-code",
+      "category": "unknown_ambiguous",
+      "question": "What is the delivery status?",
+      "role": "manager",
+      "expected_intent": "logistics",
+      "expected_answer_type": "LogisticsAnswer",
+      "expected_tracking_codes": [],
+      "expected_po_numbers": [],
+      "expected_confidence_below": 1.0,
+      "expected_facts": {
+        "graph_present": true,
+        "citations_present": false,
+        "follow_ups_present": true,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": null,
+      "authorization": null
+    },
+    {
+      "id": "ambiguous-identifier-multiple-codes",
+      "category": "unknown_ambiguous",
+      "question": "Compare SHP-1001 and SHP-2050",
+      "role": "admin",
+      "expected_intent": "logistics",
+      "expected_answer_type": "LogisticsAnswer",
+      "expected_tracking_codes": ["SHP-1001", "SHP-2050"],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": true,
+        "citations_present": false,
+        "follow_ups_present": true,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": {
+        "min_nodes": 2,
+        "required_node_types": ["shipment", "vendor"],
+        "required_relationships": ["ships_via"]
+      },
+      "authorization": null
+    },
+    {
+      "id": "policy-return-question",
+      "category": "policy",
+      "question": "What is the return policy?",
+      "role": "employee",
+      "expected_intent": "policy",
+      "expected_answer_type": "PolicyAnswer",
+      "expected_tracking_codes": [],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": false,
+        "citations_present": true,
+        "follow_ups_present": false,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": null,
+      "authorization": null
+    },
+    {
+      "id": "policy-warranty-question",
+      "category": "policy",
+      "question": "What does the warranty cover?",
+      "role": "manager",
+      "expected_intent": "policy",
+      "expected_answer_type": "PolicyAnswer",
+      "expected_tracking_codes": [],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": false,
+        "citations_present": true,
+        "follow_ups_present": false,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": null,
+      "authorization": null
+    },
+    {
+      "id": "mixed-shipment-and-policy",
+      "category": "mixed",
+      "question": "What is the return policy for SHP-1001?",
+      "role": "admin",
+      "expected_intent": "mixed",
+      "expected_answer_type": "MixedAnswer",
+      "expected_tracking_codes": ["SHP-1001"],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": true,
+        "citations_present": true,
+        "follow_ups_present": false,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": {
+        "min_nodes": 2,
+        "required_node_types": ["shipment", "vendor"],
+        "required_relationships": ["ships_via"]
+      },
+      "authorization": null
+    },
+    {
+      "id": "mixed-po-and-warranty",
+      "category": "mixed",
+      "question": "Does the warranty apply to PO-2026-001?",
+      "role": "manager",
+      "expected_intent": "mixed",
+      "expected_answer_type": "MixedAnswer",
+      "expected_tracking_codes": [],
+      "expected_po_numbers": ["PO-2026-001"],
+      "expected_facts": {
+        "graph_present": true,
+        "citations_present": true,
+        "follow_ups_present": false,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": {
+        "min_nodes": 1,
+        "required_node_types": ["shipment"],
+        "required_relationships": []
+      },
+      "authorization": null
+    },
+    {
+      "id": "employee-denial-logistics",
+      "category": "employee_denial",
+      "question": "Where is SHP-1001?",
+      "role": "employee",
+      "expected_intent": "logistics",
+      "expected_answer_type": "DeniedAnswer",
+      "expected_tracking_codes": ["SHP-1001"],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": false,
+        "citations_present": false,
+        "follow_ups_present": false,
+        "answer_nonempty": true,
+        "denial_message_exact": true
+      },
+      "expected_graph_paths": null,
+      "authorization": {
+        "must_deny": true,
+        "leakage_fields": ["graph", "follow_ups", "tracking_code"]
+      }
+    },
+    {
+      "id": "employee-denial-mixed",
+      "category": "employee_denial",
+      "question": "What is the return policy for SHP-1001?",
+      "role": "employee",
+      "expected_intent": "mixed",
+      "expected_answer_type": "DeniedAnswer",
+      "expected_tracking_codes": ["SHP-1001"],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": false,
+        "citations_present": false,
+        "follow_ups_present": false,
+        "answer_nonempty": true,
+        "denial_message_exact": true
+      },
+      "expected_graph_paths": null,
+      "authorization": {
+        "must_deny": true,
+        "leakage_fields": ["graph", "follow_ups", "tracking_code"]
+      }
+    },
+    {
+      "id": "employee-policy-allowed",
+      "category": "employee_denial",
+      "question": "What is the refund policy?",
+      "role": "employee",
+      "expected_intent": "policy",
+      "expected_answer_type": "PolicyAnswer",
+      "expected_tracking_codes": [],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": false,
+        "citations_present": true,
+        "follow_ups_present": false,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": null,
+      "authorization": {
+        "must_deny": false,
+        "leakage_fields": []
+      }
+    },
+    {
+      "id": "llm-fallback-logistics",
+      "category": "llm_fallback",
+      "question": "Where is SHP-5001?",
+      "role": "manager",
+      "expected_intent": "logistics",
+      "expected_answer_type": "LogisticsAnswer",
+      "expected_tracking_codes": ["SHP-5001"],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": true,
+        "citations_present": false,
+        "follow_ups_present": true,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": {
+        "min_nodes": 2,
+        "required_node_types": ["shipment", "vendor"],
+        "required_relationships": ["ships_via"]
+      },
+      "authorization": null,
+      "llm_behavior": "error"
+    },
+    {
+      "id": "llm-fallback-policy",
+      "category": "llm_fallback",
+      "question": "What is the compliance policy?",
+      "role": "employee",
+      "expected_intent": "policy",
+      "expected_answer_type": "PolicyAnswer",
+      "expected_tracking_codes": [],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": false,
+        "citations_present": true,
+        "follow_ups_present": false,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": null,
+      "authorization": null,
+      "llm_behavior": "error"
+    }
+  ]
+}

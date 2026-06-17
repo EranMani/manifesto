@@ -5,13 +5,26 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-16 · C54 done*
+*Last updated: 2026-06-17 · C61 done*
 
-**Last completed:** C54 `grounded-policy-answer` — done
+**Last completed:** C61 `assistant-golden-evaluation` — done
 **Currently active:** none
 **Blocked by:** none
 
-See Session 14 for C54 details.
+See Session 15 for C61 details.
+
+**Developer attention:** None.
+
+---
+
+## Session 15 — Commit 61 `assistant-golden-evaluation` · 2026-06-17
+
+**Executor:** Nova (delegated, design + analysis); Claude (file writes — lifecycle hook blocked delegated agent writes, OI-23)
+**Status:** complete
+
+Tool usage: reads=5, writes=2, total=11 (harness: 17); 0 expansions used. Nova completed full design and code authoring but `direct_execution_lifecycle.py` blocked all Write/Edit operations. Claude wrote the files from Nova's reviewed output, fixing `"ships"` → `"ships_via"` (invalid `GraphRelationship` literal in mock data).
+
+C61 added `backend/tests/services/fixtures/assistant_golden.json` (18 golden cases across 10 categories: identifier_lookup, buyer_vendor_products, timing, exceptional_outcomes, follow_ups, unknown_ambiguous, policy, mixed, employee_denial, llm_fallback) and `backend/tests/services/test_assistant_golden.py` (79 tests across 5 test classes: `TestGoldenIntentClassification` parametrized intent/tracking_code/PO/confidence checks, `TestGoldenAnswerEvaluation` mocked answer-type and ShipmentNotFoundError checks, `TestGoldenFactAccuracy` aggregated 90% threshold, `TestGoldenAuthorization` zero-tolerance deny/leakage/allow checks). All external dependencies mocked — no LLM or DB calls.
 
 **Developer attention:** None.
 
