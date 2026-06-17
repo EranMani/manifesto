@@ -17,6 +17,7 @@ sys.path.insert(0, str(HOOKS_DIR))
 from pre_commit_check import (  # noqa: E402
     DirectExecutionResolutionError,
     check_domain_boundaries,
+    detect_agent_email,
     planned_files_for_commit,
 )
 
@@ -453,3 +454,37 @@ def test_chore_state_commit_exempt_from_orchestrator_marker(tmp_path: Path) -> N
 
     assert result.returncode == 0
     assert "Pre-commit check passed" in result.stdout
+
+
+# --- Co-Authored-By trailer order independence (C58A fix 3) ---------------------
+
+
+def test_detect_agent_email_prefers_non_claude_when_claude_first() -> None:
+    msg = (
+        "feat(backend): implement something\n\n"
+        "Co-Authored-By: Claude <claude@anthropic.com>\n"
+        "Co-Authored-By: Rex <rex.stockagent@gmail.com>"
+    )
+    assert detect_agent_email(msg) == "rex.stockagent@gmail.com"
+
+
+def test_detect_agent_email_prefers_non_claude_when_agent_first() -> None:
+    msg = (
+        "feat(backend): implement something\n\n"
+        "Co-Authored-By: Rex <rex.stockagent@gmail.com>\n"
+        "Co-Authored-By: Claude <claude@anthropic.com>"
+    )
+    assert detect_agent_email(msg) == "rex.stockagent@gmail.com"
+
+
+def test_detect_agent_email_returns_claude_when_only_claude() -> None:
+    msg = (
+        "feat(hooks): implement something\n\n"
+        "Co-Authored-By: Claude <claude@anthropic.com>"
+    )
+    assert detect_agent_email(msg) == "claude@anthropic.com"
+
+
+def test_detect_agent_email_returns_none_with_no_trailer() -> None:
+    msg = "chore(state): advance state after C-50"
+    assert detect_agent_email(msg) is None

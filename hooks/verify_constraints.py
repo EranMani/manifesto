@@ -47,6 +47,26 @@ PHASE_BUDGETS = {
 # and diff-line accounting.
 RUNTIME_TELEMETRY_FILES = {"hooks/tool_cap.json"}
 
+# Governance artifacts produced by finalize_commit.py and verify_constraints.py
+# after implementation is complete.  They are never in a spec's planned-files
+# table but appear in the diff when verify_constraints runs post-commit.
+GOVERNANCE_ARTIFACT_FILES = {
+    "CONSTRAINT_LOG.md",
+    "CONTEXT_METRICS.json",
+    "constraint-dashboard.html",
+}
+
+
+def _is_excluded_artifact(path: str) -> bool:
+    """Return True for runtime telemetry and closeout governance artifacts."""
+    if path in RUNTIME_TELEMETRY_FILES or path in GOVERNANCE_ARTIFACT_FILES:
+        return True
+    if path.startswith(".context/finalize/") and path.endswith(".json"):
+        return True
+    if path.startswith(".context/direct/") and path.endswith("-override.json"):
+        return True
+    return False
+
 
 def _effective_phase_budgets(spec_result: dict) -> dict:
     """Scale reads/writes/total caps to a spec's effective max_tool_calls.
@@ -309,7 +329,7 @@ def check_spec_validation(commit_num: str, agent: str):
 def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bool, commit_ref: str, agent: str = "", commit_num: str = ""):
     if spec_result.get("legacy"):
         return True, None, "legacy completed commit: actual micro-scope check not applied"
-    changed_files = [f for f in changed_files if f not in RUNTIME_TELEMETRY_FILES]
+    changed_files = [f for f in changed_files if not _is_excluded_artifact(f)]
     planned = set(spec_result.get("planned_changed_files", []))
     # The implementor's own worklog update is mandated every commit (CLAUDE.md
     # Post-Commit File Checklist) and is never listed in a spec's
@@ -321,6 +341,10 @@ def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bo
     # planned scope, same treatment as the worklog above.
     if commit_num:
         planned.add(f".context/direct/C{commit_num}.md")
+    # package-lock.json is a generated companion of package.json — npm install
+    # updates it automatically, so treat it as planned when package.json is.
+    if "frontend/package.json" in planned:
+        planned.add("frontend/package-lock.json")
     unplanned = sorted(path for path in changed_files if path not in planned)
     # spec_result["budget"] is the effective budget: validate_commit_spec already
     # merges any bootstrap_exception overrides for max_changed_files and
@@ -341,7 +365,7 @@ def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bo
     for line in result.stdout.splitlines():
         cells = line.split("\t")
         if len(cells) >= 3 and cells[0].isdigit() and cells[1].isdigit():
-            if cells[2] in RUNTIME_TELEMETRY_FILES:
+            if _is_excluded_artifact(cells[2]):
                 continue
             diff_lines += int(cells[0]) + int(cells[1])
     if worktree:
@@ -353,7 +377,7 @@ def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bo
         )
         for relative in untracked.stdout.splitlines():
             relative = relative.strip()
-            if relative in RUNTIME_TELEMETRY_FILES:
+            if _is_excluded_artifact(relative):
                 continue
             path = REPO_ROOT / relative
             try:

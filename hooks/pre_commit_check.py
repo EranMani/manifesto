@@ -83,7 +83,10 @@ def get_commit_message():
 
 def detect_agent_email(msg):
     matches = COAUTHORED_PATTERN.findall(msg)
-    return matches[0] if matches else None
+    if not matches:
+        return None
+    non_claude = [e for e in matches if e.lower() != CLAUDE_EMAIL]
+    return non_claude[0] if non_claude else matches[0]
 
 
 def check_commit_message_format(msg):

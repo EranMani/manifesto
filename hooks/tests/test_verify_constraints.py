@@ -920,5 +920,106 @@ class TestResolvePrimaryCommitRef(unittest.TestCase):
                 self.assertIn("project-state.json", counts_head["unplanned_files"])
 
 
+# ---------------------------------------------------------------------------
+# Task 9 — Governance artifacts excluded from actual_scope (C58A fix 1)
+# ---------------------------------------------------------------------------
+
+class TestGovernanceArtifactExclusion(unittest.TestCase):
+    """Closeout governance artifacts must not count as unplanned files or diff lines."""
+
+    @staticmethod
+    def _init_repo(root: Path) -> bool:
+        for cmd in (
+            ["git", "init"],
+            ["git", "config", "user.email", "test@manifesto.test"],
+            ["git", "config", "user.name", "Test"],
+        ):
+            if subprocess.run(cmd, capture_output=True, cwd=root).returncode != 0:
+                return False
+        (root / "README.md").write_text("init", encoding="utf-8")
+        for cmd in (["git", "add", "README.md"], ["git", "commit", "-m", "init"]):
+            if subprocess.run(cmd, capture_output=True, cwd=root).returncode != 0:
+                return False
+        return True
+
+    def test_is_excluded_artifact_exact_matches(self):
+        self.assertTrue(verify_constraints._is_excluded_artifact("hooks/tool_cap.json"))
+        self.assertTrue(verify_constraints._is_excluded_artifact("CONSTRAINT_LOG.md"))
+        self.assertTrue(verify_constraints._is_excluded_artifact("CONTEXT_METRICS.json"))
+        self.assertTrue(verify_constraints._is_excluded_artifact("constraint-dashboard.html"))
+
+    def test_is_excluded_artifact_finalize_pattern(self):
+        self.assertTrue(verify_constraints._is_excluded_artifact(".context/finalize/C58.json"))
+        self.assertTrue(verify_constraints._is_excluded_artifact(".context/finalize/C33B.json"))
+        self.assertFalse(verify_constraints._is_excluded_artifact(".context/finalize/README.md"))
+
+    def test_is_excluded_artifact_override_pattern(self):
+        self.assertTrue(verify_constraints._is_excluded_artifact(".context/direct/C45-override.json"))
+        self.assertFalse(verify_constraints._is_excluded_artifact(".context/direct/C45.md"))
+        self.assertFalse(verify_constraints._is_excluded_artifact(".context/direct/C45.json"))
+
+    def test_is_excluded_artifact_normal_files(self):
+        self.assertFalse(verify_constraints._is_excluded_artifact("backend/app/services/llm.py"))
+        self.assertFalse(verify_constraints._is_excluded_artifact("frontend/src/App.tsx"))
+
+    def test_governance_artifacts_excluded_from_scope_count(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if not self._init_repo(root):
+                self.skipTest("git init/commit failed")
+            (root / "hooks").mkdir()
+            (root / "hooks" / "new_module.py").write_text("# new\n", encoding="utf-8")
+            (root / "CONSTRAINT_LOG.md").write_text("| row |\n", encoding="utf-8")
+            (root / "CONTEXT_METRICS.json").write_text("{}", encoding="utf-8")
+            finalize_dir = root / ".context" / "finalize"
+            finalize_dir.mkdir(parents=True)
+            (finalize_dir / "C58.json").write_text("{}", encoding="utf-8")
+
+            spec_result = {
+                "planned_changed_files": ["hooks/new_module.py"],
+                "budget": {"max_changed_files": 4, "max_estimated_diff_lines": 350},
+            }
+            with patch.object(verify_constraints, "REPO_ROOT", root):
+                changed = verify_constraints.git_files_changed(worktree=True, root=root)
+                ok, counts, msg = verify_constraints.check_actual_scope(
+                    spec_result, changed, True, "HEAD", "claude", "58"
+                )
+            self.assertTrue(ok, msg)
+            self.assertEqual(counts["changed_files"], 1)
+            self.assertEqual(counts["unplanned_files"], [])
+
+
+# ---------------------------------------------------------------------------
+# Task 10 — package-lock.json companion rule (C58A fix 2)
+# ---------------------------------------------------------------------------
+
+class TestPackageLockCompanion(unittest.TestCase):
+    """frontend/package-lock.json is treated as planned when frontend/package.json is."""
+
+    def test_package_lock_planned_when_package_json_is(self):
+        spec_result = {
+            "planned_changed_files": ["frontend/package.json", "frontend/src/App.tsx"],
+            "budget": {"max_changed_files": 4, "max_estimated_diff_lines": 350},
+        }
+        changed = ["frontend/package.json", "frontend/package-lock.json", "frontend/src/App.tsx"]
+        ok, counts, msg = verify_constraints.check_actual_scope(
+            spec_result, changed, False, "HEAD", "aria", "58"
+        )
+        self.assertTrue(ok, msg)
+        self.assertEqual(counts["unplanned_files"], [])
+
+    def test_package_lock_unplanned_when_package_json_absent(self):
+        spec_result = {
+            "planned_changed_files": ["frontend/src/App.tsx"],
+            "budget": {"max_changed_files": 4, "max_estimated_diff_lines": 350},
+        }
+        changed = ["frontend/package-lock.json", "frontend/src/App.tsx"]
+        ok, counts, msg = verify_constraints.check_actual_scope(
+            spec_result, changed, False, "HEAD", "aria", "58"
+        )
+        self.assertFalse(ok)
+        self.assertIn("frontend/package-lock.json", counts["unplanned_files"])
+
+
 if __name__ == "__main__":
     unittest.main()
