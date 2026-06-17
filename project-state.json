@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C59 (unified-assistant-interface, Aria owner + Claude-direct, 5b96698) added frontend/src/pages/Assistant.tsx (role-aware assistant page with conversation, composer, suggested prompts, loading/error states, session reset) and updated App.tsx with /assistant route and legacy chat redirects. Frontend build passes. Next is C60 (assistant-evidence-integration, Aria).",
+  "tldr": "C60 (assistant-evidence-integration, Aria owner + Claude-direct, ffb995e) added responsive evidence panel to Assistant.tsx (citation cards for policy/mixed intents, EvidenceGraph for logistics/mixed intents), synchronized graph selection reset in EvidenceGraph.tsx, and persisted intent/graph from API response in store/assistant.ts. Frontend build passes. Next is C61 (assistant-golden-evaluation, Nova).",
   "phase": 2,
-  "last_completed_commit": "59",
-  "next_commit": "60",
-  "next_commit_name": "assistant-evidence-integration",
-  "next_commit_assignee": "aria",
+  "last_completed_commit": "60",
+  "next_commit": "61",
+  "next_commit_name": "assistant-golden-evaluation",
+  "next_commit_assignee": "nova",
   "status": "phase-2-active",
   "open_handoffs": [
     {

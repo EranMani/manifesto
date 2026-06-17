@@ -87,7 +87,7 @@
 | 57 | assistant-client-session-state | aria | done |
 | 58 | focused-evidence-graph | aria | ✅ done · 2026-06-17 |
 | 59 | unified-assistant-interface | aria | ✅ done · 2026-06-17 |
-| 60 | assistant-evidence-integration | aria | pending |
+| 60 | assistant-evidence-integration | aria | ✅ done · 2026-06-17 |
 | 61 | assistant-golden-evaluation | nova | pending |
 | 62 | assembled-client-demo | adam | pending |
 
