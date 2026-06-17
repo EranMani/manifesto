@@ -7701,6 +7701,144 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "record_schema_version": 2,
+      "date": "2026-06-17",
+      "commit": "C56",
+      "agent": "rex",
+      "execution": "claude-direct",
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/app/schemas/assistant.py",
+          "backend/app/api/v1/assistant.py",
+          "backend/app/main.py",
+          "backend/tests/api/test_assistant.py"
+        ],
+        "read_files": null,
+        "written_files": null,
+        "changed_files": [
+          "backend/app/api/v1/assistant.py",
+          "backend/app/main.py",
+          "backend/app/schemas/assistant.py",
+          "backend/tests/api/test_assistant.py"
+        ],
+        "coverage": {
+          "planned_files": 4,
+          "planned_files_changed": 4,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 4,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
+        "source": "spec-and-hook-derived"
+      },
+      "capture": {
+        "status": "complete",
+        "reason": null,
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-17T05:48:01+00:00",
+        "ended_at": "2026-06-17T05:48:05+00:00",
+        "zero_is_measured": true
+      },
+      "tokens": 201358,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "schema_version": 2,
+          "owner": "rex",
+          "executor": "claude",
+          "execution_mode": "claude-direct",
+          "scope_kind": "execution",
+          "capture_window": "full-execution",
+          "started_at": "2026-06-17T05:48:01+00:00",
+          "ended_at": "2026-06-17T05:48:05+00:00",
+          "tool_calls": 1,
+          "read_paths": [],
+          "write_paths": [],
+          "searches": [],
+          "commands": [
+            "python hooks/context_telemetry.py --stop-orchestrator 56 2>&1"
+          ],
+          "token_usage": {
+            "status": "complete",
+            "source": "claude-transcript-jsonl",
+            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\37b903d9-4f90-48c5-b6cc-596f3140a7d6.jsonl",
+            "start_offset": 812340,
+            "formula": "input + output + cache_creation_input + cache_read_input",
+            "excludes": "sidechain and separate delegated-agent transcripts",
+            "end_offset": 815746,
+            "assistant_turns": 2,
+            "components": {
+              "input_tokens": 2,
+              "output_tokens": 244,
+              "cache_creation_input_tokens": 656,
+              "cache_read_input_tokens": 200456
+            },
+            "total_tokens": 201358
+          },
+          "context_package": null,
+          "selected_read_paths": null,
+          "outside_read_paths": null
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          "backend/app/api/v1/assistant.py",
+          "backend/app/main.py",
+          "backend/app/schemas/assistant.py",
+          "backend/tests/api/test_assistant.py"
+        ]
+      },
+      "result": "FAIL"
     }
   ]
 }

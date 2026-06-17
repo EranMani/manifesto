@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C55 (assistant-role-authorization, Rex primary + Claude-direct completion, 1aacf27) added backend/app/services/assistant.py with answer_question(*, user_role, message, db, llm, embeddings), DeniedAnswer, and role-aware dispatch: employees may receive policy answers but logistics/mixed questions return the literal denial with no retrieval; manager/admin may receive logistics and mixed answers. backend/tests/api/test_assistant.py adds 7 authorization tests; focused verification passed. Rex produced the design but returned SPLIT_REQUIRED before writes; Claude completed the two approved files. Next is C56 (unified-assistant-api, Rex).",
+  "tldr": "C56 (unified-assistant-api, Rex owner + Claude-direct, 4853404) added POST /api/v1/assistant/query — one authenticated endpoint accepting {message, context[]} and returning {intent, answer, graph|null, citations[], suggested_questions[]}. Role-based access via C55 answer_question service; employees denied logistics with safe message. Catches LLMError (never provider SDK exceptions), returns 502 on provider failure. Validates blank messages (422) and context limits (12 turns, 8000 chars). C56A (a4d52bf) fixed D50 override threading in direct lifecycle hooks. Next is C57 (assistant-client-session-state, Aria).",
   "phase": 2,
-  "last_completed_commit": "55",
-  "next_commit": "56",
-  "next_commit_name": "unified-assistant-api",
-  "next_commit_assignee": "rex",
+  "last_completed_commit": "56",
+  "next_commit": "57",
+  "next_commit_name": "assistant-client-session-state",
+  "next_commit_assignee": "aria",
   "status": "phase-2-active",
   "open_handoffs": [
     {
@@ -22,7 +22,7 @@
       "regarding": "C55-C56 — catch only LLMError and subclasses in route handlers, never provider SDK exceptions",
       "detail": "All SDK types are isolated in backend/app/services/llm.py. Route handlers must import LLMError hierarchy only.",
       "date": "2026-06-09",
-      "actioned": false
+      "actioned": true
     },
     {
       "from": "nova",
