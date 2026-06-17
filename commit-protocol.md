@@ -93,7 +93,7 @@
 | 63 | logistics-browse-intent | nova | ✅ done · 2026-06-17 |
 | 64 | list-shipments-service | rex | ✅ done · 2026-06-17 |
 | 65 | browse-answer-generation | nova | ✅ done · 2026-06-17 |
-| 66 | graph-node-status-metadata | rex | pending |
+| 66 | graph-node-status-metadata | rex | ✅ done · 2026-06-17 |
 | 66A | direct-brief-scope-exclusion | claude | ✅ done · 2026-06-17 |
 | 67 | evidence-graph-visual-overhaul | aria | pending |
 
