@@ -178,6 +178,48 @@ def test_matching_review_scope_passes_without_reactivation(tmp_path):
     prepare.assert_not_called()
 
 
+def test_planned_edit_replaces_matching_review_scope(tmp_path):
+    repo = _repo(tmp_path)
+    active = repo / ".context" / "telemetry" / "orchestrator-active.json"
+    active.parent.mkdir(parents=True)
+    active.write_text(json.dumps({
+        "commit": "C48",
+        "status": "running",
+        "execution_mode": "delegated",
+        "scope_kind": "review",
+        "capture_window": "review-only",
+    }), encoding="utf-8")
+
+    def activate(*args, **kwargs):
+        active.write_text(json.dumps({
+            "commit": "C48",
+            "status": "running",
+            "execution_mode": "claude-direct",
+            "scope_kind": "execution",
+            "capture_window": "full-execution",
+        }), encoding="utf-8")
+
+    with patch(
+        "direct_execution_lifecycle.prepare_direct", side_effect=activate
+    ) as prepare:
+        allowed, message = lifecycle.ensure_direct_scope({
+            "tool_name": "Write",
+            "tool_input": {"file_path": "backend/app/services/rag_logistics.py"},
+        }, repo)
+
+    archive = repo / ".context" / "telemetry" / "C48-delegated-review-replaced.json"
+    archived = json.loads(archive.read_text(encoding="utf-8"))
+    current = json.loads(active.read_text(encoding="utf-8"))
+    assert allowed is True
+    assert "archived mismatched scope" in message
+    assert archived["status"] == "completed"
+    assert archived["replacement_reason"]
+    assert current["execution_mode"] == "claude-direct"
+    assert current["scope_kind"] == "execution"
+    assert current["capture_window"] == "full-execution"
+    prepare.assert_called_once()
+
+
 def test_activation_failure_blocks_implementation_tool(tmp_path):
     repo = _repo(tmp_path)
     with patch(

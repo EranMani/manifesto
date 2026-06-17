@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from context_telemetry import _commit_key
+from context_telemetry import _commit_key, utc_now
 from prepare_claude_direct import prepare_direct
 from context_engine import load_rules
 
@@ -25,6 +25,12 @@ CONTROL_COMMANDS = (
     "hooks/prepare_claude_direct.py",
     "hooks/verify_constraints.py",
 )
+
+DIRECT_SCOPE = {
+    "execution_mode": "claude-direct",
+    "scope_kind": "execution",
+    "capture_window": "full-execution",
+}
 
 
 def _load_json(path: Path) -> dict[str, Any] | None:
@@ -101,6 +107,35 @@ def _targets_commit(
     return False
 
 
+def _is_running_direct_scope(active: dict[str, Any]) -> bool:
+    return (
+        active.get("status") == "running"
+        and active.get("execution_mode") == DIRECT_SCOPE["execution_mode"]
+        and active.get("scope_kind", DIRECT_SCOPE["scope_kind"])
+        == DIRECT_SCOPE["scope_kind"]
+        and active.get("capture_window", DIRECT_SCOPE["capture_window"])
+        == DIRECT_SCOPE["capture_window"]
+    )
+
+
+def _archive_mismatched_scope(
+    active: dict[str, Any], active_path: Path, commit: str
+) -> Path:
+    active["status"] = "completed"
+    active["ended_at"] = utc_now()
+    active["replacement_reason"] = (
+        "replaced mismatched telemetry scope before Claude-direct product write"
+    )
+    suffix = (
+        f"{active.get('execution_mode', 'unknown')}-"
+        f"{active.get('scope_kind', 'unknown')}-replaced"
+    ).replace("/", "-")
+    archive = active_path.parent / f"{commit}-{suffix}.json"
+    archive.write_text(json.dumps(active, indent=2) + "\n", encoding="utf-8")
+    active_path.unlink(missing_ok=True)
+    return archive
+
+
 def ensure_direct_scope(
     event: dict[str, Any], repo_root: Path = REPO_ROOT
 ) -> tuple[bool, str | None]:
@@ -114,14 +149,18 @@ def ensure_direct_scope(
 
     active = _load_json(repo_root / ".context" / "telemetry" / "orchestrator-active.json")
     if active and str(active.get("commit", "")).upper() == commit:
-        if (
-            active.get("status") == "running"
-            and active.get("execution_mode") == "claude-direct"
-        ):
+        if _is_running_direct_scope(active):
             return True, None
-        # Preserve existing evidence without trapping later tools. Explicit
-        # initialization remains protected by the lower-level overwrite guard.
-        return True, None
+        if active.get("status") == "running":
+            archive = _archive_mismatched_scope(
+                active,
+                repo_root / ".context" / "telemetry" / "orchestrator-active.json",
+                commit,
+            )
+        else:
+            return True, None
+    else:
+        archive = None
     try:
         prepare_direct(
             repo_root,
@@ -136,7 +175,10 @@ def ensure_direct_scope(
     active = _load_json(repo_root / ".context" / "telemetry" / "orchestrator-active.json")
     if not active or active.get("status") != "running":
         return False, f"{commit} capture did not become active"
-    return True, f"activated {commit} deterministic direct package and telemetry"
+    message = f"activated {commit} deterministic direct package and telemetry"
+    if archive:
+        message += f"; archived mismatched scope at {archive.relative_to(repo_root)}"
+    return True, message
 
 
 def main() -> int:
