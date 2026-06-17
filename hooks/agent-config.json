@@ -64,6 +64,8 @@
         "hooks/tests/test_prepare_agent_delegation.py",
         "hooks/direct_execution_lifecycle.py",
         "hooks/tests/test_direct_execution_lifecycle.py",
+        "hooks/prepare_claude_direct.py",
+        "hooks/tests/test_prepare_claude_direct.py",
         "hooks/context_metrics.py",
         "hooks/tests/test_context_metrics.py",
         "hooks/constraint_dashboard.py",

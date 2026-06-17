@@ -130,8 +130,9 @@ def prepare_direct(
     *,
     force_refresh: bool = False,
     activate: bool = True,
+    override_justification: str | None = None,
 ) -> tuple[dict[str, Any], Path, Path, bool]:
-    result = evaluate_direct(repo_root, commit, owner)
+    result = evaluate_direct(repo_root, commit, owner, override_justification)
     if not result.get("proceed"):
         raise DirectPreflightBlocked(result)
 

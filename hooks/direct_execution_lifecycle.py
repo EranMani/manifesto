@@ -26,6 +26,8 @@ CONTROL_COMMANDS = (
     "hooks/verify_constraints.py",
 )
 
+OVERRIDE_PATH = REPO_ROOT / ".context" / "direct"
+
 DIRECT_SCOPE = {
     "execution_mode": "claude-direct",
     "scope_kind": "execution",
@@ -161,6 +163,15 @@ def ensure_direct_scope(
             return True, None
     else:
         archive = None
+    override_file = (repo_root / ".context" / "direct" / f"{commit}-override.json")
+    override_justification = None
+    if override_file.exists():
+        try:
+            override_justification = json.loads(
+                override_file.read_text(encoding="utf-8")
+            ).get("justification")
+        except Exception:
+            pass
     try:
         prepare_direct(
             repo_root,
@@ -168,6 +179,7 @@ def ensure_direct_scope(
             commit,
             owner,
             activate=True,
+            override_justification=override_justification,
         )
     except Exception as exc:
         return False, f"cannot activate {commit} Claude-direct capture: {exc}"
