@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "C60 (assistant-evidence-integration, Aria owner + Claude-direct, ffb995e) added responsive evidence panel to Assistant.tsx (citation cards for policy/mixed intents, EvidenceGraph for logistics/mixed intents), synchronized graph selection reset in EvidenceGraph.tsx, and persisted intent/graph from API response in store/assistant.ts. Frontend build passes. Next is C61 (assistant-golden-evaluation, Nova).",
+  "tldr": "C61 (assistant-golden-evaluation, Nova delegated + Claude file writes, 430479a) added golden evaluation suite: 18 cases across 10 categories in assistant_golden.json, 79 tests in test_assistant_golden.py covering intent classification, answer-type routing, 90% fact+path accuracy threshold, and zero-tolerance authorization/leakage checks. All 79 tests pass. Next is C62 (assembled-client-demo, Adam).",
   "phase": 2,
-  "last_completed_commit": "60",
-  "next_commit": "61",
-  "next_commit_name": "assistant-golden-evaluation",
-  "next_commit_assignee": "nova",
+  "last_completed_commit": "61",
+  "next_commit": "62",
+  "next_commit_name": "assembled-client-demo",
+  "next_commit_assignee": "adam",
   "status": "phase-2-active",
   "open_handoffs": [
     {

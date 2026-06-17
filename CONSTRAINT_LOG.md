@@ -82,3 +82,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-17 | C58 | aria | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
 | 2026-06-17 | C59 | aria | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
 | 2026-06-17 | C60 | aria | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
+| 2026-06-17 | C61 | nova | 59,694 | PASS | PASS | FAIL | FAIL |
