@@ -19,9 +19,9 @@ as delegated agents, while reducing the instruction context cached on every turn
 | Claude direct | 25 actions / 25 turns / 100K active tokens | 40 / 40 / 150K |
 | Delegated review | 15 actions / 20 turns / 75K active tokens | 20 / 25 / 100K |
 
-At the stop threshold, implementation and research tools are blocked. Deterministic
-closeout commands remain available. Continuing requires Eran's explicit approval and a
-one-use override recorded in the active scope.
+Updated after C55: at the stop threshold, Claude orchestration is advisory-only and
+continues with the overage recorded. Product writes after a stop remain blocked unless
+Eran explicitly approves a bounded override.
 
 ## C52C - Lean Instruction Loading
 

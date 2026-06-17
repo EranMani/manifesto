@@ -30,6 +30,7 @@
         "AGENTS.md",
         "team-preferences.md",
         "MULTI_AGENT_WORKFLOW_REDESIGN_ROADMAP.md",
+        "CLAUDE_BUDGET_AND_CACHE_REDUCTION_ROADMAP.md",
         "TASK_TO_COMMIT_PROTOCOL_GUIDE.md",
         "TASK_TO_COMMIT_SYSTEM_IMPLEMENTATION_GUIDE.md",
         "commit-specs/",

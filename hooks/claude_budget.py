@@ -26,7 +26,7 @@ PROFILES = {
     },
 }
 
-EDIT_TOOLS = {"Edit", "MultiEdit", "NotebookEdit", "Write", "Grep", "Glob", "Read"}
+WRITE_TOOLS = {"Edit", "MultiEdit", "NotebookEdit", "Write"}
 CONTROL_COMMANDS = (
     "hooks/finalize_commit.py",
     "hooks/verify_constraints.py",
@@ -119,6 +119,16 @@ def is_recovery_action(event: dict[str, Any]) -> bool:
     return is_closeout_action(event)
 
 
+def is_product_write(event: dict[str, Any]) -> bool:
+    """Only product writes remain blocking after Claude's orchestration budget stops."""
+    tool_name = event.get("tool_name")
+    if tool_name not in WRITE_TOOLS:
+        return False
+    if is_closeout_action(event):
+        return False
+    return True
+
+
 def evaluate(event: dict[str, Any], active_path: Path = ACTIVE_PATH) -> tuple[bool, str]:
     try:
         scope = json.loads(active_path.read_text(encoding="utf-8"))
@@ -152,7 +162,10 @@ def evaluate(event: dict[str, Any], active_path: Path = ACTIVE_PATH) -> tuple[bo
 
     allowed = True
     if state == "stop":
-        if allowed_after_stop(event):
+        if not is_product_write(event):
+            scope["live_budget"]["state"] = "advisory-stop"
+            message += " Advisory only for orchestration; continuing."
+        elif allowed_after_stop(event):
             pass
         else:
             override = scope.get("budget_override") or {}

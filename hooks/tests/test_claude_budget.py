@@ -49,7 +49,7 @@ class ClaudeBudgetTests(unittest.TestCase):
         self.assertTrue(allowed)
         self.assertIn("budget warn", message)
 
-    def test_review_scope_blocks_twentieth_action(self) -> None:
+    def test_review_scope_warns_but_allows_orchestration_after_twentieth_action(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "active.json"
             path.write_text(
@@ -57,7 +57,27 @@ class ClaudeBudgetTests(unittest.TestCase):
                 encoding="utf-8",
             )
             allowed, message = claude_budget.evaluate(
-                {"tool_name": "Edit", "tool_input": {}}, path
+                {"tool_name": "Agent", "tool_input": {"subagent_type": "rex"}}, path
+            )
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertTrue(allowed)
+        self.assertIn("budget stop", message)
+        self.assertIn("Advisory only", message)
+        self.assertEqual(saved["live_budget"]["state"], "advisory-stop")
+
+    def test_product_write_blocks_after_stop_without_override(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "active.json"
+            path.write_text(
+                json.dumps(self.scope(actions=19, mode="delegated")),
+                encoding="utf-8",
+            )
+            allowed, message = claude_budget.evaluate(
+                {
+                    "tool_name": "Edit",
+                    "tool_input": {"file_path": "backend/app/services/assistant.py"},
+                },
+                path,
             )
         self.assertFalse(allowed)
         self.assertIn("budget stop", message)
@@ -69,7 +89,7 @@ class ClaudeBudgetTests(unittest.TestCase):
         }
         self.assertTrue(claude_budget.allowed_after_stop(event))
 
-    def test_override_is_consumed_for_closeout_action(self) -> None:
+    def test_closeout_action_is_advisory_and_does_not_consume_override(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "active.json"
             scope = self.scope(actions=40)
@@ -84,7 +104,8 @@ class ClaudeBudgetTests(unittest.TestCase):
             )
             saved = json.loads(path.read_text(encoding="utf-8"))
         self.assertTrue(allowed)
-        self.assertEqual(saved["budget_override"]["uses_remaining"], 4)
+        self.assertIn("Advisory only", _)
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 5)
         self.assertEqual(saved["budget_override"].get("mode", "closeout"), "closeout")
 
     def test_override_does_not_cover_non_closeout_action(self) -> None:
@@ -125,7 +146,7 @@ class ClaudeBudgetTests(unittest.TestCase):
         self.assertEqual(saved["budget_override"]["uses_remaining"], 10)
         self.assertEqual(saved["budget_override"]["mode"], "recovery")
 
-    def test_recovery_override_allows_agent_invocation_after_stop(self) -> None:
+    def test_agent_invocation_is_advisory_and_does_not_consume_recovery_override(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "active.json"
             scope = self.scope(actions=40, mode="delegated")
@@ -141,10 +162,10 @@ class ClaudeBudgetTests(unittest.TestCase):
             )
             saved = json.loads(path.read_text(encoding="utf-8"))
         self.assertTrue(allowed)
-        self.assertIn("recovery action", message)
-        self.assertEqual(saved["budget_override"]["uses_remaining"], 9)
+        self.assertIn("Advisory only", message)
+        self.assertEqual(saved["budget_override"]["uses_remaining"], 10)
 
-    def test_closeout_override_does_not_allow_agent_invocation(self) -> None:
+    def test_agent_invocation_is_advisory_after_stop_even_without_recovery_mode(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "active.json"
             scope = self.scope(actions=40, mode="delegated")
@@ -159,8 +180,8 @@ class ClaudeBudgetTests(unittest.TestCase):
                 path,
             )
             saved = json.loads(path.read_text(encoding="utf-8"))
-        self.assertFalse(allowed)
-        self.assertIn("request an override", message)
+        self.assertTrue(allowed)
+        self.assertIn("Advisory only", message)
         self.assertEqual(saved["budget_override"]["uses_remaining"], 5)
 
     def test_authorize_override_command_allowed_after_stop(self) -> None:

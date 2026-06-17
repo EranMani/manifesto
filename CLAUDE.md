@@ -76,7 +76,7 @@ Never label a delegated commit as "not delegated" merely because Claude finished
 
 ## Live Budgets
 
-`hooks/claude_budget.py` mechanically enforces these top-level Claude limits:
+`hooks/claude_budget.py` records these top-level Claude limits:
 
 | Scope | Warn | Stop |
 |---|---:|---:|
@@ -84,14 +84,19 @@ Never label a delegated commit as "not delegated" merely because Claude finished
 | Delegated review | 15 actions / 20 turns / 75K active tokens | 20 / 25 / 100K |
 
 Active tokens are input + output + cache creation. Cache-read tokens remain visible but
-do not trigger a stop. At a hard stop, split the work or obtain Eran's explicit approval
-for a one-use override:
+do not trigger a stop. For orchestration actions (preflight, delegation, reads/searches,
+verification, finalization, state sweeps, and agent invocation), a hard stop is advisory:
+continue and keep the overage visible. Do not ask Eran for routine orchestration
+overrides.
+
+For Claude product writes after a hard stop, split the work or obtain Eran's explicit
+approval for a bounded override:
 
 ```powershell
 python hooks/claude_budget.py --authorize-override "Eran approved: REASON"
 ```
 
-Do not authorize an override without Eran's approval.
+Do not authorize a product-write override without Eran's approval.
 
 Delegated agents retain the limits in their generated brief and `tool_cap_*` hooks.
 
