@@ -90,6 +90,35 @@
 | 60 | assistant-evidence-integration | aria | ✅ done · 2026-06-17 |
 | 61 | assistant-golden-evaluation | nova | ✅ done · 2026-06-17 |
 | 62 | assembled-client-demo | adam | ✅ done · 2026-06-17 |
+| 63 | logistics-browse-intent | nova | pending |
+| 64 | list-shipments-service | rex | pending |
+| 65 | browse-answer-generation | nova | pending |
+| 66 | graph-node-status-metadata | rex | pending |
+| 67 | evidence-graph-visual-overhaul | aria | pending |
+
+---
+
+## Phase 3: Assistant Hardening (planned 2026-06-17)
+
+C63-C65 address the first issue found in post-demo testing: general logistics
+queries without a specific tracking code (e.g., "find all shipments", "show delayed
+shipments") fail instantly instead of querying the database. The fix decomposes into
+intent classification (C63), DB query wiring (C64), and LLM-grounded generation (C65).
+
+C66-C67 address the second issue: the evidence graph is unreadable. The frontend
+used policy-document color mappings for logistics node types (all nodes render gray),
+a broken layout algorithm that stacks all nodes in one column (linear appearance),
+and a cramped 384px container. C66 enriches graph nodes with status metadata (Rex),
+C67 overhauls the visual rendering with logistics-aware colors, hub-and-spoke layout,
+green/orange/red status encoding, and a wider graph area (Aria).
+
+| Range | Product result |
+|---|---|
+| C63 | Intent routing distinguishes browse vs. single-shipment lookup |
+| C64 | Browse queries reach the DB and return deterministic shipment summaries |
+| C65 | LLM-grounded multi-shipment answers with fallback and count disclosure |
+| C66 | Graph nodes carry status and status-category metadata for color encoding |
+| C67 | Readable hub-and-spoke graph with green/orange/red status coloring |
 
 ---
 

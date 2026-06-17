@@ -1,12 +1,12 @@
 {
   "project": "manifesto",
-  "tldr": "C62 (assembled-client-demo, Adam/Claude-direct, e4f05f4) added smoke_client_demo.ps1 proving the full product story end-to-end from a clean environment: start stack, migrate, seed, verify APIs (logistics, policy, denial, fallback), run C61 golden suite, and build frontend. C62 is the final commit in the Phase 2 roadmap (C41-C62).",
-  "phase": 2,
+  "tldr": "Phase 2 complete (C41-C62). Phase 3 hardening begins: C63-C65 fix general logistics queries failing without a tracking code. C63 adds logistics_browse intent (Nova), C64 wires the DB list query (Rex), C65 adds LLM-grounded browse answers (Nova).",
+  "phase": 3,
   "last_completed_commit": "62",
-  "next_commit": null,
-  "next_commit_name": null,
-  "next_commit_assignee": null,
-  "status": "phase-2-complete",
+  "next_commit": "63",
+  "next_commit_name": "logistics-browse-intent",
+  "next_commit_assignee": "nova",
+  "status": "active",
   "open_handoffs": [
     {
       "from": "nova",
