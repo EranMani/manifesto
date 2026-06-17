@@ -541,6 +541,58 @@ def _deterministic_fallback(evidence: ProcurementEvidence) -> str:
     return " ".join(parts)
 
 
+async def list_shipments_summary(
+    db: AsyncSession,
+    *,
+    status_filter: str | None = None,
+    limit: int = 20,
+) -> list[ShipmentEvidence]:
+    query = select(Shipment).order_by(Shipment.dispatched_at.desc()).limit(limit)
+    if status_filter is not None:
+        query = query.where(Shipment.status == status_filter)
+    result = await db.execute(query)
+    return [_shipment_evidence(s) for s in result.scalars().all()]
+
+
+def _deterministic_browse_fallback(
+    shipments: list[ShipmentEvidence], total_count: int
+) -> str:
+    if not shipments:
+        return "No shipments found matching your query."
+    lines: list[str] = []
+    if total_count > len(shipments):
+        lines.append(f"Showing {len(shipments)} of {total_count} shipments.\n")
+    for s in shipments:
+        arrival = _format_timestamp(s.actual_arrival_at) if s.actual_arrival_at else _format_timestamp(s.expected_arrival_at) + " (expected)"
+        lines.append(
+            f"- {s.tracking_code}: {s.status} | {s.origin} → {s.destination} | "
+            f"dispatched {_format_timestamp(s.dispatched_at)} | arrival {arrival}"
+        )
+    return "\n".join(lines)
+
+
+async def generate_browse_logistics_answer(
+    db: AsyncSession,
+    *,
+    status_filter: str | None = None,
+    question: str,
+) -> LogisticsAnswer:
+    from sqlalchemy import func
+
+    count_query = select(func.count()).select_from(Shipment)
+    if status_filter is not None:
+        count_query = count_query.where(Shipment.status == status_filter)
+    total_count = (await db.execute(count_query)).scalar_one()
+
+    shipments = await list_shipments_summary(db, status_filter=status_filter)
+    answer = _deterministic_browse_fallback(shipments, total_count)
+    empty_graph = ProcurementGraph(
+        nodes=[], edges=[], highlighted_path=[],
+        retrieved_at=datetime.datetime.now(datetime.timezone.utc),
+    )
+    return LogisticsAnswer(answer=answer, graph=empty_graph, follow_ups=[])
+
+
 async def generate_grounded_logistics_answer(
     db: AsyncSession,
     llm: "LLMService",

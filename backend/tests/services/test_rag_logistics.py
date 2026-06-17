@@ -29,8 +29,11 @@ from app.services.rag_logistics import (
     ProcurementGraph,
     ShipmentEvidence,
     ShipmentNotFoundError,
+    _deterministic_browse_fallback,
     classify_intent,
+    generate_browse_logistics_answer,
     generate_grounded_logistics_answer,
+    list_shipments_summary,
     lookup_procurement,
     lookup_procurement_graph,
     lookup_shipment,
@@ -823,3 +826,121 @@ async def test_delay_evidence_selects_latest_event_by_id_on_occurred_at_tie(sess
     expected_id = max(first.id, second.id)
     assert evidence.delay.exception_event is not None
     assert evidence.delay.exception_event.id == expected_id
+
+
+# --- Browse / list_shipments_summary tests ------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_list_shipments_summary_returns_all_shipments(session: AsyncSession):
+    s1 = await _make_shipment(session, status="delivered")
+    s2 = await _make_shipment(session, status="pending")
+
+    results = await list_shipments_summary(session)
+
+    result_ids = {r.id for r in results}
+    assert s1.id in result_ids
+    assert s2.id in result_ids
+
+
+@pytest.mark.asyncio
+async def test_list_shipments_summary_respects_status_filter(session: AsyncSession):
+    await _make_shipment(session, status="delivered")
+    delayed = await _make_shipment(session, status="delayed")
+
+    results = await list_shipments_summary(session, status_filter="delayed")
+
+    assert all(r.status == "delayed" for r in results)
+    assert any(r.id == delayed.id for r in results)
+
+
+@pytest.mark.asyncio
+async def test_list_shipments_summary_respects_limit(session: AsyncSession):
+    for _ in range(5):
+        await _make_shipment(session)
+
+    results = await list_shipments_summary(session, limit=3)
+
+    assert len(results) <= 3
+
+
+@pytest.mark.asyncio
+async def test_list_shipments_summary_empty_db_returns_empty(session: AsyncSession):
+    results = await list_shipments_summary(session, status_filter="nonexistent_status")
+
+    assert results == []
+
+
+@pytest.mark.asyncio
+async def test_list_shipments_summary_ordered_by_dispatched_at_desc(session: AsyncSession):
+    earlier = await _make_shipment(
+        session, dispatched_at=_NOW - datetime.timedelta(days=2)
+    )
+    later = await _make_shipment(
+        session, dispatched_at=_NOW + datetime.timedelta(days=2)
+    )
+
+    results = await list_shipments_summary(session)
+
+    result_ids = [r.id for r in results]
+    assert result_ids.index(later.id) < result_ids.index(earlier.id)
+
+
+def test_deterministic_browse_fallback_empty_list():
+    assert _deterministic_browse_fallback([], 0) == "No shipments found matching your query."
+
+
+def test_deterministic_browse_fallback_shows_truncation_header():
+    shipments = [
+        ShipmentEvidence(
+            id="1", tracking_code="SHP-0001", status="delivered",
+            origin="A", destination="B", dispatched_at=_NOW,
+            expected_arrival_at=_LATER, actual_arrival_at=_LATER,
+            delay_reason=None,
+        ),
+    ]
+    result = _deterministic_browse_fallback(shipments, 50)
+    assert "Showing 1 of 50 shipments" in result
+    assert "SHP-0001" in result
+
+
+def test_deterministic_browse_fallback_no_truncation_header_when_all_shown():
+    shipments = [
+        ShipmentEvidence(
+            id="1", tracking_code="SHP-0001", status="pending",
+            origin="A", destination="B", dispatched_at=_NOW,
+            expected_arrival_at=_LATER, actual_arrival_at=None,
+            delay_reason=None,
+        ),
+    ]
+    result = _deterministic_browse_fallback(shipments, 1)
+    assert "Showing" not in result
+    assert "SHP-0001" in result
+
+
+@pytest.mark.asyncio
+async def test_generate_browse_logistics_answer_returns_logistics_answer(session: AsyncSession):
+    await _make_shipment(session, status="pending")
+    await _make_shipment(session, status="delivered")
+
+    result = await generate_browse_logistics_answer(
+        session, status_filter=None, question="find all shipments",
+    )
+
+    assert isinstance(result, LogisticsAnswer)
+    assert result.graph.nodes == []
+    assert result.graph.edges == []
+    assert result.follow_ups == []
+
+
+@pytest.mark.asyncio
+async def test_generate_browse_logistics_answer_with_status_filter(session: AsyncSession):
+    await _make_shipment(session, status="pending")
+    await _make_shipment(session, status="delivered")
+
+    result = await generate_browse_logistics_answer(
+        session, status_filter="pending", question="show pending shipments",
+    )
+
+    assert isinstance(result, LogisticsAnswer)
+    assert "pending" in result.answer.lower()

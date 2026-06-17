@@ -268,6 +268,108 @@ class TestDenialIntent:
         assert data["citations"] == []
 
 
+class TestBrowseIntent:
+    @patch("app.api.v1.assistant.answer_question", new_callable=AsyncMock)
+    async def test_browse_question_returns_logistics_answer(
+        self, mock_aq: AsyncMock, client: AsyncClient
+    ) -> None:
+        user = _make_user("manager")
+        _login_as(user)
+        mock_aq.return_value = LogisticsAnswer(
+            answer="- SHP-1001: delivered | A → B",
+            graph=ProcurementGraph(
+                nodes=[], edges=[], highlighted_path=[],
+                retrieved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+            ),
+            follow_ups=[],
+        )
+        resp = await client.post(
+            "/api/v1/assistant/query",
+            json={"message": "Find all shipments"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["intent"] == "logistics"
+        assert "SHP-1001" in data["answer"]
+        assert data["graph"] is not None
+        assert data["citations"] == []
+        assert data["suggested_questions"] == []
+
+    @pytest.mark.asyncio
+    async def test_browse_through_answer_question_returns_list(self) -> None:
+        from app.services.assistant import answer_question
+
+        mock_db = AsyncMock()
+        mock_llm = MagicMock()
+        mock_embeddings = MagicMock()
+
+        browse_answer = LogisticsAnswer(
+            answer="- SHP-0001: pending",
+            graph=ProcurementGraph(
+                nodes=[], edges=[], highlighted_path=[],
+                retrieved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+            ),
+            follow_ups=[],
+        )
+
+        with patch(
+            "app.services.assistant.generate_browse_logistics_answer",
+            new_callable=AsyncMock,
+            return_value=browse_answer,
+        ) as mock_browse, patch(
+            "app.services.assistant.classify_intent",
+            return_value=IntentRouting(
+                intent="logistics_browse",
+                confidence=1.0,
+                tracking_codes=[],
+                purchase_order_numbers=[],
+                reason="browse",
+                status_filter="pending",
+            ),
+        ):
+            result = await answer_question(
+                user_role="admin",
+                message="find all pending shipments",
+                db=mock_db,
+                llm=mock_llm,
+                embeddings=mock_embeddings,
+            )
+
+        assert isinstance(result, LogisticsAnswer)
+        assert result.answer == "- SHP-0001: pending"
+        mock_browse.assert_called_once_with(
+            mock_db, status_filter="pending", question="find all pending shipments",
+        )
+
+    @pytest.mark.asyncio
+    async def test_browse_denied_for_employee(self) -> None:
+        from app.services.assistant import answer_question
+
+        mock_db = AsyncMock()
+        mock_llm = MagicMock()
+        mock_embeddings = MagicMock()
+
+        with patch(
+            "app.services.assistant.classify_intent",
+            return_value=IntentRouting(
+                intent="logistics_browse",
+                confidence=1.0,
+                tracking_codes=[],
+                purchase_order_numbers=[],
+                reason="browse",
+            ),
+        ):
+            result = await answer_question(
+                user_role="employee",
+                message="find all shipments",
+                db=mock_db,
+                llm=mock_llm,
+                embeddings=mock_embeddings,
+            )
+
+        assert isinstance(result, DeniedAnswer)
+
+
 class TestFallback:
     @patch("app.api.v1.assistant.answer_question", new_callable=AsyncMock)
     async def test_llm_error_returns_502(

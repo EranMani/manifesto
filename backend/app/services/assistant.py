@@ -11,6 +11,7 @@ from app.services.rag_logistics import (
     ProcurementGraph,
     ShipmentNotFoundError,
     classify_intent,
+    generate_browse_logistics_answer,
     generate_grounded_logistics_answer,
     lookup_procurement,
 )
@@ -50,11 +51,16 @@ async def answer_question(
     routing = classify_intent(message)
     role = user_role.lower()
 
-    if routing.intent in {"logistics", "mixed"} and role not in _LOGISTICS_ROLES:
+    if routing.intent in {"logistics", "logistics_browse", "mixed"} and role not in _LOGISTICS_ROLES:
         return DeniedAnswer(message=_EMPLOYEE_DENIAL)
 
     if routing.intent == "policy":
         return await generate_grounded_policy_answer(db, llm, message, embeddings)
+
+    if routing.intent == "logistics_browse":
+        return await generate_browse_logistics_answer(
+            db, status_filter=routing.status_filter, question=message,
+        )
 
     tracking_code = _primary_tracking_code(routing.tracking_codes)
 
