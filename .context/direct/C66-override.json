@@ -1,0 +1,1 @@
+{"justification": "Purely mechanical: adding optional nullable fields to dataclass/Pydantic model and populating with a static mapping dict. No specialist uncertainty, no domain-sensitive logic."}

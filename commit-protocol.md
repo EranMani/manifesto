@@ -94,7 +94,7 @@
 | 64 | list-shipments-service | rex | ✅ done · 2026-06-17 |
 | 65 | browse-answer-generation | nova | ✅ done · 2026-06-17 |
 | 66 | graph-node-status-metadata | rex | pending |
-| 66A | direct-brief-scope-exclusion | claude | pending |
+| 66A | direct-brief-scope-exclusion | claude | ✅ done · 2026-06-17 |
 | 67 | evidence-graph-visual-overhaul | aria | pending |
 
 ---
