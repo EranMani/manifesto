@@ -1,7 +1,8 @@
-# Commit 66 - `graph-node-status-metadata` - Rex
+# Commit 66 - `graph-node-status-metadata` - Claude-direct (Rex domain)
 
 **Phase:** Assistant hardening
 **Owner:** rex
+**Execution:** Claude-direct — adding optional fields to dataclass + Pydantic model and populating with a mapping; purely mechanical.
 **Depends on:** C65
 **Estimated diff lines:** 120
 **Primary behavior count:** 1

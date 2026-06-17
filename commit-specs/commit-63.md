@@ -1,7 +1,8 @@
-# Commit 63 - `logistics-browse-intent` - Nova
+# Commit 63 - `logistics-browse-intent` - Claude-direct (Nova domain)
 
 **Phase:** Assistant hardening
 **Owner:** nova
+**Execution:** Claude-direct — mechanical extension of existing `classify_intent()` with new vocabulary; fully specified, no specialist uncertainty.
 **Depends on:** C62
 **Estimated diff lines:** 180
 **Primary behavior count:** 1

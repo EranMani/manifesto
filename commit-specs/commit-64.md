@@ -1,7 +1,8 @@
-# Commit 64 - `list-shipments-service` - Rex
+# Commit 64 - `list-shipments-service` - Claude-direct (Rex domain)
 
 **Phase:** Assistant hardening
 **Owner:** rex
+**Execution:** Claude-direct — straightforward SQL query + one orchestrator if-branch; no specialist uncertainty.
 **Depends on:** C63
 **Estimated diff lines:** 220
 **Primary behavior count:** 1

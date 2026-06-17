@@ -120,6 +120,14 @@ green/orange/red status encoding, and a wider graph area (Aria).
 | C66 | Graph nodes carry status and status-category metadata for color encoding |
 | C67 | Readable hub-and-spoke graph with green/orange/red status coloring |
 
+### Execution plan
+
+C63, C64, and C66 are Claude-direct: mechanical pattern extensions with fully specified
+contracts and no specialist uncertainty. C65 delegates to Nova (prompt engineering for
+multi-shipment LLM context). C67 delegates to Aria (ReactFlow layout algorithm and
+frontend visualization). Domain owners are preserved in the spec for file-access
+validation; the `--direct` preflight flag selects Claude-direct execution at runtime.
+
 ---
 
 ## Fast-Delivery Product Replan (approved 2026-06-14)
