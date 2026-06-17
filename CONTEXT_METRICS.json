@@ -8239,30 +8239,15 @@
           "frontend/src/App.tsx"
         ],
         "changed_files": [
-          ".context/direct/C59.md",
-          "CONSTRAINT_LOG.md",
-          "CONTEXT_METRICS.json",
           "frontend/src/App.tsx",
-          "frontend/src/pages/Assistant.tsx",
-          "hooks/pre_commit_check.py",
-          "hooks/tests/test_pre_commit_check.py",
-          "hooks/tests/test_verify_constraints.py",
-          "hooks/verify_constraints.py"
+          "frontend/src/pages/Assistant.tsx"
         ],
         "coverage": {
           "planned_files": 2,
           "planned_files_changed": 2,
           "planned_change_percent": 100.0,
           "missing_planned_files": [],
-          "supporting_changes": [
-            ".context/direct/C59.md",
-            "CONSTRAINT_LOG.md",
-            "CONTEXT_METRICS.json",
-            "hooks/pre_commit_check.py",
-            "hooks/tests/test_pre_commit_check.py",
-            "hooks/tests/test_verify_constraints.py",
-            "hooks/verify_constraints.py"
-          ],
+          "supporting_changes": [],
           "source": "spec-and-git-derived"
         },
         "provenance": {
@@ -8391,18 +8376,11 @@
       "boundaries": {
         "forbidden_clean": true,
         "changed_files": [
-          ".context/direct/C59.md",
-          "CONSTRAINT_LOG.md",
-          "CONTEXT_METRICS.json",
           "frontend/src/App.tsx",
-          "frontend/src/pages/Assistant.tsx",
-          "hooks/pre_commit_check.py",
-          "hooks/tests/test_pre_commit_check.py",
-          "hooks/tests/test_verify_constraints.py",
-          "hooks/verify_constraints.py"
+          "frontend/src/pages/Assistant.tsx"
         ]
       },
-      "result": "FAIL"
+      "result": "PASS"
     }
   ]
 }
