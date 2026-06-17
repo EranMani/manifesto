@@ -8215,6 +8215,194 @@
         ]
       },
       "result": "FAIL"
+    },
+    {
+      "record_schema_version": 2,
+      "date": "2026-06-17",
+      "commit": "C59",
+      "agent": "aria",
+      "execution": "claude-direct",
+      "identity": {
+        "owner": "aria",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Frontend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "frontend/src/pages/Assistant.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "read_files": null,
+        "written_files": [
+          "frontend/src/App.tsx"
+        ],
+        "changed_files": [
+          ".context/direct/C59.md",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/Assistant.tsx",
+          "hooks/pre_commit_check.py",
+          "hooks/tests/test_pre_commit_check.py",
+          "hooks/tests/test_verify_constraints.py",
+          "hooks/verify_constraints.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".context/direct/C59.md",
+            "CONSTRAINT_LOG.md",
+            "CONTEXT_METRICS.json",
+            "hooks/pre_commit_check.py",
+            "hooks/tests/test_pre_commit_check.py",
+            "hooks/tests/test_verify_constraints.py",
+            "hooks/verify_constraints.py"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [
+          "frontend/src/App.tsx",
+          "frontend/src/pages/Assistant.tsx",
+          "frontend/src/pages/ChatLogistics.tsx",
+          "frontend/src/pages/ChatPolicy.tsx",
+          "frontend/src/store/assistant.ts",
+          "frontend/src/store/auth.ts"
+        ],
+        "source": "spec-and-hook-derived"
+      },
+      "capture": {
+        "status": "complete",
+        "reason": null,
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-17T08:51:05+00:00",
+        "ended_at": "2026-06-17T08:53:08+00:00",
+        "zero_is_measured": true
+      },
+      "tokens": 2000022,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "schema_version": 2,
+          "owner": "aria",
+          "executor": "claude",
+          "execution_mode": "claude-direct",
+          "scope_kind": "execution",
+          "capture_window": "full-execution",
+          "started_at": "2026-06-17T08:51:05+00:00",
+          "ended_at": "2026-06-17T08:53:08+00:00",
+          "tool_calls": 9,
+          "read_paths": [],
+          "write_paths": [
+            "frontend/src/App.tsx"
+          ],
+          "searches": [],
+          "commands": [
+            "npm --prefix frontend run build",
+            "npm --prefix frontend run build",
+            "python hooks/verify_constraints.py --commit 59 --agent aria --execution claude-direct",
+            "git diff --name-only",
+            "git diff --name-only -- frontend/",
+            "python hooks/context_telemetry.py --stop-orchestrator 59"
+          ],
+          "token_usage": {
+            "status": "complete",
+            "source": "claude-transcript-jsonl",
+            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\6a23f910-304d-4713-b67f-1f6ec16c5068.jsonl",
+            "start_offset": 178998,
+            "formula": "input + output + cache_creation_input + cache_read_input",
+            "excludes": "sidechain and separate delegated-agent transcripts",
+            "end_offset": 316939,
+            "assistant_turns": 39,
+            "components": {
+              "input_tokens": 39,
+              "output_tokens": 6630,
+              "cache_creation_input_tokens": 21409,
+              "cache_read_input_tokens": 1971944
+            },
+            "total_tokens": 2000022
+          },
+          "context_package": {
+            "path": ".context/runs/C59-claude-direct.json",
+            "brief_path": ".context/direct/C59.md",
+            "selection_policy": "deterministic-graph-v1",
+            "selected_paths": [
+              "frontend/src/App.tsx",
+              "frontend/src/pages/Assistant.tsx",
+              "frontend/src/pages/ChatLogistics.tsx",
+              "frontend/src/pages/ChatPolicy.tsx",
+              "frontend/src/store/assistant.ts",
+              "frontend/src/store/auth.ts"
+            ],
+            "planned_paths": [
+              "frontend/src/App.tsx",
+              "frontend/src/pages/Assistant.tsx"
+            ],
+            "selected_files": 6,
+            "estimated_chars": 4370
+          },
+          "selected_read_paths": [],
+          "outside_read_paths": []
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          ".context/direct/C59.md",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/Assistant.tsx",
+          "hooks/pre_commit_check.py",
+          "hooks/tests/test_pre_commit_check.py",
+          "hooks/tests/test_verify_constraints.py",
+          "hooks/verify_constraints.py"
+        ]
+      },
+      "result": "FAIL"
     }
   ]
 }
