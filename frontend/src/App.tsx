@@ -10,7 +10,7 @@ import Admin from './pages/Admin'
 
 function RootRedirect() {
   const token = useAuthStore((state) => state.token)
-  return token ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+  return token ? <Navigate to="/assistant" replace /> : <Navigate to="/login" replace />
 }
 
 function App() {

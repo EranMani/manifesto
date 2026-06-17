@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.llm import EmbeddingService, LLMService
 from app.services.rag_logistics import (
     LogisticsAnswer,
+    ProcurementGraph,
+    ShipmentNotFoundError,
     classify_intent,
     generate_grounded_logistics_answer,
     lookup_procurement,
@@ -55,17 +57,33 @@ async def answer_question(
         return await generate_grounded_policy_answer(db, llm, message, embeddings)
 
     tracking_code = _primary_tracking_code(routing.tracking_codes)
-    logistics_answer = await generate_grounded_logistics_answer(
-        db,
-        llm,
-        tracking_code,
-        message,
-    )
+
+    try:
+        logistics_answer = await generate_grounded_logistics_answer(
+            db,
+            llm,
+            tracking_code,
+            message,
+        )
+    except ShipmentNotFoundError:
+        no_data = (
+            "I couldn't find a shipment matching that query. "
+            "Please include a specific tracking code (e.g. SHP-1001) "
+            "and I'll look it up for you."
+        )
+        return _no_shipment_answer(no_data)
 
     if routing.intent == "logistics":
         return logistics_answer
 
-    logistics_evidence = await lookup_procurement(db, tracking_code)
+    try:
+        logistics_evidence = await lookup_procurement(db, tracking_code)
+    except ShipmentNotFoundError:
+        logistics_evidence = None
+
+    if logistics_evidence is None:
+        return logistics_answer
+
     return await generate_grounded_mixed_answer(
         db,
         llm,
@@ -74,6 +92,15 @@ async def answer_question(
         logistics_answer,
         logistics_evidence,
     )
+
+
+def _no_shipment_answer(text: str) -> LogisticsAnswer:
+    import datetime
+
+    empty_graph = ProcurementGraph(
+        nodes=[], edges=[], highlighted_path=[], retrieved_at=datetime.datetime.now(datetime.UTC),
+    )
+    return LogisticsAnswer(answer=text, graph=empty_graph, follow_ups=[])
 
 
 def _primary_tracking_code(tracking_codes: list[str]) -> str:

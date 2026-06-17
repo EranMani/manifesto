@@ -34,7 +34,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
 
   if (token) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/assistant" replace />
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -52,7 +52,7 @@ export default function Login() {
       }
 
       login(accessToken, user)
-      navigate('/dashboard')
+      navigate('/assistant')
     } catch (err) {
       if (isAxiosError(err)) {
         if (err.response?.status === 401) {
