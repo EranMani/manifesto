@@ -89,7 +89,7 @@
 | 59 | unified-assistant-interface | aria | ✅ done · 2026-06-17 |
 | 60 | assistant-evidence-integration | aria | ✅ done · 2026-06-17 |
 | 61 | assistant-golden-evaluation | nova | ✅ done · 2026-06-17 |
-| 62 | assembled-client-demo | adam | pending |
+| 62 | assembled-client-demo | adam | ✅ done · 2026-06-17 |
 
 ---
 

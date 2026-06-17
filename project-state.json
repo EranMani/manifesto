@@ -1,12 +1,12 @@
 {
   "project": "manifesto",
-  "tldr": "C61 (assistant-golden-evaluation, Nova delegated + Claude file writes, 430479a) added golden evaluation suite: 18 cases across 10 categories in assistant_golden.json, 79 tests in test_assistant_golden.py covering intent classification, answer-type routing, 90% fact+path accuracy threshold, and zero-tolerance authorization/leakage checks. All 79 tests pass. Next is C62 (assembled-client-demo, Adam).",
+  "tldr": "C62 (assembled-client-demo, Adam/Claude-direct, e4f05f4) added smoke_client_demo.ps1 proving the full product story end-to-end from a clean environment: start stack, migrate, seed, verify APIs (logistics, policy, denial, fallback), run C61 golden suite, and build frontend. C62 is the final commit in the Phase 2 roadmap (C41-C62).",
   "phase": 2,
-  "last_completed_commit": "61",
-  "next_commit": "62",
-  "next_commit_name": "assembled-client-demo",
-  "next_commit_assignee": "adam",
-  "status": "phase-2-active",
+  "last_completed_commit": "62",
+  "next_commit": null,
+  "next_commit_name": null,
+  "next_commit_assignee": null,
+  "status": "phase-2-complete",
   "open_handoffs": [
     {
       "from": "nova",
