@@ -955,7 +955,13 @@ class TestGovernanceArtifactExclusion(unittest.TestCase):
 
     def test_is_excluded_artifact_override_pattern(self):
         self.assertTrue(verify_constraints._is_excluded_artifact(".context/direct/C45-override.json"))
-        self.assertFalse(verify_constraints._is_excluded_artifact(".context/direct/C45.md"))
+        self.assertFalse(verify_constraints._is_excluded_artifact(".context/direct/C45.json"))
+
+    def test_is_excluded_artifact_direct_brief_pattern(self):
+        self.assertTrue(verify_constraints._is_excluded_artifact(".context/direct/C66.md"))
+        self.assertTrue(verify_constraints._is_excluded_artifact(".context/direct/C66A.md"))
+        self.assertTrue(verify_constraints._is_excluded_artifact(".context/direct/C100.md"))
+        self.assertFalse(verify_constraints._is_excluded_artifact(".context/direct/README.md"))
         self.assertFalse(verify_constraints._is_excluded_artifact(".context/direct/C45.json"))
 
     def test_is_excluded_artifact_normal_files(self):
@@ -983,6 +989,30 @@ class TestGovernanceArtifactExclusion(unittest.TestCase):
                 changed = verify_constraints.git_files_changed(worktree=True, root=root)
                 ok, counts, msg = verify_constraints.check_actual_scope(
                     spec_result, changed, True, "HEAD", "claude", "58"
+                )
+            self.assertTrue(ok, msg)
+            self.assertEqual(counts["changed_files"], 1)
+            self.assertEqual(counts["unplanned_files"], [])
+
+    def test_direct_brief_excluded_from_scope_count(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if not self._init_repo(root):
+                self.skipTest("git init/commit failed")
+            (root / "hooks").mkdir()
+            (root / "hooks" / "new_module.py").write_text("# new\n", encoding="utf-8")
+            direct_dir = root / ".context" / "direct"
+            direct_dir.mkdir(parents=True)
+            (direct_dir / "C66.md").write_text("brief\n", encoding="utf-8")
+
+            spec_result = {
+                "planned_changed_files": ["hooks/new_module.py"],
+                "budget": {"max_changed_files": 4, "max_estimated_diff_lines": 350},
+            }
+            with patch.object(verify_constraints, "REPO_ROOT", root):
+                changed = verify_constraints.git_files_changed(worktree=True, root=root)
+                ok, counts, msg = verify_constraints.check_actual_scope(
+                    spec_result, changed, True, "HEAD", "claude", "66"
                 )
             self.assertTrue(ok, msg)
             self.assertEqual(counts["changed_files"], 1)
