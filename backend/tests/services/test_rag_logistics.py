@@ -570,6 +570,69 @@ def test_intent_routing_deduplicates_repeated_identifiers():
     assert routing.tracking_codes == ["SHP-1234"]
 
 
+def test_intent_routing_browse_find_all_shipments():
+    routing = classify_intent("Find all shipments")
+
+    assert routing.intent == "logistics_browse"
+    assert routing.confidence == 1.0
+    assert routing.tracking_codes == []
+    assert routing.purchase_order_numbers == []
+    assert routing.status_filter is None
+
+
+def test_intent_routing_browse_show_delayed_shipments():
+    routing = classify_intent("Show delayed shipments")
+
+    assert routing.intent == "logistics_browse"
+    assert routing.confidence == 1.0
+    assert routing.status_filter == "delayed"
+
+
+def test_intent_routing_browse_how_many_pending():
+    routing = classify_intent("How many shipments are pending?")
+
+    assert routing.intent == "logistics_browse"
+    assert routing.confidence == 1.0
+    assert routing.status_filter == "pending"
+
+
+def test_intent_routing_browse_extracts_delivered_status():
+    routing = classify_intent("List all delivered orders")
+
+    assert routing.intent == "logistics_browse"
+    assert routing.status_filter == "delivered"
+
+
+def test_intent_routing_browse_with_identifier_stays_logistics():
+    routing = classify_intent("Show all shipments like SHP-1234")
+
+    assert routing.intent == "logistics"
+    assert routing.confidence == 1.0
+    assert routing.tracking_codes == ["SHP-1234"]
+
+
+def test_intent_routing_browse_with_policy_term_stays_policy():
+    routing = classify_intent("Show all return policies for delayed shipments")
+
+    assert routing.intent == "policy"
+    assert routing.confidence == 1.0
+
+
+def test_intent_routing_ambiguous_no_browse_no_identifier_stays_logistics():
+    routing = classify_intent("Where is my shipment?")
+
+    assert routing.intent == "logistics"
+    assert routing.confidence == 0.5
+    assert routing.tracking_codes == []
+
+
+def test_intent_routing_existing_routes_have_null_status_filter():
+    routing = classify_intent("What is the status of SHP-1234?")
+
+    assert routing.intent == "logistics"
+    assert routing.status_filter is None
+
+
 class _FakeLLMService:
     """Records the prompt passed to ``chat()`` and yields a fixed answer."""
 

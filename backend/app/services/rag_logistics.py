@@ -580,7 +580,7 @@ class RAGLogistics:
 
 # A routing decision selects which evidence sources (logistics, policy, or
 # both) a downstream retrieval/generation step should consult.
-AssistantIntent = Literal["logistics", "policy", "mixed"]
+AssistantIntent = Literal["logistics", "policy", "mixed", "logistics_browse"]
 
 # Matches a shipment tracking identifier, e.g. "SHP-1234".
 _SHIPMENT_ID_PATTERN = re.compile(r"\bSHP-\d{4,}\b", re.IGNORECASE)
@@ -618,6 +618,43 @@ _POLICY_TERM_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+_BROWSE_TERMS: frozenset[str] = frozenset(
+    {
+        "list",
+        "all",
+        "show",
+        "find",
+        "search",
+        "shipments",
+        "orders",
+        "delayed",
+        "pending",
+    }
+)
+
+_BROWSE_TERM_PATTERN = re.compile(
+    r"\b(" + "|".join(re.escape(term) for term in _BROWSE_TERMS) + r")\b",
+    re.IGNORECASE,
+)
+
+_BROWSE_PHRASE_PATTERN = re.compile(r"\bhow\s+many\b", re.IGNORECASE)
+
+_STATUS_FILTER_MAP: dict[str, str] = {
+    "delayed": "delayed",
+    "pending": "pending",
+    "delivered": "delivered",
+    "cancelled": "cancelled",
+    "damaged": "damaged",
+    "lost": "lost",
+    "returned": "returned",
+    "partial": "partial",
+}
+
+_STATUS_FILTER_PATTERN = re.compile(
+    r"\b(" + "|".join(re.escape(k) for k in _STATUS_FILTER_MAP) + r")\b",
+    re.IGNORECASE,
+)
+
 
 @dataclass(frozen=True)
 class IntentRouting:
@@ -634,6 +671,7 @@ class IntentRouting:
     tracking_codes: list[str]
     purchase_order_numbers: list[str]
     reason: str
+    status_filter: str | None = None
 
 
 def classify_intent(text: str) -> IntentRouting:
@@ -679,6 +717,27 @@ def classify_intent(text: str) -> IntentRouting:
             tracking_codes=[],
             purchase_order_numbers=[],
             reason="Question contains policy-topic terms.",
+        )
+
+    has_browse_term = (
+        _BROWSE_TERM_PATTERN.search(text) is not None
+        or _BROWSE_PHRASE_PATTERN.search(text) is not None
+    )
+
+    if has_browse_term:
+        status_match = _STATUS_FILTER_PATTERN.search(text)
+        status_filter = (
+            _STATUS_FILTER_MAP[status_match.group(0).lower()]
+            if status_match
+            else None
+        )
+        return IntentRouting(
+            intent="logistics_browse",
+            confidence=1.0,
+            tracking_codes=[],
+            purchase_order_numbers=[],
+            reason="Question contains browse vocabulary for listing/filtering shipments.",
+            status_filter=status_filter,
         )
 
     return IntentRouting(
