@@ -5,15 +5,28 @@
 ---
 
 ## Current State
-*Last updated: 2026-06-17 · C61 done*
+*Last updated: 2026-06-17 · C65 done*
 
-**Last completed:** C61 `assistant-golden-evaluation` — done
+**Last completed:** C65 `browse-answer-generation` — done
 **Currently active:** none
 **Blocked by:** none
 
-See Session 15 for C61 details.
+See Session 16 for C65 details.
 
-**Developer attention:** None.
+**Developer attention:** The `llm` parameter on `generate_browse_logistics_answer` is keyword-only and defaults to `None`, preserving backward compatibility with the C64 call site in `assistant.py`. A follow-up edit to `assistant.py` (Rex's domain) should wire `llm` through the browse call to enable grounded generation end-to-end.
+
+---
+
+## Session 16 — Commit 65 `browse-answer-generation` · 2026-06-17
+
+**Executor:** Nova (delegated)
+**Status:** complete
+
+Tool usage: reads=8, writes=2, total=18 (harness: 19); 0 expansions used.
+
+C65 added LLM-grounded browse answer generation to `backend/app/services/rag_logistics.py`: `_format_browse_evidence_for_prompt()` renders plain-text shipment evidence with truncation header, `_build_browse_logistics_prompt()` builds system+user messages constraining the LLM to evidence-only answers, `_browse_follow_ups()` suggests tracking-code lookups from the result set, and `generate_browse_logistics_answer()` now accepts an optional `llm` kwarg — when provided, builds the browse prompt, calls `llm.chat(stream=False)`, and falls back to `_deterministic_browse_fallback()` on any `LLMError`. Graph is always an empty `ProcurementGraph`. `backend/tests/services/test_rag_logistics.py` received 14 new browse tests (evidence formatting, prompt construction, LLM generation, provider fallback, no-LLM fallback, follow-ups, count disclosure, empty graph, empty results) plus 1 updated assertion. Verification: 26 browse tests passed, 65 total passed, 0 regressions.
+
+**Developer attention:** `assistant.py` (Rex's domain, forbidden for this commit) does not yet pass `llm` to the browse call site — production browse queries use deterministic fallback until wired.
 
 ---
 

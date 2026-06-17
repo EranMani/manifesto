@@ -29,7 +29,9 @@ from app.services.rag_logistics import (
     ProcurementGraph,
     ShipmentEvidence,
     ShipmentNotFoundError,
+    _build_browse_logistics_prompt,
     _deterministic_browse_fallback,
+    _format_browse_evidence_for_prompt,
     classify_intent,
     generate_browse_logistics_answer,
     generate_grounded_logistics_answer,
@@ -930,7 +932,8 @@ async def test_generate_browse_logistics_answer_returns_logistics_answer(session
     assert isinstance(result, LogisticsAnswer)
     assert result.graph.nodes == []
     assert result.graph.edges == []
-    assert result.follow_ups == []
+    # Follow-ups now suggest specific shipment lookups from the result set.
+    assert len(result.follow_ups) > 0
 
 
 @pytest.mark.asyncio
@@ -944,3 +947,228 @@ async def test_generate_browse_logistics_answer_with_status_filter(session: Asyn
 
     assert isinstance(result, LogisticsAnswer)
     assert "pending" in result.answer.lower()
+
+
+# --- Browse evidence formatting and prompt tests ------------------------------
+
+
+def test_format_browse_evidence_includes_shipment_fields():
+    shipments = [
+        ShipmentEvidence(
+            id="1", tracking_code="SHP-0001", status="in_transit",
+            origin="Shanghai, CN", destination="Hamburg, DE",
+            dispatched_at=_NOW, expected_arrival_at=_LATER,
+            actual_arrival_at=None, delay_reason=None,
+        ),
+    ]
+    result = _format_browse_evidence_for_prompt(shipments, 1)
+
+    assert "SHP-0001" in result
+    assert "in_transit" in result
+    assert "Shanghai, CN" in result
+    assert "Hamburg, DE" in result
+    assert "delay_reason: none" in result
+
+
+def test_format_browse_evidence_truncation_header():
+    shipments = [
+        ShipmentEvidence(
+            id="1", tracking_code="SHP-0001", status="delivered",
+            origin="A", destination="B", dispatched_at=_NOW,
+            expected_arrival_at=_LATER, actual_arrival_at=_LATER,
+            delay_reason=None,
+        ),
+    ]
+    result = _format_browse_evidence_for_prompt(shipments, 100)
+
+    assert "Showing 1 of 100 shipments" in result
+
+
+def test_format_browse_evidence_no_truncation_header_when_all_shown():
+    shipments = [
+        ShipmentEvidence(
+            id="1", tracking_code="SHP-0001", status="pending",
+            origin="A", destination="B", dispatched_at=_NOW,
+            expected_arrival_at=_LATER, actual_arrival_at=None,
+            delay_reason=None,
+        ),
+    ]
+    result = _format_browse_evidence_for_prompt(shipments, 1)
+
+    assert "Showing" not in result
+
+
+def test_format_browse_evidence_includes_delay_reason():
+    shipments = [
+        ShipmentEvidence(
+            id="1", tracking_code="SHP-0001", status="delayed",
+            origin="A", destination="B", dispatched_at=_NOW,
+            expected_arrival_at=_LATER, actual_arrival_at=None,
+            delay_reason="Port congestion",
+        ),
+    ]
+    result = _format_browse_evidence_for_prompt(shipments, 1)
+
+    assert "Port congestion" in result
+
+
+def test_build_browse_logistics_prompt_returns_system_and_user_messages():
+    shipments = [
+        ShipmentEvidence(
+            id="1", tracking_code="SHP-0001", status="delivered",
+            origin="A", destination="B", dispatched_at=_NOW,
+            expected_arrival_at=_LATER, actual_arrival_at=_LATER,
+            delay_reason=None,
+        ),
+    ]
+    messages = _build_browse_logistics_prompt("Find all shipments", shipments, 1)
+
+    assert len(messages) == 2
+    assert messages[0].role == "system"
+    assert messages[1].role == "user"
+    assert "SHP-0001" in messages[1].content
+    assert "Find all shipments" in messages[1].content
+
+
+def test_build_browse_logistics_prompt_no_sql_leak():
+    shipments = [
+        ShipmentEvidence(
+            id="1", tracking_code="SHP-0001", status="pending",
+            origin="A", destination="B", dispatched_at=_NOW,
+            expected_arrival_at=_LATER, actual_arrival_at=None,
+            delay_reason=None,
+        ),
+    ]
+    messages = _build_browse_logistics_prompt("List pending", shipments, 1)
+
+    full_text = "\n".join(m.content for m in messages)
+    assert "SELECT" not in full_text
+    assert "FROM " not in full_text
+
+
+@pytest.mark.asyncio
+async def test_browse_llm_generation_returns_grounded_answer(session: AsyncSession):
+    s1 = await _make_shipment(session, status="pending")
+    s2 = await _make_shipment(session, status="pending")
+
+    llm = _FakeLLMService(answer="There are 2 pending shipments in the system.")
+
+    result = await generate_browse_logistics_answer(
+        session, llm=llm, status_filter="pending", question="How many pending shipments?",
+    )
+
+    assert isinstance(result, LogisticsAnswer)
+    assert result.answer == "There are 2 pending shipments in the system."
+    # The prompt was passed to the LLM.
+    assert llm.last_messages is not None
+    assert len(llm.last_messages) == 2
+
+
+@pytest.mark.asyncio
+async def test_browse_llm_prompt_contains_evidence(session: AsyncSession):
+    shipment = await _make_shipment(session, status="delayed", delay_reason="Storm")
+
+    llm = _FakeLLMService(answer="One delayed shipment found.")
+
+    await generate_browse_logistics_answer(
+        session, llm=llm, status_filter="delayed", question="Show delayed",
+    )
+
+    assert llm.last_messages is not None
+    prompt_text = "\n".join(m.content for m in llm.last_messages)
+    assert shipment.tracking_code in prompt_text
+    assert "delayed" in prompt_text
+    assert "Storm" in prompt_text
+
+
+@pytest.mark.asyncio
+async def test_browse_provider_failure_returns_deterministic_fallback(session: AsyncSession):
+    shipment = await _make_shipment(session, status="pending")
+
+    llm = _FailingLLMService()
+
+    result = await generate_browse_logistics_answer(
+        session, llm=llm, status_filter="pending", question="Show pending",
+    )
+
+    assert isinstance(result, LogisticsAnswer)
+    assert shipment.tracking_code in result.answer
+    assert "pending" in result.answer.lower()
+
+
+@pytest.mark.asyncio
+async def test_browse_no_llm_returns_deterministic_fallback(session: AsyncSession):
+    shipment = await _make_shipment(session, status="delivered")
+
+    result = await generate_browse_logistics_answer(
+        session, llm=None, status_filter="delivered", question="Show delivered",
+    )
+
+    assert isinstance(result, LogisticsAnswer)
+    assert shipment.tracking_code in result.answer
+
+
+@pytest.mark.asyncio
+async def test_browse_follow_ups_reference_tracking_codes(session: AsyncSession):
+    s1 = await _make_shipment(session, status="pending")
+    s2 = await _make_shipment(session, status="pending")
+
+    result = await generate_browse_logistics_answer(
+        session, status_filter="pending", question="Show pending",
+    )
+
+    assert len(result.follow_ups) > 0
+    all_follow_up_text = " ".join(result.follow_ups)
+    # At least one tracking code from the results appears in follow-ups.
+    tracking_codes = {s1.tracking_code, s2.tracking_code}
+    assert any(tc in all_follow_up_text for tc in tracking_codes)
+
+
+@pytest.mark.asyncio
+async def test_browse_count_disclosure_when_truncated(session: AsyncSession):
+    for _ in range(5):
+        await _make_shipment(session, status="pending")
+
+    llm = _FakeLLMService(answer="Here are the pending shipments.")
+
+    result = await generate_browse_logistics_answer(
+        session, llm=llm, status_filter="pending", question="Show pending", limit=2,
+    )
+
+    # The prompt should contain the count disclosure with truncation header.
+    assert llm.last_messages is not None
+    prompt_text = "\n".join(m.content for m in llm.last_messages)
+    # Total count may exceed 5 if the transaction-scoped DB has residual rows,
+    # so check format "Showing 2 of N" where N > 2.
+    import re as _re
+    match = _re.search(r"Showing 2 of (\d+) shipments", prompt_text)
+    assert match is not None, f"Expected truncation header in prompt, got:\n{prompt_text}"
+    assert int(match.group(1)) > 2
+
+
+@pytest.mark.asyncio
+async def test_browse_graph_is_always_empty(session: AsyncSession):
+    await _make_shipment(session, status="pending")
+
+    llm = _FakeLLMService(answer="Found shipments.")
+
+    result = await generate_browse_logistics_answer(
+        session, llm=llm, status_filter="pending", question="Show pending",
+    )
+
+    assert result.graph.nodes == []
+    assert result.graph.edges == []
+    assert result.graph.highlighted_path == []
+
+
+@pytest.mark.asyncio
+async def test_browse_empty_results_with_llm(session: AsyncSession):
+    llm = _FakeLLMService(answer="No shipments found.")
+
+    result = await generate_browse_logistics_answer(
+        session, llm=llm, status_filter="nonexistent", question="Show nonexistent",
+    )
+
+    assert isinstance(result, LogisticsAnswer)
+    assert result.answer == "No shipments found."
+    assert result.follow_ups == []

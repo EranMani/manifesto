@@ -1,0 +1,8 @@
+{
+  "commit": "65",
+  "agent": "nova",
+  "execution": "delegated",
+  "checks_passed": true,
+  "timestamp": "2026-06-17T17:50:00.000000+00:00",
+  "override_note": "diff_lines=384 exceeds cap of 350. Root cause: implementation files (rag_logistics.py + test_rag_logistics.py) are 324 lines, under cap. The 34-line overage comes from the required Nova worklog update (nova-worklog.md Session 16). One-time diff-cap override approved by Eran."
+}

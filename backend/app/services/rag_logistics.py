@@ -571,12 +571,83 @@ def _deterministic_browse_fallback(
     return "\n".join(lines)
 
 
+def _format_browse_evidence_for_prompt(
+    shipments: list[ShipmentEvidence], total_count: int
+) -> str:
+    """Render a plain-text evidence block listing each shipment's key fields.
+
+    Includes a "Showing X of Y shipments" header when the result set is
+    truncated (``total_count > len(shipments)``).
+    """
+    lines: list[str] = []
+    if total_count > len(shipments):
+        lines.append(f"Showing {len(shipments)} of {total_count} shipments.\n")
+
+    for s in shipments:
+        lines.append(f"Shipment {s.tracking_code}:")
+        lines.append(f"  status: {s.status}")
+        lines.append(f"  origin: {s.origin}")
+        lines.append(f"  destination: {s.destination}")
+        lines.append(f"  dispatched_at: {_format_timestamp(s.dispatched_at)}")
+        lines.append(f"  expected_arrival_at: {_format_timestamp(s.expected_arrival_at)}")
+        lines.append(f"  delay_reason: {s.delay_reason or 'none'}")
+
+    return "\n".join(lines)
+
+
+_BROWSE_SYSTEM_PROMPT = (
+    "You are a logistics assistant. Answer the user's question using only the "
+    "shipment list evidence provided below. Do not invent shipment details that "
+    "are not present in the evidence. If the evidence is empty, say no shipments "
+    "were found. Never mention SQL, databases, or internal identifiers."
+)
+
+
+def _build_browse_logistics_prompt(
+    question: str,
+    shipments: list[ShipmentEvidence],
+    total_count: int,
+) -> "list[ChatMessage]":
+    """Build system + user messages for a browse logistics query."""
+    from app.services.llm import ChatMessage
+
+    evidence_block = _format_browse_evidence_for_prompt(shipments, total_count)
+    user_content = (
+        f"Evidence:\n{evidence_block}\n\n"
+        f"Question: {question}\n\n"
+        "Answer using only the evidence above."
+    )
+    return [
+        ChatMessage(role="system", content=_BROWSE_SYSTEM_PROMPT),
+        ChatMessage(role="user", content=user_content),
+    ]
+
+
+def _browse_follow_ups(shipments: list[ShipmentEvidence]) -> list[str]:
+    """Suggest follow-up questions referencing specific tracking codes."""
+    follow_ups: list[str] = []
+    for s in shipments[:3]:
+        follow_ups.append(f"Tell me more about shipment {s.tracking_code}")
+    return follow_ups
+
+
 async def generate_browse_logistics_answer(
     db: AsyncSession,
     *,
+    llm: "LLMService | None" = None,
     status_filter: str | None = None,
     question: str,
+    limit: int = 20,
 ) -> LogisticsAnswer:
+    """Generate a grounded multi-shipment answer for a browse query.
+
+    Retrieves up to ``limit`` shipments via ``list_shipments_summary()``,
+    builds a browse prompt, and calls ``llm.chat()`` for a natural-language
+    answer. On any ``LLMError`` or when ``llm`` is ``None``, falls back to
+    ``_deterministic_browse_fallback()``. The graph is always an empty
+    ``ProcurementGraph``. Follow-ups suggest specific shipment lookups from
+    the returned list.
+    """
     from sqlalchemy import func
 
     count_query = select(func.count()).select_from(Shipment)
@@ -584,13 +655,30 @@ async def generate_browse_logistics_answer(
         count_query = count_query.where(Shipment.status == status_filter)
     total_count = (await db.execute(count_query)).scalar_one()
 
-    shipments = await list_shipments_summary(db, status_filter=status_filter)
-    answer = _deterministic_browse_fallback(shipments, total_count)
+    shipments = await list_shipments_summary(
+        db, status_filter=status_filter, limit=limit,
+    )
+
+    answer: str | None = None
+    if llm is not None:
+        from app.services.llm import LLMError
+
+        try:
+            messages = _build_browse_logistics_prompt(question, shipments, total_count)
+            chunks = await llm.chat(messages, stream=False)
+            answer = "".join([chunk async for chunk in chunks])
+        except LLMError:
+            answer = None
+
+    if answer is None:
+        answer = _deterministic_browse_fallback(shipments, total_count)
+
     empty_graph = ProcurementGraph(
         nodes=[], edges=[], highlighted_path=[],
         retrieved_at=datetime.datetime.now(datetime.timezone.utc),
     )
-    return LogisticsAnswer(answer=answer, graph=empty_graph, follow_ups=[])
+    follow_ups = _browse_follow_ups(shipments)
+    return LogisticsAnswer(answer=answer, graph=empty_graph, follow_ups=follow_ups)
 
 
 async def generate_grounded_logistics_answer(
