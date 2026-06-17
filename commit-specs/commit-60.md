@@ -48,6 +48,7 @@ forbidden:
 |---|---|---|
 | `frontend/src/pages/Assistant.tsx` | edit | Add responsive evidence panel and citation cards. |
 | `frontend/src/components/EvidenceGraph.tsx` | edit | Synchronize selected answer and graph details. |
+| `frontend/src/store/assistant.ts` | edit | Persist intent and graph from queryAssistant response; reset intent/graph on reset. |
 
 ## Contract
 Logistics/mixed answers show the graph; policy/mixed answers show source title, section,

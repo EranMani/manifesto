@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C58 (focused-evidence-graph, Aria owner + Claude-direct, 05fd400) added frontend/src/components/EvidenceGraph.tsx (React Flow graph with deterministic left-to-right layout by node type, highlighted_path visual emphasis, muted supporting nodes, clickable detail panel, empty-state placeholder) and added @xyflow/react dependency. Frontend build passes. Next is C59 (unified-assistant-interface, Aria).",
+  "tldr": "C59 (unified-assistant-interface, Aria owner + Claude-direct, 5b96698) added frontend/src/pages/Assistant.tsx (role-aware assistant page with conversation, composer, suggested prompts, loading/error states, session reset) and updated App.tsx with /assistant route and legacy chat redirects. Frontend build passes. Next is C60 (assistant-evidence-integration, Aria).",
   "phase": 2,
-  "last_completed_commit": "58",
-  "next_commit": "59",
-  "next_commit_name": "unified-assistant-interface",
+  "last_completed_commit": "59",
+  "next_commit": "60",
+  "next_commit_name": "assistant-evidence-integration",
   "next_commit_assignee": "aria",
   "status": "phase-2-active",
   "open_handoffs": [
