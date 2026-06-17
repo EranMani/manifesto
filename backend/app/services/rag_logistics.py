@@ -123,6 +123,8 @@ class GraphNode:
     id: str
     type: GraphNodeType
     label: str
+    status: str | None = None
+    status_category: str | None = None
 
 
 @dataclass(frozen=True)
@@ -138,6 +140,14 @@ class ProcurementGraph:
     edges: list[GraphEdge]
     highlighted_path: list[str]
     retrieved_at: datetime.datetime
+
+
+def _status_category(status: str) -> str:
+    if status == "delivered":
+        return "done"
+    if status in {"pending", "in_transit"}:
+        return "active"
+    return "issue"
 
 
 def _shipment_evidence(shipment: Shipment) -> ShipmentEvidence:
@@ -315,9 +325,14 @@ def _project_procurement_graph(evidence: ProcurementEvidence) -> ProcurementGrap
             )
         )
 
+    shipment_status = evidence.shipment.status
     nodes.append(
         GraphNode(
-            id=shipment_node_id, type="shipment", label=evidence.shipment.tracking_code
+            id=shipment_node_id,
+            type="shipment",
+            label=evidence.shipment.tracking_code,
+            status=shipment_status,
+            status_category=_status_category(shipment_status),
         )
     )
     if order_node_id is not None:
@@ -343,7 +358,16 @@ def _project_procurement_graph(evidence: ProcurementEvidence) -> ProcurementGrap
 
     for event in evidence.timeline:
         event_node_id = f"event:{event.id}"
-        nodes.append(GraphNode(id=event_node_id, type="event", label=event.event_type))
+        event_category = "issue" if event.event_type in EXCEPTION_EVENT_TYPES else "active"
+        nodes.append(
+            GraphNode(
+                id=event_node_id,
+                type="event",
+                label=event.event_type,
+                status=event.event_type,
+                status_category=event_category,
+            )
+        )
         edges.append(
             GraphEdge(
                 source=shipment_node_id, target=event_node_id, relationship="has_event"

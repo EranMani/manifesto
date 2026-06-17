@@ -56,6 +56,8 @@ class GraphNodeSchema(BaseModel):
     id: str
     type: str
     label: str
+    status: str | None = None
+    status_category: str | None = None
 
 
 class GraphEdgeSchema(BaseModel):

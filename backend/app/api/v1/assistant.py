@@ -60,7 +60,10 @@ def _build_llm_service() -> LLMService:
 def _graph_from_logistics(answer: LogisticsAnswer) -> GraphSchema:
     return GraphSchema(
         nodes=[
-            GraphNodeSchema(id=n.id, type=n.type, label=n.label)
+            GraphNodeSchema(
+                id=n.id, type=n.type, label=n.label,
+                status=n.status, status_category=n.status_category,
+            )
             for n in answer.graph.nodes
         ],
         edges=[
@@ -112,7 +115,11 @@ def _to_response(result: AssistantAnswer) -> AssistantQueryResponse:
         if hasattr(result.graph, "nodes"):
             graph = GraphSchema(
                 nodes=[
-                    GraphNodeSchema(id=n.id, type=n.type, label=n.label)
+                    GraphNodeSchema(
+                        id=n.id, type=n.type, label=n.label,
+                        status=getattr(n, "status", None),
+                        status_category=getattr(n, "status_category", None),
+                    )
                     for n in result.graph.nodes
                 ],
                 edges=[

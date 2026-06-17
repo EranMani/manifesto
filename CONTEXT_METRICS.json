@@ -9665,196 +9665,6 @@
     {
       "record_schema_version": 2,
       "date": "2026-06-17",
-      "commit": "C66",
-      "agent": "rex",
-      "execution": "claude-direct",
-      "identity": {
-        "owner": "rex",
-        "executor": "claude",
-        "execution_mode": "claude-direct",
-        "domain": "Backend",
-        "source": "spec-and-runtime"
-      },
-      "evidence": {
-        "planned_files": [
-          "backend/app/schemas/assistant.py",
-          "backend/app/services/rag_logistics.py",
-          "backend/app/api/v1/assistant.py",
-          "backend/tests/api/test_assistant.py"
-        ],
-        "read_files": null,
-        "written_files": [
-          "backend/app/services/rag_logistics.py",
-          "backend/app/api/v1/assistant.py",
-          "backend/tests/api/test_assistant.py"
-        ],
-        "changed_files": [
-          ".context/direct/C66-override.json",
-          ".context/direct/C66.md",
-          "CONSTRAINT_LOG.md",
-          "CONTEXT_METRICS.json",
-          "backend/app/api/v1/assistant.py",
-          "backend/app/schemas/assistant.py",
-          "backend/app/services/rag_logistics.py",
-          "backend/tests/api/test_assistant.py"
-        ],
-        "coverage": {
-          "planned_files": 4,
-          "planned_files_changed": 4,
-          "planned_change_percent": 100.0,
-          "missing_planned_files": [],
-          "supporting_changes": [
-            ".context/direct/C66-override.json",
-            ".context/direct/C66.md",
-            "CONSTRAINT_LOG.md",
-            "CONTEXT_METRICS.json"
-          ],
-          "source": "spec-and-git-derived"
-        },
-        "provenance": {
-          "planned_files": "spec-derived",
-          "read_files": "not-captured",
-          "written_files": "hook-measured",
-          "changed_files": "git-derived"
-        }
-      },
-      "scope": {
-        "kind": "execution-scope",
-        "planned_files": 4,
-        "planned_files_read": 0,
-        "planned_read_percent": 0.0,
-        "supporting_reads": [],
-        "expansion_reads": [],
-        "preselected_files": [
-          "backend/app/api/v1/assistant.py",
-          "backend/app/models/shipment.py",
-          "backend/app/schemas/assistant.py",
-          "backend/app/services/__init__.py",
-          "backend/app/services/rag_logistics.py",
-          "backend/tests/api/test_assistant.py"
-        ],
-        "source": "spec-and-hook-derived"
-      },
-      "capture": {
-        "status": "complete",
-        "reason": null,
-        "scope_kind": "execution",
-        "capture_window": "full-execution",
-        "started_at": "2026-06-17T17:56:12+00:00",
-        "ended_at": "2026-06-17T17:57:59+00:00",
-        "zero_is_measured": true
-      },
-      "tokens": 1452917,
-      "package": {},
-      "telemetry": {
-        "agent": {
-          "source": "unavailable",
-          "status": "unavailable",
-          "tool_calls": null,
-          "read_paths": null,
-          "write_paths": null,
-          "searches": null,
-          "commands": null,
-          "expansions": null
-        },
-        "orchestrator": {
-          "source": "hooks",
-          "status": "available",
-          "schema_version": 2,
-          "owner": "rex",
-          "executor": "claude",
-          "execution_mode": "claude-direct",
-          "scope_kind": "execution",
-          "capture_window": "full-execution",
-          "started_at": "2026-06-17T17:56:12+00:00",
-          "ended_at": "2026-06-17T17:57:59+00:00",
-          "tool_calls": 13,
-          "read_paths": [],
-          "write_paths": [
-            "backend/app/services/rag_logistics.py",
-            "backend/app/api/v1/assistant.py",
-            "backend/tests/api/test_assistant.py"
-          ],
-          "searches": [],
-          "commands": [
-            "docker compose run --rm backend uv run pytest tests/api/test_assistant.py -q",
-            "python hooks/verify_constraints.py --commit 66 --agent rex --execution claude-direct",
-            "git status --short",
-            "python hooks/finalize_commit.py --commit 66",
-            "python hooks/finalize_commit.py --commit 66 --agent rex --execution claude-direct --notify-what \"Added status and status"
-          ],
-          "token_usage": {
-            "status": "complete",
-            "source": "claude-transcript-jsonl",
-            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\628bd8a5-0a71-47b1-847b-448a1f6e7c26.jsonl",
-            "start_offset": 298057,
-            "formula": "input + output + cache_creation_input + cache_read_input",
-            "excludes": "sidechain and separate delegated-agent transcripts",
-            "end_offset": 381631,
-            "assistant_turns": 22,
-            "components": {
-              "input_tokens": 22,
-              "output_tokens": 6707,
-              "cache_creation_input_tokens": 9207,
-              "cache_read_input_tokens": 1436981
-            },
-            "total_tokens": 1452917
-          },
-          "context_package": {
-            "path": ".context/runs/C66-claude-direct.json",
-            "brief_path": ".context/direct/C66.md",
-            "selection_policy": "deterministic-graph-v1",
-            "selected_paths": [
-              "backend/app/api/v1/assistant.py",
-              "backend/app/models/shipment.py",
-              "backend/app/schemas/assistant.py",
-              "backend/app/services/rag_logistics.py",
-              "backend/tests/api/test_assistant.py",
-              "backend/app/services/__init__.py"
-            ],
-            "planned_paths": [
-              "backend/app/api/v1/assistant.py",
-              "backend/app/schemas/assistant.py",
-              "backend/app/services/rag_logistics.py",
-              "backend/tests/api/test_assistant.py"
-            ],
-            "selected_files": 6,
-            "estimated_chars": 12783
-          },
-          "selected_read_paths": [],
-          "outside_read_paths": []
-        }
-      },
-      "usage": {
-        "telemetry_status": "unavailable",
-        "tool_calls": null,
-        "read_calls": null,
-        "searches": null,
-        "write_calls": null,
-        "selected_files_read": null,
-        "selected_utilization_percent": null,
-        "unused_selected_files": null,
-        "outside_files_read": null,
-        "expansions": null
-      },
-      "boundaries": {
-        "forbidden_clean": true,
-        "changed_files": [
-          ".context/direct/C66-override.json",
-          ".context/direct/C66.md",
-          "CONSTRAINT_LOG.md",
-          "CONTEXT_METRICS.json",
-          "backend/app/api/v1/assistant.py",
-          "backend/app/schemas/assistant.py",
-          "backend/app/services/rag_logistics.py",
-          "backend/tests/api/test_assistant.py"
-        ]
-      },
-      "result": "FAIL"
-    },
-    {
-      "record_schema_version": 2,
-      "date": "2026-06-17",
       "commit": "C66A",
       "agent": "claude",
       "execution": "claude-direct",
@@ -10048,6 +9858,192 @@
           "constraint-dashboard.html",
           "hooks/tests/test_verify_constraints.py",
           "hooks/verify_constraints.py"
+        ]
+      },
+      "result": "PASS"
+    },
+    {
+      "record_schema_version": 2,
+      "date": "2026-06-17",
+      "commit": "C66",
+      "agent": "rex",
+      "execution": "claude-direct",
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/app/schemas/assistant.py",
+          "backend/app/services/rag_logistics.py",
+          "backend/app/api/v1/assistant.py",
+          "backend/tests/api/test_assistant.py"
+        ],
+        "read_files": null,
+        "written_files": [
+          "backend/app/services/rag_logistics.py",
+          "backend/app/schemas/assistant.py",
+          "backend/app/api/v1/assistant.py",
+          "backend/tests/api/test_assistant.py"
+        ],
+        "changed_files": [
+          ".context/direct/C66.md",
+          "CONTEXT_METRICS.json",
+          "backend/app/api/v1/assistant.py",
+          "backend/app/schemas/assistant.py",
+          "backend/app/services/rag_logistics.py",
+          "backend/tests/api/test_assistant.py"
+        ],
+        "coverage": {
+          "planned_files": 4,
+          "planned_files_changed": 4,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".context/direct/C66.md",
+            "CONTEXT_METRICS.json"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "not-captured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 4,
+        "planned_files_read": 0,
+        "planned_read_percent": 0.0,
+        "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [
+          "backend/app/api/v1/assistant.py",
+          "backend/app/models/shipment.py",
+          "backend/app/schemas/assistant.py",
+          "backend/app/services/__init__.py",
+          "backend/app/services/rag_logistics.py",
+          "backend/tests/api/test_assistant.py"
+        ],
+        "source": "spec-and-hook-derived"
+      },
+      "capture": {
+        "status": "complete",
+        "reason": null,
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-17T18:23:49+00:00",
+        "ended_at": "2026-06-17T18:26:04+00:00",
+        "zero_is_measured": true
+      },
+      "tokens": 1487628,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "schema_version": 2,
+          "owner": "rex",
+          "executor": "claude",
+          "execution_mode": "claude-direct",
+          "scope_kind": "execution",
+          "capture_window": "full-execution",
+          "started_at": "2026-06-17T18:23:49+00:00",
+          "ended_at": "2026-06-17T18:26:04+00:00",
+          "tool_calls": 14,
+          "read_paths": [],
+          "write_paths": [
+            "backend/app/services/rag_logistics.py",
+            "backend/app/schemas/assistant.py",
+            "backend/app/api/v1/assistant.py",
+            "backend/tests/api/test_assistant.py"
+          ],
+          "searches": [],
+          "commands": [
+            "docker compose run --rm backend uv run pytest tests/api/test_assistant.py -q",
+            "python hooks/verify_constraints.py --commit 66 --agent rex --execution claude-direct",
+            "git diff --name-only",
+            "python hooks/finalize_commit.py --commit 66",
+            "python hooks/finalize_commit.py --commit 66 --agent rex --execution claude-direct --notify-what \"Added status and status"
+          ],
+          "token_usage": {
+            "status": "complete",
+            "source": "claude-transcript-jsonl",
+            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\48dfcafd-31c3-4e29-8a9a-78b79e1cdad6.jsonl",
+            "start_offset": 274445,
+            "formula": "input + output + cache_creation_input + cache_read_input",
+            "excludes": "sidechain and separate delegated-agent transcripts",
+            "end_offset": 363319,
+            "assistant_turns": 23,
+            "components": {
+              "input_tokens": 23,
+              "output_tokens": 8021,
+              "cache_creation_input_tokens": 10081,
+              "cache_read_input_tokens": 1469503
+            },
+            "total_tokens": 1487628
+          },
+          "context_package": {
+            "path": ".context/runs/C66-claude-direct.json",
+            "brief_path": ".context/direct/C66.md",
+            "selection_policy": "deterministic-graph-v1",
+            "selected_paths": [
+              "backend/app/api/v1/assistant.py",
+              "backend/app/models/shipment.py",
+              "backend/app/schemas/assistant.py",
+              "backend/app/services/rag_logistics.py",
+              "backend/tests/api/test_assistant.py",
+              "backend/app/services/__init__.py"
+            ],
+            "planned_paths": [
+              "backend/app/api/v1/assistant.py",
+              "backend/app/schemas/assistant.py",
+              "backend/app/services/rag_logistics.py",
+              "backend/tests/api/test_assistant.py"
+            ],
+            "selected_files": 6,
+            "estimated_chars": 12861
+          },
+          "selected_read_paths": [],
+          "outside_read_paths": []
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          ".context/direct/C66.md",
+          "CONTEXT_METRICS.json",
+          "backend/app/api/v1/assistant.py",
+          "backend/app/schemas/assistant.py",
+          "backend/app/services/rag_logistics.py",
+          "backend/tests/api/test_assistant.py"
         ]
       },
       "result": "PASS"

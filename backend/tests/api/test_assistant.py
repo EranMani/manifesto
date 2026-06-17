@@ -19,6 +19,7 @@ from app.services.rag_logistics import (
     IntentRouting,
     LogisticsAnswer,
     ProcurementGraph,
+    ShipmentEventEvidence,
 )
 from app.services.rag_policy import MixedAnswer, PolicyAnswer
 
@@ -104,10 +105,20 @@ def _logistics_answer() -> LogisticsAnswer:
         answer="SHP-1001 is in transit to Chicago.",
         graph=ProcurementGraph(
             nodes=[
-                GraphNode(id="s1", type="shipment", label="SHP-1001"),
+                GraphNode(
+                    id="s1", type="shipment", label="SHP-1001",
+                    status="in_transit", status_category="active",
+                ),
                 GraphNode(id="v1", type="vendor", label="Acme"),
+                GraphNode(
+                    id="e1", type="event", label="departed",
+                    status="departed", status_category="active",
+                ),
             ],
-            edges=[GraphEdge(source="v1", target="s1", relationship="ships")],
+            edges=[
+                GraphEdge(source="v1", target="s1", relationship="ships"),
+                GraphEdge(source="s1", target="e1", relationship="has_event"),
+            ],
             highlighted_path=["v1", "s1"],
             retrieved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
         ),
@@ -223,10 +234,22 @@ class TestLogisticsIntent:
         data = resp.json()
         assert data["intent"] == "logistics"
         assert data["graph"] is not None
-        assert len(data["graph"]["nodes"]) == 2
-        assert len(data["graph"]["edges"]) == 1
+        assert len(data["graph"]["nodes"]) == 3
+        assert len(data["graph"]["edges"]) == 2
         assert data["suggested_questions"] == ["When will it arrive?"]
         assert data["citations"] == []
+
+        shipment_node = next(n for n in data["graph"]["nodes"] if n["type"] == "shipment")
+        assert shipment_node["status"] == "in_transit"
+        assert shipment_node["status_category"] == "active"
+
+        vendor_node = next(n for n in data["graph"]["nodes"] if n["type"] == "vendor")
+        assert vendor_node["status"] is None
+        assert vendor_node["status_category"] is None
+
+        event_node = next(n for n in data["graph"]["nodes"] if n["type"] == "event")
+        assert event_node["status"] == "departed"
+        assert event_node["status_category"] == "active"
 
 
 class TestMixedIntent:
