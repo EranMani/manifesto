@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "C57 (assistant-client-session-state, Aria owner + Claude-direct, c5e32ed) added frontend/src/api/assistant.ts (typed wire types mirroring backend schemas, queryAssistant POST call) and frontend/src/store/assistant.ts (Zustand session-only message store with 12-turn context window, concurrent-send guard, reset action, no localStorage). Frontend build passes. Next is C58 (focused-evidence-graph, Aria).",
+  "tldr": "C58 (focused-evidence-graph, Aria owner + Claude-direct, 05fd400) added frontend/src/components/EvidenceGraph.tsx (React Flow graph with deterministic left-to-right layout by node type, highlighted_path visual emphasis, muted supporting nodes, clickable detail panel, empty-state placeholder) and added @xyflow/react dependency. Frontend build passes. Next is C59 (unified-assistant-interface, Aria).",
   "phase": 2,
-  "last_completed_commit": "57",
-  "next_commit": "58",
-  "next_commit_name": "focused-evidence-graph",
+  "last_completed_commit": "58",
+  "next_commit": "59",
+  "next_commit_name": "unified-assistant-interface",
   "next_commit_assignee": "aria",
   "status": "phase-2-active",
   "open_handoffs": [

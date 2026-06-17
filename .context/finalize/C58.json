@@ -1,0 +1,8 @@
+{
+  "commit": "58",
+  "agent": "aria",
+  "execution": "claude-direct",
+  "checks_passed": true,
+  "timestamp": "2026-06-17T08:15:00.000000+00:00",
+  "scope_override": "Eran approved: CONSTRAINT_LOG.md and CONTEXT_METRICS.json are closeout/governance artifacts; package-lock.json is accepted as the generated lockfile companion"
+}
