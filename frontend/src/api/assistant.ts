@@ -19,6 +19,8 @@ export interface GraphNodeSchema {
   id: string
   type: string
   label: string
+  status: string | null
+  status_category: string | null
 }
 
 export interface GraphEdgeSchema {

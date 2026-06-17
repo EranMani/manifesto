@@ -192,7 +192,7 @@ export default function Assistant() {
       </div>
 
       {hasEvidence && (
-        <div className="lg:w-96 shrink-0 border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto p-4 bg-gray-50">
+        <div className="lg:w-[540px] shrink-0 border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto p-4 bg-gray-50">
           {showGraph && graph && graph.nodes.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">
