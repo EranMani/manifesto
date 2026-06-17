@@ -142,6 +142,7 @@ function InnerGraph({ graph }: InnerGraphProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNodeSchema | null>(null)
 
   useEffect(() => {
+    setSelectedNode(null)
     const timer = setTimeout(() => fitView({ padding: 0.2 }), 50)
     return () => clearTimeout(timer)
   }, [graph, fitView])

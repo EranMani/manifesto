@@ -4,6 +4,7 @@ import {
   type AssistantQueryResponse,
   type CitationSchema,
   type ContextTurn,
+  type GraphSchema,
 } from '../api/assistant'
 
 const MAX_CONTEXT_TURNS = 12
@@ -15,6 +16,8 @@ export interface Message {
 
 interface AssistantState {
   messages: Message[]
+  intent: string | null
+  graph: GraphSchema | null
   citations: CitationSchema[]
   suggestedQuestions: string[]
   loading: boolean
@@ -25,6 +28,8 @@ interface AssistantState {
 
 export const useAssistantStore = create<AssistantState>((set, get) => ({
   messages: [],
+  intent: null,
+  graph: null,
   citations: [],
   suggestedQuestions: [],
   loading: false,
@@ -55,6 +60,8 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
       }
       set((s) => ({
         messages: [...s.messages, assistantMessage],
+        intent: response.intent,
+        graph: response.graph,
         citations: response.citations,
         suggestedQuestions: response.suggested_questions,
         loading: false,
@@ -69,6 +76,8 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
   reset: () =>
     set({
       messages: [],
+      intent: null,
+      graph: null,
       citations: [],
       suggestedQuestions: [],
       loading: false,
