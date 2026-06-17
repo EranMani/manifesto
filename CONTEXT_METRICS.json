@@ -8031,6 +8031,190 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "record_schema_version": 2,
+      "date": "2026-06-17",
+      "commit": "C58",
+      "agent": "aria",
+      "execution": "claude-direct",
+      "identity": {
+        "owner": "aria",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Frontend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "frontend/src/components/EvidenceGraph.tsx",
+          "frontend/package.json",
+          "frontend/package-lock.json"
+        ],
+        "read_files": [
+          "frontend/src/components/EvidenceGraph.tsx"
+        ],
+        "written_files": null,
+        "changed_files": [
+          ".context/direct/C58.md",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/package-lock.json",
+          "frontend/package.json",
+          "frontend/src/components/EvidenceGraph.tsx"
+        ],
+        "coverage": {
+          "planned_files": 3,
+          "planned_files_changed": 3,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".context/direct/C58.md",
+            "CONSTRAINT_LOG.md",
+            "CONTEXT_METRICS.json"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "not-captured",
+          "changed_files": "git-derived"
+        }
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 3,
+        "planned_files_read": 1,
+        "planned_read_percent": 33.3,
+        "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [
+          "frontend/package-lock.json",
+          "frontend/package.json",
+          "frontend/src/App.tsx",
+          "frontend/src/api/assistant.ts",
+          "frontend/src/components/EvidenceGraph.tsx",
+          "frontend/src/index.css"
+        ],
+        "source": "spec-and-hook-derived"
+      },
+      "capture": {
+        "status": "complete",
+        "reason": null,
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-17T07:59:43+00:00",
+        "ended_at": "2026-06-17T08:28:41+00:00",
+        "zero_is_measured": true
+      },
+      "tokens": 590213,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "schema_version": 2,
+          "owner": "aria",
+          "executor": "claude",
+          "execution_mode": "claude-direct",
+          "scope_kind": "execution",
+          "capture_window": "full-execution",
+          "started_at": "2026-06-17T07:59:43+00:00",
+          "ended_at": "2026-06-17T08:28:41+00:00",
+          "tool_calls": 10,
+          "read_paths": [
+            "frontend/src/components/EvidenceGraph.tsx"
+          ],
+          "write_paths": [],
+          "searches": [],
+          "commands": [
+            "npm --prefix frontend run build",
+            "python hooks/verify_constraints.py --commit 58 --agent aria --execution claude-direct",
+            "git status -u",
+            "python hooks/verify_constraints.py --commit 58 --agent aria --execution claude-direct --worktree --no-persist",
+            "git diff --stat",
+            "git diff -- frontend/src/components/EvidenceGraph.tsx 2>$null; git diff --stat -- frontend/src/components/EvidenceGraph.",
+            "python hooks/finalize_commit.py --commit 58",
+            "python hooks/finalize_commit.py --commit 58 --agent aria --execution claude-direct --notify-what \"EvidenceGraph componen"
+          ],
+          "token_usage": {
+            "status": "complete",
+            "source": "claude-transcript-jsonl",
+            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\4a1bda0a-4b22-4d4b-b875-fa567d538427.jsonl",
+            "start_offset": 83593,
+            "formula": "input + output + cache_creation_input + cache_read_input",
+            "excludes": "sidechain and separate delegated-agent transcripts",
+            "end_offset": 150367,
+            "assistant_turns": 16,
+            "components": {
+              "input_tokens": 20,
+              "output_tokens": 2550,
+              "cache_creation_input_tokens": 13932,
+              "cache_read_input_tokens": 573711
+            },
+            "total_tokens": 590213
+          },
+          "context_package": {
+            "path": ".context/runs/C58-claude-direct.json",
+            "brief_path": ".context/direct/C58.md",
+            "selection_policy": "deterministic-graph-v1",
+            "selected_paths": [
+              "frontend/package-lock.json",
+              "frontend/src/components/EvidenceGraph.tsx",
+              "frontend/package.json",
+              "frontend/src/api/assistant.ts",
+              "frontend/src/index.css",
+              "frontend/src/App.tsx"
+            ],
+            "planned_paths": [
+              "frontend/package-lock.json",
+              "frontend/src/components/EvidenceGraph.tsx",
+              "frontend/package.json"
+            ],
+            "selected_files": 6,
+            "estimated_chars": 6522
+          },
+          "selected_read_paths": [
+            "frontend/src/components/EvidenceGraph.tsx"
+          ],
+          "outside_read_paths": []
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          ".context/direct/C58.md",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/package-lock.json",
+          "frontend/package.json",
+          "frontend/src/components/EvidenceGraph.tsx"
+        ]
+      },
+      "result": "FAIL"
     }
   ]
 }
