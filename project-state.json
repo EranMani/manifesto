@@ -2,9 +2,9 @@
   "project": "manifesto",
   "tldr": "Phase 3 hardening continues. C63-C68 done. C69-C71 address remaining user-reported issues: unhandled embedding exceptions and missing LLM in browse handler (C69), markdown rendering for assistant responses (C70), evidence graph entity/timeline layout split (C71).",
   "phase": 3,
-  "last_completed_commit": "69A",
-  "next_commit": "70",
-  "next_commit_name": "assistant-markdown-rendering",
+  "last_completed_commit": "70",
+  "next_commit": "71",
+  "next_commit_name": "evidence-graph-timeline-layout",
   "next_commit_assignee": "aria",
   "status": "active",
   "open_handoffs": [

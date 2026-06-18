@@ -99,7 +99,7 @@
 | 68 | policy-term-expansion | nova | ✅ done · 2026-06-18 |
 | 69 | assistant-error-resilience | rex | ✅ done · 2026-06-18 |
 | 69A | browse-markdown-formatting | nova | done |
-| 70 | assistant-markdown-rendering | aria | pending |
+| 70 | assistant-markdown-rendering | aria | ✅ done · 2026-06-18 |
 | 71 | evidence-graph-timeline-layout | aria | pending |
 
 ---
