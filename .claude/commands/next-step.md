@@ -133,9 +133,25 @@ Then, regardless of route:
   repair/verification cycles or 25 orchestrator tool calls, and request Eran's approval
   before continuing.
 - Run `/verify-commit`.
-- Present changed files, verification results, deviations, warnings, and remaining work
-  to Eran.
-- Wait for Eran's explicit commit approval. Commit only after approval.
+
+**Post-implementation approval and continuation:**
+
+- **Normal mode:** Present changed files, verification results, deviations, warnings,
+  and remaining work to Eran. Wait for Eran's explicit commit approval. Commit only
+  after approval.
+- **Auto mode:** If all verification checks passed (spec verification command, logic
+  inspection, `/verify-commit`), commit automatically using `CLAUDE_COMMIT=1` with the
+  standard commit message format. Run the chore(state) sweep (advance
+  `project-state.json` and `commit-protocol.md`, add `TOKEN_RECORDS.md` entry) and
+  commit that too. Then read the updated `project-state.json` for the next commit and
+  **loop back to the top of this command** — run the next commit's preflight, auto-
+  approve if clean, implement, verify, commit, and continue. The auto loop stops when:
+  - A preflight returns BLOCKED or has warnings (falls back to manual approval).
+  - A verification check fails after 2 repair cycles (falls back to manual approval).
+  - `project-state.json` has `next_commit: null` (no more pending commits).
+  - Eran sends a message (interrupts the loop and defers to Eran's instruction).
+  Show a one-line status between commits: `✓ C[N] committed. Starting C[N+1]...`
+
 - Advance project state and report the next commit.
 
 Do not duplicate full file contents in an invocation prompt.

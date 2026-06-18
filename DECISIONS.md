@@ -2018,38 +2018,63 @@ for `/next-step` that skips the approval wait when the preflight is clean.
 1. **`/next-step` command** (`.claude/commands/next-step.md`): added `$ARGUMENTS`
    parsing for `--auto`. When present and preflight returns READY with zero violations
    and no decision required, the card shows `[AUTO-APPROVED]` on the status line and
-   proceeds immediately to implementation. Any BLOCKED result, warning, or
-   decision-required flag falls back to the normal "wait for Eran" flow.
+   proceeds immediately to implementation. If all verification checks pass, the commit
+   is made automatically, state is advanced, and the loop continues to the next pending
+   commit. Any BLOCKED result, warning, decision-required flag, or verification failure
+   falls back to the normal "wait for Eran" flow.
 
 2. **CLAUDE.md Approval And Routing section**: added an auto-mode clause documenting
-   the behavior and its constraints.
+   the full auto-approve → implement → verify → commit → loop behavior.
+
+### Auto-mode loop behavior
+
+When `/next-step --auto` is active, the full cycle per commit is:
+
+1. Run preflight — if READY with zero violations, auto-approve.
+2. Implement (Claude-direct or delegated).
+3. Run verification command + logic inspection + `/verify-commit`.
+4. If all pass: commit with `CLAUDE_COMMIT=1`, run chore(state) sweep, commit that too.
+5. Show one-line status: `✓ C[N] committed. Starting C[N+1]...`
+6. Read updated `project-state.json` and loop back to step 1 for the next commit.
+
+The loop stops when:
+- A preflight returns BLOCKED or has warnings.
+- A verification check fails after 2 repair cycles.
+- `project-state.json` has `next_commit: null` (no more pending commits).
+- Eran sends a message (interrupts and defers to Eran).
 
 ### Safeguards preserved
 
-- **Post-implementation commit approval is never skipped.** Auto mode only skips the
-  pre-implementation preflight approval. Eran still reviews the diff and approves (or
-  rejects) the final commit.
 - **Any warning or violation triggers fallback.** The auto-approval is all-or-nothing:
   one warning in the `violations` array reverts to manual approval.
+- **Verification failures stop the loop.** Auto mode does not skip verification. If
+  tests fail or logic inspection finds contract violations, the loop stops and asks
+  Eran. The orchestrator debugging circuit breaker (2 failed repair cycles or 25
+  tool calls) also triggers a stop.
 - **The card is always shown.** Even in auto mode, the preflight card is displayed so
   Eran can see what is being executed. The `[AUTO-APPROVED]` label makes it visible
   that approval was automatic.
-- **Eran can interrupt.** If Claude is mid-implementation after an auto-approval and
-  Eran sends a message, Claude stops and defers to Eran's instruction.
+- **Eran can interrupt at any time.** If Eran sends a message while Claude is mid-loop,
+  Claude stops and defers to Eran's instruction.
+- **Commit hooks still enforce boundaries.** `pre_commit_check.py` validates staged
+  files against the spec's `Files To Modify Or Add`. `check_finalize_marker()` requires
+  a valid finalize marker. These fail-closed gates are not bypassed by auto mode.
 
-### Why not auto-approve everything
+### Why this is safe
 
-The two-stage approval (preflight + commit) exists because preflight validates
-structural readiness, not implementation correctness. A clean preflight means "the spec
-is valid and dependencies are met" — it does not mean "the implementation will be
-correct." The post-implementation approval catches:
+The existing verification pipeline already catches the issues that manual commit
+approval was designed to catch:
 
-- Logic errors that pass tests but violate the contract.
-- Scope drift (files changed that weren't in the spec).
-- Test quality issues (tests that pass but don't verify the right thing).
+- **Scope drift:** `pre_commit_check.py` fails closed if staged files don't match the
+  spec.
+- **Logic errors:** the spec's verification command + logic inspection against the
+  contract catches behavioral deviations.
+- **Test quality:** `/verify-commit` runs `verify_constraints.py` which checks context
+  blocks, forbidden paths, and tool budgets.
 
-These require human judgment. The preflight approval, by contrast, is a mechanical
-"does this spec look ready?" check — the right candidate for automation.
+Auto mode trusts these deterministic gates. If any gate fails, the loop stops and falls
+back to Eran. The net effect is that Eran reviews only the cases that need human
+judgment, not the 90%+ of commits where all checks pass cleanly.
 
 ### Usage
 

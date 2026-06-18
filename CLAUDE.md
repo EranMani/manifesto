@@ -23,9 +23,11 @@ Do not scan the repository at boot.
 - Wait for explicit approval. Approval authorizes only the listed commit and files.
 - **Auto mode** (`/next-step --auto`): when the preflight returns READY with zero
   warnings and no decision required, treat it as pre-approved and proceed directly
-  to implementation. If the preflight is BLOCKED, has any warning, or requires a
-  decision, fall back to the normal approval flow and wait for Eran. Auto mode never
-  skips the post-implementation commit approval — Eran still approves the final commit.
+  to implementation. If verification passes, commit automatically and advance state,
+  then loop to the next pending commit. The loop stops on a blocked preflight, a
+  failed verification, no more pending commits, or Eran sending a message. If the
+  preflight is BLOCKED, has any warning, or requires a decision, fall back to the
+  normal approval flow and wait for Eran.
 - After Eran approves a READY preflight, routine execution choices are pre-approved:
   delegation start, telemetry persistence, focused verification, constraint checks,
   finalize/commit, chore state sweep, and dashboard/protocol/state updates required by
