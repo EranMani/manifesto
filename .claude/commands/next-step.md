@@ -216,13 +216,25 @@ message interrupt. The existing Stop hook sends and deletes the atomic flag.
    )"
    ```
 
-5. **Telemetry scope** — in auto mode, always use `--force-reset` when starting
+5. **Successful auto completion email** — only after the primary commit and the
+   chore(state) commit have both succeeded, queue the completion notification:
+   ```bash
+   NOTIFY_NUM="N" NOTIFY_NAME="commit-name" NOTIFY_AGENT="Claude or invoked agent" \
+   NOTIFY_SUMMARY="What completed" NOTIFY_VERIFICATION="Checks that passed" \
+   NOTIFY_NEXT="Next commit or no remaining work" \
+   python hooks/notify_agent_done.py --write-completed-flag
+   ```
+   Queue this before looping to the next commit or stopping for `--once`. Never queue it
+   before both commits succeed. The Stop hook sends it with a `completed automatically`
+   status; it does not request approval.
+
+6. **Telemetry scope** — in auto mode, always use `--force-reset` when starting
    the orchestrator scope so it replaces any stale running scope from prior work:
    ```
    python hooks/context_telemetry.py --start-execution C<N> <owner> --force-reset
    ```
 
-6. **Constraint verification** — run before finalize, expect ref_resolution fallback
+7. **Constraint verification** — run before finalize, expect ref_resolution fallback
    on the first run (commit message doesn't exist yet). The `/verify-commit` run after
    finalize uses `--worktree --no-persist` which avoids this.
 
