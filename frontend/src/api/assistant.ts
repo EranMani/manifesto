@@ -7,8 +7,8 @@ export interface ContextTurn {
 
 export interface CitationSchema {
   source_title: string
-  document_id: number
-  chunk_id: number
+  document_id: string
+  chunk_id: string
   section: string | null
   page_number: number | null
   excerpt: string
