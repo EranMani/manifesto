@@ -1,0 +1,1 @@
+{"justification": "Mechanical type-declaration fix (int\u2192str in 4 locations) matching existing UUID database columns. Zero specialist uncertainty \u2014 no logic, API design, or architectural decision. All changes are 2-character substitutions plus moving one function call inside an existing try/except block."}
