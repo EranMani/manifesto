@@ -102,7 +102,7 @@
 | 70 | assistant-markdown-rendering | aria | ✅ done · 2026-06-18 |
 | 71 | evidence-graph-timeline-layout | aria | ✅ done · 2026-06-18 |
 | 72 | fix-policy-citation-uuid-types | rex | ✅ done · 2026-06-18 |
-| 73 | fix-citation-frontend-uuid-types | aria | pending |
+| 73 | fix-citation-frontend-uuid-types | aria | ✅ done · 2026-06-18 |
 
 ---
 
