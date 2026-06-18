@@ -298,6 +298,65 @@ Example.
     assert "Pre-commit check passed" in result.stdout
 
 
+def test_claude_direct_finalize_marker_uses_spec_owner(tmp_path: Path) -> None:
+    """OI-24 fix: Claude-direct commits where owner != Claude must match the
+    finalize marker's agent against the spec's **Owner:** field, not the
+    Co-Authored-By email (which is always Claude for Claude-direct)."""
+    config = {
+        "initialized": True,
+        "universal_allowed": ["project-state.json"],
+        "agents": {
+            "claude@anthropic.com": {
+                "name": "Claude",
+                "domains": ["CLAUDE.md"],
+            }
+        },
+    }
+    repo = _init_repo(tmp_path, config)
+    (repo / "commit-specs").mkdir()
+    (repo / "commit-specs" / "commit-76.md").write_text(
+        "# Commit 76 - concise-shipment-summary - Nova\n\n"
+        "**Owner:** nova\n\n"
+        "## Files To Modify Or Add\n\n"
+        "| File | Type | Purpose |\n"
+        "|---|---|---|\n"
+        "| `backend/app/services/rag_logistics.py` | edit | Update prompt |\n\n"
+        "## Contract\n\nExample.",
+        encoding="utf-8",
+    )
+    _stage(repo, "backend/app/services/rag_logistics.py")
+
+    finalize_dir = repo / ".context" / "finalize"
+    finalize_dir.mkdir(parents=True)
+    (finalize_dir / "C76.json").write_text(json.dumps({
+        "commit": "76", "agent": "nova", "execution": "claude-direct",
+        "checks_passed": True, "timestamp": "2026-06-18T00:00:00+00:00",
+    }), encoding="utf-8")
+
+    telemetry_dir = repo / ".context" / "telemetry"
+    telemetry_dir.mkdir(parents=True)
+    (telemetry_dir / "C76-orchestrator.json").write_text(json.dumps({
+        "commit": "C76", "status": "completed",
+        "owner": "nova", "executor": "claude",
+        "execution_mode": "claude-direct", "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-18T00:00:00+00:00", "ended_at": "2026-06-18T00:05:00+00:00",
+        "tool_calls": 3, "read_paths": [], "write_paths": [], "searches": [], "commands": [],
+    }), encoding="utf-8")
+
+    message = (
+        "feat(backend): concise bullet-point format\n\n"
+        "Commit #76\n\n"
+        "Execution: Claude-direct\n\n"
+        "Co-Authored-By: Claude <claude@anthropic.com>"
+    )
+
+    result = _run_check(repo, message, {"CLAUDE_COMMIT": "1"})
+
+    assert result.returncode == 0, f"Expected pass but got:\n{result.stdout}\n{result.stderr}"
+    assert "Pre-commit check passed" in result.stdout
+
+
 # --- Orchestrator telemetry marker gate (C38A) ----------------------------------
 
 

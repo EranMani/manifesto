@@ -241,7 +241,8 @@ def check_finalize_marker(msg, config):
 
     expected_agent = None
     agent_email = detect_agent_email(msg)
-    if agent_email and config:
+    is_claude_direct = DIRECT_EXECUTION_MARKER.lower() in msg.lower()
+    if agent_email and config and not (is_claude_direct and agent_email.lower() == CLAUDE_EMAIL):
         expected_agent = config.get("agents", {}).get(agent_email, {}).get("name", "").lower() or None
     if not expected_agent:
         spec_path = git_root / "commit-specs" / f"commit-{commit_id}.md"
