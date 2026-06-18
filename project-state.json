@@ -3,9 +3,9 @@
   "tldr": "Phase 3 hardening continues. C63-C71 done. C72-C73 fix policy question 500 errors caused by UUID/int type mismatch in citation schemas: backend type correction and response-conversion safety (C72), frontend type alignment (C73).",
   "phase": 3,
   "last_completed_commit": "73",
-  "next_commit": null,
-  "next_commit_name": null,
-  "next_commit_assignee": null,
+  "next_commit": "74",
+  "next_commit_name": "inline-evidence-graph-layout",
+  "next_commit_assignee": "aria",
   "status": "active",
   "open_handoffs": [
     {

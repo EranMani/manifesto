@@ -1,0 +1,1 @@
+{"justification": "Two-line TypeScript type change (number\u2192string) for document_id and chunk_id in frontend CitationSchema interface. Zero logic, zero specialist uncertainty."}

@@ -103,6 +103,7 @@
 | 71 | evidence-graph-timeline-layout | aria | ✅ done · 2026-06-18 |
 | 72 | fix-policy-citation-uuid-types | rex | ✅ done · 2026-06-18 |
 | 73 | fix-citation-frontend-uuid-types | aria | ✅ done · 2026-06-18 |
+| 74 | inline-evidence-graph-layout | aria | pending |
 
 ---
 
@@ -134,6 +135,7 @@ green/orange/red status encoding, and a wider graph area (Aria).
 | C71 | Evidence graph splits entity details from chronological event timeline |
 | C72 | Policy citations use UUID string types matching database columns |
 | C73 | Frontend citation types aligned with backend UUID contract |
+| C74 | Evidence graph and citations render inline in chat flow, sidebar removed |
 
 ### Execution plan
 
