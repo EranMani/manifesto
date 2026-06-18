@@ -101,6 +101,8 @@
 | 69A | browse-markdown-formatting | nova | done |
 | 70 | assistant-markdown-rendering | aria | ✅ done · 2026-06-18 |
 | 71 | evidence-graph-timeline-layout | aria | ✅ done · 2026-06-18 |
+| 72 | fix-policy-citation-uuid-types | rex | pending |
+| 73 | fix-citation-frontend-uuid-types | aria | pending |
 
 ---
 
@@ -130,6 +132,8 @@ green/orange/red status encoding, and a wider graph area (Aria).
 | C69 | Embedding/LLM errors return graceful fallbacks; browse queries get LLM grounding |
 | C70 | Assistant responses render as formatted markdown with tables |
 | C71 | Evidence graph splits entity details from chronological event timeline |
+| C72 | Policy citations use UUID string types matching database columns |
+| C73 | Frontend citation types aligned with backend UUID contract |
 
 ### Execution plan
 

@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 hardening continues. C63-C68 done. C69-C71 address remaining user-reported issues: unhandled embedding exceptions and missing LLM in browse handler (C69), markdown rendering for assistant responses (C70), evidence graph entity/timeline layout split (C71).",
+  "tldr": "Phase 3 hardening continues. C63-C71 done. C72-C73 fix policy question 500 errors caused by UUID/int type mismatch in citation schemas: backend type correction and response-conversion safety (C72), frontend type alignment (C73).",
   "phase": 3,
   "last_completed_commit": "71",
-  "next_commit": null,
-  "next_commit_name": null,
-  "next_commit_assignee": null,
+  "next_commit": "72",
+  "next_commit_name": "fix-policy-citation-uuid-types",
+  "next_commit_assignee": "rex",
   "status": "active",
   "open_handoffs": [
     {
