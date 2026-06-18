@@ -30,13 +30,12 @@ const STATUS_CATEGORY_COLORS: Record<string, { bg: string; border: string }> = {
   issue: { bg: '#fee2e2', border: '#ef4444' },
 }
 
-const COLUMN_ORDER: Record<string, number> = {
+const ENTITY_ROW_ORDER: Record<string, number> = {
   buyer: 0,
   purchase_order: 1,
   vendor: 2,
   shipment: 3,
   product: 4,
-  event: 4,
 }
 
 const MUTED_STYLE = { opacity: 0.4 }
@@ -64,49 +63,87 @@ function formatRelationship(rel: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function layoutNodes(graphNodes: GraphNodeSchema[], highlighted: Set<string>): Node[] {
-  const xGap = 220
-  const yGap = 80
+function makeLabelNode(id: string, x: number, y: number, text: string): Node {
+  return {
+    id,
+    position: { x, y },
+    data: { label: text },
+    selectable: false,
+    draggable: false,
+    connectable: false,
+    style: {
+      background: 'transparent',
+      border: 'none',
+      boxShadow: 'none',
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      padding: 0,
+    },
+  }
+}
 
-  const columns = new Map<number, GraphNodeSchema[]>()
-  const productNodes: GraphNodeSchema[] = []
+function layoutNodes(graphNodes: GraphNodeSchema[], highlighted: Set<string>): Node[] {
+  const yGap = 80
+  const eventYGap = 70
+
+  const entityByRow = new Map<number, GraphNodeSchema[]>()
   const eventNodes: GraphNodeSchema[] = []
 
   for (const n of graphNodes) {
-    if (n.type === 'product') {
-      productNodes.push(n)
-    } else if (n.type === 'event') {
+    if (n.type === 'event') {
       eventNodes.push(n)
     } else {
-      const col = COLUMN_ORDER[n.type] ?? 5
-      if (!columns.has(col)) columns.set(col, [])
-      columns.get(col)!.push(n)
+      const row = ENTITY_ROW_ORDER[n.type] ?? 5
+      if (!entityByRow.has(row)) entityByRow.set(row, [])
+      entityByRow.get(row)!.push(n)
     }
   }
 
   const nodes: Node[] = []
 
-  for (const [col, group] of columns) {
-    group.forEach((gn, row) => {
+  if (entityByRow.size > 0) {
+    nodes.push(makeLabelNode('__label-entities', 0, -40, 'Shipment Details'))
+    for (const [row, group] of entityByRow) {
+      group.forEach((gn, col) => {
+        const isHighlighted = highlighted.has(gn.id)
+        const colors = getNodeColors(gn)
+        nodes.push(buildNode(gn, col * 220, row * yGap, isHighlighted, colors, false, false))
+      })
+    }
+  }
+
+  if (eventNodes.length > 0) {
+    nodes.push(makeLabelNode('__label-timeline', 500, -40, 'Event Timeline'))
+    eventNodes.forEach((gn, i) => {
       const isHighlighted = highlighted.has(gn.id)
       const colors = getNodeColors(gn)
-      nodes.push(buildNode(gn, col * xGap, row * yGap, isHighlighted, colors))
+      nodes.push(buildNode(gn, 500, i * eventYGap, isHighlighted, colors, true, i === eventNodes.length - 1))
     })
   }
 
-  const col4X = 4 * xGap
-  productNodes.forEach((gn, row) => {
-    const isHighlighted = highlighted.has(gn.id)
-    const colors = getNodeColors(gn)
-    nodes.push(buildNode(gn, col4X, row * yGap, isHighlighted, colors))
-  })
-
-  const eventStartY = productNodes.length * yGap
-  eventNodes.forEach((gn, row) => {
-    const isHighlighted = highlighted.has(gn.id)
-    const colors = getNodeColors(gn)
-    nodes.push(buildNode(gn, col4X, eventStartY + row * yGap, isHighlighted, colors))
-  })
+  if (entityByRow.size > 0 && eventNodes.length > 0) {
+    const maxEntityRow = Math.max(...entityByRow.keys())
+    const entityHeight = (maxEntityRow + 1) * yGap
+    const eventHeight = eventNodes.length * eventYGap
+    nodes.push({
+      id: '__separator',
+      position: { x: 390, y: -30 },
+      data: { label: '' },
+      selectable: false,
+      draggable: false,
+      connectable: false,
+      style: {
+        width: 1,
+        height: Math.max(entityHeight, eventHeight),
+        background: 'transparent',
+        border: 'none',
+        borderLeft: '1px dashed #d1d5db',
+        boxShadow: 'none',
+        padding: 0,
+      },
+    })
+  }
 
   return nodes
 }
@@ -137,6 +174,8 @@ function buildNode(
   y: number,
   isHighlighted: boolean,
   colors: { bg: string; border: string },
+  isEvent: boolean,
+  isCurrentEvent: boolean,
 ): Node {
   return {
     id: gn.id,
@@ -146,22 +185,27 @@ function buildNode(
       background: colors.bg,
       border: `2px solid ${isHighlighted ? HIGHLIGHT_STROKE : colors.border}`,
       borderRadius: 8,
-      padding: '8px 12px',
+      padding: isCurrentEvent ? '10px 14px' : '8px 12px',
       fontSize: 13,
-      fontWeight: isHighlighted ? 600 : 400,
-      boxShadow: isHighlighted ? `0 0 0 2px ${HIGHLIGHT_STROKE}40` : 'none',
+      fontWeight: isCurrentEvent ? 700 : isHighlighted ? 600 : 400,
+      boxShadow: isCurrentEvent
+        ? `0 0 8px ${colors.border}60`
+        : isHighlighted
+          ? `0 0 0 2px ${HIGHLIGHT_STROKE}40`
+          : 'none',
       ...(isHighlighted ? {} : MUTED_STYLE),
     },
-    sourcePosition: Position.Right,
-    targetPosition: Position.Left,
+    sourcePosition: isEvent ? Position.Bottom : Position.Right,
+    targetPosition: isEvent ? Position.Top : Position.Left,
   }
 }
 
 function layoutEdges(
   graphEdges: { source: string; target: string; relationship: string }[],
   highlighted: Set<string>,
+  eventNodeIds: string[],
 ): Edge[] {
-  return graphEdges.map((e, i) => {
+  const edges: Edge[] = graphEdges.map((e, i) => {
     const isHighlighted = highlighted.has(e.source) && highlighted.has(e.target)
     return {
       id: `e-${i}`,
@@ -180,6 +224,31 @@ function layoutEdges(
       },
     }
   })
+
+  for (let i = 0; i < eventNodeIds.length - 1; i++) {
+    const source = eventNodeIds[i]
+    const target = eventNodeIds[i + 1]
+    const bothHighlighted = highlighted.has(source) && highlighted.has(target)
+    edges.push({
+      id: `timeline-${i}`,
+      source,
+      target,
+      label: 'Then',
+      animated: bothHighlighted,
+      style: {
+        stroke: bothHighlighted ? HIGHLIGHT_STROKE : '#9ca3af',
+        strokeWidth: 1.5,
+        strokeDasharray: '5 3',
+        ...(bothHighlighted ? {} : MUTED_STYLE),
+      },
+      labelStyle: {
+        fontSize: 10,
+        fill: bothHighlighted ? '#1e40af' : '#9ca3af',
+      },
+    })
+  }
+
+  return edges
 }
 
 interface DetailPanelProps {
@@ -224,8 +293,15 @@ interface InnerGraphProps {
 
 function InnerGraph({ graph }: InnerGraphProps) {
   const highlighted = useMemo(() => new Set(graph.highlighted_path), [graph.highlighted_path])
+  const eventNodeIds = useMemo(
+    () => graph.nodes.filter((n) => n.type === 'event').map((n) => n.id),
+    [graph.nodes],
+  )
   const initialNodes = useMemo(() => layoutNodes(graph.nodes, highlighted), [graph.nodes, highlighted])
-  const initialEdges = useMemo(() => layoutEdges(graph.edges, highlighted), [graph.edges, highlighted])
+  const initialEdges = useMemo(
+    () => layoutEdges(graph.edges, highlighted, eventNodeIds),
+    [graph.edges, highlighted, eventNodeIds],
+  )
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes)
   const [edges, , onEdgesChange] = useEdgesState(initialEdges)
@@ -240,6 +316,7 @@ function InnerGraph({ graph }: InnerGraphProps) {
 
   const onNodeClick: NodeMouseHandler = useCallback(
     (_event, node) => {
+      if (node.id.startsWith('__')) return
       const graphNode = graph.nodes.find((n) => n.id === node.id)
       if (graphNode) setSelectedNode(graphNode)
     },

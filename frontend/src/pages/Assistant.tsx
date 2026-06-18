@@ -229,9 +229,10 @@ export default function Assistant() {
         <div className="lg:w-[540px] shrink-0 border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto p-4 bg-gray-50">
           {showGraph && graph && graph.nodes.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                Evidence Graph
-              </h3>
+              <div className="mb-2">
+                <h3 className="text-sm font-semibold text-gray-700">Evidence Graph</h3>
+                <p className="text-xs text-gray-500">Shipment details and event timeline</p>
+              </div>
               <EvidenceGraph graph={graph} />
             </div>
           )}
