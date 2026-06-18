@@ -158,4 +158,47 @@ Then, regardless of route:
   Show a one-line status between commits: `✓ C[N] committed. Starting C[N+1]...`
   With `--once`, show: `✓ C[N] committed. --once flag set, stopping. Next: C[N+1].`
 
+**Auto-mode command reference — use these exact patterns:**
+
+1. **Test execution** — always run inside Docker, never on the host:
+   ```
+   docker compose run --rm backend uv run pytest <test-path> -x -q --tb=short
+   ```
+   Host-side `python -m pytest` fails due to missing DB/service dependencies (OI-08).
+
+2. **Finalize** — all arguments are required:
+   ```
+   python hooks/finalize_commit.py --commit <N> --agent <owner> --execution claude-direct --notify-what "<summary>" --notify-why "<reason>"
+   ```
+   For delegated: `--execution delegated --tokens <N>`.
+
+3. **Primary commit** — use the Bash tool (not PowerShell) with CLAUDE_COMMIT=1:
+   ```
+   CLAUDE_COMMIT=1 git commit -m "$(cat <<'EOF'
+   type(scope): description
+
+   Commit #NN
+   Execution: Claude-direct
+
+   Co-Authored-By: Claude <claude@anthropic.com>
+   EOF
+   )"
+   ```
+   Never use `$env:CLAUDE_COMMIT` (PowerShell syntax) in Bash — it produces stray
+   characters in the commit message.
+
+4. **Chore(state) commit** — no `Commit #NN` or `Execution:` line:
+   ```
+   CLAUDE_COMMIT=1 git commit -m "$(cat <<'EOF'
+   chore(state): advance state after C<N> and update token records
+
+   Co-Authored-By: Claude <claude@anthropic.com>
+   EOF
+   )"
+   ```
+
+5. **Constraint verification** — run before finalize, expect ref_resolution fallback
+   on the first run (commit message doesn't exist yet). The `/verify-commit` run after
+   finalize uses `--worktree --no-persist` which avoids this.
+
 Do not duplicate full file contents in an invocation prompt.
