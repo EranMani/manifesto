@@ -74,8 +74,13 @@
         "hooks/tests/test_finalize_commit.py",
         "hooks/bash_command_lint.py",
         "hooks/tests/test_bash_command_lint.py",
+        "hooks/forge_scan.py",
+        "hooks/tests/test_forge_scan.py",
+        "hooks/forge_planner.py",
+        "hooks/tests/test_forge_planner.py",
         ".context/finalize/",
-        ".context/direct/"
+        ".context/direct/",
+        ".forge/"
       ]
     },
     "rex.stockagent@gmail.com": {

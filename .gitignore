@@ -56,6 +56,9 @@ claude_usage_data/
 # Hook runtime state
 hooks/tool_cap.json
 
+# Forge runtime artifacts
+.forge/
+
 # Frontend lockfile (optional — remove this line if you want to track it)
 frontend/package-lock.json
 hooks/.pending_notify.json
