@@ -522,6 +522,47 @@ def build_blocked_email(info: dict):
     return subject, plain, html
 
 
+def build_auto_completed_email(info: dict):
+    """Build a successful auto-mode completion email."""
+    project = info["project"]
+    commit_num = info["number"]
+    commit_name = info["name"]
+    agent = info["agent"]
+    summary = info.get("summary", "")
+    verification = info.get("verification", "")
+    next_commit = info.get("next_commit", "")
+    now = datetime.now().strftime("%a %d %b %Y, %H:%M")
+    subject = f"{project} — commit {commit_num} — completed automatically"
+
+    def escaped(value: str) -> str:
+        return html_lib.escape(value).replace("\n", "<br>")
+
+    next_html = (
+        f"<h2 style='font-size:14px;margin:22px 0 6px;'>Next</h2><p>{escaped(next_commit)}</p>"
+        if next_commit else ""
+    )
+    html = (
+        "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'></head>"
+        "<body style='margin:0;padding:32px 16px;background:#f4f4f0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;'>"
+        "<div style='max-width:620px;margin:auto;background:#fff;border:1px solid #e0dfd8;border-radius:12px;padding:28px;'>"
+        f"<h1 style='font-size:20px;margin:0 0 8px;color:#1a1a18;'>Commit {escaped(commit_num)} completed</h1>"
+        f"<p style='color:#777;margin:0 0 20px;'>{escaped(commit_name)} · {escaped(agent)} · {now}</p>"
+        "<p style='display:inline-block;background:#EAF3DE;color:#3B6D11;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;'>completed automatically</p>"
+        f"<h2 style='font-size:14px;margin:22px 0 6px;'>What completed</h2><p>{escaped(summary)}</p>"
+        f"<h2 style='font-size:14px;margin:22px 0 6px;'>Verification</h2><p>{escaped(verification)}</p>"
+        + next_html +
+        "<p style='margin-top:26px;color:#777;border-left:2px solid #d3d1c7;padding-left:12px;'>No approval is required. The primary commit and state sweep both succeeded.</p>"
+        "</div></body></html>"
+    )
+    plain = (
+        f"{subject}\n\nCommit: {commit_num} — {commit_name}\nExecutor: {agent}\nTime: {now}\n\n"
+        f"What completed:\n{summary}\n\nVerification:\n{verification}\n"
+        + (f"\nNext:\n{next_commit}\n" if next_commit else "")
+        + "\nNo approval is required. The primary commit and state sweep both succeeded.\n"
+    )
+    return subject, plain, html
+
+
 # ── Send ───────────────────────────────────────────────────────────────────────────────────
 
 def send_email(env: dict, subject: str, plain: str, html: str) -> None:
@@ -615,6 +656,28 @@ def write_blocked_notify(
     print(f"[notify] Auto-mode blocked flag written for C{payload['NOTIFY_NUM']}.")
 
 
+def write_auto_completed_notify(
+    summary: str, verification: str, next_commit: str = "", num: str = "",
+    name: str = "", agent: str = "",
+) -> None:
+    """Atomically queue a successful auto-mode completion email."""
+    auto_num, auto_name, auto_agent = get_next_commit_from_protocol()
+    payload = {
+        "notification_type": "auto_completed",
+        "NOTIFY_NUM": num or auto_num,
+        "NOTIFY_NAME": name or auto_name,
+        "NOTIFY_AGENT": agent or auto_agent,
+        "SUMMARY": summary,
+        "VERIFICATION": verification,
+        "NEXT_COMMIT": next_commit,
+    }
+    flag = ROOT / "hooks" / ".pending_notify.json"
+    tmp = flag.with_suffix(flag.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    os.replace(tmp, flag)
+    print(f"[notify] Auto-mode completion flag written for C{payload['NOTIFY_NUM']}.")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────────────
 
 def main() -> int:
@@ -629,6 +692,17 @@ def main() -> int:
             issue=os.environ.get("NOTIFY_ISSUE", ""),
             decision=os.environ.get("NOTIFY_DECISION", ""),
             solution=os.environ.get("NOTIFY_SOLUTION", ""),
+            num=os.environ.get("NOTIFY_NUM", ""),
+            name=os.environ.get("NOTIFY_NAME", ""),
+            agent=os.environ.get("NOTIFY_AGENT", ""),
+        )
+        return 0
+
+    if "--write-completed-flag" in sys.argv:
+        write_auto_completed_notify(
+            summary=os.environ.get("NOTIFY_SUMMARY", ""),
+            verification=os.environ.get("NOTIFY_VERIFICATION", ""),
+            next_commit=os.environ.get("NOTIFY_NEXT", ""),
             num=os.environ.get("NOTIFY_NUM", ""),
             name=os.environ.get("NOTIFY_NAME", ""),
             agent=os.environ.get("NOTIFY_AGENT", ""),

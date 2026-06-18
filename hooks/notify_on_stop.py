@@ -105,6 +105,14 @@ def main() -> int:
             "solution": data.get("SOLUTION", ""),
         }
         subject, plain, html = mod.build_blocked_email(blocked_info)
+    elif data.get("notification_type") == "auto_completed":
+        completed_info = {
+            **info,
+            "summary": data.get("SUMMARY", ""),
+            "verification": data.get("VERIFICATION", ""),
+            "next_commit": data.get("NEXT_COMMIT", ""),
+        }
+        subject, plain, html = mod.build_auto_completed_email(completed_info)
     else:
         subject, plain, html = mod.build_email(env, info, files, diff_stat)
 
