@@ -329,8 +329,7 @@ def initialize_orchestrator_scope(
             existing["ended_at"] = utc_now()
             archive = repo_root / ".context" / "telemetry" / f"{existing_commit}-orchestrator.json"
             archive.parent.mkdir(parents=True, exist_ok=True)
-            archive.write_text(json.dumps(existing, indent=2) + "
-", encoding="utf-8")
+            archive.write_text(json.dumps(existing, indent=2) + "\n", encoding="utf-8")
         elif existing_commit.upper() == commit_key.upper():
             raise ValueError(
                 f"{commit_key} telemetry scope already exists with status "
