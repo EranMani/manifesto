@@ -360,7 +360,7 @@ export default function EvidenceGraph({ graph }: EvidenceGraphProps) {
   }
 
   return (
-    <div className="h-[500px] w-full rounded-lg border border-gray-200">
+    <div className="h-[400px] w-full rounded-lg border border-gray-200">
       <ReactFlowProvider>
         <InnerGraph graph={graph} />
       </ReactFlowProvider>

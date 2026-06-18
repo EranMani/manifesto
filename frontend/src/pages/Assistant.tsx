@@ -121,7 +121,7 @@ export default function Assistant() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen">
+    <div className="flex flex-col h-screen">
       <div className="flex flex-col flex-1 min-w-0 px-4 py-6 max-w-3xl mx-auto w-full">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">Assistant</h1>
@@ -188,6 +188,27 @@ export default function Assistant() {
             </div>
           )}
 
+          {hasEvidence && (
+            <div className="space-y-4 mt-4 border-t border-gray-200 pt-4">
+              {showGraph && graph && graph.nodes.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Evidence Graph</h3>
+                  <EvidenceGraph graph={graph} />
+                </div>
+              )}
+              {showCitations && citations.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Sources</h3>
+                  <div className="space-y-2">
+                    {citations.map((c, i) => (
+                      <CitationCard key={i} citation={c} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -224,32 +245,6 @@ export default function Assistant() {
           </button>
         </div>
       </div>
-
-      {hasEvidence && (
-        <div className="lg:w-[540px] shrink-0 border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto p-4 bg-gray-50">
-          {showGraph && graph && graph.nodes.length > 0 && (
-            <div>
-              <div className="mb-2">
-                <h3 className="text-sm font-semibold text-gray-700">Evidence Graph</h3>
-                <p className="text-xs text-gray-500">Shipment details and event timeline</p>
-              </div>
-              <EvidenceGraph graph={graph} />
-            </div>
-          )}
-          {showCitations && citations.length > 0 && (
-            <div className={showGraph && graph && graph.nodes.length > 0 ? 'mt-4' : ''}>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                Sources
-              </h3>
-              <div className="space-y-2">
-                {citations.map((c, i) => (
-                  <CitationCard key={i} citation={c} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }
