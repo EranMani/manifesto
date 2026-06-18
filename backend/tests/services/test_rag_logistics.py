@@ -575,6 +575,51 @@ def test_intent_routing_deduplicates_repeated_identifiers():
     assert routing.tracking_codes == ["SHP-1234"]
 
 
+def test_intent_routing_employee_leave_rules():
+    routing = classify_intent("What are the employee leave rules?")
+
+    assert routing.intent == "policy"
+    assert routing.confidence == 1.0
+    assert routing.tracking_codes == []
+    assert routing.purchase_order_numbers == []
+
+
+def test_intent_routing_vendor_performance():
+    routing = classify_intent("Summarize vendor performance this month")
+
+    assert routing.intent == "policy"
+    assert routing.confidence == 1.0
+    assert routing.tracking_codes == []
+    assert routing.purchase_order_numbers == []
+
+
+def test_intent_routing_benefits_for_new_employees():
+    routing = classify_intent("What are the benefits for new employees?")
+
+    assert routing.intent == "policy"
+    assert routing.confidence == 1.0
+    assert routing.tracking_codes == []
+    assert routing.purchase_order_numbers == []
+
+
+def test_intent_routing_vacation_policy():
+    routing = classify_intent("Tell me about the vacation policy")
+
+    assert routing.intent == "policy"
+    assert routing.confidence == 1.0
+    assert routing.tracking_codes == []
+    assert routing.purchase_order_numbers == []
+
+
+def test_intent_routing_safety_training_rules():
+    routing = classify_intent("What are the safety training rules?")
+
+    assert routing.intent == "policy"
+    assert routing.confidence == 1.0
+    assert routing.tracking_codes == []
+    assert routing.purchase_order_numbers == []
+
+
 def test_intent_routing_browse_find_all_shipments():
     routing = classify_intent("Find all shipments")
 

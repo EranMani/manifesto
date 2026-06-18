@@ -774,6 +774,23 @@ _POLICY_TERMS: frozenset[str] = frozenset(
         "procedure",
         "procedures",
         "handbook",
+        "rules",
+        "rule",
+        "leave",
+        "leaves",
+        "employee",
+        "employees",
+        "benefits",
+        "benefit",
+        "vacation",
+        "sick",
+        "absence",
+        "schedule",
+        "scheduling",
+        "safety",
+        "training",
+        "hr",
+        "performance",
     }
 )
 

@@ -231,6 +231,42 @@
       "authorization": null
     },
     {
+      "id": "policy-employee-leave",
+      "category": "policy",
+      "question": "What are the employee leave rules?",
+      "role": "employee",
+      "expected_intent": "policy",
+      "expected_answer_type": "PolicyAnswer",
+      "expected_tracking_codes": [],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": false,
+        "citations_present": true,
+        "follow_ups_present": false,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": null,
+      "authorization": null
+    },
+    {
+      "id": "policy-vendor-performance",
+      "category": "policy",
+      "question": "Summarize vendor performance this month",
+      "role": "manager",
+      "expected_intent": "policy",
+      "expected_answer_type": "PolicyAnswer",
+      "expected_tracking_codes": [],
+      "expected_po_numbers": [],
+      "expected_facts": {
+        "graph_present": false,
+        "citations_present": true,
+        "follow_ups_present": false,
+        "answer_nonempty": true
+      },
+      "expected_graph_paths": null,
+      "authorization": null
+    },
+    {
       "id": "mixed-shipment-and-policy",
       "category": "mixed",
       "question": "What is the return policy for SHP-1001?",
