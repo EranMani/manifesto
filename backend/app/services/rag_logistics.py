@@ -415,10 +415,14 @@ class LogisticsAnswer:
 
 _SYSTEM_PROMPT = (
     "You are a logistics assistant. Answer the user's question using only the "
-    "evidence provided below. Do not invent shipment, order, vendor, buyer, "
-    "product, or timeline details that are not present in the evidence. If the "
-    "evidence does not contain the answer, say so plainly. Never mention SQL, "
-    "databases, or internal identifiers that are not part of the evidence."
+    "evidence provided below. Respond with a short markdown bullet list — one "
+    "bullet per key fact. Cover: status, origin → destination, vendor, products "
+    "(if any), expected/actual arrival, and delay reason (if any). Use the format "
+    "`- **Label:** value`. No headers, no paragraphs, no filler sentences. "
+    "Do not invent shipment, order, vendor, buyer, product, or timeline details "
+    "that are not present in the evidence. If the evidence does not contain the "
+    "answer, say so plainly. Never mention SQL, databases, or internal identifiers "
+    "that are not part of the evidence."
 )
 
 _DEFAULT_FOLLOW_UPS: list[str] = [
@@ -528,41 +532,38 @@ def _build_logistics_prompt(question: str, evidence: ProcurementEvidence) -> "li
 
 
 def _deterministic_fallback(evidence: ProcurementEvidence) -> str:
-    """Build a deterministic summary of ``evidence`` for use when the LLM is
-    unavailable. Reports status, delay reason, vendor, buyer/order, products,
-    and timing -- never invents fields absent from the evidence.
+    """Build a deterministic bullet-point summary of ``evidence`` for use when
+    the LLM is unavailable. Uses ``- **Label:** value`` format so the output
+    is visually identical to the LLM path.
     """
     shipment = evidence.shipment
-    parts: list[str] = [
-        f"Shipment {shipment.tracking_code} is currently '{shipment.status}'.",
-        f"It shipped from {shipment.origin} to {shipment.destination}, "
-        f"dispatched {_format_timestamp(shipment.dispatched_at)} with an expected "
-        f"arrival of {_format_timestamp(shipment.expected_arrival_at)}.",
+    bullets: list[str] = [
+        f"- **Tracking:** {shipment.tracking_code}",
+        f"- **Status:** {shipment.status}",
+        f"- **Route:** {shipment.origin} → {shipment.destination}",
+        f"- **Vendor:** {evidence.vendor.name}",
     ]
-
-    if shipment.actual_arrival_at is not None:
-        parts.append(f"It actually arrived {_format_timestamp(shipment.actual_arrival_at)}.")
-
-    if evidence.delay is not None:
-        parts.append(f"Delay reason: {evidence.delay.reason}.")
-
-    parts.append(f"Vendor: {evidence.vendor.name}.")
-
-    if evidence.purchase_order is not None:
-        order = evidence.purchase_order
-        buyer_part = f" placed by {evidence.buyer.name}" if evidence.buyer is not None else ""
-        parts.append(
-            f"Purchase order {order.order_number} ({order.status}){buyer_part}."
-        )
 
     if evidence.products:
         product_list = ", ".join(
-            f"{product.name} ({product.quantity} {product.unit or 'unit'})"
-            for product in evidence.products
+            f"{p.name} ({p.quantity} {p.unit or 'unit'})" for p in evidence.products
         )
-        parts.append(f"Products: {product_list}.")
+        bullets.append(f"- **Products:** {product_list}")
 
-    return " ".join(parts)
+    if evidence.purchase_order is not None:
+        order = evidence.purchase_order
+        buyer_part = f" by {evidence.buyer.name}" if evidence.buyer is not None else ""
+        bullets.append(f"- **Order:** {order.order_number} ({order.status}){buyer_part}")
+
+    bullets.append(f"- **Expected arrival:** {_format_timestamp(shipment.expected_arrival_at)}")
+
+    if shipment.actual_arrival_at is not None:
+        bullets.append(f"- **Actual arrival:** {_format_timestamp(shipment.actual_arrival_at)}")
+
+    if evidence.delay is not None:
+        bullets.append(f"- **Delay reason:** {evidence.delay.reason}")
+
+    return "\n".join(bullets)
 
 
 async def list_shipments_summary(
