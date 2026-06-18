@@ -2,20 +2,19 @@
   "schema_version": 2,
   "commit": "C65",
   "agent": "nova",
-  "status": "blocked",
+  "status": "prepared",
   "active": false,
-  "invocation_count": 1,
+  "invocation_count": 0,
   "repair_invocation_count": 0,
-  "review_invocations": [],
+  "review_invocations": [
+    "mira"
+  ],
   "active_invocation": null,
   "count": 0,
-  "limit": 18,
-  "tool_calls": 18,
-  "expansions": 2,
-  "expanded_paths": [
-    ".context/delegations/C65-nova.md",
-    "commit-specs/commit-65.md"
-  ],
+  "limit": 10,
+  "tool_calls": 0,
+  "expansions": 0,
+  "expanded_paths": [],
   "selected_paths": [
     ".claude/agents/ai-engineer.md",
     ".claude/agents/logs/nova-worklog.md",
@@ -24,9 +23,9 @@
     "backend/app/services/rag_logistics.py",
     "backend/tests/services/test_rag_logistics.py"
   ],
-  "write_started": true,
-  "known_implementor_tokens": 59139,
-  "known_total_tokens": 59139,
+  "write_started": false,
+  "known_implementor_tokens": 0,
+  "known_total_tokens": 0,
   "limits": {
     "max_agent_invocations": 1,
     "max_tool_calls": 18,
@@ -35,26 +34,27 @@
     "max_total_tokens": 60000
   },
   "repair_authorization": null,
-  "stop_reason": "implementor_token_hard_stop",
-  "stop_scope": {
-    "commit": "C65",
-    "agent": "nova",
-    "kind": "normal"
-  },
+  "stop_reason": null,
+  "stop_scope": null,
   "prepared_at": "2026-06-17T17:37:51+00:00",
   "invocations": [
     {
-      "agent": "nova",
-      "kind": "normal",
-      "tool_calls": 18,
-      "expansions": 2,
-      "expanded_paths": [
-        ".context/delegations/C65-nova.md",
-        "commit-specs/commit-65.md"
-      ],
-      "started_at": "2026-06-17T17:38:08+00:00",
-      "ended_at": "2026-06-17T17:41:44+00:00",
-      "tokens": 59139
+      "agent": "explore",
+      "kind": "explore",
+      "tool_calls": 0,
+      "expansions": 0,
+      "expanded_paths": [],
+      "started_at": "2026-06-18T03:01:29+00:00",
+      "ended_at": "2026-06-18T03:01:29+00:00"
+    },
+    {
+      "agent": "mira",
+      "kind": "review",
+      "tool_calls": 0,
+      "expansions": 0,
+      "expanded_paths": [],
+      "started_at": "2026-06-18T03:03:38+00:00",
+      "ended_at": "2026-06-18T03:03:38+00:00"
     }
   ]
 }
