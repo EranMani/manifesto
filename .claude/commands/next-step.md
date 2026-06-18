@@ -1,9 +1,9 @@
 Parse `$ARGUMENTS` for the `--auto` flag. When `--auto` is present, auto-mode is
 active: a READY preflight with zero violations and no decision required is treated as
-pre-approved — proceed directly to implementation without waiting for Eran. If the
-preflight is BLOCKED, has any warning, or requires a decision, fall back to the normal
-approval flow regardless of the flag. Auto mode never skips post-implementation commit
-approval — Eran still approves the final commit.
+pre-approved — proceed directly to implementation without waiting for Eran. If all
+verification checks pass, commit automatically and loop to the next pending commit.
+If the preflight is BLOCKED, has any warning, or requires a decision, fall back to the
+normal approval flow regardless of the flag.
 
 Read `project-state.json` to identify the next pending commit and owner. Check its
 dependencies, open handoffs, and unresolved quality-gate findings.
@@ -41,8 +41,10 @@ forbidden paths, graph refreshes, or other package diagnostics.
 
 For C29B and every later commit, the compact approval card must be the entire
 response. Output no preamble, transition sentence, explanation, or conclusion before
-or after it. The first output line must be `C[N] PREFLIGHT: ...` and the final output
-line must be `Proceed? [yes/no]`.
+or after it. The first output line must be `C[N] PREFLIGHT: ...`. In normal mode, the
+final output line must be `Proceed? [yes/no]`. In auto mode, replace `Proceed?
+[yes/no]` with `[AUTO-APPROVED] — proceeding to implementation.` and continue without
+waiting.
 
 For Claude-direct, use this card (no numeric score — `evaluate_direct()` returns
 `status: "ready"|"blocked"`, not a score):
@@ -151,7 +153,5 @@ Then, regardless of route:
   - `project-state.json` has `next_commit: null` (no more pending commits).
   - Eran sends a message (interrupts the loop and defers to Eran's instruction).
   Show a one-line status between commits: `✓ C[N] committed. Starting C[N+1]...`
-
-- Advance project state and report the next commit.
 
 Do not duplicate full file contents in an invocation prompt.
