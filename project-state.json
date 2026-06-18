@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 hardening continues. C74 done (inline evidence graph). C75 pending: fix stale evidence graph when switching shipments (useNodesState/useEdgesState not re-synced on graph prop change).",
+  "tldr": "Phase 3 hardening continues. C75 done (fix stale evidence graph when switching shipments). No pending commits.",
   "phase": 3,
-  "last_completed_commit": "74",
-  "next_commit": "75",
-  "next_commit_name": "fix-stale-evidence-graph",
-  "next_commit_assignee": "aria",
+  "last_completed_commit": "75",
+  "next_commit": null,
+  "next_commit_name": null,
+  "next_commit_assignee": null,
   "status": "active",
   "open_handoffs": [
     {
