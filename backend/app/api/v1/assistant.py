@@ -170,4 +170,11 @@ async def query_assistant(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Something went wrong processing your question. Please try again.",
         )
-    return _to_response(result)
+    try:
+        return _to_response(result)
+    except Exception:
+        logger.exception("Error converting assistant response")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Something went wrong processing your question. Please try again.",
+        )

@@ -44,8 +44,8 @@ class AssistantQueryRequest(BaseModel):
 
 class CitationSchema(BaseModel):
     source_title: str
-    document_id: int
-    chunk_id: int
+    document_id: str
+    chunk_id: str
     section: str | None
     page_number: int | None
     excerpt: str

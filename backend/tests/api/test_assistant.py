@@ -86,8 +86,8 @@ def _policy_answer() -> PolicyAnswer:
         citations=[
             {
                 "source_title": "Returns Policy",
-                "document_id": 1,
-                "chunk_id": 10,
+                "document_id": "5d87fb76-d4f6-4258-8984-375d1a68b3f8",
+                "chunk_id": "b9148a7b-16f2-4206-b67d-222bface9819",
                 "section": "Returns",
                 "page_number": 2,
                 "excerpt": "Items may be returned within 30 days.",
@@ -137,8 +137,8 @@ def _mixed_answer() -> MixedAnswer:
         citations=[
             {
                 "source_title": "Returns Policy",
-                "document_id": 1,
-                "chunk_id": 10,
+                "document_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                "chunk_id": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
                 "section": None,
                 "page_number": None,
                 "excerpt": "Returns within 30 days.",
@@ -216,6 +216,37 @@ class TestPolicyIntent:
         assert len(data["citations"]) == 1
         assert data["citations"][0]["source_title"] == "Returns Policy"
         assert data["graph"] is None
+
+
+    @patch("app.api.v1.assistant.answer_question", new_callable=AsyncMock)
+    async def test_policy_citation_ids_are_strings(
+        self, mock_aq: AsyncMock, client: AsyncClient
+    ) -> None:
+        user = _make_user("employee")
+        _login_as(user)
+        mock_aq.return_value = _policy_answer()
+        resp = await client.post(
+            "/api/v1/assistant/query",
+            json={"message": "What is the return policy?"},
+        )
+        assert resp.status_code == 200
+        citation = resp.json()["citations"][0]
+        assert isinstance(citation["document_id"], str)
+        assert isinstance(citation["chunk_id"], str)
+
+    @patch("app.api.v1.assistant._to_response", side_effect=ValueError("conversion bug"))
+    @patch("app.api.v1.assistant.answer_question", new_callable=AsyncMock)
+    async def test_to_response_error_returns_502(
+        self, mock_aq: AsyncMock, mock_to_resp: MagicMock, client: AsyncClient
+    ) -> None:
+        user = _make_user("employee")
+        _login_as(user)
+        mock_aq.return_value = _policy_answer()
+        resp = await client.post(
+            "/api/v1/assistant/query",
+            json={"message": "What is the return policy?"},
+        )
+        assert resp.status_code == 502
 
 
 class TestLogisticsIntent:

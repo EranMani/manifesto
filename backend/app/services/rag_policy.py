@@ -45,8 +45,8 @@ class PolicyChunkCandidate(TypedDict):
     the chunk's stored 768-dim vector.
     """
 
-    chunk_id: int
-    document_id: int
+    chunk_id: str
+    document_id: str
     chunk_index: int
     page_number: int | None
     section: str | None
@@ -74,8 +74,8 @@ class PolicyEvidence(TypedDict):
     """
 
     source_title: str
-    document_id: int
-    chunk_id: int
+    document_id: str
+    chunk_id: str
     section: str | None
     page_number: int | None
     excerpt: str
