@@ -309,25 +309,71 @@ that relate to the question — omit if none are relevant}
    fenced code blocks with the language identifier.
 
 6. **Visual diagrams**: when the answer describes a flow, architecture,
-   data path, request lifecycle, or component relationship, include a
-   Mermaid diagram or ASCII flow chart. Rules:
-   - Use Mermaid `graph TD` for top-down flows (request lifecycle, data
-     pipelines, inheritance)
-   - Use Mermaid `graph LR` for left-right flows (processing pipelines,
-     horizontal architectures)
-   - Use Mermaid `sequenceDiagram` for request/response interactions between
-     components
-   - Use ASCII art only when Mermaid cannot express it (e.g., table layouts,
-     directory trees)
-   - Every diagram must have a one-line caption above it
-   - Label every node and edge — unlabeled diagrams are worthless
+   data path, request lifecycle, or component relationship, include an
+   ASCII diagram. This runs in a terminal — Mermaid does not render here.
+   Use only plain-text ASCII art inside a fenced code block. Rules:
+   - Use box-drawing characters: ┌ ┐ └ ┘ │ ─ ┬ ┴ ├ ┤ ┼
+   - Use arrows: → ← ↓ ↑ ──► ──▶
+   - Every box and arrow must be labeled — unlabeled diagrams are worthless
+   - Keep diagrams under 80 characters wide so they fit the terminal
+   - Use a one-line caption above the diagram
+
+   Diagram patterns:
+
+   **Top-down flow** (request lifecycle, data pipelines):
+   ```
+   ┌──────────┐
+   │  Upload   │
+   └────┬─────┘
+        │
+        ▼
+   ┌──────────┐
+   │ Validate  │
+   └────┬─────┘
+        │
+        ▼
+   ┌──────────┐
+   │  Store    │
+   └──────────┘
+   ```
+
+   **Left-right flow** (processing pipelines):
+   ```
+   [React Form] ──► [API Route] ──► [Service] ──► [LLM] ──► [Response]
+   ```
+
+   **Sequence interaction** (request/response between components):
+   ```
+   Client          Server          DB
+     │── POST /login ──►│               │
+     │                  │── query ──►   │
+     │                  │◄── user row ──│
+     │◄── 200 + JWT ───│               │
+   ```
+
+   **Grouped architecture** (multiple related subsystems):
+   ```
+   ┌─── Ingestion ────────────────────────────┐
+   │ Upload → Extract → Chunk → Embed → Store │
+   └──────────────────────────────────────────┘
+             │
+             ▼
+   ┌─── Retrieval ────────────────────────────┐
+   │ Query → Classify → RAG Pipeline → Top-K  │
+   └──────────────────────────────────────────┘
+             │
+             ▼
+   ┌─── Generation ───────────────────────────┐
+   │ Grounded Prompt → LLM → Cited Answer     │
+   └──────────────────────────────────────────┘
+   ```
 
    Examples of when to include a diagram:
-   - "How does JWT auth work?" → sequenceDiagram showing client → route →
+   - "How does JWT auth work?" → sequence diagram showing client → route →
      JWT decode → DB lookup → response
-   - "What does the ingestion endpoint do?" → graph TD showing upload →
+   - "What does the ingestion endpoint do?" → top-down flow showing upload →
      validate → extract text → chunk → embed → store
-   - "How does data flow from frontend to AI?" → graph LR showing
+   - "How does data flow from frontend to AI?" → left-right flow showing
      React form → API route → service → LLM → response → UI
 
 7. Include a "Sources" section listing every file:line you referenced.
@@ -381,10 +427,10 @@ agent invocation. Apply these format rules:
 
 | Route | Answer format | Visual |
 |-------|--------------|--------|
-| `process` | Step-by-step explanation with doc references (file:section) | Mermaid flowchart of the process steps |
+| `process` | Step-by-step explanation with doc references (file:section) | ASCII flowchart of the process steps |
 | `historical` | Timeline or narrative with decision IDs and commit numbers | ASCII timeline if 3+ events |
-| `inventory` | Table or bullet list, sorted logically (alpha, by domain, etc.) | Table always; add tree diagram for hierarchical items |
-| `time-sensitive` | Chronological list of changes with commit hashes | None usually; Mermaid gantt if many changes |
+| `inventory` | Table or bullet list, sorted logically (alpha, by domain, etc.) | Table always; add ASCII tree for hierarchical items |
+| `time-sensitive` | Chronological list of changes with commit hashes | None usually |
 | `meta` | Direct factual answer, list or table if multiple items | Table for agent/command listings |
 | `quantitative` | Number first, then breakdown if useful | Table for breakdowns |
 
