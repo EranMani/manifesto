@@ -312,6 +312,7 @@ def initialize_orchestrator_scope(
     execution_mode: str = "delegated",
     scope_kind: str = "review",
     capture_window: str = "review-only",
+    force_reset: bool = False,
 ) -> dict[str, Any]:
     """Open a Claude telemetry scope with explicit execution semantics."""
     path = repo_root / ".context" / "telemetry" / "orchestrator-active.json"
@@ -323,12 +324,19 @@ def initialize_orchestrator_scope(
     if existing:
         existing_commit = _commit_key(existing.get("commit", ""))
         existing_status = existing.get("status")
-        if existing_commit.upper() == commit_key.upper():
+        if force_reset and existing_status == "running":
+            existing["status"] = "replaced"
+            existing["ended_at"] = utc_now()
+            archive = repo_root / ".context" / "telemetry" / f"{existing_commit}-orchestrator.json"
+            archive.parent.mkdir(parents=True, exist_ok=True)
+            archive.write_text(json.dumps(existing, indent=2) + "
+", encoding="utf-8")
+        elif existing_commit.upper() == commit_key.upper():
             raise ValueError(
                 f"{commit_key} telemetry scope already exists with status "
                 f"{existing_status!r}"
             )
-        if existing_status == "running":
+        elif existing_status == "running":
             raise ValueError(
                 f"cannot replace running {existing_commit} telemetry scope"
             )
@@ -361,6 +369,7 @@ def initialize_execution_scope(
     repo_root: Path = REPO_ROOT,
     *,
     package: dict[str, Any] | None = None,
+    force_reset: bool = False,
 ) -> dict[str, Any]:
     """Open full Claude-direct capture before implementation begins."""
     scope = initialize_orchestrator_scope(
@@ -370,6 +379,7 @@ def initialize_execution_scope(
         execution_mode="claude-direct",
         scope_kind="execution",
         capture_window="full-execution",
+        force_reset=force_reset,
     )
     if package:
         selected = [item["path"] for item in package.get("files", [])]
@@ -694,6 +704,10 @@ def main() -> int:
         help="Close and persist the active Claude scope after verification",
     )
     parser.add_argument(
+        "--force-reset", action="store_true",
+        help="Replace a running scope instead of raising. Archives the old scope.",
+    )
+    parser.add_argument(
         "--agent-report",
         nargs=3,
         metavar=("COMMIT", "AGENT", "JSON"),
@@ -712,12 +726,12 @@ def main() -> int:
         return 0
 
     if args.start_orchestrator:
-        initialize_orchestrator_scope(args.start_orchestrator)
+        initialize_orchestrator_scope(args.start_orchestrator, force_reset=args.force_reset)
         return 0
 
     if args.start_execution:
         commit, owner = args.start_execution
-        initialize_execution_scope(commit, owner)
+        initialize_execution_scope(commit, owner, force_reset=args.force_reset)
         return 0
 
     if args.start_review:

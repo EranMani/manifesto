@@ -197,7 +197,13 @@ Then, regardless of route:
    )"
    ```
 
-5. **Constraint verification** — run before finalize, expect ref_resolution fallback
+5. **Telemetry scope** — in auto mode, always use `--force-reset` when starting
+   the orchestrator scope so it replaces any stale running scope from prior work:
+   ```
+   python hooks/context_telemetry.py --start-execution C<N> <owner> --force-reset
+   ```
+
+6. **Constraint verification** — run before finalize, expect ref_resolution fallback
    on the first run (commit message doesn't exist yet). The `/verify-commit` run after
    finalize uses `--worktree --no-persist` which avoids this.
 
