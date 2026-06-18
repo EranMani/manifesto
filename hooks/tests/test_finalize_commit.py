@@ -109,6 +109,23 @@ def test_regular_commit_renders_dashboard_without_flag(monkeypatch, capsys):
     assert calls == ["close", "capture", "verify", "render", "notify", "marker"]
 
 
+def test_auto_mode_skips_approval_notification(monkeypatch, capsys):
+    calls = []
+    _patch_steps(monkeypatch, calls)
+
+    rc = _run_main(monkeypatch, [
+        "--commit", "70", "--agent", "aria", "--execution", "claude-direct",
+        "--auto", "--notify-what", "rendered markdown", "--notify-why", "approved spec",
+    ])
+
+    assert rc == 0
+    assert calls == ["close", "capture", "verify", "render", "marker"]
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["status"] == "ready"
+    assert summary["notify_written"] is False
+    assert summary["marker_written"] is True
+
+
 def test_missing_active_capture_blocks_before_validation(monkeypatch, capsys):
     calls = []
     _patch_steps(monkeypatch, calls)

@@ -185,9 +185,11 @@ message interrupt. The existing Stop hook sends and deletes the atomic flag.
 
 2. **Finalize** — all arguments are required:
    ```
-   python hooks/finalize_commit.py --commit <N> --agent <owner> --execution claude-direct --notify-what "<summary>" --notify-why "<reason>"
+   python hooks/finalize_commit.py --commit <N> --agent <owner> --execution claude-direct --auto --notify-what "<summary>" --notify-why "<reason>"
    ```
-   For delegated: `--execution delegated --tokens <N>`.
+   For delegated auto mode: `--execution delegated --tokens <N> --auto`.
+   `--auto` suppresses the legacy "awaiting your approval" email because the commit
+   is already auto-approved. Blocked auto-mode runs use `--write-blocked-flag` instead.
 
 3. **Primary commit** — use the Bash tool (not PowerShell) with CLAUDE_COMMIT=1:
    ```

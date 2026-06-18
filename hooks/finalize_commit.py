@@ -9,7 +9,7 @@ fixed order, stopping at the first failure:
   1. Verify constraints (hooks/verify_constraints.py --worktree, since this
      pipeline always runs pre-commit against the staged/working tree)
   2. Conditional dashboard render (constraint-dashboard.html)
-  3. Write the pending-notify flag (hooks/notify_agent_done.py)
+  3. Write the pending approval-notify flag in manual mode only
   4. Write a finalize marker (.context/finalize/C<NN>.json)
 
 `pre_commit_check.py` requires a fresh, matching marker before a primary
@@ -18,7 +18,7 @@ commit (Commit #NN + Execution: Claude-direct / Co-Authored-By:) can land.
 Usage:
   python hooks/finalize_commit.py --commit NN --agent OWNER \
       --execution {claude-direct,delegated} [--tokens N] [--render-dashboard] \
-      --notify-what "..." --notify-why "..."
+      [--auto] --notify-what "..." --notify-why "..."
 """
 
 import argparse
@@ -178,6 +178,11 @@ def main():
     )
     parser.add_argument("--notify-what", required=True)
     parser.add_argument("--notify-why", required=True)
+    parser.add_argument(
+        "--auto",
+        action="store_true",
+        help="Finalize an auto-approved commit without queuing an approval email.",
+    )
     args = parser.parse_args()
 
     summary = {
@@ -216,8 +221,9 @@ def main():
     step_render_dashboard()
     summary["dashboard_rendered"] = True
 
-    step_write_notify(args.notify_what, args.notify_why, args.commit, args.agent)
-    summary["notify_written"] = True
+    if not args.auto:
+        step_write_notify(args.notify_what, args.notify_why, args.commit, args.agent)
+        summary["notify_written"] = True
 
     step_write_marker(args.commit, args.agent, args.execution)
     summary["marker_written"] = True
