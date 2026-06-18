@@ -118,7 +118,7 @@ except Exception:
 
 ## Verification Command
 ```powershell
-python -m pytest backend/tests/api/test_assistant.py -x -q --tb=short
+docker compose run --rm backend uv run pytest tests/api/test_assistant.py -x -q --tb=short
 ```
 
 ## Focused Tests

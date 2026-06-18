@@ -12,7 +12,7 @@ Render assistant responses as formatted markdown instead of raw text, so tables,
 
 ## Semantic Fit Review
 - **Atomic outcome:** Assistant messages render with markdown formatting instead of plain monospace text.
-- **Failure boundary:** Backend response formatting (browse fallback tables, LLM prompt markdown instructions) is handled in C69. Evidence graph reorganization remains C71.
+- **Failure boundary:** Backend response formatting (browse fallback tables, LLM prompt markdown instructions) is handled in C69A. Evidence graph reorganization remains C71.
 - **Budget rationale:** One npm dependency addition and one message rendering component change fit two files within Aria's frontend domain.
 
 ## Execution Budget
@@ -110,7 +110,7 @@ npm run --prefix frontend build
 
 ## Not In This Commit
 - Evidence graph changes (C71).
-- Backend response formatting (C69 handles browse fallback markdown and LLM prompt updates).
+- Backend response formatting (C69A handles browse fallback markdown and LLM prompt updates).
 - Intent classification (C68).
 - Custom card/table components for specific response types.
 

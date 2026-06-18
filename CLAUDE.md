@@ -117,9 +117,18 @@ Delegated agents retain the limits in their generated brief and `tool_cap_*` hoo
 python hooks/verify_constraints.py --commit NN --agent OWNER --execution claude-direct
 ```
 
-For delegated execution, use `--execution delegated --tokens N`.
+For delegated constraint verification, use `--execution delegated --tokens N`.
 
-3. Run `python hooks/finalize_commit.py --commit NN` before the primary commit.
+3. Run the finalizer with all required identity and notification arguments before the
+   primary commit:
+
+```powershell
+python hooks/finalize_commit.py --commit NN --agent OWNER --execution claude-direct --notify-what "SUMMARY" --notify-why "REASON"
+```
+
+For delegated finalization, use the same required arguments with
+`--execution delegated --tokens N`.
+
 4. Inspect `git diff --check` and the staged diff.
 5. Commit only after all required checks pass.
 

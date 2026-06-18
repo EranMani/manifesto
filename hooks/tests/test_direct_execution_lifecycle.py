@@ -106,6 +106,47 @@ def test_existing_matching_scope_is_reused(tmp_path):
     prepare.assert_not_called()
 
 
+def test_matching_scope_from_prior_transcript_is_replaced(tmp_path):
+    repo = _repo(tmp_path)
+    active = repo / ".context" / "telemetry" / "orchestrator-active.json"
+    active.parent.mkdir(parents=True)
+    active.write_text(json.dumps({
+        "commit": "C48",
+        "status": "running",
+        "execution_mode": "claude-direct",
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "tool_calls": 54,
+        "token_usage": {"transcript_path": "old-session.jsonl"},
+    }), encoding="utf-8")
+
+    def activate(*args, **kwargs):
+        active.write_text(json.dumps({
+            "commit": "C48",
+            "status": "running",
+            "execution_mode": "claude-direct",
+            "tool_calls": 0,
+            "token_usage": {"transcript_path": "new-session.jsonl"},
+        }), encoding="utf-8")
+
+    event = {
+        "tool_name": "Edit",
+        "tool_input": {"file_path": "backend/app/services/rag_logistics.py"},
+    }
+    with patch.dict("os.environ", {"CLAUDE_TRANSCRIPT_PATH": "new-session.jsonl"}), patch(
+        "direct_execution_lifecycle.prepare_direct", side_effect=activate
+    ) as prepare:
+        allowed, message = lifecycle.ensure_direct_scope(event, repo)
+
+    assert allowed is True
+    assert "archived mismatched scope" in message
+    assert json.loads(active.read_text(encoding="utf-8"))["tool_calls"] == 0
+    archive = repo / ".context" / "telemetry" / "C48-claude-direct-execution-replaced.json"
+    assert archive.is_file()
+    assert json.loads(archive.read_text(encoding="utf-8"))["tool_calls"] == 54
+    prepare.assert_called_once()
+
+
 def test_finalize_command_cannot_rearm_scope_from_notify_text(tmp_path):
     repo = _repo(tmp_path)
     with patch("direct_execution_lifecycle.prepare_direct") as prepare:

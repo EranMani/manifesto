@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -120,6 +121,15 @@ def _is_running_direct_scope(active: dict[str, Any]) -> bool:
     )
 
 
+def _is_stale_transcript_scope(active: dict[str, Any]) -> bool:
+    """Return true when a running scope belongs to an earlier Claude session."""
+    current = os.environ.get("CLAUDE_TRANSCRIPT_PATH")
+    recorded = (active.get("token_usage") or {}).get("transcript_path")
+    if not current or not recorded:
+        return False
+    return str(current).lower() != str(recorded).lower()
+
+
 def _archive_mismatched_scope(
     active: dict[str, Any], active_path: Path, commit: str
 ) -> Path:
@@ -151,7 +161,7 @@ def ensure_direct_scope(
 
     active = _load_json(repo_root / ".context" / "telemetry" / "orchestrator-active.json")
     if active and str(active.get("commit", "")).upper() == commit:
-        if _is_running_direct_scope(active):
+        if _is_running_direct_scope(active) and not _is_stale_transcript_scope(active):
             return True, None
         if active.get("status") == "running":
             archive = _archive_mismatched_scope(
