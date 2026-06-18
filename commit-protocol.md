@@ -105,7 +105,7 @@
 | 73 | fix-citation-frontend-uuid-types | aria | ✅ done · 2026-06-18 |
 | 74 | inline-evidence-graph-layout | aria | ✅ done · 2026-06-18 |
 | 75 | fix-stale-evidence-graph | aria | ✅ done · 2026-06-18 |
-| 76 | concise-shipment-summary | nova | pending |
+| 76 | concise-shipment-summary | nova | ✅ done · 2026-06-18 |
 
 ---
 
