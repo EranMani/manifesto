@@ -585,13 +585,14 @@ def _deterministic_browse_fallback(
         return "No shipments found matching your query."
     lines: list[str] = []
     if total_count > len(shipments):
-        lines.append(f"Showing {len(shipments)} of {total_count} shipments.\n")
+        lines.append(f"**Found {total_count} shipments** (showing {len(shipments)}):\n")
+    else:
+        lines.append(f"**Found {total_count} shipments**:\n")
+    lines.append("| Tracking Code | Status | Origin | Destination |")
+    lines.append("|---|---|---|---|")
     for s in shipments:
-        arrival = _format_timestamp(s.actual_arrival_at) if s.actual_arrival_at else _format_timestamp(s.expected_arrival_at) + " (expected)"
-        lines.append(
-            f"- {s.tracking_code}: {s.status} | {s.origin} → {s.destination} | "
-            f"dispatched {_format_timestamp(s.dispatched_at)} | arrival {arrival}"
-        )
+        status_label = s.status.replace("_", " ").title()
+        lines.append(f"| {s.tracking_code} | {status_label} | {s.origin} | {s.destination} |")
     return "\n".join(lines)
 
 
@@ -624,6 +625,8 @@ _BROWSE_SYSTEM_PROMPT = (
     "shipment list evidence provided below. Do not invent shipment details that "
     "are not present in the evidence. If the evidence is empty, say no shipments "
     "were found. Never mention SQL, databases, or internal identifiers."
+    " Format your response using markdown. Use tables for shipment lists, bold"
+    " for key figures, and headers for sections."
 )
 
 

@@ -947,8 +947,9 @@ def test_deterministic_browse_fallback_shows_truncation_header():
         ),
     ]
     result = _deterministic_browse_fallback(shipments, 50)
-    assert "Showing 1 of 50 shipments" in result
-    assert "SHP-0001" in result
+    assert "**Found 50 shipments** (showing 1)" in result
+    assert "| Tracking Code |" in result
+    assert "| SHP-0001 |" in result
 
 
 def test_deterministic_browse_fallback_no_truncation_header_when_all_shown():
@@ -961,8 +962,9 @@ def test_deterministic_browse_fallback_no_truncation_header_when_all_shown():
         ),
     ]
     result = _deterministic_browse_fallback(shipments, 1)
-    assert "Showing" not in result
-    assert "SHP-0001" in result
+    assert "(showing" not in result
+    assert "**Found 1 shipments**" in result
+    assert "| SHP-0001 |" in result
 
 
 @pytest.mark.asyncio
@@ -1073,6 +1075,7 @@ def test_build_browse_logistics_prompt_returns_system_and_user_messages():
     assert messages[1].role == "user"
     assert "SHP-0001" in messages[1].content
     assert "Find all shipments" in messages[1].content
+    assert "Format your response using markdown" in messages[0].content
 
 
 def test_build_browse_logistics_prompt_no_sql_leak():
