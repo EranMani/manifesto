@@ -299,15 +299,33 @@ that relate to the question — omit if none are relevant}
 - **Use Markdown aggressively** — the terminal renders it:
   - `**bold**` for key terms and emphasis
   - `### Headers` for sections
-  - `| tables |` for structured comparisons, feature lists, component maps
   - `- bullet points` for lists (never inline comma-separated lists)
   - `` `inline code` `` for function names, file paths, variable names
   - Fenced code blocks for snippets and ASCII diagrams
 - **One idea per bullet.** Each bullet should be one line, max two.
-- **Prefer tables over prose** when presenting 3+ related items. Example:
-  instead of "The system uses X for A, Y for B, and Z for C", write a table.
 - **Max 3 sentences in a row** before a visual break (header, table, list,
   diagram, or code block). Walls of text are unreadable in a terminal.
+- **Structured data — use definition lists, not Markdown tables.**
+  Markdown `| tables |` render with misaligned columns in the terminal
+  because column width is content-dependent and uncontrollable. Instead,
+  use a **bold-label + description** bullet format:
+
+  Good (readable at any width):
+  ```
+  - **Policy RAG** (`rag_policy.py`) — Vector cosine similarity → top-k chunks
+  - **Logistics RAG** (`rag_logistics.py`) — SQL lookup → evidence graph
+  - **Intent Router** (`rag_logistics.py:862`) — Regex classification → route
+  ```
+
+  Bad (columns misalign in terminal):
+  ```
+  | System | File | Strategy |
+  |--------|------|----------|
+  | Policy RAG | `rag_policy.py` | Vector cosine similarity → top-k chunks |
+  ```
+
+  Only use Markdown tables when all columns have similar content width
+  (e.g., a status table with short values in every cell).
 
 1. Read every file listed above before answering.
 2. Ground your answer in actual code — reference specific functions, classes,
