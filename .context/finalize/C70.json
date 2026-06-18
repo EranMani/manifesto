@@ -1,0 +1,8 @@
+{
+  "commit": "70",
+  "agent": "claude",
+  "execution": "claude-direct",
+  "checks_passed": true,
+  "timestamp": "2026-06-18T10:35:09.521334+00:00",
+  "override_note": "diff_lines=1368 exceeds cap of 350. Root cause: frontend/package-lock.json adds 1315 auto-generated lines from npm install react-markdown (79 transitive packages). Actual implementation is 53 lines (Assistant.tsx 52 + package.json 1). One-time diff-cap override approved by Eran."
+}
