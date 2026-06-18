@@ -46,6 +46,7 @@ forbidden:
 | File | Type | Purpose |
 |---|---|---|
 | `backend/app/services/rag_logistics.py` | edit | Format `_deterministic_browse_fallback` as markdown table; add markdown instruction to `_build_browse_logistics_prompt`. |
+| `backend/tests/services/test_rag_logistics.py` | edit | Update fallback assertions to match new markdown table format; add markdown instruction assertion to browse prompt test. |
 
 ## Contract
 
