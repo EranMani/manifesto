@@ -303,16 +303,18 @@ function InnerGraph({ graph }: InnerGraphProps) {
     [graph.edges, highlighted, eventNodeIds],
   )
 
-  const [nodes, , onNodesChange] = useNodesState(initialNodes)
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges)
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const { fitView } = useReactFlow()
   const [selectedNode, setSelectedNode] = useState<GraphNodeSchema | null>(null)
 
   useEffect(() => {
+    setNodes(initialNodes)
+    setEdges(initialEdges)
     setSelectedNode(null)
     const timer = setTimeout(() => fitView({ padding: 0.2 }), 50)
     return () => clearTimeout(timer)
-  }, [graph, fitView])
+  }, [initialNodes, initialEdges, setNodes, setEdges, fitView])
 
   const onNodeClick: NodeMouseHandler = useCallback(
     (_event, node) => {
