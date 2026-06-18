@@ -96,6 +96,10 @@
 | 66 | graph-node-status-metadata | rex | ✅ done · 2026-06-17 |
 | 66A | direct-brief-scope-exclusion | claude | ✅ done · 2026-06-17 |
 | 67 | evidence-graph-visual-overhaul | aria | ✅ done · 2026-06-17 |
+| 68 | policy-term-expansion | nova | pending |
+| 69 | assistant-error-resilience | rex | pending |
+| 70 | assistant-markdown-rendering | aria | pending |
+| 71 | evidence-graph-timeline-layout | aria | pending |
 
 ---
 
@@ -121,6 +125,10 @@ green/orange/red status encoding, and a wider graph area (Aria).
 | C66 | Graph nodes carry status and status-category metadata for color encoding |
 | C66A | Auto-generated direct briefs excluded from actual_scope file count |
 | C67 | Readable hub-and-spoke graph with green/orange/red status coloring |
+| C68 | Policy-adjacent queries (leave, rules, HR, performance) route correctly |
+| C69 | Embedding/LLM errors return graceful fallbacks; browse queries get LLM grounding |
+| C70 | Assistant responses render as formatted markdown with tables |
+| C71 | Evidence graph splits entity details from chronological event timeline |
 
 ### Execution plan
 

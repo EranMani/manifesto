@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 2 complete (C41-C62). Phase 3 hardening begins: C63-C65 fix general logistics queries failing without a tracking code. C63 adds logistics_browse intent (Nova), C64 wires the DB list query (Rex), C65 adds LLM-grounded browse answers (Nova).",
+  "tldr": "Phase 3 hardening continues. C63-C67 done. C68-C71 address five user-reported issues: policy term misclassification (C68), unhandled embedding exceptions and missing LLM in browse handler (C69), markdown rendering for assistant responses (C70), evidence graph entity/timeline layout split (C71).",
   "phase": 3,
   "last_completed_commit": "67",
-  "next_commit": null,
-  "next_commit_name": null,
-  "next_commit_assignee": null,
+  "next_commit": "68",
+  "next_commit_name": "policy-term-expansion",
+  "next_commit_assignee": "nova",
   "status": "active",
   "open_handoffs": [
     {
