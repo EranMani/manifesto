@@ -19,6 +19,7 @@ Required env vars (in .env):
 """
 
 import json
+import html as html_lib
 import os
 import re
 import smtplib
@@ -481,6 +482,46 @@ def build_email(env: dict, info: dict, files: list, diff_stat: str):
     return subject, plain, html
 
 
+def build_blocked_email(info: dict):
+    """Build an auto-mode interruption email using the existing SMTP transport."""
+    project = info["project"]
+    commit_num = info["number"]
+    commit_name = info["name"]
+    agent = info["agent"]
+    issue = info.get("issue", "")
+    decision = info.get("decision", "")
+    solution = info.get("solution", "")
+    now = datetime.now().strftime("%a %d %b %Y, %H:%M")
+    subject = f"{project} — C{commit_num} auto mode stopped — decision required"
+
+    def escaped(value: str) -> str:
+        return html_lib.escape(value).replace("\n", "<br>")
+
+    html = (
+        "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'></head>"
+        "<body style='margin:0;padding:32px 16px;background:#f4f4f0;"
+        "font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;'>"
+        "<div style='max-width:620px;margin:auto;background:#fff;border:1px solid #e0dfd8;"
+        "border-radius:12px;padding:28px;'>"
+        f"<h1 style='font-size:20px;margin:0 0 8px;color:#1a1a18;'>C{escaped(commit_num)} automation stopped</h1>"
+        f"<p style='color:#777;margin:0 0 20px;'>{escaped(commit_name)} · {escaped(agent)} · {now}</p>"
+        "<p style='display:inline-block;background:#FCEBEB;color:#A32D2D;padding:5px 12px;"
+        "border-radius:6px;font-size:12px;font-weight:600;'>decision required</p>"
+        f"<h2 style='font-size:14px;margin:22px 0 6px;'>Issue</h2><p>{escaped(issue)}</p>"
+        f"<h2 style='font-size:14px;margin:22px 0 6px;'>Why {escaped(agent)} stopped</h2><p>{escaped(decision)}</p>"
+        f"<h2 style='font-size:14px;margin:22px 0 6px;'>Recommended resolution</h2><p>{escaped(solution)}</p>"
+        "<p style='margin-top:26px;color:#777;border-left:2px solid #d3d1c7;padding-left:12px;'>"
+        "Open the Claude session to approve, reject, or revise the proposed resolution.</p>"
+        "</div></body></html>"
+    )
+    plain = (
+        f"{subject}\n\nCommit: C{commit_num} — {commit_name}\nRaised by: {agent}\n"
+        f"Time: {now}\n\nIssue:\n{issue}\n\nWhy execution stopped:\n{decision}\n\n"
+        f"Recommended resolution:\n{solution}\n\nOpen the Claude session to decide how to proceed.\n"
+    )
+    return subject, plain, html
+
+
 # ── Send ───────────────────────────────────────────────────────────────────────────────────
 
 def send_email(env: dict, subject: str, plain: str, html: str) -> None:
@@ -553,6 +594,27 @@ def write_pending_notify(what: str, why: str, num: str = "", name: str = "", age
     print("[notify] Pending notify flag written (" + num + " — " + name + ") — Stop hook will send email.")
 
 
+def write_blocked_notify(
+    issue: str, decision: str, solution: str, num: str = "", name: str = "", agent: str = ""
+) -> None:
+    """Atomically queue an auto-mode interruption email for the Stop hook."""
+    auto_num, auto_name, auto_agent = get_next_commit_from_protocol()
+    payload = {
+        "notification_type": "blocked",
+        "NOTIFY_NUM": num or auto_num,
+        "NOTIFY_NAME": name or auto_name,
+        "NOTIFY_AGENT": agent or auto_agent,
+        "ISSUE": issue,
+        "DECISION": decision,
+        "SOLUTION": solution,
+    }
+    flag = ROOT / "hooks" / ".pending_notify.json"
+    tmp = flag.with_suffix(flag.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    os.replace(tmp, flag)
+    print(f"[notify] Auto-mode blocked flag written for C{payload['NOTIFY_NUM']}.")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────────────
 
 def main() -> int:
@@ -560,6 +622,17 @@ def main() -> int:
 
     if not smtp_configured(env):
         print("[notify] SMTP not configured \u2014 skipping.")
+        return 0
+
+    if "--write-blocked-flag" in sys.argv:
+        write_blocked_notify(
+            issue=os.environ.get("NOTIFY_ISSUE", ""),
+            decision=os.environ.get("NOTIFY_DECISION", ""),
+            solution=os.environ.get("NOTIFY_SOLUTION", ""),
+            num=os.environ.get("NOTIFY_NUM", ""),
+            name=os.environ.get("NOTIFY_NAME", ""),
+            agent=os.environ.get("NOTIFY_AGENT", ""),
+        )
         return 0
 
     # --write-flag: Claude writes flag file from sandbox; Stop hook on Windows sends the email

@@ -97,7 +97,16 @@ def main() -> int:
     files     = data.get("files", [])
     diff_stat = data.get("diff_stat", "")
 
-    subject, plain, html = mod.build_email(env, info, files, diff_stat)
+    if data.get("notification_type") == "blocked":
+        blocked_info = {
+            **info,
+            "issue": data.get("ISSUE", ""),
+            "decision": data.get("DECISION", ""),
+            "solution": data.get("SOLUTION", ""),
+        }
+        subject, plain, html = mod.build_blocked_email(blocked_info)
+    else:
+        subject, plain, html = mod.build_email(env, info, files, diff_stat)
 
     try:
         mod.send_email(env, subject, plain, html)

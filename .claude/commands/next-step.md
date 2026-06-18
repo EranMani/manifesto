@@ -158,6 +158,23 @@ Then, regardless of route:
   Show a one-line status between commits: `✓ C[N] committed. Starting C[N+1]...`
   With `--once`, show: `✓ C[N] committed. --once flag set, stopping. Next: C[N+1].`
 
+When auto mode stops because manual approval or a decision is required (blocked
+preflight, warning, verification failure, scope gap, exhausted repair cycles, or another
+non-routine issue), queue an interruption email before ending the response:
+
+```bash
+NOTIFY_NUM="N" NOTIFY_NAME="commit-name" NOTIFY_AGENT="Claude or invoked agent" \
+NOTIFY_ISSUE="What failed or became ambiguous" \
+NOTIFY_DECISION="Why the named agent judged automatic continuation unsafe" \
+NOTIFY_SOLUTION="Concrete recommended resolution or approval choice" \
+python hooks/notify_agent_done.py --write-blocked-flag
+```
+
+`NOTIFY_AGENT` identifies the agent that raised the issue: `Claude` for orchestration,
+verification, or scope decisions, or the invoked agent's name when its return triggered
+the stop. Do not queue this email for a successful `--once` stop, completion, or a user
+message interrupt. The existing Stop hook sends and deletes the atomic flag.
+
 **Auto-mode command reference — use these exact patterns:**
 
 1. **Test execution** — always run inside Docker, never on the host:
