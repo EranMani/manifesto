@@ -1999,4 +1999,66 @@ applying it to future split commits (C55+).
 
 ---
 
+## D53 — Auto-Approval Mode for `/next-step --auto`
+
+- **Date:** 2026-06-18
+- **Decided by:** Eran
+- **Status:** Adopted
+
+### Context
+
+After 67 commits, the preflight approval step had become largely mechanical: nearly
+every READY preflight with zero warnings was approved without discussion. The
+round-trip (show card → wait for "yes" → proceed) added latency without adding
+judgment in the common case. Eran observed this pattern and proposed an `--auto` flag
+for `/next-step` that skips the approval wait when the preflight is clean.
+
+### What changed
+
+1. **`/next-step` command** (`.claude/commands/next-step.md`): added `$ARGUMENTS`
+   parsing for `--auto`. When present and preflight returns READY with zero violations
+   and no decision required, the card shows `[AUTO-APPROVED]` on the status line and
+   proceeds immediately to implementation. Any BLOCKED result, warning, or
+   decision-required flag falls back to the normal "wait for Eran" flow.
+
+2. **CLAUDE.md Approval And Routing section**: added an auto-mode clause documenting
+   the behavior and its constraints.
+
+### Safeguards preserved
+
+- **Post-implementation commit approval is never skipped.** Auto mode only skips the
+  pre-implementation preflight approval. Eran still reviews the diff and approves (or
+  rejects) the final commit.
+- **Any warning or violation triggers fallback.** The auto-approval is all-or-nothing:
+  one warning in the `violations` array reverts to manual approval.
+- **The card is always shown.** Even in auto mode, the preflight card is displayed so
+  Eran can see what is being executed. The `[AUTO-APPROVED]` label makes it visible
+  that approval was automatic.
+- **Eran can interrupt.** If Claude is mid-implementation after an auto-approval and
+  Eran sends a message, Claude stops and defers to Eran's instruction.
+
+### Why not auto-approve everything
+
+The two-stage approval (preflight + commit) exists because preflight validates
+structural readiness, not implementation correctness. A clean preflight means "the spec
+is valid and dependencies are met" — it does not mean "the implementation will be
+correct." The post-implementation approval catches:
+
+- Logic errors that pass tests but violate the contract.
+- Scope drift (files changed that weren't in the spec).
+- Test quality issues (tests that pass but don't verify the right thing).
+
+These require human judgment. The preflight approval, by contrast, is a mechanical
+"does this spec look ready?" check — the right candidate for automation.
+
+### Usage
+
+```
+/next-step --auto
+```
+
+Falls back to normal mode automatically when preflight is not fully clean.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

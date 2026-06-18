@@ -1,3 +1,10 @@
+Parse `$ARGUMENTS` for the `--auto` flag. When `--auto` is present, auto-mode is
+active: a READY preflight with zero violations and no decision required is treated as
+pre-approved — proceed directly to implementation without waiting for Eran. If the
+preflight is BLOCKED, has any warning, or requires a decision, fall back to the normal
+approval flow regardless of the flag. Auto mode never skips post-implementation commit
+approval — Eran still approves the final commit.
+
 Read `project-state.json` to identify the next pending commit and owner. Check its
 dependencies, open handoffs, and unresolved quality-gate findings.
 
@@ -101,7 +108,16 @@ enforces the staged-file authorization at commit time and fails closed. The even
 commit message must carry `Execution: Claude-direct` + `Commit #NN` so
 `pre_commit_check.py` can resolve the exact allowed-file set.
 
-Do not start work until Eran explicitly approves. After approval, follow the full
+**Approval gate:**
+
+- **Normal mode (no `--auto`):** Do not start work until Eran explicitly approves.
+- **Auto mode (`--auto`):** If preflight status is READY and the `violations` array is
+  empty and no warning requires a decision, append `[AUTO-APPROVED]` to the card's
+  status line and proceed immediately to implementation. Still show the card so Eran
+  can see what is being executed. If preflight is BLOCKED or any violation/warning
+  exists, show the card normally with `Proceed? [yes/no]` and wait for Eran.
+
+After approval (explicit or auto), follow the full
 commit-loop lifecycle (ORCHESTRATION.md §2 STEPS 4-14, §3 circuit breaker):
 
 - Claude-direct: inspect the selected files before editing, then implement only the

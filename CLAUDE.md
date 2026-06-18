@@ -21,6 +21,11 @@ Do not scan the repository at boot.
   tests remain Claude-direct.
 - Before implementation, run the matching preflight and show Eran the compact card.
 - Wait for explicit approval. Approval authorizes only the listed commit and files.
+- **Auto mode** (`/next-step --auto`): when the preflight returns READY with zero
+  warnings and no decision required, treat it as pre-approved and proceed directly
+  to implementation. If the preflight is BLOCKED, has any warning, or requires a
+  decision, fall back to the normal approval flow and wait for Eran. Auto mode never
+  skips the post-implementation commit approval — Eran still approves the final commit.
 - After Eran approves a READY preflight, routine execution choices are pre-approved:
   delegation start, telemetry persistence, focused verification, constraint checks,
   finalize/commit, chore state sweep, and dashboard/protocol/state updates required by
