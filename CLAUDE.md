@@ -25,9 +25,10 @@ Do not scan the repository at boot.
   warnings and no decision required, treat it as pre-approved and proceed directly
   to implementation. If verification passes, commit automatically and advance state,
   then loop to the next pending commit. The loop stops on a blocked preflight, a
-  failed verification, no more pending commits, or Eran sending a message. If the
-  preflight is BLOCKED, has any warning, or requires a decision, fall back to the
-  normal approval flow and wait for Eran.
+  failed verification, no more pending commits, or Eran sending a message. Add
+  `--once` to run exactly one commit with auto behavior then stop (no loop).
+  If the preflight is BLOCKED, has any warning, or requires a decision, fall back
+  to the normal approval flow and wait for Eran.
 - After Eran approves a READY preflight, routine execution choices are pre-approved:
   delegation start, telemetry persistence, focused verification, constraint checks,
   finalize/commit, chore state sweep, and dashboard/protocol/state updates required by

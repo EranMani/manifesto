@@ -1,9 +1,11 @@
-Parse `$ARGUMENTS` for the `--auto` flag. When `--auto` is present, auto-mode is
-active: a READY preflight with zero violations and no decision required is treated as
-pre-approved — proceed directly to implementation without waiting for Eran. If all
-verification checks pass, commit automatically and loop to the next pending commit.
-If the preflight is BLOCKED, has any warning, or requires a decision, fall back to the
-normal approval flow regardless of the flag.
+Parse `$ARGUMENTS` for flags:
+- `--auto`: auto-mode. A READY preflight with zero violations and no decision required
+  is treated as pre-approved — proceed directly to implementation. If all verification
+  checks pass, commit automatically and loop to the next pending commit.
+- `--once`: used with `--auto`. Run one commit with full auto behavior (auto-approve,
+  implement, verify, auto-commit, state sweep) then stop. No loop to the next commit.
+- If the preflight is BLOCKED, has any warning, or requires a decision, fall back to
+  the normal approval flow regardless of flags.
 
 Read `project-state.json` to identify the next pending commit and owner. Check its
 dependencies, open handoffs, and unresolved quality-gate findings.
@@ -152,6 +154,8 @@ Then, regardless of route:
   - A verification check fails after 2 repair cycles (falls back to manual approval).
   - `project-state.json` has `next_commit: null` (no more pending commits).
   - Eran sends a message (interrupts the loop and defers to Eran's instruction).
+  - `--once` flag is set (stop after this commit completes).
   Show a one-line status between commits: `✓ C[N] committed. Starting C[N+1]...`
+  With `--once`, show: `✓ C[N] committed. --once flag set, stopping. Next: C[N+1].`
 
 Do not duplicate full file contents in an invocation prompt.
