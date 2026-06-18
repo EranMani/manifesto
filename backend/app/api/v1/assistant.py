@@ -164,4 +164,10 @@ async def query_assistant(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="The AI service is temporarily unavailable. Please try again.",
         )
+    except Exception:
+        logger.exception("Unexpected error during assistant query")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Something went wrong processing your question. Please try again.",
+        )
     return _to_response(result)

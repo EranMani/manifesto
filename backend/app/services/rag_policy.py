@@ -343,7 +343,13 @@ async def generate_grounded_policy_answer(
     from app.services.llm import LLMError
 
     policy = RAGPolicy(embeddings=embeddings)
-    evidence = await policy.retrieve_evidence(db, text)
+    try:
+        evidence = await policy.retrieve_evidence(db, text)
+    except EmptyQueryError:
+        return PolicyAnswer(
+            answer="The policy answer was not found in the available documents.",
+            citations=[],
+        )
 
     if not evidence:
         return PolicyAnswer(
@@ -383,7 +389,10 @@ async def generate_grounded_mixed_answer(
     from app.services.llm import ChatMessage, LLMError
 
     policy = RAGPolicy(embeddings=embeddings)
-    policy_evidence = await policy.retrieve_evidence(db, text)
+    try:
+        policy_evidence = await policy.retrieve_evidence(db, text)
+    except EmptyQueryError:
+        policy_evidence = []
 
     policy_section = (
         _format_policy_excerpts(policy_evidence)

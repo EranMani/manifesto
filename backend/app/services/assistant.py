@@ -59,7 +59,7 @@ async def answer_question(
 
     if routing.intent == "logistics_browse":
         return await generate_browse_logistics_answer(
-            db, status_filter=routing.status_filter, question=message,
+            db, llm=llm, status_filter=routing.status_filter, question=message,
         )
 
     tracking_code = _primary_tracking_code(routing.tracking_codes)

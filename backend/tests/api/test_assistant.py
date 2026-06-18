@@ -361,7 +361,7 @@ class TestBrowseIntent:
         assert isinstance(result, LogisticsAnswer)
         assert result.answer == "- SHP-0001: pending"
         mock_browse.assert_called_once_with(
-            mock_db, status_filter="pending", question="find all pending shipments",
+            mock_db, llm=mock_llm, status_filter="pending", question="find all pending shipments",
         )
 
     @pytest.mark.asyncio
@@ -407,3 +407,17 @@ class TestFallback:
         )
         assert resp.status_code == 502
         assert "temporarily unavailable" in resp.json()["detail"]
+
+    @patch("app.api.v1.assistant.answer_question", new_callable=AsyncMock)
+    async def test_unexpected_error_returns_502(
+        self, mock_aq: AsyncMock, client: AsyncClient
+    ) -> None:
+        user = _make_user("manager")
+        _login_as(user)
+        mock_aq.side_effect = RuntimeError("something broke")
+        resp = await client.post(
+            "/api/v1/assistant/query",
+            json={"message": "Where is SHP-1001?"},
+        )
+        assert resp.status_code == 502
+        assert "Something went wrong" in resp.json()["detail"]
