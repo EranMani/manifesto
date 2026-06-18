@@ -104,6 +104,7 @@
 | 72 | fix-policy-citation-uuid-types | rex | ✅ done · 2026-06-18 |
 | 73 | fix-citation-frontend-uuid-types | aria | ✅ done · 2026-06-18 |
 | 74 | inline-evidence-graph-layout | aria | ✅ done · 2026-06-18 |
+| 75 | fix-stale-evidence-graph | aria | pending |
 
 ---
 
@@ -136,6 +137,7 @@ green/orange/red status encoding, and a wider graph area (Aria).
 | C72 | Policy citations use UUID string types matching database columns |
 | C73 | Frontend citation types aligned with backend UUID contract |
 | C74 | Evidence graph and citations render inline in chat flow, sidebar removed |
+| C75 | Evidence graph clears and re-renders when switching shipments |
 
 ### Execution plan
 
