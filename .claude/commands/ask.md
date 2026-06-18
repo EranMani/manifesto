@@ -290,23 +290,41 @@ that relate to the question — omit if none are relevant}
 
 ## Answer Instructions
 
+**CRITICAL — Terminal formatting rules (this output renders in a CLI):**
+
+- **Never use Mermaid** — it renders as raw text in the terminal.
+- **Never write dense prose paragraphs.** Break everything into scannable
+  structures: tables, bullet lists, numbered steps, or short 1-2 sentence
+  blocks under bold headers.
+- **Use Markdown aggressively** — the terminal renders it:
+  - `**bold**` for key terms and emphasis
+  - `### Headers` for sections
+  - `| tables |` for structured comparisons, feature lists, component maps
+  - `- bullet points` for lists (never inline comma-separated lists)
+  - `` `inline code` `` for function names, file paths, variable names
+  - Fenced code blocks for snippets and ASCII diagrams
+- **One idea per bullet.** Each bullet should be one line, max two.
+- **Prefer tables over prose** when presenting 3+ related items. Example:
+  instead of "The system uses X for A, Y for B, and Z for C", write a table.
+- **Max 3 sentences in a row** before a visual break (header, table, list,
+  diagram, or code block). Walls of text are unreadable in a terminal.
+
 1. Read every file listed above before answering.
 2. Ground your answer in actual code — reference specific functions, classes,
-   constants, and patterns you find. Use file_path:line_number format.
-3. Structure the answer so both a senior engineer and someone new to the
-   codebase can follow it. Start with a one-paragraph summary, then go deeper.
-4. Adapt the answer format to the question:
-   - Conceptual → explanation with architecture overview first
-   - Procedural → numbered steps, end with a "Prompt You Can Use" section
-   - Diagnostic → symptom analysis, root cause, evidence from code
-   - Review → findings list with severity, cite the specific code
-   - Flow → step-by-step trace through the code path with file:line at each hop
+   constants, and patterns you find. Use `file_path:line_number` format.
+3. Start with a **one-sentence summary** in bold, then break the rest into
+   sections with headers. No introductory paragraphs.
+4. Adapt the answer structure to the question:
+   - Conceptual → summary sentence → ASCII diagram → table of components → key details as bullets
+   - Procedural → summary sentence → numbered steps → "Prompt You Can Use" block
+   - Diagnostic → symptom → root cause (bold) → evidence as bullets with `file:line`
+   - Review → summary sentence → findings table (severity | finding | location) → details
+   - Flow → summary sentence → ASCII diagram → numbered step-by-step with `file:line` at each hop
 
-5. **Inline code snippets**: for the most critical code referenced in your
-   answer, embed the actual snippet (3-10 lines) directly in the answer.
-   Select snippets that are essential to understanding — function signatures,
-   key logic blocks, configuration values. Do not dump entire files. Use
-   fenced code blocks with the language identifier.
+5. **Inline code snippets**: embed the actual snippet (3-10 lines) for the
+   most critical code. Select only what is essential — function signatures,
+   key logic blocks, configuration values. Use fenced code blocks with the
+   language identifier. Never dump entire files.
 
 6. **Visual diagrams**: when the answer describes a flow, architecture,
    data path, request lifecycle, or component relationship, include an
@@ -434,9 +452,10 @@ agent invocation. Apply these format rules:
 | `meta` | Direct factual answer, list or table if multiple items | Table for agent/command listings |
 | `quantitative` | Number first, then breakdown if useful | Table for breakdowns |
 
-For Claude-direct routes, apply the same inline code snippet and diagram rules
-from the agent prompt. Visuals are not optional — if the answer describes a
-flow, architecture, or relationship, include a diagram.
+For Claude-direct routes, apply the same terminal formatting rules from the
+agent prompt: no dense prose, use tables/bullets/headers/code blocks, max 3
+sentences before a visual break. If the answer describes a flow, architecture,
+or relationship, include an ASCII diagram.
 
 ---
 
