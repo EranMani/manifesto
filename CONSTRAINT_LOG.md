@@ -91,3 +91,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-17 | C66A | claude | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
 | 2026-06-17 | C67 | aria | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
 | 2026-06-18 | C68 | nova | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
+| 2026-06-18 | C69 | rex | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |

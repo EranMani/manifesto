@@ -97,7 +97,7 @@
 | 66A | direct-brief-scope-exclusion | claude | ✅ done · 2026-06-17 |
 | 67 | evidence-graph-visual-overhaul | aria | ✅ done · 2026-06-17 |
 | 68 | policy-term-expansion | nova | ✅ done · 2026-06-18 |
-| 69 | assistant-error-resilience | rex | pending |
+| 69 | assistant-error-resilience | rex | ✅ done · 2026-06-18 |
 | 69A | browse-markdown-formatting | nova | pending |
 | 70 | assistant-markdown-rendering | aria | pending |
 | 71 | evidence-graph-timeline-layout | aria | pending |
