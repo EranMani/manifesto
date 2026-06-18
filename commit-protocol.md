@@ -103,7 +103,7 @@
 | 71 | evidence-graph-timeline-layout | aria | ✅ done · 2026-06-18 |
 | 72 | fix-policy-citation-uuid-types | rex | ✅ done · 2026-06-18 |
 | 73 | fix-citation-frontend-uuid-types | aria | ✅ done · 2026-06-18 |
-| 74 | inline-evidence-graph-layout | aria | pending |
+| 74 | inline-evidence-graph-layout | aria | ✅ done · 2026-06-18 |
 
 ---
 
