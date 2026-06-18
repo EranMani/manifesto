@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 hardening continues. C63-C67 done. C68-C71 address five user-reported issues: policy term misclassification (C68), unhandled embedding exceptions and missing LLM in browse handler (C69), markdown rendering for assistant responses (C70), evidence graph entity/timeline layout split (C71).",
+  "tldr": "Phase 3 hardening continues. C63-C68 done. C69-C71 address remaining user-reported issues: unhandled embedding exceptions and missing LLM in browse handler (C69), markdown rendering for assistant responses (C70), evidence graph entity/timeline layout split (C71).",
   "phase": 3,
-  "last_completed_commit": "67",
-  "next_commit": "68",
-  "next_commit_name": "policy-term-expansion",
-  "next_commit_assignee": "nova",
+  "last_completed_commit": "68",
+  "next_commit": "69",
+  "next_commit_name": "assistant-error-resilience",
+  "next_commit_assignee": "rex",
   "status": "active",
   "open_handoffs": [
     {
