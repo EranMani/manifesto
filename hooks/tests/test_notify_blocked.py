@@ -23,7 +23,7 @@ def test_blocked_email_contains_required_decision_context():
         "solution": "Add the test file to the approved specification and rerun verification.",
     })
 
-    assert "C69A auto mode stopped" in subject
+    assert subject == "manifesto — commit 69A — auto mode stopped — decision required"
     assert "Raised by: Claude" in plain
     assert "outside the approved scope" in plain
     assert "bypass the commit boundary" in plain

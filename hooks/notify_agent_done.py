@@ -492,7 +492,7 @@ def build_blocked_email(info: dict):
     decision = info.get("decision", "")
     solution = info.get("solution", "")
     now = datetime.now().strftime("%a %d %b %Y, %H:%M")
-    subject = f"{project} — C{commit_num} auto mode stopped — decision required"
+    subject = f"{project} — commit {commit_num} — auto mode stopped — decision required"
 
     def escaped(value: str) -> str:
         return html_lib.escape(value).replace("\n", "<br>")
