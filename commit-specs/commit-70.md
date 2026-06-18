@@ -2,7 +2,7 @@
 
 **Phase:** Assistant hardening
 **Owner:** aria
-**Depends on:** C69
+**Depends on:** C69A
 **Estimated diff lines:** 130
 **Primary behavior count:** 1
 **Developer test milestone:** yes
@@ -82,7 +82,7 @@ If `@tailwindcss/typography` is not already a dependency, add it and include `re
 - Links should not be rendered as clickable (assistant responses don't contain user-facing URLs).
 
 ## Environment Prerequisites
-- C69 complete (backend browse fallback and LLM prompt produce markdown-formatted responses).
+- C69A complete (backend browse fallback and LLM prompt produce markdown-formatted responses).
 - `react-markdown` must be installed: `npm install --prefix frontend react-markdown`.
 
 ## Developer Test Checkpoint

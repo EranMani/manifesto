@@ -2086,4 +2086,59 @@ Falls back to normal mode automatically when preflight is not fully clean.
 
 ---
 
+## D54 — C69 Auto-Mode Blockers: D50 Override Propagation and Spec File Count
+
+- **Date:** 2026-06-18
+- **Decided by:** Eran
+- **Status:** Fixed
+
+### Problem 1: D50 trigger override not propagated to lifecycle hook
+
+`preflight_commit.py --direct --override-justification` accepted the override and
+returned READY, but did not persist it. When `direct_execution_lifecycle.py` fired on
+the first Edit, it re-ran the D50 check, found no override file at
+`.context/direct/C69-override.json`, and blocked the edit. Claude spent ~10 tool calls
+trying workarounds (manually writing override JSON, calling `prepare_claude_direct.py`
+without the CLI flag, manually initializing telemetry).
+
+**Root cause:** `preflight_commit.py` treated the override as ephemeral (check-and-
+forget). `direct_execution_lifecycle.py` already reads
+`.context/direct/{commit}-override.json` (lines 166-174), but nobody wrote it.
+
+**Fix applied:**
+1. `preflight_commit.py` now writes `.context/direct/C{commit}-override.json` when
+   the D50 check passes with an override justification.
+2. `prepare_claude_direct.py` CLI now accepts `--override-justification` and passes
+   it through to `prepare_direct()`.
+
+The lifecycle hook already reads the override file — no changes needed there.
+
+### Problem 2: C69 spec listed 4 files (the max) but needed a 5th
+
+The spec's `Files To Modify Or Add` table listed 4 backend service files but did not
+include `backend/tests/api/test_assistant.py`. Fix 1 (pass `llm` to browse handler)
+changed the function call signature, which broke the existing test assertion.
+`verify_constraints.py` correctly caught `changed_files=5 exceeds cap of 4`.
+
+**Root cause:** Spec drafting oversight. When a function signature changes, callers and
+their test mocks must be updated — the test file should have been in the spec from the
+start.
+
+**Fix applied:** Split C69 into C69 + C69A:
+- C69 (Rex): 3 error-resilience fixes + test file (4 files total).
+- C69A (Nova): browse markdown formatting in `rag_logistics.py` (1 file).
+
+C70 (Aria, frontend markdown) now depends on C69A instead of C69.
+
+### Lessons for auto mode
+
+1. When `preflight_commit.py --direct` passes with an override, the override must be
+   persisted so downstream hooks can find it. Check-and-forget doesn't work when
+   multiple hooks need the same authorization.
+2. When a spec changes a function signature, the test file that mocks that function
+   must be listed in `Files To Modify Or Add`. Auto mode cannot approve a scope
+   violation — it correctly fell back to manual.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

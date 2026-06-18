@@ -783,6 +783,14 @@ def main() -> int:
 
     if args.direct:
         result = evaluate_direct(repo_root, args.commit, args.agent, args.override_justification)
+        if result["proceed"] and args.override_justification:
+            override_dir = repo_root / ".context" / "direct"
+            override_dir.mkdir(parents=True, exist_ok=True)
+            override_file = override_dir / f"C{args.commit}-override.json"
+            override_file.write_text(
+                json.dumps({"justification": args.override_justification}),
+                encoding="utf-8",
+            )
         if args.json:
             print(json.dumps(result))
         else:

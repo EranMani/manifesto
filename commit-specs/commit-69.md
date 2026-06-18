@@ -8,12 +8,12 @@
 **Developer test milestone:** no
 
 ## Primary Behavior
-Fix three backend bugs that produce HTTP 500 errors and misleading messages: catch unhandled embedding exceptions in policy/mixed answer generation, pass the LLM service to browse queries, broaden the route handler's exception handling, and format browse fallback output as markdown tables.
+Fix three backend bugs that produce HTTP 500 errors and misleading messages: catch unhandled embedding exceptions in policy/mixed answer generation, pass the LLM service to browse queries, and broaden the route handler's exception handling.
 
 ## Semantic Fit Review
-- **Atomic outcome:** Policy queries that previously returned 500 now return a graceful fallback answer. Browse queries receive LLM-grounded responses with markdown-formatted output.
-- **Failure boundary:** Frontend markdown rendering remains C70. Intent classification fixes are C68.
-- **Budget rationale:** Four targeted fixes across the assistant service, route handler, and browse fallback, plus test coverage, fit within budget.
+- **Atomic outcome:** Policy queries that previously returned 500 now return a graceful fallback answer. Browse queries receive LLM-grounded responses.
+- **Failure boundary:** Browse markdown formatting is C69A. Frontend markdown rendering remains C70. Intent classification fixes are C68.
+- **Budget rationale:** Three targeted fixes across the assistant service and route handler, plus test updates, fit within 4 files.
 
 ## Execution Budget
 ```yaml
@@ -50,7 +50,7 @@ forbidden:
 | `backend/app/services/assistant.py` | edit | Pass `llm` to browse handler. |
 | `backend/app/api/v1/assistant.py` | edit | Broaden exception handling in route handler. |
 | `backend/app/services/rag_policy.py` | edit | Catch embedding exceptions in `generate_grounded_policy_answer` and `generate_grounded_mixed_answer`. |
-| `backend/app/services/rag_logistics.py` | edit | Format `_deterministic_browse_fallback` as markdown table; add markdown instruction to `_build_browse_logistics_prompt`. |
+| `backend/tests/api/test_assistant.py` | edit | Update browse test assertion for new `llm` param; add catch-all exception test. |
 
 ## Contract
 
@@ -105,19 +105,9 @@ except Exception:
     )
 ```
 
-### Fix 4: Markdown formatting for browse responses (`rag_logistics.py`)
-Update `_deterministic_browse_fallback` to format shipment data as a markdown table:
-```markdown
-**Found N shipments** (showing M):
-
-| Tracking Code | Status | Origin | Destination |
-|---|---|---|---|
-| SHP-1001 | Delivered | Shanghai | Los Angeles |
-| SHP-2050 | In Transit | Mumbai | Rotterdam |
-```
-
-In `_build_browse_logistics_prompt`, append to the system message:
-`"Format your response using markdown. Use tables for shipment lists, bold for key figures, and headers for sections."`
+### Test updates (`test_assistant.py`)
+- Update `test_browse_through_answer_question_returns_list` to assert `llm=mock_llm` in the `mock_browse.assert_called_once_with` call (Fix 1 changes the signature).
+- Add `test_unexpected_error_returns_502` to verify the catch-all exception handler returns 502 with "Something went wrong" detail.
 
 ## Environment Prerequisites
 - C68 complete (policy term expansion deployed).
@@ -145,6 +135,7 @@ python -m pytest backend/tests/api/test_assistant.py -x -q --tb=short
 - [ ] All existing assistant API tests pass.
 
 ## Not In This Commit
+- Browse markdown formatting (C69A).
 - Intent classification changes (C68).
 - Frontend rendering or markdown (C70).
 - Evidence graph changes (C71).

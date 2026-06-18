@@ -205,6 +205,10 @@ def main() -> int:
     parser.add_argument("--rules", type=Path, default=DEFAULT_RULES)
     parser.add_argument("--force-refresh", action="store_true")
     parser.add_argument("--preview", action="store_true")
+    parser.add_argument(
+        "--override-justification", default=None,
+        help="D50 trigger override: why Claude-direct is appropriate despite triggers.",
+    )
     args = parser.parse_args()
     try:
         package, package_path, brief_path, refreshed = prepare_direct(
@@ -214,6 +218,7 @@ def main() -> int:
             args.owner.lower(),
             force_refresh=args.force_refresh,
             activate=not args.preview,
+            override_justification=args.override_justification,
         )
     except DirectPreflightBlocked as exc:
         print(json.dumps(exc.result, indent=2))
