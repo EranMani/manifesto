@@ -117,6 +117,12 @@ node frontend/node_modules/typescript/bin/tsc --noEmit -p frontend/tsconfig.json
 
 ---
 
+## Developer Test Checkpoint
+
+**Next milestone:** Post-Phase 3 hardening conclusion.
+
+---
+
 ## Not In This Commit
 
 - Any other layout or styling changes.
