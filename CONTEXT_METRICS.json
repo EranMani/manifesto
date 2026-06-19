@@ -11851,6 +11851,163 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "record_schema_version": 2,
+      "date": "2026-06-19",
+      "commit": "C77",
+      "agent": "aria",
+      "execution": "claude-direct",
+      "identity": {
+        "owner": "aria",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Frontend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "frontend/package.json",
+          "frontend/src/pages/Assistant.tsx"
+        ],
+        "read_files": [
+          "frontend/src/pages/Assistant.tsx"
+        ],
+        "written_files": [
+          "frontend/src/pages/Assistant.tsx",
+          "frontend/package.json"
+        ],
+        "changed_files": [
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/package-lock.json",
+          "frontend/package.json",
+          "frontend/src/pages/Assistant.tsx"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            "CONSTRAINT_LOG.md",
+            "CONTEXT_METRICS.json",
+            "frontend/package-lock.json"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 1,
+        "planned_read_percent": 50.0,
+        "supporting_reads": [],
+        "expansion_reads": [],
+        "preselected_files": [],
+        "source": "spec-and-hook-derived"
+      },
+      "capture": {
+        "status": "complete",
+        "reason": null,
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-19T04:03:20+00:00",
+        "ended_at": "2026-06-19T04:04:50+00:00",
+        "zero_is_measured": true
+      },
+      "tokens": 1052072,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "schema_version": 2,
+          "owner": "aria",
+          "executor": "claude",
+          "execution_mode": "claude-direct",
+          "scope_kind": "execution",
+          "capture_window": "full-execution",
+          "started_at": "2026-06-19T04:03:20+00:00",
+          "ended_at": "2026-06-19T04:04:50+00:00",
+          "tool_calls": 10,
+          "read_paths": [
+            "frontend/src/pages/Assistant.tsx"
+          ],
+          "write_paths": [
+            "frontend/src/pages/Assistant.tsx",
+            "frontend/package.json"
+          ],
+          "searches": [],
+          "commands": [
+            "npm install --prefix frontend",
+            "npx --prefix frontend tsc --noEmit --project frontend/tsconfig.json",
+            "python hooks/verify_constraints.py --commit 77 --agent aria --execution claude-direct",
+            "git status",
+            "git diff -- frontend/src/pages/Assistant.tsx frontend/package.json",
+            "python hooks/finalize_commit.py --commit 77 --agent aria --execution claude-direct --auto --notify-what \"Installed remar"
+          ],
+          "token_usage": {
+            "status": "complete",
+            "source": "claude-transcript-jsonl",
+            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\ac9512b8-09de-4b39-9b95-31919a03c79e.jsonl",
+            "start_offset": 212020,
+            "formula": "input + output + cache_creation_input + cache_read_input",
+            "excludes": "sidechain and separate delegated-agent transcripts",
+            "end_offset": 284627,
+            "assistant_turns": 19,
+            "components": {
+              "input_tokens": 19,
+              "output_tokens": 7274,
+              "cache_creation_input_tokens": 6307,
+              "cache_read_input_tokens": 1038472
+            },
+            "total_tokens": 1052072
+          },
+          "context_package": null,
+          "selected_read_paths": null,
+          "outside_read_paths": null
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/package-lock.json",
+          "frontend/package.json",
+          "frontend/src/pages/Assistant.tsx"
+        ]
+      },
+      "result": "FAIL"
     }
   ]
 }
