@@ -106,6 +106,7 @@
 | 74 | inline-evidence-graph-layout | aria | ✅ done · 2026-06-18 |
 | 75 | fix-stale-evidence-graph | aria | ✅ done · 2026-06-18 |
 | 76 | concise-shipment-summary | nova | ✅ done · 2026-06-18 |
+| 77 | enable-gfm-table-rendering | aria | pending |
 
 ---
 
