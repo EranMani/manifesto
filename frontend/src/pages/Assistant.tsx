@@ -123,7 +123,7 @@ export default function Assistant() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <div className="flex flex-col flex-1 min-w-0 px-4 py-6 max-w-3xl mx-auto w-full">
+      <div className="flex flex-col flex-1 min-w-0 min-h-0 px-4 py-6 max-w-3xl mx-auto w-full">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">Assistant</h1>
           {messages.length > 0 && (
