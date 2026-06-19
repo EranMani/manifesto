@@ -28,9 +28,9 @@ Markdown tables in assistant responses render as styled HTML tables instead of r
 ```yaml
 execution_budget:
   max_primary_files: 2
-  max_changed_files: 2
+  max_changed_files: 3
   max_context_files: 4
-  max_estimated_diff_lines: 30
+  max_estimated_diff_lines: 350
   max_agent_invocations: 0
   max_tool_calls: 10
   max_expansions: 0
@@ -65,6 +65,7 @@ forbidden:
 |---|---|---|
 | `frontend/package.json` | edit | Add `remark-gfm` to dependencies |
 | `frontend/src/pages/Assistant.tsx` | edit | Import `remarkGfm` and pass as `remarkPlugins` prop to `ReactMarkdown` |
+| `frontend/package-lock.json` | edit | Auto-generated lockfile update from npm install (override-approved) |
 
 ---
 
