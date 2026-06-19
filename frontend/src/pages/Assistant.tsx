@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
 import { useAuthStore } from '../store/auth'
 import { useAssistantStore } from '../store/assistant'
@@ -164,7 +165,7 @@ export default function Assistant() {
                 </div>
               ) : (
                 <div className="max-w-[80%] px-4 py-2 rounded-lg bg-gray-100 text-gray-900">
-                  <ReactMarkdown components={markdownComponents}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                     {msg.content}
                   </ReactMarkdown>
                 </div>

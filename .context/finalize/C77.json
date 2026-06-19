@@ -1,0 +1,8 @@
+{
+  "commit": "77",
+  "agent": "aria",
+  "execution": "claude-direct",
+  "checks_passed": true,
+  "timestamp": "2026-06-19T10:00:00.000000+00:00",
+  "override_note": "changed_files=3 exceeds cap of 2; diff_lines=298 exceeds cap of 30. Root cause: frontend/package-lock.json (294 auto-generated lockfile lines from npm install remark-gfm) not listed in spec. Actual code change is 4 diff lines across 2 files (package.json + Assistant.tsx), exactly matching spec. One-time scope override approved by Eran."
+}
