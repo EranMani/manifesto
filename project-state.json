@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 hardening continues. C78 done (fix-chat-layout-scroll-width). No pending commits.",
+  "tldr": "Phase 3 hardening continues. C78 done. C79 pending (fix-chat-scroll-regression): restore vertical scrolling broken by C78's overflow-hidden.",
   "phase": 3,
   "last_completed_commit": "78",
-  "next_commit": null,
-  "next_commit_name": null,
-  "next_commit_assignee": null,
+  "next_commit": "79",
+  "next_commit_name": "fix-chat-scroll-regression",
+  "next_commit_assignee": "aria",
   "status": "active",
   "open_handoffs": [
     {

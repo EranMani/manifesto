@@ -108,6 +108,7 @@
 | 76 | concise-shipment-summary | nova | ✅ done · 2026-06-18 |
 | 77 | enable-gfm-table-rendering | aria | ✅ done · 2026-06-19 |
 | 78 | fix-chat-layout-scroll-width | aria | ✅ done · 2026-06-19 |
+| 79 | fix-chat-scroll-regression | aria | pending |
 
 ---
 
