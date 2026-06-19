@@ -113,6 +113,13 @@
       "summary": "Added C78 (fix-chat-layout-scroll-width, Aria, Claude-direct). Single-file fix to Assistant.tsx: add overflow-hidden to outer container for scroll containment, replace assistant message bubble with full-width grey band. Forge scanner identified 1 target file, planner produced 1 commit. No architectural decisions needed.",
       "agents_activated": [],
       "files_updated": ["commit-protocol.md", "commit-specs/commit-78.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-19",
+      "trigger": "C78 shipped with a scroll regression: overflow-hidden on the outer div broke message scrolling entirely because the inner flex column lacked min-h-0. The spec listed 'manual browser check' three times in Focused Tests but auto-mode committed without visual verification.",
+      "summary": "Added C79 (fix-chat-scroll-regression, Aria, Claude-direct). Single-class fix to Assistant.tsx: add min-h-0 to inner flex column so the overflow-y-auto messages area is height-constrained and actually scrolls. Visually verified by Eran in browser before commit. Added feedback memory requiring browser verification for all UI commits with manual check requirements.",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "commit-specs/commit-79.md", "project-state.json"]
     }
   ],
   "rollback_history": [],
@@ -294,6 +301,22 @@
       "detail": "During C66 (owner=rex, execution=Claude-direct), `finalize_commit.py --agent rex` wrote the marker with `\"agent\": \"rex\"` (matching the telemetry owner). But `pre_commit_check.py`'s `check_finalize_marker()` extracts the agent identity from the commit message's Co-Authored-By email (`claude@anthropic.com` → 'claude' via agent-config.json lookup at line 243-245), and rejects the marker when `marker.agent != expected_agent` (line 253). For Claude-direct commits, the Co-Authored-By is always `Claude <claude@anthropic.com>`, so pre_commit_check always expects `agent='claude'`. Meanwhile `finalize_commit.py` validates `--agent` against the telemetry `owner` field (the domain owner from the spec), and rejects `--agent claude` with 'Claude telemetry metadata mismatch: owner=rex (expected claude)'. The two hooks are mutually exclusive when owner != executor. Worked around in C66 by manually editing `.context/finalize/C66.json` to change `agent` from `rex` to `claude` after finalize_commit.py wrote it. Same family as OI-23 (telemetry lifecycle hooks conflicting on identity). Fix options: (1) `finalize_commit.py` should accept an `--executor` argument and write `marker.agent` from the executor, not the owner; (2) `pre_commit_check.py` should fall through to the spec's `**Owner:**` field (line 247-251) instead of preferring the Co-Authored-By email; or (3) both hooks agree on a single 'agent' concept (executor for Claude-direct, implementor for delegated). Adam's domain (hooks/).",
       "priority": "medium",
       "opened": "2026-06-17",
+      "status": "open"
+    },
+    {
+      "id": "OI-25",
+      "title": "Auto-mode skips manual browser verification for UI commits — needs deterministic gate",
+      "detail": "C78 (fix-chat-layout-scroll-width) auto-committed via /next-step --auto with a scroll regression that broke message scrolling entirely. The spec listed 'manual browser check' three times in Focused Tests, but auto-mode only ran tsc --noEmit (the Verification Command) and treated passing types as sufficient. C79 fixed the regression after Eran flagged it. Current mitigation: feedback memory (feedback_visual_verification_required.md) instructs Claude to fall back to manual approval when the spec mentions manual/visual verification. This is a prose-only fix — same pattern as OI-13/OI-14 where prose conventions didn't reliably stick. Deterministic fix options: (1) a preflight_commit.py check that detects 'manual browser check' or 'manual' in Focused Tests and sets a warning/violation that forces auto-mode to fall back to manual approval; (2) a PreToolUse hook on git commit that checks the spec's Focused Tests for manual verification keywords and blocks auto-commit; (3) validate_commit_spec.py adds a 'requires_visual_verification' flag to specs with manual browser checks, which /next-step --auto reads and respects. Adam's domain (hooks/).",
+      "priority": "medium",
+      "opened": "2026-06-19",
+      "status": "open"
+    },
+    {
+      "id": "OI-26",
+      "title": "pre_commit_check.py cannot read commit message without GIT_MESSAGE env var for Claude-direct cross-domain commits",
+      "detail": "During C78 (owner=aria, execution=Claude-direct), git commit -m '...' failed with a domain boundary violation because pre_commit_check.py's get_commit_message() couldn't read the commit message from .git/COMMIT_EDITMSG at pre-commit hook time (the file either didn't exist yet or was empty). The planned_files_for_commit() function returned an empty set, so the domain check fell through to Claude's static domain prefixes, which don't include frontend/. Workaround: export GIT_MESSAGE='...' before git commit so get_commit_message() reads the env var instead. This workaround worked for C78 and C79 but is fragile — it requires Claude to remember to set the env var for every cross-domain Claude-direct commit. Fix options: (1) the git pre-commit hook passes the message file path or content as an argument; (2) get_commit_message() reads .git/MERGE_MSG or the -m argument from /proc/self/cmdline; (3) the commit message is always set via GIT_MESSAGE (document as required pattern). Adam's domain (hooks/).",
+      "priority": "medium",
+      "opened": "2026-06-19",
       "status": "open"
     },
     {
