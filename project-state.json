@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 hardening continues. C77 done. C78 pending (fix-chat-layout-scroll-width): static chat input, full-width assistant background.",
+  "tldr": "Phase 3 hardening continues. C78 done (fix-chat-layout-scroll-width). No pending commits.",
   "phase": 3,
-  "last_completed_commit": "77",
-  "next_commit": "78",
-  "next_commit_name": "fix-chat-layout-scroll-width",
-  "next_commit_assignee": "aria",
+  "last_completed_commit": "78",
+  "next_commit": null,
+  "next_commit_name": null,
+  "next_commit_assignee": null,
   "status": "active",
   "open_handoffs": [
     {
