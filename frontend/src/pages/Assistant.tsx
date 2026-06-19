@@ -122,7 +122,7 @@ export default function Assistant() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen overflow-hidden">
       <div className="flex flex-col flex-1 min-w-0 px-4 py-6 max-w-3xl mx-auto w-full">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">Assistant</h1>
@@ -154,38 +154,31 @@ export default function Assistant() {
             </div>
           )}
 
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {msg.role === 'user' ? (
+          {messages.map((msg, i) =>
+            msg.role === 'user' ? (
+              <div key={i} className="flex justify-end">
                 <div className="max-w-[80%] px-4 py-2 rounded-lg whitespace-pre-wrap bg-blue-600 text-white">
                   {msg.content}
                 </div>
-              ) : (
-                <div className="max-w-[80%] px-4 py-2 rounded-lg bg-gray-100 text-gray-900">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                    {msg.content}
-                  </ReactMarkdown>
-                </div>
-              )}
-            </div>
-          ))}
+              </div>
+            ) : (
+              <div key={i} className="-mx-4 px-4 py-2 bg-gray-100 text-gray-900">
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {msg.content}
+                </ReactMarkdown>
+              </div>
+            )
+          )}
 
           {loading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-lg">
-                Thinking...
-              </div>
+            <div className="-mx-4 px-4 py-2 bg-gray-100 text-gray-500">
+              Thinking...
             </div>
           )}
 
           {error && (
-            <div className="flex justify-start">
-              <div className="bg-red-50 text-red-600 px-4 py-2 rounded-lg">
-                {error}
-              </div>
+            <div className="-mx-4 px-4 py-2 bg-red-50 text-red-600">
+              {error}
             </div>
           )}
 
