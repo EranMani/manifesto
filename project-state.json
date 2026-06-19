@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 hardening continues. C77 done (enable GFM table rendering in assistant chat via remark-gfm). No pending commits.",
+  "tldr": "Phase 3 hardening continues. C77 done. C78 pending (fix-chat-layout-scroll-width): static chat input, full-width assistant background.",
   "phase": 3,
   "last_completed_commit": "77",
-  "next_commit": null,
-  "next_commit_name": null,
-  "next_commit_assignee": null,
+  "next_commit": "78",
+  "next_commit_name": "fix-chat-layout-scroll-width",
+  "next_commit_assignee": "aria",
   "status": "active",
   "open_handoffs": [
     {
@@ -106,6 +106,13 @@
       "summary": "Inserted C47B between C47 and C48. Control commands cannot activate direct telemetry; existing same-commit records pass through without reactivation or tool lockout; explicit initialization cannot overwrite same-commit or different running scopes; only running scopes can be finalized; and finalize_commit.py accepts an already-completed matching scope. C48 telemetry was recovered solely from exact transcript evidence. C47B is recovery/Codex-derived and claims no implementor telemetry.",
       "agents_activated": [],
       "files_updated": ["commit-protocol.md", "commit-specs/commit-47B.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-19",
+      "trigger": "Eran requested via /forge: fix chat input scroll containment and assistant message full-width background",
+      "summary": "Added C78 (fix-chat-layout-scroll-width, Aria, Claude-direct). Single-file fix to Assistant.tsx: add overflow-hidden to outer container for scroll containment, replace assistant message bubble with full-width grey band. Forge scanner identified 1 target file, planner produced 1 commit. No architectural decisions needed.",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "commit-specs/commit-78.md", "project-state.json"]
     }
   ],
   "rollback_history": [],

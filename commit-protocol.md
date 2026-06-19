@@ -107,6 +107,7 @@
 | 75 | fix-stale-evidence-graph | aria | ✅ done · 2026-06-18 |
 | 76 | concise-shipment-summary | nova | ✅ done · 2026-06-18 |
 | 77 | enable-gfm-table-rendering | aria | ✅ done · 2026-06-19 |
+| 78 | fix-chat-layout-scroll-width | aria | pending |
 
 ---
 
