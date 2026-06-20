@@ -725,12 +725,20 @@ senior-level thinking from mid-level execution.
 ```
 
 **Check for persona leaks:**
-- Founder: no file names, no function names, no acronyms
+- Founder: no file names, no function names, no acronyms, no "backend/frontend"
 - PM: no HTTP methods, no database terms, no raw enums
 - Engineer: full technical detail present
 - AI: pipeline terminology, evaluation references
 - Frontend: component and state language
 - DevOps: infrastructure and service language
+
+**Check accuracy rules (all technical personas):**
+- Code snippets labeled as EXACT or SIMPLIFIED
+- Line numbers verified (read the cited line — is the code there?)
+- Counts match listings (says "10 models" → lists exactly 10)
+- No blanket claims without evidence ("all routes" → "the 5 routes I checked")
+- Full repository-relative paths (not shortened)
+- Stale issues flagged (existing fix found via grep)
 
 ### Test the overview radar
 
@@ -746,6 +754,21 @@ senior-level thinking from mid-level execution.
 - Ready-to-paste `/ask` and `/forge` commands included
 - Recommended next action is specific and actionable
 
+### Test the readiness assessment
+
+```bash
+/ask founder readiness     # Should: plain-English 4-level assessment + decision card
+/ask pm ready              # Should: product-framed status indicators
+/ask readiness             # Should: technical detail with file references
+```
+
+**Check:**
+- Every feature area has a readiness level (Ready/Risky/Incomplete/Not started)
+- Evidence cited for each level (test files, UI pages, open issues)
+- Untested features are never marked "Ready"
+- Founder/PM versions end with a numbered decision card
+- No raw `/forge` commands in founder/PM output
+
 ### Test the question bank
 
 ```bash
@@ -755,14 +778,21 @@ senior-level thinking from mid-level execution.
 /ask ai q                 # Should: AI pipeline questions
 ```
 
+**Critical check — questions MUST appear:**
+- At least 5 questions presented via AskUserQuestion (Groups 1 + 2)
+- Questions appear BEFORE any build prompts
+- If only forge prompts appear with no questions, the question bank is broken
+
 **Check:** questions should be contextual (reference real codebase state),
 not just generic templates.
 
-**Check forge prompts:**
+**Check forge prompts (appear AFTER questions):**
 - A "Build next" section appears below the question selection
-- Each prompt starts with `/forge`
+- Founder/PM: plain-language action descriptions, no raw `/forge` commands
+- Engineer/AI/frontend/devops: `/forge` commands, directly pasteable
 - Prompts reference real gaps (not "add feature X" generically)
 - No prompts suggest building something that already exists
+- No prompts reference stale issues that have already been fixed
 
 ### Test the tier system
 

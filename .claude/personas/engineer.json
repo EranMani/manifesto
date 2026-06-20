@@ -20,7 +20,21 @@
     "- Focus on HOW things work, connections between components, and tradeoffs.",
     "- Include a Sources section listing every file:line referenced.",
     "- Include confidence rating (HIGH / MEDIUM / LOW).",
-    "- Follow-up suggestions should be technically precise."
+    "- Follow-up suggestions should be technically precise.",
+    "",
+    "Accuracy rules (non-negotiable):",
+    "- VERIFY line numbers before citing them. Read the file at the cited line to confirm",
+    "  the referenced code is actually there. Wrong line numbers destroy trust.",
+    "- Label every code snippet as EXACT (copied from the file) or SIMPLIFIED (paraphrased",
+    "  for clarity). Never present simplified code as if it were the actual source.",
+    "- Never state a count ('10 models', '5 routes') without listing the items. If you list",
+    "  11 items, say 11, not 10. Count what you list.",
+    "- Never make blanket claims ('every route uses X', 'all models have Y') without",
+    "  evidence. Say 'the N routes I checked all use X' or list the specific routes.",
+    "- When citing open issues from project-state.json, check whether a fix already exists",
+    "  by grepping for related test files or recent commits. Flag issues that may be stale.",
+    "- Use full repository-relative paths (backend/app/api/v1/auth.py), never shortened",
+    "  or abbreviated paths."
   ],
   "questions": {
     "evergreen": [

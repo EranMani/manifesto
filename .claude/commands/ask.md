@@ -73,14 +73,20 @@ technical terms, no file paths, no domain labels like "backend" or
 instead). For PM persona: use product vocabulary, no engineering jargon.
 This rule applies to every step below.
 
-### Step 1 — Load evergreen questions
+The question bank executes in two mandatory phases: FIRST generate and
+present questions, THEN optionally append build prompts. Never skip to
+build prompts without presenting questions first. This has failed in
+testing twice — treat it as a hard constraint.
 
+### Part A — Generate questions (mandatory, do this FIRST)
+
+**A1. Load evergreen questions.**
 Read the active persona's `questions.evergreen` array from the persona's
-individual file (e.g., `.claude/personas/engineer.json`). These are the
-base options.
+individual file (e.g., `.claude/personas/engineer.json`). Copy all of
+them into a working list. These are your safety net — they guarantee
+the question bank is never empty.
 
-### Step 2 — Generate contextual questions
-
+**A2. Generate contextual questions.**
 Read three data sources and generate persona-appropriate questions. Each
 source produces 1-2 questions using the `questions.contextual_templates`
 from the active persona profile.
@@ -107,15 +113,38 @@ from the active persona profile.
 - Parse the commit subjects to identify the most recently touched area.
 - Generate 1 question using the `recent_change` template.
 
-### Step 3 — Generate forge prompts
+**A3. Assemble and deduplicate.**
+Combine evergreen + contextual questions. Remove near-duplicates. Keep
+contextual over evergreen when they overlap. Target: 6-8 total questions.
 
-Using the **same contextual data** already gathered in Step 2 (hub files,
+**Hard rule**: the final list MUST contain at least 5 questions. If
+contextual generation produced too few, keep more evergreen questions.
+Never present fewer than 5 questions.
+
+**A4. Present questions to the user.**
+Split into two groups and present using AskUserQuestion:
+
+**Group 1 — "Start here"**: 3-4 best overview questions.
+**Group 2 — "Go deeper"**: 3-4 most specific contextual questions.
+
+You MUST call AskUserQuestion with these two groups NOW, before doing
+anything else. If you find yourself about to output forge prompts without
+having presented questions first, STOP — go back to A1 and use the
+evergreen list directly.
+
+### Part B — Append build prompts (optional, do this AFTER Part A)
+
+Only after the AskUserQuestion from Part A has been output, append build
+prompts below it.
+
+**B1. Generate forge prompts.**
+Using the **same contextual data** already gathered in A2 (hub files,
 project state, recent changes), generate 2-3 forge-ready prompts using
 the active persona's `forge_templates` from the persona's individual file.
 
 **How to generate each prompt:**
 
-1. For each gap, issue, or opportunity identified in Step 2, pick the
+1. For each gap, issue, or opportunity identified in A2, pick the
    matching `forge_templates` key (`hub_file`, `open_issue`,
    `recent_change`, or `domain_gap`).
 2. Fill the template placeholders with **concrete values** from the
@@ -128,43 +157,24 @@ the active persona's `forge_templates` from the persona's individual file.
    - `{file}` → "backend/app/api/v1/shipments.py", not "the file"
 3. Prepend `/forge` to each completed prompt so it's directly pasteable.
 4. Keep each prompt to one sentence — forge handles decomposition.
+5. **Stale issue check**: before suggesting a fix for an open issue,
+   grep for existing test files or recent commits that may have already
+   addressed it. If evidence of a fix exists, skip that issue.
 
 **Rules:**
 - If no `forge_templates` key exists for the persona (e.g., interviewer
-  personas), skip this step entirely.
+  personas), skip Part B entirely.
 - Never generate forge prompts for things that are already built.
 - Prioritize gaps over improvements — missing features before polish.
 - Each prompt must describe a **different** gap or opportunity.
 
-### Step 4 — Assemble and deduplicate
+**B2. Present build prompts.**
+Render as a labeled text block AFTER the AskUserQuestion from Part A.
+Build prompts are supplementary — they must never appear without
+questions above them.
 
-Combine evergreen + contextual questions. Remove near-duplicates. Keep
-contextual over evergreen when they overlap. Target: 6-8 total questions.
-
-**Hard rule**: the final list MUST contain at least 5 questions. If
-contextual generation produced too few, backfill from the persona's
-evergreen list. Never present fewer than 5 questions — the question bank
-exists to help users who don't know what to ask, and an empty or
-near-empty list defeats its purpose.
-
-### Step 5 — Present to the user
-
-Split into three groups and present. Output the first two groups using
-AskUserQuestion, then render the third group as a text section below.
-
-**Group 1 — "Start here"**: 3-4 best overview questions.
-**Group 2 — "Go deeper"**: 3-4 most specific contextual questions.
-
-**Groups 1 and 2 are mandatory.** Questions MUST be presented before
-any forge prompts. If the AskUserQuestion call would be empty, the
-question bank has failed — backfill from evergreen questions.
-
-**Group 3 — "Build next"**: 2-3 forge-ready prompts (from Step 3).
-Render as a labeled text block AFTER the AskUserQuestion selection.
-Group 3 is supplementary — it must never replace Groups 1 and 2.
-
-For non-technical personas (founder, PM), present Group 3 as plain-
-language action descriptions, not raw `/forge` commands:
+For non-technical personas (founder, PM), present as plain-language
+action descriptions, not raw `/forge` commands:
 
 ```
 WHAT TO BUILD NEXT:
@@ -186,13 +196,12 @@ BUILD NEXT — paste any of these into the chat to start planning:
   /forge {prompt 3}
 ```
 
-If Step 3 produced no forge prompts (interviewer personas, or no gaps
-found), omit Group 3 entirely.
+If B1 produced no forge prompts, omit the build prompt section entirely.
 
-### Step 6 — Run the selected question
+### Part C — Run the selected question
 
-Take the user's selection, carry the active persona forward, and execute
-through the pipeline starting at Phase 1.
+Take the user's selection from the AskUserQuestion, carry the active
+persona forward, and execute through the pipeline starting at Phase 1.
 
 ---
 

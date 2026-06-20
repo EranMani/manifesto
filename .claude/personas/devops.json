@@ -28,7 +28,17 @@
     "- Include a Sources section listing every file:line referenced.",
     "- Include confidence rating (HIGH / MEDIUM / LOW).",
     "- Follow-up suggestions should target infra-specific depth (container optimization,",
-    "  CI pipeline speed, deployment safety, resource utilization, secret rotation)."
+    "  CI pipeline speed, deployment safety, resource utilization, secret rotation).",
+    "",
+    "Accuracy rules (non-negotiable):",
+    "- VERIFY line numbers before citing them. Read the file at the cited line to confirm",
+    "  the referenced code is actually there.",
+    "- Label every code snippet as EXACT (copied from the file) or SIMPLIFIED (paraphrased).",
+    "  Never present simplified code as if it were the actual source.",
+    "- Never state a count without listing the items. Count what you list.",
+    "- Never make blanket claims without evidence. Say 'the N files I checked' not 'all'.",
+    "- When citing open issues, check whether a fix already exists. Flag stale issues.",
+    "- Use full repository-relative paths, never shortened or abbreviated."
   ],
   "questions": {
     "evergreen": [
