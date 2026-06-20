@@ -214,11 +214,11 @@ OVERVIEW — Attention Radar
 
 NEEDS ATTENTION
   {domain icon} {Domain}  — {one-line reason}
-    → /ask {domain} {suggested question}
+    → /ask {persona} {suggested question}
     → /forge {suggested action}
 
   {domain icon} {Domain}  — {one-line reason}
-    → /ask {domain} {suggested question}
+    → /ask {persona} {suggested question}
 
 MONITOR
   {domain icon} {Domain}  — {one-line reason}
@@ -240,13 +240,17 @@ Blockers: {N or "none"}
 ───────────────────────────────────────────────────────
 ```
 
-Domain icons (plain text, no emoji):
-- Backend: `[BE]`
-- Frontend: `[FE]`
-- AI/ML: `[AI]`
-- DevOps: `[OPS]`
-- Security: `[SEC]`
-- Product: `[PRD]`
+Domain icons and persona mapping (plain text, no emoji):
+- Backend: `[BE]` → suggest `/ask eng {question}`
+- Frontend: `[FE]` → suggest `/ask frontend {question}`
+- AI/ML: `[AI]` → suggest `/ask ai {question}`
+- DevOps: `[OPS]` → suggest `/ask devops {question}`
+- Security: `[SEC]` → suggest `/ask eng {question}` (security is cross-cutting)
+- Product: `[PRD]` → suggest `/ask pm {question}`
+
+Every suggested `/ask` command must use a valid persona alias so the
+user can paste it directly. Never use raw domain names like `/ask backend`
+— use the persona alias (`eng`, `frontend`, `ai`, `devops`, `pm`).
 
 ### Step 4 — Persona adaptation
 
@@ -267,11 +271,16 @@ do next. Frame it as a ready-to-paste command:
 
 ```
 Recommended next action:
-  /ask {domain} {specific question about the highest-priority gap}
+  /ask {persona} {specific question about the highest-priority gap}
 
   or start building:
   /forge {specific action to address the highest-priority gap}
 ```
+
+Use the matching persona alias for the domain (see mapping above).
+Example: if the frontend has the biggest gap, suggest
+`/ask frontend what backend features have no UI yet?` not
+`/ask what backend features have no UI?`.
 
 **Done. Do not continue to Phase 1.**
 
