@@ -349,11 +349,14 @@ also surfaces concrete work to strengthen the codebase.
 │   ├── forge.md                  ← /forge command (6-phase pipeline)
 │   └── next-step.md              ← /next-step command (execution engine)
 ├── persona-profiles.json         ← 6 personas with prompts, questions, forge templates
-├── stack-profile.json            ← Level 0 abstract — philosophy, methodology, domain summaries
-├── stack/                        ← Level 2 domain details (loaded per agent)
+├── stack-profile.json            ← Level 0 abstract (~1,100 tokens) — philosophy, methodology, domain summaries
+├── stack/                        ← Level 2 domain details (loaded per agent, per task)
+│   ├── shared.json               ← Cross-cutting: HITL, context engineering, MCP, methodology detail
 │   ├── backend.json              ← Rex: Python, FastAPI, Pydantic, SQLAlchemy, Celery, PostgreSQL
 │   ├── frontend.json             ← Aria: TypeScript, React, Vite, Tailwind, shadcn/ui
-│   ├── ai.json                   ← Nova: LangChain, LangGraph, hybrid RAG, context architecture
+│   ├── ai.json                   ← Nova: core patterns, context architecture, pipelines
+│   ├── ai-rag.json               ← Nova: hybrid RAG pipeline, retrieval paradigms, NDCG evaluation
+│   ├── ai-eval.json              ← Nova: LLM-as-a-Judge, HITL alignment, meta-prompting
 │   ├── infrastructure.json       ← Adam: Docker, Nginx, CI/CD, operational tiers, observability
 │   ├── security.json             ← Sage: JWT, auth, webhook security, AI security
 │   └── product.json              ← Mira: discovery, sprint model, delivery, scaling

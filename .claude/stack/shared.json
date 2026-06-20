@@ -1,0 +1,130 @@
+{
+  "description": "Cross-cutting concerns loaded only when a task intersects these areas. Not loaded by default.",
+
+  "engineering_methodology_detail": {
+    "component_design": {
+      "critical_areas": [
+        "data-flow-orchestration: design precise pathways for how data moves between backend, storage, and UI",
+        "component-wiring: define how modular blocks interact — interfaces between services must be robust and typed",
+        "failure-mode-analysis: anticipate cascading failures — architect graceful degradation, not collapse"
+      ],
+      "constraint_based_research": "Before generating code, ground AI agents in external truth — feed specific documentation, architectural references, and established patterns into context."
+    },
+    "communication_precision": {
+      "quality_checklist": [
+        "contextual-grounding: provide the WHY behind this component to align AI logic with your intent",
+        "architectural-intent: define data schema, specific libraries, and failure recovery paths",
+        "constraint-definition: explicitly forbid known anti-patterns and unnecessary dependencies",
+        "ground-truth: supply relevant documentation to constrain generation to current best practices"
+      ]
+    },
+    "simplification_loop": [
+      "1. plan-big-picture: establish macro-architectural goals",
+      "2. build-implement: use AI to generate foundational components",
+      "3. test-validate: confirm implementation meets the functional requirement",
+      "4. question-research: force AI to justify naming conventions, file structures, every decision made during build",
+      "5. ruthless-simplify: remove every line and component that does not break the test suite"
+    ],
+    "parallel_agency": {
+      "requirement": "A change in the database schema must be instantly reflected in the API contract and frontend state management.",
+      "anti_pattern": "Hyper-specialization creates bottlenecks — the governor must be comfortable directing across the entire lifecycle."
+    }
+  },
+
+  "ai_development_workflow": {
+    "context_management": [
+      "context-priming: point AI to 2-3 specific files and relevant documentation — prevents hallucinations and saves context window",
+      "plan-then-execute: verify AI's logic in plan mode before allowing code generation",
+      "skills-folder: maintain reusable AI skill definitions as Markdown files — repeatable tasks become standardized prompts"
+    ],
+    "governor_checklist": [
+      "naming-conventions: does AI-generated code match the project's established patterns?",
+      "folder-structure: are files in the correct directories per the standard template?",
+      "architectural-integrity: has the AI introduced non-standard libraries or clever logic that breaks the pattern?",
+      "dependency-audit: has the AI added unnecessary dependencies that increase the attack surface or maintenance burden?"
+    ]
+  },
+
+  "human_in_the_loop": {
+    "principle": "HITL is not a safety fallback — it is a deployment accelerator. Automate the routine 50% immediately, gate the tricky 50% behind human judgment.",
+    "three_pillars": [
+      "1. deferred-execution: pause exactly before any function with side effects — capture intent, defer execution until approval",
+      "2. state-serialization: persist full agent context (message history, system prompt, pending tool arguments) to database",
+      "3. stateless-resume: reload full context from database by unique ID — any worker can resume, weeks later if needed"
+    ],
+    "control_mechanisms": {
+      "llm_as_router": "structured output generates an action plan validated by Pydantic — backend enforces safety rules via model validators regardless of LLM reasoning",
+      "agentic_tool_calling": "intercept tool calls post-generation but pre-execution within the agent loop — inspect parameters against business logic before allowing side effects"
+    }
+  },
+
+  "context_engineering": {
+    "principle": "Context engineering has replaced prompt engineering. Curate the smallest set of high-signal tokens.",
+    "high_signal_tokens": [
+      "structured-instructions: precise background and behavioral constraints",
+      "retrieved-knowledge: contextually relevant data from RAG pipelines",
+      "tool-manifests: concise, non-overlapping descriptions of available functions",
+      "intermediate-reasoning: tool outputs and agent's internal thought process",
+      "environmental-feedback: real-time signals from system or user after an action"
+    ],
+    "token_economy": [
+      "prune: programmatically remove irrelevant, redundant, or outdated turns",
+      "summarize: compress early segments into high-density context blocks",
+      "rank: broad retrieval → reranker → top 5-10 high-relevance chunks"
+    ],
+    "failure_modes": [
+      "needle-in-haystack: reasoning reliability drops as context window expands",
+      "instruction-atrophy: bloated windows cause model to neglect core system prompt rules"
+    ]
+  },
+
+  "mcp": {
+    "principle": "MCP is the standard for bridging LLM reasoning with local execution. Expose Python functions as tools.",
+    "value": [
+      "zero-ui-overhead: Claude serves as the unified interface",
+      "direct-logic-injection: Python functions integrate into the LLM's reasoning loop",
+      "tool-chaining: multiple MCP servers chain together via a single prompt",
+      "accelerated-prototyping: script to production-ready tool in minutes"
+    ],
+    "architecture": "server layer (protocol registration) → service layer (business logic) → utility layer (helpers)"
+  },
+
+  "blueprint_to_production": {
+    "lifecycle": [
+      "1. vision-and-objectives: define the problem and target audience before any code",
+      "2. stack-justification: choose technologies for deployment velocity, not novelty",
+      "3. pipeline-architecture: design as decoupled stages",
+      "4. persistence-strategy: ground everything in the database — no ephemeral-only data",
+      "5. software-engineering: scripts to OOP — base class inheritance, registry pattern, repository pattern",
+      "6. cloud-deployment: infrastructure-as-code, instance sizing, security hardening",
+      "7. productization-path: MVP → multi-tenancy → custom presentation → tiered service"
+    ],
+    "architectural_mandates": [
+      "unify-heterogeneous-data: standardized ingestion into common schema",
+      "absolute-grounding: all outputs stored in PostgreSQL for tracking",
+      "deterministic-control: deterministic pipelines over prompt-heavy scripting",
+      "scalable-delivery: automated distribution so the product reaches users without manual friction"
+    ]
+  },
+
+  "llm_evaluation_hierarchy": {
+    "level_1_unit_tests": {
+      "frequency": "on every code/prompt change",
+      "cost": "low",
+      "what": "schema validation (Pydantic), category bounds (Enum), metric type checks, content existence (min length)",
+      "catches": "structural failures"
+    },
+    "level_2_model_and_human_eval": {
+      "frequency": "bi-weekly",
+      "cost": "moderate — LLM-as-a-Judge + expert review",
+      "what": "subjective quality (tone, helpfulness, hallucination detection, constraint compliance)",
+      "catches": "specification gaps"
+    },
+    "level_3_ab_testing": {
+      "frequency": "major releases only",
+      "cost": "high — requires statistical significance from real users",
+      "what": "real-world user experiments",
+      "catches": "production behavior that lab testing cannot simulate"
+    }
+  }
+}

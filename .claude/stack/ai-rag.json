@@ -1,0 +1,149 @@
+{
+  "domain": "ai-rag",
+  "owner": "nova",
+  "description": "Hybrid retrieval pipeline specification. Load when working on retrieval, embeddings, search, or ingestion.",
+
+  "pipeline": "ingest → chunk → embed → index → hybrid-retrieve → fuse → rerank → generate → validate",
+
+  "chunking": {
+    "strategy": "recursive-character-text-splitter",
+    "chunk_size_tokens": 1000,
+    "chunk_overlap_tokens": 200,
+    "hard_limit": "1000 tokens per chunk — enforced, not advisory.",
+    "metadata_preserved": ["source", "page", "section", "timestamp", "document_id"],
+    "principles": [
+      "Chunk boundaries should respect semantic units (paragraphs, sections) not just token counts.",
+      "Every chunk carries enough metadata to trace back to its source document and location.",
+      "Chunking strategy is an experimental variable — changes must be validated against NDCG@10."
+    ]
+  },
+
+  "retrieval": {
+    "architecture": "hybrid-parallel",
+    "description": "Vector-only retrieval is insufficient for production. Dispatch queries concurrently to sparse (BM25) and dense (vector) retrievers, fuse with RRF, rerank with cross-encoder.",
+    "sparse_layer": {
+      "algorithm": "BM25",
+      "library": "bm25s",
+      "scoring_method": "lucene",
+      "purpose": "Keyword precision — captures exact terms, identifiers, alphanumeric codes, rare vocabulary.",
+      "process": [
+        "tokenization: deterministic conversion to token IDs with English stop-word filtering",
+        "indexing: vocabulary lookup table with TF-style weighting (term frequency relative to corpus)"
+      ],
+      "limitation": "Cannot handle paraphrasing — high-precision anchor, not standalone retriever."
+    },
+    "dense_layer": {
+      "model": "text-embedding-3-small",
+      "dimensions": 1536,
+      "provider": "openai",
+      "local_fallback": "sentence-transformers",
+      "batch_size": 256,
+      "purpose": "Semantic mapping — captures meaning via high-dimensional vector space.",
+      "optimization": {
+        "normalization": "L2 normalization — rescale vectors to unit Euclidean distance",
+        "similarity": "dot-product via numpy (L2 normalization makes it equivalent to cosine, but faster)",
+        "rationale": "Pure matrix algebra — near-instantaneous retrieval without vector database overhead."
+      },
+      "persistence": {
+        "format": ".npy files",
+        "expected_footprint": "~350 MB for ~56,000 documents",
+        "loading": "indices loaded directly into memory from disk"
+      }
+    },
+    "fusion": {
+      "algorithm": "reciprocal-rank-fusion",
+      "formula": "Score = sum(1 / (k + rank))",
+      "smoothing_factor_k": 60,
+      "purpose": "Scale-agnostic merging of BM25 and dense scores.",
+      "process": [
+        "1. concurrent-retrieval: top-K candidates (K=50) from both indices",
+        "2. list-aggregation: collate into list-of-lists maintaining original rank",
+        "3. fused-ranking: apply RRF formula to each document ID",
+        "4. final-sort: sort by fused scores"
+      ]
+    },
+    "reranking": {
+      "model": "cross-encoder",
+      "provider": "cohere",
+      "model_id": "rerank-english-v3.0",
+      "input": "top-N fused candidates (N=50)",
+      "output": "final top-5 ranked results",
+      "purpose": "Joint query-document analysis — captures subtle contextual relevance that bi-encoders miss."
+    },
+    "additional_techniques": [
+      "contextual-retrieval: add document context to chunks before embedding",
+      "query-expansion: rephrase user query into multiple variants for broader recall",
+      "self-query: extract metadata filters from natural language queries"
+    ]
+  },
+
+  "retrieval_paradigms": {
+    "semantic_rag": {
+      "flow": "retrieve → generate (single pass)",
+      "llm_calls": 1,
+      "latency": "milliseconds",
+      "best_for": "straightforward queries, FAQ-style lookups"
+    },
+    "agentic_rag": {
+      "flow": "search → read → evaluate → repeat",
+      "llm_calls": "3-7 per query",
+      "latency": "10-15 seconds",
+      "best_for": "complex queries spanning 3+ files, codebase navigation",
+      "toolkit": [
+        "list: glob pattern matching — use relative paths for token optimization",
+        "search: compiled regex across document lines — returns file names and line numbers",
+        "read: content extraction with path validation (is_relative_to) to prevent traversal attacks"
+      ],
+      "production_safety": [
+        "agent_request_limit: hard cap on tool calls per query",
+        "read_max_lines: limit file ingestion size",
+        "timeout: maximum wall-clock time per execution",
+        "error_handling: return messages, never raise exceptions"
+      ],
+      "structured_citations": {
+        "fields": ["file_name", "quote", "line_number"],
+        "enforcement": "Pydantic models enforce citation structure in outputs"
+      }
+    },
+    "decision_framework": [
+      "1. answer requires synthesizing from 3+ files? → agentic",
+      "2. target response time is milliseconds? → semantic. Can wait 10-15s? → agentic",
+      "3. deployment supports subprocess (ripgrep)? If restricted → semantic",
+      "4. budget for multiple LLM calls? If constrained → semantic with hybrid retrieval",
+      "5. default: start semantic hybrid, upgrade to agentic when complexity demands it"
+    ]
+  },
+
+  "index_persistence": {
+    "vector_format": ".npy files (numpy arrays)",
+    "sparse_format": "BM25S native index format",
+    "principles": [
+      "Indices are stored locally and can be version-controlled.",
+      "No database server required for corpora under 1M documents.",
+      "Challenge the Vector Database Myth: disk-based numpy outperforms dedicated vector DBs in latency for <1M docs.",
+      "Transition to managed vector DB only when corpus exceeds 1M or multi-tenant isolation is required."
+    ]
+  },
+
+  "evaluation": {
+    "primary_metric": "NDCG@10",
+    "benchmark": "BEIR framework with domain-specific datasets",
+    "expected_performance": {
+      "bm25_only": "NDCG@10 ~28",
+      "hybrid_plus_reranking": "NDCG@10 ~47 (near 2x improvement)"
+    },
+    "metrics": [
+      "NDCG@10: position-weighted relevance in top 10",
+      "retrieval-precision / retrieval-recall",
+      "answer-faithfulness / answer-relevance"
+    ],
+    "cold_start": "Generate synthetic BEIR-style (Query, Relationship, Corpus) pairs from document chunks. Never ship without an evaluation dataset.",
+    "experimental_loop": [
+      "1. establish baseline NDCG@10",
+      "2. change one variable",
+      "3. re-evaluate against same dataset",
+      "4. keep improvements, revert regressions",
+      "5. repeat — every change is validated scientifically"
+    ]
+  }
+}

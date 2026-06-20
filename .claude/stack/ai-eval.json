@@ -1,0 +1,67 @@
+{
+  "domain": "ai-eval",
+  "owner": "nova",
+  "description": "LLM evaluation and quality assurance framework. Load when working on testing AI outputs, building judge prompts, or aligning model behavior.",
+
+  "virtuous_cycle": [
+    "1. evaluation-quality: systematic measurements via assertions, HITL reviews, alignment metrics",
+    "2. debugging-traceability: Langfuse traces to diagnose failure origin (retrieval, logic, or prompting)",
+    "3. behavior-change: iterative refinement — failures converted into permanent improvements"
+  ],
+
+  "metric_selection": {
+    "reference_based": {
+      "description": "Used when a golden answer exists — automate as Level 1 unit tests.",
+      "types": ["exact-match", "semantic-similarity", "code-correctness"]
+    },
+    "reference_free": {
+      "description": "Used for subjective quality — requires Level 2 judgment.",
+      "types": ["tone-appropriateness", "hallucination-detection", "safety", "constraint-compliance"]
+    },
+    "binary_first_mandate": "Use Pass/Fail before scalar scores. Scalar scores introduce noise and make Human-Model Agreement impossible to calculate."
+  },
+
+  "llm_as_judge": {
+    "description": "Use a high-performing model to automate critique. The judge must be more capable than the generator.",
+    "recommended_models": "GPT-4, Claude Sonnet 4.6+ — always use the most powerful available",
+    "validation_workflow": [
+      "1. prediction-collection: gather outputs from real or synthetic data",
+      "2. critique-generation: Judge LLM evaluates outputs",
+      "3. human-evaluation: domain expert evaluates same data independently",
+      "4. judgment-comparison: identify discrepancies between Judge and Human",
+      "5. evaluator-iteration: refine Judge instructions based on gaps",
+      "6. repeat until consistent alignment"
+    ],
+    "judge_prompt_requirements": {
+      "dimensions": "define Accuracy, Helpfulness, Tone as separate evaluation axes",
+      "chain_of_thought": "mandate CoT reasoning before score — reasoning first, then binary 1/0",
+      "structured_output": "judge returns JSON/Pydantic-validated output — never free-text scores"
+    }
+  },
+
+  "hitl_alignment_protocol": {
+    "description": "Domain experts provide the gold standard. Human is always the ultimate authority.",
+    "agreement_matrix": {
+      "columns": ["input (raw event)", "model response", "judge critique + outcome", "human critique + outcome", "alignment score (0/1)"],
+      "rule": "If alignment score is 0, the human is always right — fix the Judge prompt."
+    },
+    "meta_prompting": {
+      "description": "Feed discrepancies into a high-level model to identify patterns in human critique.",
+      "purpose": "Automatically suggest refinements to the Judge's system prompt.",
+      "result": "Feedback loop that mathematically aligns the evaluator with expert intuition."
+    }
+  },
+
+  "failure_mode_collection": {
+    "raw_events": "Capture exact JSON flowing through the system. Every production failure → Level 1 unit test.",
+    "principle": "Fix locally, redeploy, same failure never recurs.",
+    "manual_inspection": "Highest value-to-prestige ratio in AI engineering. Even at Zapier, Principal Engineers spend 3 hours daily looking at traces."
+  },
+
+  "key_principles": [
+    "Start simple: master binary Pass/Fail before complex scoring.",
+    "Build domain-specific: evaluations must reflect specific business logic, not generic metrics.",
+    "Remove friction: viewing, labeling, analyzing data must be effortless.",
+    "Iterate systematically: feedback loops ensure improvements compound."
+  ]
+}

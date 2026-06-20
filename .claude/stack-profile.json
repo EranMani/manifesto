@@ -1,199 +1,58 @@
 {
   "project": "manifesto",
-  "version": "2.0",
+  "version": "3.0",
   "last_updated": "2026-06-20",
-  "structure": "Level 0 abstract. Domain details in .claude/stack/{domain}.json — load only when working in that domain.",
+  "structure": "Level 0 abstract (~2,000 tokens). Domain details in .claude/stack/{domain}.json. Cross-cutting details in .claude/stack/shared.json. Load only what the current task requires.",
 
   "philosophy": [
     "Use as little AI as possible — combine deterministic logic with LLMs.",
     "Ship small, iterate fast. Proof of concept before polish.",
     "Every layer should work independently before integrating with the next.",
-    "Tie pricing and value to measurable outcomes, not feature counts.",
-    "If you turn the system off and nobody calls within an hour, it's not solving a real problem.",
-    "Code is a commodity — protect the system's structural integrity, not the craft of writing it.",
-    "Manual coding is the primary source of entropy — AI-generated code with architectural governance is more stable than hand-written code without it.",
-    "Natural language is the highest abstraction layer of programming — the quality of output is proportional to the structural precision of input.",
-    "Treat AI-generated code as technical debt until simplified — AI favors bloat because it fulfills probabilistic patterns.",
-    "Build from first principles — avoid unverified frameworks and black-box agent harnesses. Build a foundation you understand, own, and can debug."
+    "Code is a commodity — protect structural integrity, not the craft of writing it.",
+    "Treat AI-generated code as technical debt until simplified.",
+    "Build from first principles — own and understand your foundation.",
+    "Natural language is the highest abstraction layer of programming."
   ],
 
   "engineering_methodology": {
-    "role": "system-governor",
-    "description": "The engineer's role has shifted from implementation laborer to system governor. Success is measured by architectural intent precision and governance rigor, not syntax proficiency.",
-    "core_pillars": [
-      "1. component-thinking: govern at the building-block level, not the line level — define interconnections, data flows, and failure modes",
-      "2. full-stack-oversight: direct the entire stack to eliminate human bottlenecks — if a project stalls because a specialist is unavailable, the system velocity is wasted",
-      "3. communication-clarity: treat natural language as high-precision programming syntax — vague instructions yield broken code",
-      "4. ruthless-simplification: strip AI-generated bloat to first principles — a codebase that is simple is a codebase that is understood",
-      "5. systematic-testing: maintain ultimate authority over reliability by rejecting AI optimism — the LLM will write passing tests that fail in production"
+    "role": "system-governor — success is measured by architectural intent precision, not syntax proficiency",
+    "pillars": [
+      "component-thinking: govern interconnections, data flows, and failure modes",
+      "full-stack-oversight: direct the entire stack to eliminate human bottlenecks",
+      "communication-clarity: vague instructions yield broken code — provide WHY, not just WHAT",
+      "ruthless-simplification: remove every line that doesn't break the test suite",
+      "systematic-testing: reject AI optimism — the LLM will write passing tests that fail in production"
     ],
-    "component_design": {
-      "critical_areas": [
-        "data-flow-orchestration: design precise pathways for how data moves between backend, storage, and UI",
-        "component-wiring: define how modular blocks interact — interfaces between services must be robust and typed",
-        "failure-mode-analysis: anticipate cascading failures — architect graceful degradation, not collapse"
-      ],
-      "constraint_based_research": "Before generating code, ground AI agents in external truth — feed specific documentation, architectural references, and established patterns into context."
-    },
-    "communication_precision": {
-      "quality_checklist": [
-        "contextual-grounding: provide the WHY behind this component to align AI logic with your intent",
-        "architectural-intent: define data schema, specific libraries, and failure recovery paths",
-        "constraint-definition: explicitly forbid known anti-patterns and unnecessary dependencies",
-        "ground-truth: supply relevant documentation to constrain generation to current best practices"
-      ]
-    },
-    "simplification_loop": [
-      "1. plan-big-picture: establish macro-architectural goals",
-      "2. build-implement: use AI to generate foundational components",
-      "3. test-validate: confirm implementation meets the functional requirement",
-      "4. question-research: force AI to justify naming conventions, file structures, every decision made during build",
-      "5. ruthless-simplify: remove every line and component that does not break the test suite"
-    ],
-    "parallel_agency": {
-      "requirement": "A change in the database schema must be instantly reflected in the API contract and frontend state management.",
-      "anti_pattern": "Hyper-specialization creates bottlenecks — the governor must be comfortable directing across the entire lifecycle."
-    }
-  },
-
-  "human_in_the_loop": {
-    "principle": "HITL is not a safety fallback — it is a deployment accelerator. Automate the routine 50% immediately, gate the tricky 50% behind human judgment.",
-    "three_pillars": [
-      "1. deferred-execution: pause exactly before any function with side effects — capture intent, defer execution until approval",
-      "2. state-serialization: persist full agent context (message history, system prompt, pending tool arguments) to database — the agent must not lose state between halt and resume",
-      "3. stateless-resume: reload full context from database by unique ID — any worker can resume the task, weeks later if needed"
-    ],
-    "control_mechanisms": {
-      "llm_as_router": "structured output generates an action plan validated by Pydantic — backend enforces safety rules via model validators regardless of LLM reasoning",
-      "agentic_tool_calling": "intercept tool calls post-generation but pre-execution within the agent loop — inspect parameters against business logic before allowing side effects"
-    },
-    "domain_details": "Backend patterns in stack/backend.json, infrastructure patterns in stack/infrastructure.json, product strategy in stack/product.json"
-  },
-
-  "blueprint_to_production": {
-    "description": "The lifecycle from vision to deployed product. Every application follows this arc — agents must understand where they are in it.",
-    "lifecycle": [
-      "1. vision-and-objectives: define the problem, target audience, and architectural mandates before any code",
-      "2. stack-justification: choose technologies based on deployment velocity and technical debt minimization, not novelty",
-      "3. pipeline-architecture: design as decoupled stages — an ingestion failure must not impede processing of cached data",
-      "4. persistence-strategy: no data exists solely in volatile memory — everything is grounded in the database for tracking and auditability",
-      "5. software-engineering: transition from scripts to OOP — base class inheritance, registry pattern, repository pattern",
-      "6. cloud-deployment: infrastructure-as-code, instance sizing, security hardening, cron scheduling",
-      "7. productization-path: MVP → multi-tenancy → custom presentation → tiered service levels"
-    ],
-    "architectural_mandates": [
-      "unify-heterogeneous-data: standardized ingestion layer to consolidate disparate sources into a common schema",
-      "absolute-grounding: all metadata and agent outputs stored in PostgreSQL for historical tracking — no ephemeral-only data",
-      "deterministic-control: prioritize deterministic pipelines over prompt-heavy scripting — move from vibe coding to agentic engineering",
-      "scalable-delivery: automated distribution (email, webhooks, APIs) so the product reaches users without manual friction"
-    ],
-    "domain_details": "Backend patterns in stack/backend.json, deployment in stack/infrastructure.json, agent pipelines in stack/ai.json, productization in stack/product.json"
-  },
-
-  "mcp": {
-    "principle": "MCP (Model Context Protocol) is the standard for bridging LLM reasoning with local execution. Expose Python functions as tools to make the system modular, extensible, and conversationally accessible.",
-    "value": [
-      "zero-ui-overhead: Claude serves as the unified interface — no custom front-ends for internal tools",
-      "direct-logic-injection: Python functions integrate into the LLM's reasoning loop via conversational intent",
-      "tool-chaining: multiple MCP servers chain together — a single prompt triggers a sequence of operations",
-      "accelerated-prototyping: script to production-ready tool in the LLM interface in minutes"
-    ],
-    "architecture": "server layer (protocol registration) → service layer (business logic) → utility layer (helpers). Swap providers without touching the protocol.",
-    "domain_details": "Server architecture in stack/backend.json, deployment in stack/infrastructure.json, tool engineering in stack/ai.json, permission model in stack/security.json"
-  },
-
-  "context_engineering": {
-    "principle": "Context engineering has replaced prompt engineering. The goal is not better instructions — it is curating the smallest set of high-signal tokens that maximize the likelihood of desired outcomes.",
-    "high_signal_tokens": [
-      "structured-instructions: precise background and behavioral constraints",
-      "retrieved-knowledge: contextually relevant data from RAG pipelines",
-      "tool-manifests: concise, non-overlapping descriptions of available functions",
-      "intermediate-reasoning: tool outputs and agent's internal thought process",
-      "environmental-feedback: real-time signals from system or user after an action"
-    ],
-    "token_economy": [
-      "prune: programmatically remove irrelevant, redundant, or outdated turns from conversation history",
-      "summarize: compress early segments of long-running interactions into high-density context blocks",
-      "rank: broad retrieval → reranker → top 5-10 high-relevance chunks (never dump 50 raw chunks)"
-    ],
-    "failure_modes": [
-      "needle-in-haystack: reasoning reliability drops as context window expands — even million-token models degrade",
-      "instruction-atrophy: bloated windows cause the model to neglect core system prompt rules, prioritizing recent tokens over foundational instructions"
-    ],
-    "domain_details": "Full implementation patterns in stack/ai.json (context_engineering section)"
-  },
-
-  "ai_development_workflow": {
-    "context_management": [
-      "context-priming: point AI to 2-3 specific files and relevant documentation — prevents hallucinations and saves context window",
-      "plan-then-execute: verify AI's logic in plan mode before allowing code generation",
-      "skills-folder: maintain reusable AI skill definitions as Markdown files — repeatable tasks become standardized prompts"
-    ],
-    "governor_checklist": [
-      "naming-conventions: does AI-generated code match the project's established patterns?",
-      "folder-structure: are files in the correct directories per the standard template?",
-      "architectural-integrity: has the AI introduced non-standard libraries or clever logic that breaks the pattern?",
-      "dependency-audit: has the AI added unnecessary dependencies that increase the attack surface or maintenance burden?"
-    ]
+    "details": "Full methodology (simplification loop, parallel agency, communication checklist) in stack/shared.json"
   },
 
   "testing": {
-    "framework": "pytest (backend), vitest (frontend)",
-    "patterns": [
-      "unit-tests: service layer logic, utility functions, validators",
-      "integration-tests: API endpoints with real database (not mocks)",
-      "llm-tests: deterministic inputs with expected output patterns, LLM-as-judge for quality",
-      "rag-evaluation: retrieval precision/recall on annotated dataset",
-      "e2e-tests: critical user flows through the full stack"
-    ],
+    "frameworks": "pytest (backend), vitest (frontend)",
     "principles": [
       "Integration tests hit a real database — mocks hide real bugs.",
-      "LLM outputs are tested for structure and constraints, not exact text.",
-      "Every bug fix comes with a regression test.",
-      "Tests run in Docker to match production environment.",
-      "CI blocks merge on test failure — no exceptions.",
-      "Binary-first: use Pass/Fail metrics before attempting scalar scores — binary outcomes are the only actionable engineering insight.",
-      "Every production failure becomes a Level 1 unit test — fix locally, redeploy, the same failure never recurs."
+      "Binary-first: Pass/Fail before scalar scores.",
+      "Every production failure becomes a Level 1 unit test.",
+      "CI blocks merge on test failure — no exceptions."
     ],
-    "llm_evaluation_hierarchy": {
-      "description": "Three-level evaluation for non-deterministic AI systems. Traditional Input→Output testing is insufficient. 40% of agentic AI projects will be canceled by 2027 — systematic evaluation is the differentiator.",
-      "level_1_unit_tests": {
-        "frequency": "on every code/prompt change",
-        "cost": "low — fast, automated Python assertions",
-        "what": "schema validation (Pydantic), category bounds (Enum), metric type checks (float, 0-1), content existence (min length)",
-        "catches": "structural failures — wrong types, missing fields, collapsed outputs"
-      },
-      "level_2_model_and_human_eval": {
-        "frequency": "bi-weekly",
-        "cost": "moderate — LLM-as-a-Judge + expert review",
-        "what": "subjective quality (tone, helpfulness, hallucination detection, constraint compliance)",
-        "catches": "specification gaps — the distance between developer intent and actual model behavior"
-      },
-      "level_3_ab_testing": {
-        "frequency": "major releases only",
-        "cost": "high — requires statistical significance from real users",
-        "what": "real-world user experiments comparing system variants",
-        "catches": "production behavior that lab testing cannot simulate"
-      },
-      "domain_details": "Full LLM-as-a-Judge implementation, HITL alignment protocol, and meta-prompting in stack/ai.json"
-    },
-    "ai_optimism_defense": {
-      "mandates": [
-        "reject-mocking-trap: actively reject tests that mock away the logic being validated",
-        "edge-case-authority: the human identifies outliers AI misses — network latency, race conditions, malformed inputs",
-        "framework-mastery: understand pytest/vitest well enough to audit AI-generated test logic",
-        "automated-governance: no code enters main without systematic automated validation"
-      ],
-      "question": "Ask 'What could really go wrong here?' — AI handles the happy path, the human architect identifies the outliers."
-    }
+    "evaluation_hierarchy": "Level 1 (unit tests, every change) → Level 2 (LLM-as-Judge + human, bi-weekly) → Level 3 (AB testing, major releases). Details in stack/shared.json",
+    "ai_optimism_defense": "Reject tests that mock away the logic being validated. Ask 'What could really go wrong here?'"
+  },
+
+  "cross_cutting": {
+    "hitl": "Automate the routine 50%, gate the tricky 50% behind human judgment. Three pillars: deferred execution, state serialization, stateless resume. Details in stack/shared.json",
+    "context_engineering": "Curate the smallest set of high-signal tokens. Prune, summarize, rank. Never treat the context window as infinite. Details in stack/shared.json",
+    "mcp": "Expose Python functions as MCP tools for modular, composable capabilities. Server → service → utility layers. Details in stack/shared.json",
+    "blueprint_to_production": "Vision → stack justification → pipeline architecture → persistence → engineering → deployment → productization. Details in stack/shared.json"
   },
 
   "domains": {
     "backend":        { "file": ".claude/stack/backend.json",        "owner": "rex",  "stack": "Python 3.12+, FastAPI, Pydantic, SQLAlchemy, Alembic, Celery, Redis, PostgreSQL" },
     "frontend":       { "file": ".claude/stack/frontend.json",       "owner": "aria", "stack": "TypeScript, React 18+, Vite, Tailwind CSS, shadcn/ui, Zustand" },
-    "ai":             { "file": ".claude/stack/ai.json",             "owner": "nova", "stack": "LangChain, LangGraph, Langfuse, hybrid RAG (BM25 + vectors + RRF + cross-encoder), pgvector/numpy" },
-    "infrastructure": { "file": ".claude/stack/infrastructure.json", "owner": "adam", "stack": "Docker, Docker Compose, Nginx, GitHub Actions, VPS, Redis, Celery Beat, Grafana" },
-    "security":       { "file": ".claude/stack/security.json",       "owner": "sage", "stack": "JWT + refresh tokens, bcrypt, rate limiting, CORS whitelist, webhook signature verification" },
-    "product":        { "file": ".claude/stack/product.json",        "owner": "mira", "stack": "Discovery protocol, sprint model, scoping discipline, accuracy paradigm, delivery methodology" }
+    "ai":             { "file": ".claude/stack/ai.json",             "owner": "nova", "stack": "LangChain, LangGraph, Langfuse, structured outputs, context engineering, multi-stage pipelines" },
+    "ai_rag":         { "file": ".claude/stack/ai-rag.json",         "owner": "nova", "stack": "Hybrid RAG (BM25 + vectors + RRF + cross-encoder), retrieval paradigms, index persistence, NDCG@10 evaluation" },
+    "ai_eval":        { "file": ".claude/stack/ai-eval.json",        "owner": "nova", "stack": "LLM-as-a-Judge, HITL alignment protocol, meta-prompting, failure mode collection" },
+    "infrastructure": { "file": ".claude/stack/infrastructure.json", "owner": "adam", "stack": "Docker, Docker Compose, Nginx, GitHub Actions, VPS, Grafana, Celery Beat" },
+    "security":       { "file": ".claude/stack/security.json",       "owner": "sage", "stack": "JWT + refresh tokens, bcrypt, rate limiting, CORS, webhook verification, MCP permissions" },
+    "product":        { "file": ".claude/stack/product.json",        "owner": "mira", "stack": "Discovery protocol, sprint model, scoping, accuracy paradigm, delivery, productization path" }
   }
 }

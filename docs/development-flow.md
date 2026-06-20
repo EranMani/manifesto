@@ -427,11 +427,14 @@ concrete work to strengthen the codebase.
 │   ├── forge.md                  ← /forge command definition
 │   └── next-step.md              ← /next-step command definition
 ├── persona-profiles.json         ← Persona definitions (6 personas)
-├── stack-profile.json            ← Level 0 abstract — philosophy, methodology, domain summaries
-├── stack/                        ← Level 2 domain details (one file per agent)
+├── stack-profile.json            ← Level 0 abstract (~1,100 tokens)
+├── stack/                        ← Level 2 domain details (per agent, per task)
+│   ├── shared.json               ← Cross-cutting (HITL, context eng, MCP, methodology)
 │   ├── backend.json              ← Rex: backend + database
 │   ├── frontend.json             ← Aria: frontend
-│   ├── ai.json                   ← Nova: AI/ML + RAG
+│   ├── ai.json                   ← Nova: core AI patterns + context
+│   ├── ai-rag.json               ← Nova: hybrid RAG pipeline
+│   ├── ai-eval.json              ← Nova: LLM evaluation framework
 │   ├── infrastructure.json       ← Adam: infra + observability
 │   ├── security.json             ← Sage: security
 │   └── product.json              ← Mira: product + delivery
