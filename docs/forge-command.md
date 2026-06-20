@@ -270,6 +270,29 @@ Ready for /next-step execution.
 
 ---
 
+## Evaluation
+
+Run `/forge-eval` immediately after `/forge` completes to evaluate the
+plan quality. The evaluation checks 30 binary criteria across 6 sections:
+
+| Section | What it checks |
+|---------|---------------|
+| **Stack Alignment** (5) | Technologies match profile, no rogue libraries, patterns followed |
+| **Context Efficiency** (5) | Correct domain files loaded, no rediscovery, no instruction atrophy |
+| **Design Quality** (5) | Data flow explicit, failure modes addressed, stages decoupled |
+| **Specification Quality** (5) | All 14 sections present, verification command specific, contract complete |
+| **Security & Validation** (5) | Input validation, auth checks, no hardcoded secrets |
+| **Product Alignment** (5) | Real user need, scope bounded, success measurable |
+
+Verdicts: Healthy (83%+), Acceptable (67-82%), Needs Work (50-66%),
+Unhealthy (<50%).
+
+Evaluations are saved to `.forge/evaluations/` with trend tracking across
+runs. See `docs/forge-evaluation-rubric.md` for the full rubric and
+scorecard template.
+
+---
+
 ## What Gets Created
 
 | File | Content |
@@ -328,6 +351,9 @@ From `commit-specs/ISSUE_TO_COMMIT_MAPPING.md`:
 | `commit-specs/ISSUE_TO_COMMIT_MAPPING.md` | Decomposition rules and worked examples |
 | `.forge/report.json` | Scan output (file graph, hubs, ownership) |
 | `.forge/plan.json` | Decomposition output (commit sequence) |
+| `.claude/commands/forge-eval.md` | Evaluation command — 30-check quality assessment |
+| `.forge/evaluations/` | Saved forge-eval scorecards |
+| `docs/forge-evaluation-rubric.md` | Full rubric with scorecard template |
 
 ### Dependencies
 

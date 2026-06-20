@@ -54,10 +54,22 @@ Ask questions in the language you're thinking in right now.
   status, gap analysis, user flows
 - **As an engineer**: `/ask eng how does auth work?` — file paths, code
   snippets, architecture diagrams
+- **As an AI engineer**: `/ask ai how does the RAG pipeline work?` —
+  pipeline flows, model configs, evaluation
+- **As a frontend engineer**: `/ask frontend what's the component hierarchy?`
+  — component trees, state management, styling
+- **As a devops engineer**: `/ask devops what's the service topology?` —
+  containers, networking, CI/CD
+
+The **overview radar** (`/ask overview`) tells you which domain needs
+attention right now — scan all domains at once instead of guessing which
+hat to wear.
 
 The question bank (`/ask pm q`) generates guided questions **and**
 forge-ready prompts from the actual codebase state. You don't need to
 know what to ask or how to phrase the build task — the system does both.
+
+Run `/ask-eval` after any response to verify answer quality.
 
 ### /forge — Plan
 
@@ -71,6 +83,8 @@ atomic commits, and generates validated specs.
 
 Output: commit specs with 14 required sections, updated protocol, ready
 for execution. No code changes — just a validated plan.
+
+Run `/forge-eval` after any forge to verify plan quality.
 
 ### /next-step — Execute
 
@@ -325,6 +339,8 @@ Beyond building, the system trains your thinking:
 /ask ie auth and security    # engineering interview, 6 challenges
 /ask ip user onboarding      # product interview, 6 challenges
 /ask if competitive moats    # founder interview, 6 challenges
+/ask ia retrieval quality    # AI/ML interview, 6 challenges
+/ask id deployment safety    # devops interview, 6 challenges
 ```
 
 Every challenge is grounded in your actual codebase — real code, real
@@ -345,10 +361,15 @@ also surfaces concrete work to strengthen the codebase.
 ```
 .claude/
 ├── commands/
-│   ├── ask.md                    ← /ask command (personas, tiers, Q&A)
+│   ├── ask.md                    ← /ask command (personas, tiers, Q&A, overview)
+│   ├── ask-eval.md               ← /ask-eval (25-check quality evaluation)
 │   ├── forge.md                  ← /forge command (6-phase pipeline)
+│   ├── forge-eval.md             ← /forge-eval (30-check quality evaluation)
 │   └── next-step.md              ← /next-step command (execution engine)
-├── persona-profiles.json         ← 6 personas with prompts, questions, forge templates
+├── persona-profiles.json         ← Slim index — aliases and file pointers (11 personas)
+├── personas/                     ← Individual persona definitions (loaded on demand)
+│   ├── engineer.json, founder.json, pm.json, ai.json, frontend.json, devops.json
+│   └── interviewer-founder.json, interviewer-pm.json, interviewer-eng.json, interviewer-ai.json, interviewer-devops.json
 ├── stack-profile.json            ← Level 0 abstract (~1,100 tokens) — philosophy, methodology, domain summaries
 ├── stack/                        ← Level 2 domain details (loaded per agent, per task)
 │   ├── shared.json               ← Cross-cutting: HITL, context engineering, MCP, methodology detail
@@ -392,8 +413,10 @@ TOKEN_RECORDS.md                  ← Per-commit token records
 | Doc | What it covers |
 |-----|---------------|
 | [docs/development-flow.md](development-flow.md) | The complete ask → forge → next-step pipeline, command quick reference, architecture, installation guide |
-| [docs/ask-command.md](ask-command.md) | /ask in depth: personas, question bank, interview mode, tiers, token budgets |
+| [docs/ask-command.md](ask-command.md) | /ask in depth: 11 personas, overview radar, question bank, interview mode, tiers, token budgets |
+| [docs/ask-evaluation-rubric.md](ask-evaluation-rubric.md) | /ask-eval rubric: 25 checks across 5 sections, scorecard template, trend tracking |
 | [docs/forge-command.md](forge-command.md) | /forge in depth: 6 phases, decomposition rules, error recovery |
+| [docs/forge-evaluation-rubric.md](forge-evaluation-rubric.md) | /forge-eval rubric: 30 checks across 6 sections, scorecard template, trend tracking |
 | [docs/next-step-command.md](next-step-command.md) | /next-step in depth: execution modes, commit lifecycle, auto mode, hooks |
 | [docs/project-overview.md](project-overview.md) | This file — the why, the what, the how |
 | .claude/stack-profile.json | Level 0 stack abstract — philosophy, methodology, domain summaries |

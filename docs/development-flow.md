@@ -51,22 +51,34 @@ Everything you can type, in one place.
 /ask founder what can this product do?            # plain English, no jargon
 /ask pm what's the state of shipments?            # feature status, gap analysis
 /ask eng how does the ingestion pipeline work?    # full technical detail
+/ask ai how does the RAG pipeline work?           # AI pipeline focus
+/ask frontend what's the component hierarchy?     # frontend focus
+/ask devops what's the service topology?          # infrastructure focus
+
+# ─── Overview radar (which hat needs attention?) ──────────────────
+/ask overview                      # engineer-framed attention radar
+/ask founder overview              # plain-English attention radar
+/ask pm ov                         # product-framed attention radar
 
 # ─── Guided discovery (question bank) ─────────────────────────────
 /ask questions                     # question bank with default persona
 /ask founder questions             # plain-English questions + forge prompts
 /ask pm q                          # product questions + forge prompts (shorthand)
-/ask eng q                         # technical questions + forge prompts
+/ask ai q                          # AI pipeline questions + forge prompts
 
 # ─── Interview mode (system challenges you) ───────────────────────
 /ask ie                            # engineering interview, random topics
 /ask ip                            # product manager interview
 /ask if                            # founder / strategic interview
+/ask ia                            # AI/ML interview
+/ask id                            # devops interview
 
 # ─── Topic-focused interviews ─────────────────────────────────────
 /ask ie migration safety           # all 6 challenges about migration safety
 /ask ip user onboarding            # all 6 challenges about onboarding
 /ask if competitive moats          # all 6 challenges about moats
+/ask ia retrieval quality          # all 6 challenges about RAG quality
+/ask id deployment safety          # all 6 challenges about deploy/rollback
 
 # ─── Follow-ups (no command needed) ───────────────────────────────
 # After any /ask answer, just type a follow-up naturally:
@@ -74,7 +86,7 @@ what about vendor management?      # carries forward persona + domain context
 ```
 
 **Output**: answers, guided questions, forge-ready prompts, interview
-scorecards. Read-only — no files modified.
+scorecards, overview radars. Read-only — no files modified.
 
 ### /forge — Plan
 
@@ -115,13 +127,40 @@ state. No code changes — that's `/next-step`.
 
 **Output**: committed code, advanced project state, token records.
 
+### /ask-eval — Evaluate Ask Quality
+
+```bash
+# Run immediately after any /ask to evaluate response quality
+/ask-eval                          # 25-check scorecard across 5 sections
+```
+
+**Output**: scorecard saved to `.ask/evaluations/`. Read-only except for
+the evaluation file.
+
+### /forge-eval — Evaluate Forge Quality
+
+```bash
+# Run immediately after /forge to evaluate plan quality
+/forge-eval                        # 30-check scorecard across 6 sections
+```
+
+**Output**: scorecard saved to `.forge/evaluations/`. Read-only except for
+the evaluation file.
+
 ### Common Pipelines
 
 ```bash
 # ─── Discovery → Build (fastest path) ─────────────────────────────
 /ask pm q                          # see gaps + "Build next" prompts
 /forge {paste a prompt}            # plan the commits
+/forge-eval                        # evaluate the plan quality
 /next-step --auto                  # execute all commits
+
+# ─── Overview → Targeted fix ─────────────────────────────────────
+/ask overview                      # which domain needs attention?
+/ask frontend what backend features have no UI?   # dig into the gap
+/forge build vendor dashboard UI   # plan the fix
+/next-step --auto --once           # execute one commit
 
 # ─── Deep dive → Targeted fix ─────────────────────────────────────
 /ask eng how does auth work?       # understand the system
@@ -143,6 +182,12 @@ state. No code changes — that's `/next-step`.
 # each shows "Build next" — pick the highest-priority prompt
 /forge {paste prompt}
 /next-step --auto
+
+# ─── Quality loop ─────────────────────────────────────────────────
+/ask eng how does auth work?       # ask a question
+/ask-eval                          # evaluate the response quality
+/forge add shipment editing        # plan a feature
+/forge-eval                        # evaluate the plan quality
 ```
 
 ---
@@ -154,18 +199,21 @@ state. No code changes — that's `/next-step`.
 │                                                                 │
 │   /ask                    /forge                  /next-step    │
 │                                                                 │
-│   "What's the state     "Add pagination        "Execute C80"   │
-│    of shipments?"        to shipments"                          │
+│   "What needs            "Add pagination        "Execute C80"   │
+│    attention?"            to shipments"                          │
 │                                                                 │
 │   ┌──────────┐          ┌──────────┐          ┌──────────┐     │
 │   │Understand│ ──────►  │  Plan    │ ──────►  │ Execute  │     │
 │   │          │ (forge   │          │          │          │     │
-│   │ Persona  │ prompts) │ 6 phases │          │ Preflight│     │
-│   │ Tiers    │          │ Scan     │          │ Implement│     │
-│   │ Q&A      │          │ Agents   │          │ Verify   │     │
-│   │ Interview│          │ Specs    │          │ Commit   │     │
-│   │ Build ►  │          │          │          │          │     │
-│   └──────────┘          └──────────┘          └──────────┘     │
+│   │ Overview │ prompts) │ 6 phases │          │ Preflight│     │
+│   │ Personas │          │ Scan     │          │ Implement│     │
+│   │ Tiers    │          │ Agents   │          │ Verify   │     │
+│   │ Q&A      │          │ Specs    │          │ Commit   │     │
+│   │ Interview│          │          │          │          │     │
+│   └────┬─────┘          └────┬─────┘          └──────────┘     │
+│        │                     │                                  │
+│   /ask-eval              /forge-eval                            │
+│   (25 checks)            (30 checks)                            │
 │                                                                 │
 │   Read-only              Creates specs          Creates code    │
 │   Forge-ready prompts    Updates protocol       Updates state   │
@@ -178,24 +226,33 @@ state. No code changes — that's `/next-step`.
 
 ## Stage 1 — Understand (/ask)
 
-**Purpose**: explore the codebase, understand features, identify gaps.
+**Purpose**: explore the codebase, understand features, identify gaps,
+and discover which domain needs attention.
 
 **What it does**:
-- Answers questions in the language of the audience (founder, PM, engineer)
+- Answers questions through 6 domain personas (founder, PM, engineer, AI,
+  frontend, devops) — each adapts language and concerns to its domain
+- **Overview radar** (`/ask overview`) scans all domains and tells you
+  which hat needs attention right now — the entry point when you don't
+  know where to start
 - Uses a 3-tier pipeline (Quick/Standard/Deep) to match cost to complexity
 - Suggests follow-up questions to guide exploration
 - Generates **forge-ready prompts** from codebase gaps — copy-paste to start building
 - After 5+ questions in the same domain, suggests specific forge prompts
+- **Interview mode** (5 interviewer personas) challenges your thinking
+  with codebase-grounded questions and session scorecards
 
-**Key capability**: the question bank (`/ask pm questions`) generates
-contextual questions from the actual codebase state — hub files, open
-issues, recent changes — and translates identified gaps into actionable
-`/forge` prompts in the "Build next" section. This gives one person
+**Key capability**: the overview radar and question bank give one person
 wearing multiple hats an entry point without needing to know what to ask
-*or* how to phrase the build task.
+*or* how to phrase the build task. The overview tells you which domain
+needs attention; the question bank generates contextual questions and
+translates identified gaps into actionable `/forge` prompts.
+
+**Quality check**: run `/ask-eval` after any `/ask` response to evaluate
+persona fidelity, source grounding, and answer quality (25 binary checks).
 
 **Output**: understanding + actionable forge prompts. No files are
-created or modified.
+created or modified (except ask-eval scorecards).
 
 **Detailed docs**: [docs/ask-command.md](ask-command.md)
 
@@ -222,6 +279,9 @@ challenges (backend tasks get architecture/performance/security challenges,
 frontend tasks get UX/product-impact challenges, AI tasks get retrieval-quality/
 hallucination challenges). Weaknesses are caught and revised before they
 become committed code — the most expensive place to fix them.
+
+**Quality check**: run `/forge-eval` after any `/forge` to evaluate stack
+alignment, context efficiency, and spec quality (30 binary checks).
 
 **Output**: `commit-specs/commit-NN.md` files, updated `commit-protocol.md`,
 updated `project-state.json`.
@@ -391,6 +451,8 @@ development flow. It's a training tool:
 /ask ie                    ← engineering interview (random topics)
 /ask ip                    ← product manager interview
 /ask if                    ← founder interview
+/ask ia                    ← AI/ML interview
+/ask id                    ← devops interview
 /ask ie auth and security  ← focused on specific topics
 ```
 
@@ -424,9 +486,23 @@ concrete work to strengthen the codebase.
 .claude/
 ├── commands/
 │   ├── ask.md                    ← /ask command definition
+│   ├── ask-eval.md               ← /ask-eval command (25-check quality eval)
 │   ├── forge.md                  ← /forge command definition
+│   ├── forge-eval.md             ← /forge-eval command (30-check quality eval)
 │   └── next-step.md              ← /next-step command definition
-├── persona-profiles.json         ← Persona definitions (6 personas)
+├── persona-profiles.json         ← Slim index — aliases and file pointers (11 personas)
+├── personas/                     ← Individual persona definitions (loaded on demand)
+│   ├── engineer.json             ← Default Q&A persona
+│   ├── founder.json              ← Plain-English Q&A persona
+│   ├── pm.json                   ← Product Manager Q&A persona
+│   ├── ai.json                   ← AI/ML Q&A persona
+│   ├── frontend.json             ← Frontend Q&A persona
+│   ├── devops.json               ← DevOps Q&A persona
+│   ├── interviewer-founder.json  ← Founder interview persona
+│   ├── interviewer-pm.json       ← PM interview persona
+│   ├── interviewer-eng.json      ← Engineering interview persona
+│   ├── interviewer-ai.json       ← AI/ML interview persona
+│   └── interviewer-devops.json   ← DevOps interview persona
 ├── stack-profile.json            ← Level 0 abstract (~1,100 tokens)
 ├── stack/                        ← Level 2 domain details (per agent, per task)
 │   ├── shared.json               ← Cross-cutting (HITL, context eng, MCP, methodology)
@@ -462,14 +538,20 @@ commit-specs/
 
 .forge/
 ├── report.json                   ← Codebase scan output
-└── plan.json                     ← Commit decomposition plan
+├── plan.json                     ← Commit decomposition plan
+└── evaluations/                  ← Saved /forge-eval scorecards
 
 docs/
 ├── ask-command.md                ← /ask documentation
+├── ask-evaluation-rubric.md      ← /ask-eval rubric and scorecard template
 ├── forge-command.md              ← /forge documentation
+├── forge-evaluation-rubric.md    ← /forge-eval rubric and scorecard template
 ├── next-step-command.md          ← /next-step documentation
 ├── development-flow.md           ← This file
 └── project-overview.md           ← Project vision, end goal, how everything connects
+
+.ask/
+└── evaluations/                  ← Saved /ask-eval scorecards
 
 project-state.json                ← Project position and state
 commit-protocol.md                ← Commit index and status
@@ -487,11 +569,17 @@ DECISIONS.md                      ← Architectural decision log
                     ┌────────▼─────────┐
                     │     /ask         │
                     │                  │
-                    │ persona-profiles │──► Answer or Interview
+                    │ personas/*.json  │──► Answer, Overview, or Interview
                     │ .forge/report    │──► Forge-ready prompts
                     │ project-state    │
+                    │ git log          │──► Overview radar signals
                     └────────┬─────────┘
                              │ (insight + forge prompts)
+                             │
+                    ┌────────▼─────────┐
+                    │   /ask-eval      │──► .ask/evaluations/ (optional)
+                    └────────┬─────────┘
+                             │
                     ┌────────▼─────────┐
                     │     /forge       │
                     │                  │
@@ -502,6 +590,11 @@ DECISIONS.md                      ← Architectural decision log
                     │                  │──► project-state.json (updated)
                     └────────┬─────────┘
                              │ (validated plan)
+                             │
+                    ┌────────▼─────────┐
+                    │   /forge-eval    │──► .forge/evaluations/ (optional)
+                    └────────┬─────────┘
+                             │
                     ┌────────▼─────────┐
                     │   /next-step     │
                     │                  │
@@ -577,7 +670,12 @@ cp <source>/manifesto/.claude/commands/next-step.md .claude/commands/
 ### Step 2 — Copy the Persona Profiles
 
 ```bash
+# Copy the slim index
 cp <source>/manifesto/.claude/persona-profiles.json .claude/
+
+# Copy all individual persona files
+mkdir -p .claude/personas
+cp <source>/manifesto/.claude/personas/*.json .claude/personas/
 ```
 
 You'll customize the personas later (Step 6), but the structure works
@@ -692,7 +790,7 @@ Edit `hooks/agent-config.json` to match your project's file structure:
 
 ### Step 6 — Adapt Personas
 
-Edit `.claude/persona-profiles.json`:
+Edit individual persona files in `.claude/personas/`:
 
 1. **Update domain keywords** in the answer personas to match your stack
    (the current keywords reference FastAPI, SQLAlchemy, React, etc.)
@@ -702,6 +800,8 @@ Edit `.claude/persona-profiles.json`:
    structure
 4. **Add project-specific translation examples** to the founder persona
    (e.g., your domain's jargon → plain English mappings)
+5. **Update the index** in `.claude/persona-profiles.json` if you add or
+   rename personas
 
 ### Step 7 — Run the Codebase Scan
 
@@ -732,7 +832,7 @@ python -c "import json; r=json.load(open('.forge/report.json')); print(f'Files: 
 | Component | Why customize | How |
 |-----------|--------------|-----|
 | Stack profile | Different tech stack, frameworks, patterns | Edit `.claude/stack-profile.json` (philosophy + abstracts) and `.claude/stack/*.json` (domain details) — first thing to customize for a new project |
-| Persona prompts | Stack-specific jargon, translation examples | Edit `persona-profiles.json` prompt arrays |
+| Persona prompts | Stack-specific jargon, translation examples | Edit `.claude/personas/*.json` prompt arrays |
 | Domain keywords | Different tech stack | Edit `ask.md` Phase 1 domain keywords |
 | Agent config | Different team/domain structure | Edit `hooks/agent-config.json` |
 | Forge scan rules | Different directory layout | Edit `hooks/forge_scan.py` category rules |
@@ -773,5 +873,15 @@ highlights:
   alongside questions — closing the gap between "I understand the problem"
   and "I'm building the fix" without requiring the user to manually
   translate insights into tasks
+- **Overview radar inverts the question**: instead of "let me ask about
+  domain X", the radar scans all domains and says "domain X needs
+  attention" — solving the "which hat should I wear?" problem
+- **Domain personas over one generic engineer**: AI, frontend, and devops
+  personas adapt vocabulary and concerns to each domain instead of giving
+  generic technical answers from a backend perspective
+- **Evaluation commands close the quality loop**: `/ask-eval` and
+  `/forge-eval` verify that the pipeline itself is working correctly —
+  catching persona drift, fabricated references, and weak specs before
+  they compound
 - **The flow is composable**: each command works independently, but
   together they form a natural pipeline from understanding to execution
