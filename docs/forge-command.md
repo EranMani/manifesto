@@ -123,7 +123,12 @@ exact target files the task will touch.
 ### Phase 3 — Agent Design Input
 
 Based on which domains the task touches, invokes the relevant agents
-for **design input only** — not implementation:
+for **design input only** — not implementation.
+
+Agents receive the relevant section of `.claude/stack-profile.json` as
+part of their brief — they recommend **within the chosen stack**, not
+from scratch. Rex knows it's FastAPI + SQLAlchemy, Nova knows it's
+LangChain + LangGraph, Aria knows it's React + shadcn/ui.
 
 - **Backend** (Rex) — API design, data model, service layer
 - **Frontend** (Aria) — Component design, layout, state management
@@ -328,6 +333,7 @@ From `commit-specs/ISSUE_TO_COMMIT_MAPPING.md`:
 
 - Requires `hooks/forge_scan.py` and `hooks/forge_planner.py` to be functional
 - Reads `hooks/agent-config.json` for domain ownership mapping
+- Reads `.claude/stack-profile.json` for technology stack anchors (Phase 3 agent briefs, Phase 3.5 challenge validation)
 - Reads `commit-protocol.md` for commit numbering
 - Reads `project-state.json` for current project position
 

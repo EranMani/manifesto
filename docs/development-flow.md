@@ -427,6 +427,7 @@ concrete work to strengthen the codebase.
 │   ├── forge.md                  ← /forge command definition
 │   └── next-step.md              ← /next-step command definition
 ├── persona-profiles.json         ← Persona definitions (6 personas)
+├── stack-profile.json            ← Technology stack anchors per domain
 └── settings.json                 ← Claude Code configuration
 
 hooks/
@@ -457,7 +458,8 @@ docs/
 ├── ask-command.md                ← /ask documentation
 ├── forge-command.md              ← /forge documentation
 ├── next-step-command.md          ← /next-step documentation
-└── development-flow.md           ← This file
+├── development-flow.md           ← This file
+└── project-overview.md           ← Project vision, end goal, how everything connects
 
 project-state.json                ← Project position and state
 commit-protocol.md                ← Commit index and status
@@ -719,6 +721,7 @@ python -c "import json; r=json.load(open('.forge/report.json')); print(f'Files: 
 
 | Component | Why customize | How |
 |-----------|--------------|-----|
+| Stack profile | Different tech stack, frameworks, patterns | Edit `.claude/stack-profile.json` — this is the first thing to customize for a new project |
 | Persona prompts | Stack-specific jargon, translation examples | Edit `persona-profiles.json` prompt arrays |
 | Domain keywords | Different tech stack | Edit `ask.md` Phase 1 domain keywords |
 | Agent config | Different team/domain structure | Edit `hooks/agent-config.json` |

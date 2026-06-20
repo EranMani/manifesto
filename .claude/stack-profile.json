@@ -1,0 +1,349 @@
+{
+  "project": "manifesto",
+  "version": "1.0",
+  "last_updated": "2026-06-20",
+  "philosophy": [
+    "Use as little AI as possible — combine deterministic logic with LLMs.",
+    "Ship small, iterate fast. Proof of concept before polish.",
+    "Every layer should work independently before integrating with the next.",
+    "Tie pricing and value to measurable outcomes, not feature counts.",
+    "If you turn the system off and nobody calls within an hour, it's not solving a real problem."
+  ],
+
+  "backend": {
+    "language": "python",
+    "version": "3.12+",
+    "package_manager": "uv",
+    "framework": "fastapi",
+    "validation": "pydantic",
+    "orm": "sqlalchemy",
+    "migrations": "alembic",
+    "async_workers": "celery",
+    "message_broker": "redis",
+    "task_scheduling": "celery-beat",
+    "testing": "pytest",
+    "patterns": [
+      "service-layer: business logic lives in services, not routes",
+      "repository-pattern: database access abstracted behind repository interfaces",
+      "dependency-injection: FastAPI Depends() for composable dependencies",
+      "separation-of-concerns: routes handle HTTP, services handle logic, models handle data",
+      "error-hierarchy: custom exception classes with typed error responses",
+      "async-by-default: async endpoints, sync only when forced by a blocking library"
+    ],
+    "principles": [
+      "Routes are thin — validate input, call service, return response.",
+      "Never import provider SDKs outside the service layer.",
+      "Background tasks go through Celery, not FastAPI BackgroundTasks (except fire-and-forget logging).",
+      "Every endpoint has input validation (Pydantic), output schema, and error responses documented.",
+      "Migrations are always reversible — every upgrade has a matching downgrade.",
+      "Environment variables for all configuration — never hardcode secrets, URLs, or feature flags."
+    ],
+    "key_libraries": [
+      "fastapi: API framework with automatic OpenAPI docs",
+      "pydantic: data validation and settings management",
+      "sqlalchemy: ORM with async support",
+      "alembic: database migration management",
+      "celery: distributed task queue for background processing",
+      "redis: message broker for Celery + caching layer",
+      "uvicorn: ASGI server",
+      "httpx: async HTTP client for external API calls",
+      "tenacity: retry logic for external service calls",
+      "structlog: structured logging"
+    ]
+  },
+
+  "database": {
+    "primary": "postgresql",
+    "version": "15+",
+    "vector_extension": "pgvector",
+    "cache": "redis",
+    "patterns": [
+      "single-database: PostgreSQL handles relational data AND vectors (pgvector) — no separate vector DB needed to start",
+      "connection-pooling: use connection pool for all database access",
+      "migration-driven: all schema changes go through Alembic, never manual SQL",
+      "soft-delete: prefer soft deletes (is_deleted flag) over hard deletes for audit trail",
+      "indexed-queries: every query that filters or joins should have a supporting index"
+    ],
+    "principles": [
+      "PostgreSQL is enough — Instagram scaled to hundreds of millions on just Postgres.",
+      "Don't add a separate vector database until pgvector becomes a proven bottleneck.",
+      "Redis is for caching and message brokering, not as a primary data store.",
+      "Every table has created_at, updated_at timestamps.",
+      "Foreign keys are enforced at the database level, not just the application level.",
+      "Use UUIDs for public-facing IDs, auto-increment integers for internal references."
+    ],
+    "scaling_path": [
+      "Start: single PostgreSQL instance with pgvector",
+      "Growth: add read replicas, connection pooling (PgBouncer)",
+      "Scale: partition large tables, consider dedicated vector DB (Weaviate/Chroma) only when pgvector query time exceeds SLA"
+    ]
+  },
+
+  "frontend": {
+    "language": "typescript",
+    "framework": "react",
+    "version": "18+",
+    "build_tool": "vite",
+    "styling": "tailwindcss",
+    "component_library": "shadcn-ui",
+    "state_management": "zustand",
+    "http_client": "axios",
+    "routing": "react-router",
+    "form_handling": "react-hook-form",
+    "form_validation": "zod",
+    "patterns": [
+      "component-composition: small, reusable components over monolithic pages",
+      "shadcn-imports: components are imported into the project (not node_modules) so AI agents can modify them",
+      "colocation: keep component, styles, types, and tests together",
+      "optimistic-ui: update UI immediately, reconcile with server response",
+      "loading-states: every async operation has loading, success, and error states"
+    ],
+    "principles": [
+      "shadcn/ui for all standard components — don't reinvent buttons, modals, tables, forms.",
+      "TypeScript strict mode — no any types except at external API boundaries.",
+      "Tailwind for styling — no CSS modules, no styled-components, no inline styles.",
+      "Every page works on mobile — responsive by default using Tailwind breakpoints.",
+      "API calls go through a centralized client with auth headers, error interceptors, and retry logic.",
+      "No direct DOM manipulation — everything through React state and refs."
+    ],
+    "key_libraries": [
+      "react: UI framework",
+      "vite: dev server and build tool",
+      "tailwindcss: utility-first CSS",
+      "shadcn-ui: importable component library (not a dependency — lives in your codebase)",
+      "zustand: lightweight state management",
+      "axios: HTTP client with interceptors",
+      "react-router: client-side routing",
+      "react-hook-form: performant form handling",
+      "zod: schema validation (shared patterns with Pydantic on backend)",
+      "lucide-react: icon library (pairs with shadcn)"
+    ]
+  },
+
+  "ai": {
+    "orchestration": "langchain",
+    "agent_framework": "langgraph",
+    "provider_apis": ["anthropic", "openai"],
+    "default_provider": "anthropic",
+    "embeddings": {
+      "model": "text-embedding-3-small",
+      "provider": "openai",
+      "local_fallback": "sentence-transformers",
+      "dimensions": 1536
+    },
+    "vector_store": "pgvector",
+    "observability": "langfuse",
+    "error_tracking": "sentry",
+    "patterns": [
+      "minimal-ai: use deterministic logic first, LLMs only when reasoning or generation is required",
+      "structured-outputs: always request structured (JSON) outputs from LLMs, validate with Pydantic",
+      "chain-of-responsibility: break complex tasks into sequential steps, each independently testable",
+      "rag-pipeline: ingest → chunk → embed → store → retrieve → generate → validate",
+      "cognitive-architecture: design data flow diagrams before writing AI code",
+      "guardrails: prompt injection detection, PII filtering, output validation on every LLM call",
+      "fallback-chains: if primary model fails, fall back to secondary, then to deterministic response"
+    ],
+    "principles": [
+      "The AI layer is a thin wrapper — most of the system is regular software engineering.",
+      "Every LLM call is traced (input, output, latency, token cost) via Langfuse.",
+      "Never expose raw LLM output to users without validation and sanitization.",
+      "Embeddings are generated once at ingestion time, not at query time (except for the query itself).",
+      "Use hybrid search (semantic + keyword) for retrieval — pure semantic search misses exact matches.",
+      "LLM-as-a-judge for automated evaluation, but always validate against human-annotated datasets.",
+      "Provider SDKs are isolated behind a service interface — switching providers should be a config change.",
+      "Context windows are finite — chunk documents intelligently, don't stuff everything in."
+    ],
+    "rag": {
+      "chunking": {
+        "strategy": "recursive-character-text-splitter",
+        "chunk_size": 1000,
+        "chunk_overlap": 200,
+        "metadata_preserved": ["source", "page", "section", "timestamp"]
+      },
+      "retrieval": {
+        "primary": "hybrid-search",
+        "techniques": [
+          "similarity-search: cosine similarity on embeddings",
+          "keyword-search: full-text search on PostgreSQL",
+          "contextual-retrieval: add document context to chunks before embedding",
+          "query-expansion: rephrase user query for broader recall",
+          "re-ranking: score and re-order retrieved chunks by relevance",
+          "self-query: extract metadata filters from natural language queries"
+        ]
+      },
+      "evaluation": [
+        "retrieval-precision: are the retrieved chunks relevant?",
+        "retrieval-recall: did we miss relevant chunks?",
+        "answer-faithfulness: is the answer grounded in the retrieved context?",
+        "answer-relevance: does the answer address the user's question?"
+      ]
+    },
+    "key_libraries": [
+      "langchain: LLM orchestration, chains, document loaders, text splitters",
+      "langgraph: stateful agent workflows with cycles and branching",
+      "langfuse: LLM observability, tracing, prompt management",
+      "pydantic: structured output validation",
+      "tiktoken: token counting for context window management",
+      "sentence-transformers: local embedding models (fallback / offline)",
+      "sentry-sdk: error and exception tracking"
+    ]
+  },
+
+  "infrastructure": {
+    "containerization": "docker",
+    "orchestration": "docker-compose",
+    "reverse_proxy": "nginx",
+    "ssl": "certbot",
+    "ci_cd": "github-actions",
+    "cloud_providers": ["hetzner", "digitalocean", "aws"],
+    "default_deployment": "vps-with-docker",
+    "patterns": [
+      "container-per-service: backend, frontend, worker, redis, postgres each in their own container",
+      "docker-compose-environments: separate compose files for dev, test, and production",
+      "health-checks: every service exposes a /health endpoint",
+      "twelve-factor: config in environment, logs to stdout, stateless processes",
+      "blue-green-deployment: zero-downtime deploys by running new version alongside old",
+      "load-balancing: Nginx as reverse proxy with upstream blocks for horizontal scaling"
+    ],
+    "principles": [
+      "Docker Compose for development and single-server production — Kubernetes only at true scale.",
+      "Every service has a health check that verifies its dependencies (DB connection, Redis ping).",
+      "Secrets are never in Docker images or git — use environment variables injected at runtime.",
+      "HTTPS everywhere — Certbot/Let's Encrypt for automated certificate management.",
+      "Logs are structured JSON to stdout — centralized logging is a layer on top, not baked in.",
+      "CI/CD runs tests, builds images, and deploys on merge to main — no manual deploys.",
+      "Monitor cost, latency, and error rates post-deployment — not just 'is it up?'"
+    ],
+    "system_design": {
+      "rate_limiting": {
+        "strategy": "token-bucket via Redis",
+        "defaults": {
+          "api": "100 requests/minute per user",
+          "auth": "10 attempts/minute per IP",
+          "ai_endpoints": "20 requests/minute per user"
+        }
+      },
+      "caching": {
+        "layer": "redis",
+        "patterns": [
+          "cache-aside: check cache first, fall back to DB, populate cache on miss",
+          "ttl-based: all cache entries have explicit TTL, no indefinite caching",
+          "cache-invalidation: invalidate on write, not on timer"
+        ]
+      },
+      "load_balancing": {
+        "layer": "nginx",
+        "strategy": "round-robin with health checks",
+        "scaling_path": "vertical first (bigger VPS), horizontal when CPU consistently >70%"
+      },
+      "background_processing": {
+        "queue": "redis",
+        "worker": "celery",
+        "patterns": [
+          "idempotent-tasks: every task can be safely retried",
+          "dead-letter-queue: failed tasks after N retries go to DLQ for manual inspection",
+          "priority-queues: separate queues for urgent (auth, notifications) vs. bulk (ingestion, reports)",
+          "task-timeout: every task has a max execution time"
+        ]
+      },
+      "event_driven": {
+        "pattern": "pub-sub via Redis",
+        "use_cases": [
+          "document-ingested: triggers embedding generation",
+          "user-created: triggers welcome email and default settings",
+          "ai-response-generated: triggers logging and evaluation"
+        ]
+      }
+    },
+    "scaling_path": [
+      "Start: single VPS with Docker Compose (backend + frontend + postgres + redis)",
+      "Growth: separate database to managed PostgreSQL, add Celery workers",
+      "Scale: load balancer (Nginx) + multiple backend instances, CDN for frontend",
+      "Enterprise: container orchestration (ECS/Kubernetes), managed Redis, read replicas"
+    ]
+  },
+
+  "security": {
+    "authentication": "jwt",
+    "password_hashing": "bcrypt",
+    "session_management": "stateless-jwt-with-refresh-tokens",
+    "patterns": [
+      "defense-in-depth: multiple layers of security, not a single perimeter",
+      "least-privilege: every role gets minimum required permissions",
+      "fail-secure: on error, deny access rather than grant it",
+      "input-validation: validate all user input at the API boundary (Pydantic)",
+      "output-encoding: sanitize all output to prevent XSS"
+    ],
+    "principles": [
+      "Never store plaintext passwords — bcrypt with sufficient work factor.",
+      "JWT access tokens are short-lived (15-30 min), refresh tokens are long-lived and rotated.",
+      "CORS is restrictive by default — whitelist specific origins, not '*'.",
+      "Rate limit authentication endpoints aggressively (10/min per IP).",
+      "All secrets in environment variables, never in code or config files committed to git.",
+      "SQL injection is prevented by parameterized queries (SQLAlchemy handles this) — never raw string concatenation.",
+      "File uploads are validated (type, size, content) and stored outside the web root.",
+      "API keys are hashed in the database, not stored in plaintext.",
+      "HTTPS enforced everywhere — no HTTP endpoints in production.",
+      "Audit log for all authentication events and permission changes."
+    ],
+    "ai_security": [
+      "Prompt injection detection on all user inputs that reach LLM calls.",
+      "PII filtering on LLM outputs before returning to users.",
+      "Output validation — LLM responses are validated against expected schema before use.",
+      "Context isolation — user A's documents are never retrievable by user B.",
+      "Token budget enforcement — no single request can consume unbounded tokens.",
+      "Model output is never trusted as code execution input without sanitization."
+    ]
+  },
+
+  "observability": {
+    "llm_tracing": "langfuse",
+    "error_tracking": "sentry",
+    "application_logs": "structlog",
+    "metrics": {
+      "track": [
+        "request-latency: p50, p95, p99 per endpoint",
+        "error-rate: 5xx per endpoint per hour",
+        "llm-cost: tokens consumed and dollar cost per call",
+        "llm-latency: time to first token, total generation time",
+        "retrieval-quality: precision and recall per RAG query",
+        "task-queue-depth: Celery queue length and processing time",
+        "cache-hit-rate: Redis hit/miss ratio"
+      ]
+    },
+    "principles": [
+      "Every LLM call is traced end-to-end: input, output, latency, tokens, cost.",
+      "Structured logs (JSON) with correlation IDs across request lifecycle.",
+      "Alerts on error rate spikes, not just individual errors.",
+      "Health checks verify actual functionality (can query DB, can reach Redis), not just process uptime."
+    ]
+  },
+
+  "testing": {
+    "framework": "pytest",
+    "frontend_testing": "vitest",
+    "patterns": [
+      "unit-tests: service layer logic, utility functions, validators",
+      "integration-tests: API endpoints with real database (not mocks)",
+      "llm-tests: deterministic inputs with expected output patterns, LLM-as-judge for quality",
+      "rag-evaluation: retrieval precision/recall on annotated dataset",
+      "e2e-tests: critical user flows through the full stack"
+    ],
+    "principles": [
+      "Integration tests hit a real database — mocks hide real bugs.",
+      "LLM outputs are tested for structure and constraints, not exact text.",
+      "Every bug fix comes with a regression test.",
+      "Tests run in Docker to match production environment.",
+      "CI blocks merge on test failure — no exceptions."
+    ]
+  },
+
+  "agent_mapping": {
+    "rex": ["backend", "database", "testing.unit-tests", "testing.integration-tests"],
+    "aria": ["frontend", "testing.frontend_testing", "testing.e2e-tests"],
+    "nova": ["ai", "testing.llm-tests", "testing.rag-evaluation"],
+    "adam": ["infrastructure", "observability", "testing.patterns"],
+    "sage": ["security"],
+    "claude": ["all sections — reads stack profile to validate agent recommendations"]
+  }
+}
