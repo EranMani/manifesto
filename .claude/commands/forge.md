@@ -128,6 +128,10 @@ If no decision is needed, proceed automatically.
 
 ## Phase 3.5 — Design Challenge
 
+**Skip condition**: if Phase 1 scope estimate is **XS** AND task type is
+**fix** or **refactor**, skip this phase entirely — the overhead is not
+justified for trivial changes. Proceed directly to Phase 4.
+
 Before writing specs, Claude cross-examines the agent recommendations from
 Phase 3. This catches weak designs, missing edge cases, and unconsidered
 tradeoffs before they become committed code.

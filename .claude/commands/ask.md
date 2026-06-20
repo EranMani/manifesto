@@ -7,29 +7,30 @@ changes, no commit protocol updates.
 
 ## Phase 0 — Persona Selection
 
-Read `.claude/persona-profiles.json`.
+Check the first word of `$ARGUMENTS` against these known persona prefixes:
+`founder`, `nontechnical`, `plain`, `simple`, `pm`, `product`,
+`product-manager`, `engineer`, `eng`, `dev`, `senior`, `technical`,
+`interviewer-founder`, `interview-founder`, `if`, `interviewer-pm`,
+`interview-pm`, `ip`, `interviewer-eng`, `interview-eng`, `ie`.
 
-**Step 1 — Check for explicit persona flag.** If the first word of
-`$ARGUMENTS` matches any persona key or alias in the profiles file, set that
-as the active persona and strip it from the arguments. The remainder is the
-question.
+**Fast path** — if the first word does NOT match any prefix AND the
+remaining text is not `questions` or `q`:
+- Use the default engineer persona behavior (full technical detail,
+  `file:line` references, code snippets, ASCII diagrams, Sources section,
+  confidence rating).
+- Do NOT read `persona-profiles.json`. Skip to Phase 1.
+- This saves ~1-2k tokens on the most common invocation pattern.
 
-Examples:
-- `/ask founder what can the product do?` → persona = founder, question = "what can the product do?"
-- `/ask pm what's the state of shipments?` → persona = pm
-- `/ask eng how does auth work?` → persona = engineer
-- `/ask what's the state of shipments?` → no explicit flag, go to step 2
+**Persona path** — if the first word matches a prefix OR the text is
+`questions`/`q`:
+1. Read `.claude/persona-profiles.json`.
+2. Set the matching persona as active, strip the prefix from arguments.
+3. If no prefix match but `questions`/`q` is present, check auto-memory
+   for a stored role preference, then fall back to the `default` key.
 
-**Step 2 — Check auto-memory.** If no explicit flag, check
-`~/.claude/projects/*/memory/` for a user memory that records a role or persona
-preference. If found, map it to the closest persona key.
-
-**Step 3 — Default.** If neither flag nor memory provides a persona, use the
-`default` value from the profiles file (currently `engineer`).
-
-**Apply throughout.** The active persona's `prompt` field overrides the answer
-formatting rules. Every answer must conform to the active persona's language,
-structure, and inclusion/exclusion rules.
+**Apply throughout.** The active persona's `prompt` field overrides the
+answer formatting rules. Every answer must conform to the active persona's
+language, structure, and inclusion/exclusion rules.
 
 If `$ARGUMENTS` (after stripping any persona prefix) is empty, ask: "What
 would you like to know about the codebase?"

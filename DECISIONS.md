@@ -2203,4 +2203,32 @@ Tier decision happens in ~15 lines instead of the old 45-line route table + 30-l
 
 ---
 
+## D56 — Token-Cost Optimizations for /ask and /forge
+
+- **Date:** 2026-06-20
+- **Decided by:** Eran (question), Claude (analysis + implementation)
+- **Context:** After adding personas, question bank, interviewer mode, and the forge design challenge phase, Eran asked about the balance between token usage and code quality. Audit revealed two areas where tokens were spent without proportional value.
+
+### Decisions made
+
+**D56a — Lazy persona load in /ask.** When no persona flag is present and the keyword isn't `questions`/`q`, the persona profiles JSON is NOT read. The default engineer behavior is hardcoded in the prompt and applied directly. This saves ~1-2k tokens on the most common invocation pattern (`/ask how does X work?`), which represents ~80% of usage. The profiles file is only read when a persona is explicitly requested or the question bank is triggered.
+
+**D56b — Skip Phase 3.5 for XS-scope forge tasks.** When Phase 1 estimates XS scope AND the task type is fix or refactor, the design challenge phase is skipped entirely. A typo fix or one-line config change doesn't need architecture/performance/security challenges. This saves ~5-10k tokens per trivial forge run. Features always get the challenge phase regardless of scope, since even small features can have design implications.
+
+### Tradeoffs
+
+- **D56a risk:** if someone sets a default persona in memory but doesn't use a flag, the fast path won't pick it up — they'll get engineer answers. Accepted because: (a) memory-based defaults were rarely used in practice, (b) the user can always add the flag explicitly, and (c) the savings apply to the highest-volume path.
+
+- **D56b risk:** an XS fix might have a non-obvious design implication that the challenge phase would have caught. Accepted because: (a) XS fixes touch 1-2 files by definition, limiting blast radius, (b) the verification step in `/next-step` still catches implementation-level issues, and (c) features (where design matters most) always get challenged regardless of scope.
+
+### Token impact summary
+
+| Change | Savings | Frequency | Net impact |
+|--------|---------|-----------|------------|
+| Lazy persona load | ~1-2k per call | ~80% of /ask calls | ~1-1.5k avg savings per /ask |
+| Skip Phase 3.5 for XS | ~5-10k per call | ~20% of /forge calls | ~1-2k avg savings per /forge |
+| Phase 3.5 for S/M/L | +5-10k per call | ~80% of /forge calls | Prevents ~50-100k revert cost |
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*

@@ -148,6 +148,9 @@ If no decision is needed, proceeds automatically.
 
 ### Phase 3.5 — Design Challenge
 
+**Skipped** when Phase 1 scope is XS AND task type is fix or refactor.
+Trivial changes don't justify the challenge overhead.
+
 Before writing specs, Claude cross-examines the agent recommendations.
 This catches weak designs, missing edge cases, and unconsidered tradeoffs
 before they become committed code.

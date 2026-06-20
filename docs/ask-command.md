@@ -78,6 +78,11 @@ challenges you with questions).
 2. **Auto-memory** — stored user role preference from previous sessions
 3. **Default** — `engineer` (configurable in `persona-profiles.json`)
 
+**Lazy loading optimization**: when no persona flag is present and the
+keyword isn't `questions`/`q`, the persona profiles file is NOT read.
+The default engineer behavior is applied directly, saving ~1-2k tokens
+on the most common invocation pattern (`/ask how does X work?`).
+
 ### Interviewer Personas
 
 Interviewer personas flip the dynamic — the system asks, you answer.
@@ -387,14 +392,15 @@ Quick reference for all available aliases:
 
 ### Token Budgets
 
-| Scenario | Estimated cost |
-|----------|---------------|
-| Quick question | ~5-8k tokens |
-| Standard question | ~15-20k tokens |
-| Deep question (with agent) | ~50-70k tokens |
-| Follow-up question | ~5-15k tokens |
-| Interview challenge (per question) | ~10-20k tokens |
-| Full interview session (6 challenges) | ~80-150k tokens |
+| Scenario | Estimated cost | Notes |
+|----------|---------------|-------|
+| Quick question (no persona flag) | ~3-6k tokens | Fast path: no persona file read |
+| Quick question (with persona) | ~5-8k tokens | Reads persona-profiles.json |
+| Standard question | ~15-20k tokens | |
+| Deep question (with agent) | ~50-70k tokens | |
+| Follow-up question | ~5-15k tokens | |
+| Interview challenge (per question) | ~10-20k tokens | |
+| Full interview session (6 challenges) | ~80-150k tokens | Opt-in only |
 
 ---
 
