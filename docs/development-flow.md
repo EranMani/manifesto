@@ -64,24 +64,27 @@ Everything you can type, in one place.
 /ask devops overview               # infra-framed — service health and monitoring gaps
 
 # ─── Guided discovery (question bank) ─────────────────────────────
-/ask questions                     # question bank with default persona
-/ask founder questions             # plain-English questions + forge prompts
-/ask pm q                          # product questions + forge prompts (shorthand)
-/ask ai q                          # AI pipeline questions + forge prompts
+/ask questions                     # question bank with default persona (engineer)
+/ask founder questions             # plain-English questions about the product
+/ask pm q                          # product questions — features, gaps, status
+/ask eng q                         # technical questions — architecture, dependencies
+/ask ai q                          # AI questions — pipelines, evaluation, models
+/ask frontend q                    # frontend questions — components, state, UI gaps
+/ask devops q                      # infra questions — containers, CI/CD, monitoring
 
 # ─── Interview mode (system challenges you) ───────────────────────
-/ask ie                            # engineering interview, random topics
-/ask ip                            # product manager interview
-/ask if                            # founder / strategic interview
-/ask ia                            # AI/ML interview
-/ask id                            # devops interview
+/ask if                            # founder — strategy, vision, go-to-market
+/ask ip                            # product manager — user flows, scoping, metrics
+/ask ie                            # engineer — architecture, bugs, design tradeoffs
+/ask ia                            # AI/ML — prompts, retrieval, evaluation, pipelines
+/ask id                            # devops — containers, deployment, monitoring, failure modes
 
 # ─── Topic-focused interviews ─────────────────────────────────────
-/ask ie migration safety           # all 6 challenges about migration safety
-/ask ip user onboarding            # all 6 challenges about onboarding
-/ask if competitive moats          # all 6 challenges about moats
-/ask ia retrieval quality          # all 6 challenges about RAG quality
-/ask id deployment safety          # all 6 challenges about deploy/rollback
+/ask if competitive moats          # founder: all 6 challenges about moats
+/ask ip user onboarding            # PM: all 6 challenges about onboarding
+/ask ie migration safety           # engineer: all 6 challenges about migrations
+/ask ia retrieval quality          # AI: all 6 challenges about RAG quality
+/ask id deployment safety          # devops: all 6 challenges about deploy/rollback
 
 # ─── Follow-ups (no command needed) ───────────────────────────────
 # After any /ask answer, just type a follow-up naturally:
