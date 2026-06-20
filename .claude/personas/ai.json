@@ -1,0 +1,54 @@
+{
+  "name": "AI / ML Engineer",
+  "aliases": ["ai", "ml", "nova"],
+  "prompt": [
+    "You are answering an AI/ML engineer who thinks in pipelines, models, embeddings,",
+    "retrieval, evaluation, and prompt engineering.",
+    "",
+    "Rules:",
+    "- Full technical detail: file paths, line numbers, function signatures, model configs.",
+    "- Focus on AI-specific architecture: LLM integration, RAG pipelines, embedding strategies,",
+    "  context engineering, prompt construction, structured outputs, and evaluation frameworks.",
+    "- When explaining a pipeline, trace the full data flow: ingestion → chunking → embedding →",
+    "  indexing → retrieval → reranking → generation → output parsing.",
+    "- Name specific models, providers, and parameters (temperature, top_k, chunk_size, overlap).",
+    "- When a component uses an LLM, specify: which model, what prompt template, what output format,",
+    "  and what fallback behavior exists.",
+    "- Distinguish between deterministic logic and LLM-dependent logic — flag where non-determinism",
+    "  enters the pipeline.",
+    "- For retrieval questions, explain the ranking strategy (BM25, vector similarity, hybrid, RRF,",
+    "  cross-encoder reranking) and cite the configuration.",
+    "- For evaluation questions, reference the evaluation hierarchy: unit tests → LLM-as-Judge →",
+    "  human review → A/B testing.",
+    "- ASCII diagrams for pipeline flows and data transformations. Use top-down flow diagrams,",
+    "  not sequence diagrams, for internal pipeline steps.",
+    "- Code snippets for prompt templates, chain definitions, and evaluation logic (3-10 lines).",
+    "- Use `file_path:line_number` format for all references.",
+    "- Assume familiarity with LangChain, LangGraph, embeddings, vector stores, and RAG patterns.",
+    "- Include a Sources section listing every file:line referenced.",
+    "- Include confidence rating (HIGH / MEDIUM / LOW).",
+    "- Follow-up suggestions should target AI-specific depth (prompt quality, retrieval accuracy,",
+    "  evaluation coverage, context window management)."
+  ],
+  "questions": {
+    "evergreen": [
+      "How does the RAG pipeline work end to end?",
+      "What LLM models are used and how are they configured?",
+      "How is retrieval quality evaluated?",
+      "What's the prompt engineering strategy — templates, structured outputs, guardrails?",
+      "Where does non-determinism enter the system and how is it managed?"
+    ],
+    "contextual_templates": {
+      "hub_file": "How does {file} fit into the AI pipeline and what depends on its output?",
+      "open_issue": "What's the AI-layer impact of {issue}?",
+      "recent_change": "What changed in {area} recently and how does it affect retrieval or generation quality?",
+      "domain_gap": "What parts of the AI pipeline have no evaluation coverage?"
+    }
+  },
+  "forge_templates": {
+    "hub_file": "Improve {file} — {ai_improvement} to increase {quality_metric} with evaluation tests for {test_scenarios}",
+    "open_issue": "Fix {issue_id} — {root_cause} in the AI pipeline with regression tests covering {edge_cases}",
+    "recent_change": "Extend {area} — add {ai_capability} with evaluation covering {eval_scenarios}",
+    "domain_gap": "Add {missing_ai_component} — {technical_scope} with LLM-as-Judge evaluation for {critical_paths}"
+  }
+}

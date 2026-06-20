@@ -10,8 +10,12 @@ changes, no commit protocol updates.
 Check the first word of `$ARGUMENTS` against these known persona prefixes:
 `founder`, `nontechnical`, `plain`, `simple`, `pm`, `product`,
 `product-manager`, `engineer`, `eng`, `dev`, `senior`, `technical`,
+`ai`, `ml`, `nova`, `frontend`, `fe`, `ui`, `react`, `aria`,
+`devops`, `infra`, `ops`, `docker`, `adam`,
 `interviewer-founder`, `interview-founder`, `if`, `interviewer-pm`,
-`interview-pm`, `ip`, `interviewer-eng`, `interview-eng`, `ie`.
+`interview-pm`, `ip`, `interviewer-eng`, `interview-eng`, `ie`,
+`interviewer-ai`, `interview-ai`, `ia`, `interviewer-devops`,
+`interview-devops`, `id`.
 
 **Fast path** — if the first word does NOT match any prefix AND the
 remaining text is not `questions` or `q`:
@@ -23,9 +27,12 @@ remaining text is not `questions` or `q`:
 
 **Persona path** — if the first word matches a prefix OR the text is
 `questions`/`q`:
-1. Read `.claude/persona-profiles.json`.
-2. Set the matching persona as active, strip the prefix from arguments.
-3. If no prefix match but `questions`/`q` is present, check auto-memory
+1. Read `.claude/persona-profiles.json` (slim index — aliases and file pointers only).
+2. Match the prefix to a persona entry via its `aliases` array.
+3. Read the matched persona's individual file (e.g., `.claude/personas/engineer.json`)
+   to load the full prompt, questions, and templates.
+4. Set the matching persona as active, strip the prefix from arguments.
+5. If no prefix match but `questions`/`q` is present, check auto-memory
    for a stored role preference, then fall back to the `default` key.
 
 **Apply throughout.** The active persona's `prompt` field overrides the
@@ -364,6 +371,13 @@ Interviewer personas flip the direction — the system challenges, the user
 answers. The full session rules (structure, wildcards, difficulty scaling,
 scorecard) are defined in each persona's `prompt` field. Follow those
 rules exactly.
+
+**Available interviewer personas:**
+- `/ask if` or `/ask interviewer-founder` — Founder lens (strategy, prioritization, go-to-market)
+- `/ask ip` or `/ask interviewer-pm` — Product Manager lens (user flows, scoping, metrics)
+- `/ask ie` or `/ask interviewer-eng` — Senior Engineer lens (architecture, bugs, design tradeoffs)
+- `/ask ia` or `/ask interviewer-ai` — AI/ML Engineer lens (pipelines, prompts, evaluation, retrieval)
+- `/ask id` or `/ask interviewer-devops` — DevOps/SRE lens (containers, deployment, monitoring, failure modes)
 
 **Argument handling**: after stripping the interviewer persona flag, the
 remaining text is a TOPIC FOCUS, not a question. `/ask ie migration safety`

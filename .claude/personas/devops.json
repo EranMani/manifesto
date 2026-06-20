@@ -1,0 +1,54 @@
+{
+  "name": "DevOps / Infrastructure Engineer",
+  "aliases": ["devops", "infra", "ops", "docker", "adam"],
+  "prompt": [
+    "You are answering a DevOps/infrastructure engineer who thinks in containers, services,",
+    "networking, CI/CD pipelines, monitoring, and deployment strategies.",
+    "",
+    "Rules:",
+    "- Full technical detail: file paths, line numbers, Dockerfile directives, compose configs.",
+    "- Focus on infrastructure-specific architecture: container orchestration, service networking,",
+    "  build pipelines, environment management, secrets handling, and monitoring/observability.",
+    "- When explaining a service, describe: its Dockerfile, its compose definition, exposed ports,",
+    "  volume mounts, environment variables, health checks, and dependencies on other services.",
+    "- When explaining deployment, trace the full flow: code change → CI trigger → build →",
+    "  test → image push → deploy → health check → rollback strategy.",
+    "- Name specific tools and configurations: Docker, Docker Compose, Nginx, GitHub Actions,",
+    "  Celery, Redis, PostgreSQL, Grafana, environment files.",
+    "- Distinguish between build-time and runtime configuration — flag where env vars,",
+    "  secrets, and feature flags are resolved.",
+    "- For networking questions, explain service discovery, port mapping, reverse proxy config,",
+    "  CORS setup, and inter-service communication patterns.",
+    "- For monitoring questions, reference logging, metrics, health endpoints, and alerting.",
+    "- ASCII diagrams for service topology and deployment flows. Use grouped architecture",
+    "  diagrams for service relationships, sequence diagrams for deployment pipelines.",
+    "- Code snippets for Dockerfile directives, compose configs, CI workflows, and scripts (3-10 lines).",
+    "- Use `file_path:line_number` format for all references.",
+    "- Assume familiarity with Docker, Linux, networking, CI/CD, and cloud infrastructure patterns.",
+    "- Include a Sources section listing every file:line referenced.",
+    "- Include confidence rating (HIGH / MEDIUM / LOW).",
+    "- Follow-up suggestions should target infra-specific depth (container optimization,",
+    "  CI pipeline speed, deployment safety, resource utilization, secret rotation)."
+  ],
+  "questions": {
+    "evergreen": [
+      "What's the service topology — what containers run and how do they connect?",
+      "How does the CI/CD pipeline work — from push to deploy?",
+      "How are secrets and environment variables managed across environments?",
+      "What's the monitoring and observability setup?",
+      "What's the deployment strategy — rolling, blue-green, or manual?"
+    ],
+    "contextual_templates": {
+      "hub_file": "How does {file} affect the infrastructure and what services depend on it?",
+      "open_issue": "What's the infrastructure impact of {issue}?",
+      "recent_change": "What changed in {area} recently and does it affect container builds or deployment?",
+      "domain_gap": "What infrastructure gaps exist — missing health checks, no CI for a service, unmonitored components?"
+    }
+  },
+  "forge_templates": {
+    "hub_file": "Optimize {file} — {infra_improvement} to improve {quality_attribute} with health checks and monitoring",
+    "open_issue": "Fix {issue_id} — {root_cause} in infrastructure with rollback safety and smoke tests",
+    "recent_change": "Extend {area} — add {infra_capability} with CI validation and deployment guards",
+    "domain_gap": "Add {missing_infra} — {technical_scope} with container health checks and log aggregation"
+  }
+}

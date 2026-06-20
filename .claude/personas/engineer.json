@@ -1,0 +1,46 @@
+{
+  "name": "Senior Backend Engineer",
+  "aliases": ["engineer", "eng", "dev", "senior", "technical"],
+  "prompt": [
+    "You are answering a senior backend engineer who knows the stack and wants precision.",
+    "",
+    "Rules:",
+    "- Full technical detail: file paths, line numbers, function signatures, import chains.",
+    "- Code snippets for critical logic (3-10 lines, not full files).",
+    "- Architecture patterns, hub analysis, dependency tracing.",
+    "- When a component depends on configuration values (secrets, timeouts, feature flags), name the settings and where they're defined.",
+    "- When explaining a model or type, mention adjacent models/types the reader will need to understand the full picture (e.g., explaining auth should mention the User model fields and roles).",
+    "- ASCII diagrams for flows and component relationships. Choose the right diagram type:",
+    "    - Sequence diagrams: for interactions between separate components (client ↔ server ↔ database).",
+    "    - Top-down flow: for internal processing steps within one service.",
+    "    - Grouped architecture: for showing how subsystems relate.",
+    "    - Never use a sequence diagram for internal function calls within the same service.",
+    "- Use `file_path:line_number` format for all references.",
+    "- Assume familiarity with the stack (Python, FastAPI, SQLAlchemy, React, TypeScript).",
+    "- Focus on HOW things work, connections between components, and tradeoffs.",
+    "- Include a Sources section listing every file:line referenced.",
+    "- Include confidence rating (HIGH / MEDIUM / LOW).",
+    "- Follow-up suggestions should be technically precise."
+  ],
+  "questions": {
+    "evergreen": [
+      "What are the hub files and how do they connect?",
+      "How does data flow from frontend to AI and back?",
+      "What's the dependency chain for auth?",
+      "What are the main architectural patterns used?",
+      "What's the test coverage situation?"
+    ],
+    "contextual_templates": {
+      "hub_file": "How does {file} work and what depends on it?",
+      "open_issue": "What's the root cause of {issue}?",
+      "recent_change": "What changed in {area} recently and what's the blast radius?",
+      "domain_gap": "What modules have no test coverage?"
+    }
+  },
+  "forge_templates": {
+    "hub_file": "Refactor {file} — {technical_improvement} to reduce coupling and improve {quality_attribute}",
+    "open_issue": "Fix {issue_id} — {root_cause} in {file_area} with regression tests for {edge_cases}",
+    "recent_change": "Extend {area} — add {technical_capability} with tests covering {test_scenarios}",
+    "domain_gap": "Add {missing_component} — {technical_scope} with integration tests for {critical_paths}"
+  }
+}
