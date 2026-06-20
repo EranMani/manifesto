@@ -34,6 +34,7 @@
         "TASK_TO_COMMIT_PROTOCOL_GUIDE.md",
         "TASK_TO_COMMIT_SYSTEM_IMPLEMENTATION_GUIDE.md",
         "commit-specs/",
+        "docs/",
         ".claude/agents/",
         ".claude/settings.json",
         ".claude/persona-profiles.json",
