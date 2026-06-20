@@ -56,9 +56,12 @@ Everything you can type, in one place.
 /ask devops what's the service topology?          # infrastructure focus
 
 # ─── Overview radar (which hat needs attention?) ──────────────────
-/ask overview                      # engineer-framed attention radar
-/ask founder overview              # plain-English attention radar
-/ask pm ov                         # product-framed attention radar
+/ask overview                      # engineer-framed attention radar (default)
+/ask founder overview              # plain-English — what needs attention and why
+/ask pm ov                         # product-framed — feature gaps and status
+/ask ai overview                   # AI-framed — pipeline and evaluation gaps
+/ask frontend ov                   # frontend-framed — UI coverage and component gaps
+/ask devops overview               # infra-framed — service health and monitoring gaps
 
 # ─── Guided discovery (question bank) ─────────────────────────────
 /ask questions                     # question bank with default persona
