@@ -11,6 +11,7 @@ run structured interview sessions to challenge your thinking.
   - [Answer Personas](#answer-personas)
   - [Interviewer Personas](#interviewer-personas)
 - [Overview Radar](#overview-radar)
+- [Readiness Assessment](#readiness-assessment)
 - [Question Bank](#question-bank)
 - [How the Pipeline Works](#how-the-pipeline-works)
 - [Usage Reference](#usage-reference)
@@ -50,6 +51,11 @@ run structured interview sessions to challenge your thinking.
 /ask overview
 /ask founder overview
 /ask ov
+
+# Get a launch-readiness assessment
+/ask founder readiness
+/ask pm ready
+/ask readiness
 
 # Get suggested questions
 /ask founder questions
@@ -170,6 +176,35 @@ PM gets feature-oriented framing, engineers get technical detail.
 
 ---
 
+## Readiness Assessment
+
+How close is the product to being usable by real customers?
+
+```bash
+/ask founder readiness    # plain-English readiness with decision card
+/ask pm ready             # product-framed with status indicators
+/ask readiness            # technical detail with file references
+```
+
+The readiness assessment scans the codebase for actual evidence and
+classifies each feature area into one of four levels:
+
+| Level | Meaning | Evidence required |
+|-------|---------|-------------------|
+| **Ready** | A customer could use this today | Code + tests + UI all exist |
+| **Risky** | Works but could break | Code exists but missing tests or has open issues |
+| **Incomplete** | Partially built | Some code exists but key parts missing (no UI, blocked) |
+| **Not started** | Doesn't exist yet | No code for this feature area |
+
+Every level must cite evidence — the assessment never assumes a feature
+works just because code exists. Untested code is "Risky" at best.
+
+For founder and PM personas, the output ends with a **decision card** —
+numbered options the user can choose from, framed as business priorities
+rather than technical tasks.
+
+---
+
 ## Question Bank
 
 Don't know what to ask? The question bank generates persona-appropriate
@@ -229,6 +264,8 @@ Question arrives
        │
        ├── "overview" ─────► Overview Radar (short-circuit)
        │
+       ├── "readiness" ───► Readiness Assessment (short-circuit)
+       │
        ├── "questions" ────► Question Bank (short-circuit)
        │
        ▼
@@ -282,6 +319,14 @@ what about vendor management?
 /ask founder overview      # plain English — "what needs attention"
 /ask pm ov                 # product framing — feature gaps and status
 /ask devops overview       # infra framing — service health and monitoring gaps
+```
+
+### Readiness Mode
+
+```bash
+/ask founder readiness     # plain-English readiness with decision card
+/ask pm ready              # product-framed with status indicators
+/ask readiness             # technical detail with file references
 ```
 
 ### Guided Discovery

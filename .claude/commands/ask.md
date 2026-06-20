@@ -24,8 +24,16 @@ stripping) is `overview` or `ov`:
 - If a persona prefix was provided before `overview`, use that persona's
   language rules for the output. Otherwise use the default engineer persona.
 
+**Readiness path** — if the first word (after optional persona prefix
+stripping) is `readiness` or `ready`:
+- Skip to **Phase 0.8 — Readiness Assessment**. This short-circuits
+  the entire Q&A pipeline.
+- If a persona prefix was provided before `readiness`, use that persona's
+  language rules. Otherwise use the default engineer persona.
+
 **Fast path** — if the first word does NOT match any prefix AND the
-remaining text is not `questions`, `q`, `overview`, or `ov`:
+remaining text is not `questions`, `q`, `overview`, `ov`, `readiness`,
+or `ready`:
 - Use the default engineer persona behavior (full technical detail,
   `file:line` references, code snippets, ASCII diagrams, Sources section,
   confidence rating).
@@ -56,6 +64,14 @@ would you like to know about the codebase?"
 If the remaining question (after persona stripping) is exactly `questions`
 or `q`, show the question bank instead of answering a question. This
 short-circuits the rest of the pipeline.
+
+**Language rule**: all generated text in the question bank — questions,
+descriptions, status labels, domain names, and forge prompts — MUST
+follow the active persona's language rules. For founder persona: no
+technical terms, no file paths, no domain labels like "backend" or
+"frontend" (use "the core system" and "the user-facing interface"
+instead). For PM persona: use product vocabulary, no engineering jargon.
+This rule applies to every step below.
 
 ### Step 1 — Load evergreen questions
 
@@ -125,6 +141,12 @@ the active persona's `forge_templates` from the persona's individual file.
 Combine evergreen + contextual questions. Remove near-duplicates. Keep
 contextual over evergreen when they overlap. Target: 6-8 total questions.
 
+**Hard rule**: the final list MUST contain at least 5 questions. If
+contextual generation produced too few, backfill from the persona's
+evergreen list. Never present fewer than 5 questions — the question bank
+exists to help users who don't know what to ask, and an empty or
+near-empty list defeats its purpose.
+
 ### Step 5 — Present to the user
 
 Split into three groups and present. Output the first two groups using
@@ -132,8 +154,29 @@ AskUserQuestion, then render the third group as a text section below.
 
 **Group 1 — "Start here"**: 3-4 best overview questions.
 **Group 2 — "Go deeper"**: 3-4 most specific contextual questions.
+
+**Groups 1 and 2 are mandatory.** Questions MUST be presented before
+any forge prompts. If the AskUserQuestion call would be empty, the
+question bank has failed — backfill from evergreen questions.
+
 **Group 3 — "Build next"**: 2-3 forge-ready prompts (from Step 3).
-Render as a labeled text block after the AskUserQuestion selection:
+Render as a labeled text block AFTER the AskUserQuestion selection.
+Group 3 is supplementary — it must never replace Groups 1 and 2.
+
+For non-technical personas (founder, PM), present Group 3 as plain-
+language action descriptions, not raw `/forge` commands:
+
+```
+WHAT TO BUILD NEXT:
+
+  1. {plain-language description of the action and why it matters}
+  2. {plain-language description}
+  3. {plain-language description}
+
+To start building any of these, tell me which one interests you.
+```
+
+For technical personas, use the standard forge-prompt format:
 
 ```
 BUILD NEXT — paste any of these into the chat to start planning:
@@ -163,6 +206,20 @@ question. This short-circuits the rest of the pipeline.
 gaps, imbalances, and risks they wouldn't know to ask about.
 
 **Budget**: ≤12 tool calls. No agents.
+
+**Language rule**: all generated text in the overview radar MUST follow
+the active persona's language rules. This includes domain labels, status
+descriptions, commit counts, and suggested actions. Specific translations
+for non-technical personas:
+- "commits" → "internal development changes" (not "shipped" unless deployed)
+- "backend" → "the core system"
+- "frontend" → "the user-facing interface"
+- "AI/ML" → "the smart features" or "the AI assistant"
+- "DevOps" → "the hosting and automation setup"
+- "test coverage" → "protection against things breaking"
+- "open issues" → "known problems"
+- "unactioned handoffs" → "pending items waiting for follow-up"
+For technical personas, use standard domain terminology.
 
 ### Step 1 — Gather signals
 
@@ -255,14 +312,36 @@ user can paste it directly. Never use raw domain names like `/ask backend`
 ### Step 4 — Persona adaptation
 
 If a persona was specified before `overview`:
-- **Founder persona**: replace domain icons with plain names, replace
-  `/ask` and `/forge` commands with plain-language descriptions of what
-  needs attention and why it matters to the business.
+- **Founder persona**: replace domain icons with plain names ("The core
+  system" not "[BE] Backend"). Replace `/ask` and `/forge` commands with
+  plain-language next steps ("I can look into what's missing in the
+  customer-facing screens" not "/ask frontend ..."). Present recommended
+  actions as a numbered decision card (see below). Never use "shipped" for
+  commits — say "internal development changes completed." Translate all
+  status language: "healthy" → "working well", "needs attention" →
+  "has risks that could affect customers."
 - **PM persona**: frame gaps as feature/capability gaps, use status
-  indicators (Built/Partial/Missing), replace technical details with
-  user-impact framing.
+  indicators (Built/Partial/Missing/Not started), replace technical
+  details with user-impact framing. Present recommended actions as
+  prioritized options with user impact. Use "changes" not "commits."
 - **Engineer/AI/Frontend/DevOps persona**: use the full technical format
   above with file references where relevant.
+
+**Decision cards** (founder and PM personas only): when presenting
+recommended actions, format as numbered options the user can choose
+from, not raw commands:
+
+```
+What would you like to prioritize?
+
+  1. Strengthen protection against things breaking — the login and
+     inventory systems have no automated safety checks
+  2. Complete the document management screens — users can upload
+     documents but can't manage them in the interface
+  3. Prepare for a customer pilot — run an end-to-end readiness check
+
+Pick a number, or tell me what matters most to you.
+```
 
 ### Step 5 — Suggest next action
 
@@ -281,6 +360,127 @@ Use the matching persona alias for the domain (see mapping above).
 Example: if the frontend has the biggest gap, suggest
 `/ask frontend what backend features have no UI yet?` not
 `/ask what backend features have no UI?`.
+
+**Done. Do not continue to Phase 1.**
+
+---
+
+## Phase 0.8 — Readiness Assessment (triggered by `readiness` or `ready`)
+
+If the remaining text (after persona stripping) starts with `readiness`
+or `ready`, produce a launch-readiness assessment instead of answering
+a question. This short-circuits the rest of the pipeline.
+
+**Purpose:** Tell the user how close the product is to being usable by
+real customers, with evidence-based status per feature area.
+
+**Budget**: ≤12 tool calls. No agents.
+
+### Step 1 — Gather evidence
+
+Read these data sources in parallel (skip any that don't exist):
+
+**Source A — Feature inventory**: read route files, model files, and
+frontend pages to identify what features exist at the code level.
+
+**Source B — Test coverage**: count test files per feature area. A
+feature with no tests is "built but unverified."
+
+**Source C — Frontend coverage**: check which backend features have
+corresponding frontend pages or components. A feature with no UI is
+"built but not user-accessible."
+
+**Source D — Project state** (`project-state.json`): read `open_issues`
+for known problems, `open_handoffs` for pending work.
+
+**Source E — Recent stability** (`git log --oneline -15`): check if
+recent changes were fixes (indicating instability) or features
+(indicating forward progress).
+
+### Step 2 — Classify each feature area
+
+For each feature area, assign one of four readiness levels based on
+actual evidence:
+
+- **Ready** — code exists, tests exist, UI exists, no open issues.
+  A customer could use this today.
+- **Risky** — code exists and may work, but missing tests or has open
+  issues. Could break without warning.
+- **Incomplete** — partially built. Some code exists but key parts
+  are missing (no UI, no core functionality, or blocked by dependencies).
+- **Not started** — no code exists for this feature area.
+
+**Evidence rule**: every readiness level MUST cite what evidence supports
+it. "Ready" requires test files and UI components to exist. "Risky"
+requires identifying what's missing. Never assign "Ready" based on code
+existing alone — untested code is "Risky" at best.
+
+### Step 3 — Present the assessment
+
+**For founder/PM personas:**
+
+```
+READINESS ASSESSMENT
+───────────────────────────────────────────────────────
+
+{One-sentence overall verdict: e.g., "The core product works but
+important safety gaps make it risky for real customers."}
+
+READY — safe for customers
+  {feature area} — {why it's ready}
+
+RISKY — works but could break
+  {feature area} — {what's missing: e.g., "no automated safety checks"}
+  {feature area} — {what's missing}
+
+INCOMPLETE — partially built
+  {feature area} — {what exists vs. what's missing}
+
+NOT STARTED
+  {feature area} — {what doesn't exist yet}
+
+───────────────────────────────────────────────────────
+Overall: {N} of {total} feature areas are customer-ready.
+Biggest risk: {the single most dangerous gap and why}
+───────────────────────────────────────────────────────
+
+What would you like to prioritize?
+
+  1. {highest-impact action — plain language}
+  2. {second action}
+  3. {third action}
+
+Pick a number, or tell me what matters most to you.
+```
+
+**For technical personas:**
+
+```
+READINESS ASSESSMENT
+Route: Direct | Confidence: {HIGH/MEDIUM/LOW}
+───────────────────────────────────────────────────────
+
+{One-sentence summary}
+
+| Feature Area | Status | Tests | UI | Issues | Evidence |
+|-------------|--------|-------|----|--------|----------|
+| {area}      | Ready  | ✓     | ✓  | 0      | {files}  |
+| {area}      | Risky  | ✗     | ✓  | 2      | {files}  |
+| {area}      | Incomplete | ✓ | ✗  | 1      | {files}  |
+
+───────────────────────────────────────────────────────
+Sources: {file:line references}
+Recommended:
+  /ask {persona} {question about highest-risk area}
+  /forge {action to address highest-risk gap}
+```
+
+### Step 4 — Persona language
+
+Apply the same persona language rules as the overview radar (Step 4 in
+Phase 0.7). Founder gets plain English with decision cards. PM gets
+product vocabulary with status indicators. Technical personas get full
+detail with file references.
 
 **Done. Do not continue to Phase 1.**
 

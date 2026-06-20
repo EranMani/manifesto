@@ -63,6 +63,11 @@ Everything you can type, in one place.
 /ask frontend ov                   # frontend-framed — UI coverage and component gaps
 /ask devops overview               # infra-framed — service health and monitoring gaps
 
+# ─── Readiness assessment (is this ready for customers?) ──────────
+/ask founder readiness             # plain-English readiness with decision card
+/ask pm ready                      # product-framed with status indicators
+/ask readiness                     # technical detail with file references
+
 # ─── Guided discovery (question bank) ─────────────────────────────
 /ask questions                     # question bank with default persona (engineer)
 /ask founder questions             # plain-English questions about the product
@@ -96,6 +101,7 @@ scorecards, overview radars. Read-only — no files modified.
 
 **Deep dives**: [Personas](ask-command.md#personas) |
 [Overview Radar](ask-command.md#overview-radar) |
+[Readiness](ask-command.md#readiness-assessment) |
 [Question Bank](ask-command.md#question-bank) |
 [Interview Mode](ask-command.md#usage-reference) |
 [All Aliases](ask-command.md#persona-aliases)
@@ -204,6 +210,12 @@ the evaluation file.
 /ask eng q                         # what's the architecture state?
 # each shows "Build next" — pick the highest-priority prompt
 /forge {paste prompt}
+/next-step --auto
+
+# ─── Readiness → Prioritize → Build ──────────────────────────────
+/ask founder readiness             # which features are customer-ready?
+# (decision card shows prioritized options)
+/forge {build the highest-priority gap}
 /next-step --auto
 
 # ─── Quality loop ─────────────────────────────────────────────────
