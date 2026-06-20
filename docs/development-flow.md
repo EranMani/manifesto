@@ -6,6 +6,11 @@ that goes from "I have a question" to "the code is committed."
 
 ## Table of Contents
 
+- [Command Quick Reference](#command-quick-reference)
+  - [/ask — Understand](#ask--understand)
+  - [/forge — Plan](#forge--plan)
+  - [/next-step — Execute](#next-step--execute)
+  - [Common Pipelines](#common-pipelines)
 - [The Flow at a Glance](#the-flow-at-a-glance)
 - [Stage 1 — Understand (/ask)](#stage-1--understand-ask)
 - [Stage 2 — Plan (/forge)](#stage-2--plan-forge)
@@ -34,6 +39,114 @@ that goes from "I have a question" to "the code is committed."
 
 ---
 
+## Command Quick Reference
+
+Everything you can type, in one place.
+
+### /ask — Understand
+
+```bash
+# ─── Ask a question ───────────────────────────────────────────────
+/ask how does auth work?                          # default (engineer persona)
+/ask founder what can this product do?            # plain English, no jargon
+/ask pm what's the state of shipments?            # feature status, gap analysis
+/ask eng how does the ingestion pipeline work?    # full technical detail
+
+# ─── Guided discovery (question bank) ─────────────────────────────
+/ask questions                     # question bank with default persona
+/ask founder questions             # plain-English questions + forge prompts
+/ask pm q                          # product questions + forge prompts (shorthand)
+/ask eng q                         # technical questions + forge prompts
+
+# ─── Interview mode (system challenges you) ───────────────────────
+/ask ie                            # engineering interview, random topics
+/ask ip                            # product manager interview
+/ask if                            # founder / strategic interview
+
+# ─── Topic-focused interviews ─────────────────────────────────────
+/ask ie migration safety           # all 6 challenges about migration safety
+/ask ip user onboarding            # all 6 challenges about onboarding
+/ask if competitive moats          # all 6 challenges about moats
+
+# ─── Follow-ups (no command needed) ───────────────────────────────
+# After any /ask answer, just type a follow-up naturally:
+what about vendor management?      # carries forward persona + domain context
+```
+
+**Output**: answers, guided questions, forge-ready prompts, interview
+scorecards. Read-only — no files modified.
+
+### /forge — Plan
+
+```bash
+# ─── Features ─────────────────────────────────────────────────────
+/forge add pagination to the shipments endpoint
+/forge add document search with keyword highlighting across backend and frontend
+
+# ─── Bug fixes ────────────────────────────────────────────────────
+/forge fix the chat scroll regression when messages overflow
+
+# ─── Refactors ────────────────────────────────────────────────────
+/forge refactor auth middleware to support session-based tokens
+
+# ─── From /ask "Build next" prompts (paste directly) ──────────────
+/forge add shipment editing — PATCH endpoint with role-based access and frontend form
+/forge build vendor dashboard UI — frontend for existing vendor CRUD so managers can browse and filter
+
+# ─── From insights ────────────────────────────────────────────────
+/forge turn the shipment update gap into a commit spec
+```
+
+**Output**: `commit-specs/commit-NN.md` files, updated protocol and
+state. No code changes — that's `/next-step`.
+
+### /next-step — Execute
+
+```bash
+# ─── Normal mode (safe default) ───────────────────────────────────
+/next-step                         # show preflight card, wait for approval
+
+# ─── Auto mode (unattended) ───────────────────────────────────────
+/next-step --auto                  # auto-approve clean preflights, loop all commits
+
+# ─── Auto-once (single commit, unattended) ────────────────────────
+/next-step --auto --once           # run exactly one commit, then stop
+```
+
+**Output**: committed code, advanced project state, token records.
+
+### Common Pipelines
+
+```bash
+# ─── Discovery → Build (fastest path) ─────────────────────────────
+/ask pm q                          # see gaps + "Build next" prompts
+/forge {paste a prompt}            # plan the commits
+/next-step --auto                  # execute all commits
+
+# ─── Deep dive → Targeted fix ─────────────────────────────────────
+/ask eng how does auth work?       # understand the system
+/ask eng what's the attack surface for JWT tokens?  # dig deeper
+# (after 5+ questions, /ask suggests forge prompts)
+/forge add token refresh with sliding expiration and revocation list
+/next-step --auto --once           # execute one commit
+
+# ─── Interview → Learn → Build ────────────────────────────────────
+/ask ie auth and security          # 6 engineering challenges
+# (scorecard shows weak areas + "Act on this" forge prompts)
+/forge add rate limiting and brute-force protection to the login endpoint
+/next-step
+
+# ─── Full product audit → Roadmap ─────────────────────────────────
+/ask founder q                     # what can this product do?
+/ask pm q                          # what features are built vs. missing?
+/ask eng q                         # what's the architecture state?
+# each shows "Build next" — pick the highest-priority prompt
+/forge {paste prompt}
+/next-step --auto
+```
+
+---
+
 ## The Flow at a Glance
 
 ```
@@ -46,15 +159,16 @@ that goes from "I have a question" to "the code is committed."
 │                                                                 │
 │   ┌──────────┐          ┌──────────┐          ┌──────────┐     │
 │   │Understand│ ──────►  │  Plan    │ ──────►  │ Execute  │     │
-│   │          │          │          │          │          │     │
-│   │ Persona  │          │ 6 phases │          │ Preflight│     │
+│   │          │ (forge   │          │          │          │     │
+│   │ Persona  │ prompts) │ 6 phases │          │ Preflight│     │
 │   │ Tiers    │          │ Scan     │          │ Implement│     │
 │   │ Q&A      │          │ Agents   │          │ Verify   │     │
 │   │ Interview│          │ Specs    │          │ Commit   │     │
+│   │ Build ►  │          │          │          │          │     │
 │   └──────────┘          └──────────┘          └──────────┘     │
 │                                                                 │
 │   Read-only              Creates specs          Creates code    │
-│   No side effects        Updates protocol       Updates state   │
+│   Forge-ready prompts    Updates protocol       Updates state   │
 │   Token-efficient        Validated plan          Verified commits│
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -70,14 +184,18 @@ that goes from "I have a question" to "the code is committed."
 - Answers questions in the language of the audience (founder, PM, engineer)
 - Uses a 3-tier pipeline (Quick/Standard/Deep) to match cost to complexity
 - Suggests follow-up questions to guide exploration
-- After 5+ questions in the same domain, suggests running `/forge`
+- Generates **forge-ready prompts** from codebase gaps — copy-paste to start building
+- After 5+ questions in the same domain, suggests specific forge prompts
 
 **Key capability**: the question bank (`/ask pm questions`) generates
 contextual questions from the actual codebase state — hub files, open
-issues, recent changes. This gives new users an entry point without
-needing to know what to ask.
+issues, recent changes — and translates identified gaps into actionable
+`/forge` prompts in the "Build next" section. This gives one person
+wearing multiple hats an entry point without needing to know what to ask
+*or* how to phrase the build task.
 
-**Output**: understanding. No files are created or modified.
+**Output**: understanding + actionable forge prompts. No files are
+created or modified.
 
 **Detailed docs**: [docs/ask-command.md](ask-command.md)
 
@@ -139,19 +257,31 @@ any failure, blocked preflight, or user interruption.
 
 ### /ask → /forge
 
-The handoff from understanding to planning happens in two ways:
+The handoff from understanding to planning happens in three ways:
 
-**Explicit**: the user runs `/forge` with a task based on what they learned:
+**Direct from question bank**: the "Build next" section generates
+forge-ready prompts alongside the questions. The user pastes one:
 ```bash
-# After learning that shipments can't be edited:
+# Question bank showed this in "Build next":
+/forge add shipment editing — PATCH endpoint with role-based access and frontend form
+```
+
+**From deep exploration**: after 5+ questions in the same domain, `/ask`
+generates specific forge prompts from the conversation context:
+```
+You're going deep on shipments. Ready to build?
+
+  /forge add shipment editing — PATCH endpoint with role-based access and frontend form
+  /forge add shipment list filtering — status and vendor filters with pagination
+```
+
+**Manual**: the user writes their own forge command based on what they learned:
+```bash
 /forge add update endpoint for shipments
 ```
 
-**Suggested**: after 5+ questions in the same domain, `/ask` suggests:
-```
-You're going deep on shipments. Want me to run /forge to turn these
-insights into a commit spec?
-```
+**From interview sessions**: after a session scorecard, the "Act on this"
+section suggests forge prompts derived from weaknesses the session exposed.
 
 ### /forge → /next-step
 
@@ -184,16 +314,23 @@ what was built, identify new gaps, and start the cycle again.
 
 Here's the full flow for adding pagination to the shipments endpoint:
 
-### 1. Understand the current state
+### 1. Discover gaps with guided questions
 
 ```bash
-/ask pm what's the state of shipments?
+/ask pm q
 ```
 
-Output reveals: CRUD exists but no pagination, no filtering, no update
-endpoint. The PM persona presents this as a feature gap analysis.
+The question bank shows contextual questions plus a "Build next" section:
 
-### 2. Decide what to build
+```
+BUILD NEXT — paste any of these into the chat to start planning:
+
+  /forge add shipment editing — PATCH endpoint with role-based access so managers can update shipments after creation
+  /forge build shipment list UI — frontend for existing shipment CRUD so managers can browse and filter
+  /forge add pagination and filtering to the shipments list endpoint
+```
+
+### 2. Optionally dig deeper
 
 ```bash
 /ask eng how does the shipments endpoint handle large datasets?
@@ -203,9 +340,10 @@ Output reveals: `list_shipments()` returns `select(Shipment)` with no
 limit — every row, every time. With growing data, this becomes a
 performance problem.
 
-### 3. Turn insight into a plan
+### 3. Paste a forge prompt or write your own
 
 ```bash
+# Paste directly from "Build next":
 /forge add pagination and filtering to the shipments list endpoint
 ```
 
@@ -258,17 +396,23 @@ development flow. It's a training tool:
 
 Interview sessions are 6 challenges each, grounded in the actual codebase.
 At the end, a scorecard identifies strengths and areas to develop, with a
-copy-pasteable command to start the next focused session.
+copy-pasteable command to start the next focused session and optional
+forge prompts to act on weaknesses the session exposed.
 
 ```
 Recommended next session:
   Focus on migration safety and test isolation.
   Run: /ask ie migration safety and test isolation
+
+Act on this:
+  /forge add rate limiting and brute-force protection to the login endpoint
+  /forge add database migration safety checks with rollback tests
 ```
 
-This creates a continuous improvement loop separate from the development
-flow — building architectural thinking, product instincts, and strategic
-reasoning using the real codebase as the training ground.
+This creates two loops: a **learning loop** (interview → scorecard →
+focused session) and a **build loop** (interview → forge prompt →
+commit). The same session that builds your thinking also surfaces
+concrete work to strengthen the codebase.
 
 ---
 
@@ -332,10 +476,10 @@ DECISIONS.md                      ← Architectural decision log
                     │     /ask         │
                     │                  │
                     │ persona-profiles │──► Answer or Interview
-                    │ .forge/report    │
+                    │ .forge/report    │──► Forge-ready prompts
                     │ project-state    │
                     └────────┬─────────┘
-                             │ (insight)
+                             │ (insight + forge prompts)
                     ┌────────▼─────────┐
                     │     /forge       │
                     │                  │
@@ -611,5 +755,10 @@ highlights:
   decisions, auto-resolves everything mechanical
 - **Next-step is safe by default**: normal mode requires approval at every
   step, auto mode only proceeds on clean preflights
+- **Ask generates forge prompts, not just answers**: the question bank
+  and deep exploration sessions produce actionable `/forge` prompts
+  alongside questions — closing the gap between "I understand the problem"
+  and "I'm building the fix" without requiring the user to manually
+  translate insights into tasks
 - **The flow is composable**: each command works independently, but
   together they form a natural pipeline from understanding to execution

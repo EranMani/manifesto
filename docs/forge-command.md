@@ -352,9 +352,19 @@ From `commit-specs/ISSUE_TO_COMMIT_MAPPING.md`:
 /next-step → execute the plan one commit at a time
 ```
 
-The `/ask` command's session behavior explicitly suggests `/forge` when
-a user goes 5+ questions deep in the same domain: "Want me to run `/forge`
-to turn these insights into a commit spec?"
+The `/ask` command generates forge-ready prompts in three places:
+
+1. **Question bank** — the "Build next" section shows 2-3 `/forge`
+   prompts alongside the guided questions, derived from the same
+   codebase gaps the questions are about
+2. **Deep exploration** — after 5+ questions in the same domain, `/ask`
+   generates specific forge prompts from the conversation context
+3. **Interview scorecards** — the "Act on this" section suggests forge
+   prompts derived from weaknesses the interview session exposed
+
+These prompts are designed to be pasted directly into the chat. Each
+one is grounded in real codebase state and scoped for forge's
+decomposition engine.
 
 After `/forge` completes, the output ends with "Ready for /next-step
 execution" — the handoff is direct.

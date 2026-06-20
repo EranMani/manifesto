@@ -450,9 +450,17 @@ EOF
 /next-step  → execute the plan, one commit at a time
 ```
 
-`/forge` creates the commit specs and protocol entries. `/next-step` reads
-them and executes. The handoff is automatic — `/forge` ends with "Ready
-for /next-step execution" and `/next-step` reads `project-state.json` to
+`/ask` generates forge-ready prompts from codebase gaps (in the question
+bank's "Build next" section, after deep exploration, and in interview
+scorecards). `/forge` turns those prompts into validated commit specs.
+`/next-step` reads the specs and executes. The full pipeline:
+
+```
+/ask pm q → "Build next" → /forge {prompt} → /next-step --auto
+```
+
+The handoff from `/forge` is automatic — it ends with "Ready for
+/next-step execution" and `/next-step` reads `project-state.json` to
 find what's next.
 
 ---

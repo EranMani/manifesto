@@ -76,19 +76,62 @@ from the active persona profile.
 - Parse the commit subjects to identify the most recently touched area.
 - Generate 1 question using the `recent_change` template.
 
-### Step 3 — Assemble and deduplicate
+### Step 3 — Generate forge prompts
 
-Combine evergreen + contextual. Remove near-duplicates. Keep contextual
-over evergreen when they overlap. Target: 6-8 total questions.
+Using the **same contextual data** already gathered in Step 2 (hub files,
+project state, recent changes), generate 2-3 forge-ready prompts using
+the active persona's `forge_templates` from `persona-profiles.json`.
 
-### Step 4 — Present to the user
+**How to generate each prompt:**
 
-Split into two groups and present using AskUserQuestion:
+1. For each gap, issue, or opportunity identified in Step 2, pick the
+   matching `forge_templates` key (`hub_file`, `open_issue`,
+   `recent_change`, or `domain_gap`).
+2. Fill the template placeholders with **concrete values** from the
+   codebase data — not generic descriptions. Every placeholder must
+   resolve to something real:
+   - `{area}` → "shipment management", not "the system"
+   - `{user_role}` → "warehouse manager", not "user"
+   - `{missing_capability}` → "edit shipments after creation", not "missing features"
+   - `{issue_id}` → "OI-24", not "the issue"
+   - `{file}` → "backend/app/api/v1/shipments.py", not "the file"
+3. Prepend `/forge` to each completed prompt so it's directly pasteable.
+4. Keep each prompt to one sentence — forge handles decomposition.
+
+**Rules:**
+- If no `forge_templates` key exists for the persona (e.g., interviewer
+  personas), skip this step entirely.
+- Never generate forge prompts for things that are already built.
+- Prioritize gaps over improvements — missing features before polish.
+- Each prompt must describe a **different** gap or opportunity.
+
+### Step 4 — Assemble and deduplicate
+
+Combine evergreen + contextual questions. Remove near-duplicates. Keep
+contextual over evergreen when they overlap. Target: 6-8 total questions.
+
+### Step 5 — Present to the user
+
+Split into three groups and present. Output the first two groups using
+AskUserQuestion, then render the third group as a text section below.
 
 **Group 1 — "Start here"**: 3-4 best overview questions.
 **Group 2 — "Go deeper"**: 3-4 most specific contextual questions.
+**Group 3 — "Build next"**: 2-3 forge-ready prompts (from Step 3).
+Render as a labeled text block after the AskUserQuestion selection:
 
-### Step 5 — Run the selected question
+```
+BUILD NEXT — paste any of these into the chat to start planning:
+
+  /forge {prompt 1}
+  /forge {prompt 2}
+  /forge {prompt 3}
+```
+
+If Step 3 produced no forge prompts (interviewer personas, or no gaps
+found), omit Group 3 entirely.
+
+### Step 6 — Run the selected question
 
 Take the user's selection, carry the active persona forward, and execute
 through the pipeline starting at Phase 1.
@@ -338,7 +381,11 @@ text remains, the interviewer picks topics freely.
    positions — not always the same slot.
 4. **After challenge 6**: evaluate the final answer, then present the
    end-of-session scorecard with rating, strengths, gaps, topic heatmap,
-   and a copy-pasteable recommended next session command.
+   a copy-pasteable recommended next session command, and an optional
+   **"Act on this"** section with 1-2 forge prompts derived from the
+   weaknesses the session exposed (e.g., if the user struggled with
+   auth security questions, suggest `/forge add rate limiting and
+   brute-force protection to the login endpoint`).
 5. **Difficulty scales dynamically**: strong answers → harder follow-ups.
    Weak answers → acknowledge what they got right, simplify the angle,
    offer hints. Stuck → offer two options to choose between.
@@ -357,8 +404,16 @@ prior answer, narrows scope, uses "what about X?"), treat it as an
 implicit `/ask` with the same persona. Carry forward the domain context.
 Drop one tier from the original. Do not re-scan or re-classify.
 
-If the follow-up chain reaches 5+ questions in the same domain, suggest
-running `/forge` to turn the insights into a commit spec.
+If the follow-up chain reaches 5+ questions in the same domain, generate
+1-2 forge-ready prompts from the conversation context using the active
+persona's `forge_templates` and suggest them directly:
+
+```
+You're going deep on {domain}. Ready to build?
+
+  /forge {contextual prompt based on the gaps discovered in this session}
+  /forge {second prompt if applicable}
+```
 
 ---
 

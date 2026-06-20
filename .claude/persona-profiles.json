@@ -44,6 +44,12 @@
           "recent_change": "What was updated recently and why does it matter?",
           "domain_gap": "What parts of the product are still missing?"
         }
+      },
+      "forge_templates": {
+        "hub_file": "Improve {area} — make it easier for users to {user_action} so they {business_outcome}",
+        "open_issue": "Fix {issue_summary} — users are affected because {user_impact}",
+        "recent_change": "Build on {area} — extend what was just updated to also {next_logical_step}",
+        "domain_gap": "Complete {area} — add {missing_capability} so users can {user_action}"
       }
     },
     "pm": {
@@ -89,6 +95,12 @@
           "recent_change": "What shipped recently and what's the user impact?",
           "domain_gap": "Which feature areas have the biggest gaps between backend and frontend?"
         }
+      },
+      "forge_templates": {
+        "hub_file": "Add {capability} for {user_role} — {user_flow_description} with {acceptance_criteria}",
+        "open_issue": "Fix {issue_summary} — {user_impact} affecting {user_role} workflow",
+        "recent_change": "Extend {area} — add {next_feature} building on the recent {recent_work}",
+        "domain_gap": "Build {missing_feature} UI — frontend for the existing {backend_capability} so {user_role} can {user_action}"
       }
     },
     "engineer": {
@@ -129,6 +141,12 @@
           "recent_change": "What changed in {area} recently and what's the blast radius?",
           "domain_gap": "What modules have no test coverage?"
         }
+      },
+      "forge_templates": {
+        "hub_file": "Refactor {file} — {technical_improvement} to reduce coupling and improve {quality_attribute}",
+        "open_issue": "Fix {issue_id} — {root_cause} in {file_area} with regression tests for {edge_cases}",
+        "recent_change": "Extend {area} — add {technical_capability} with tests covering {test_scenarios}",
+        "domain_gap": "Add {missing_component} — {technical_scope} with integration tests for {critical_paths}"
       }
     },
     "interviewer-founder": {
