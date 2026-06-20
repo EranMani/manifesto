@@ -91,14 +91,19 @@ needing to know what to ask.
 1. Analyzes the task intent (feature/fix/refactor, domains, scope)
 2. Scans the codebase for target files, hubs, and ownership
 3. Consults domain agents for design input (not implementation)
-4. Decomposes into atomic commits with dependency ordering
-5. Generates full specs (14 required sections each)
-6. Validates every spec against the protocol
+4. **Challenges the design** — cross-examines agent recommendations for
+   architecture flaws, performance gaps, security holes, UX problems,
+   and missing edge cases before writing specs
+5. Decomposes into atomic commits with dependency ordering
+6. Generates full specs (14 required sections each)
+7. Validates every spec against the protocol
 
-**Key capability**: autonomous spec generation. A plain-English description
-like "add pagination to shipments" produces validated commit specs with
-file lists, contracts, test plans, and budget allocations — without the
-user needing to write any of it.
+**Key capability**: design challenge phase. Before specs are written,
+Claude cross-examines every agent recommendation with domain-appropriate
+challenges (backend tasks get architecture/performance/security challenges,
+frontend tasks get UX/product-impact challenges, AI tasks get retrieval-quality/
+hallucination challenges). Weaknesses are caught and revised before they
+become committed code — the most expensive place to fix them.
 
 **Output**: `commit-specs/commit-NN.md` files, updated `commit-protocol.md`,
 updated `project-state.json`.

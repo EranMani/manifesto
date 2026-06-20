@@ -126,6 +126,106 @@ If no decision is needed, proceed automatically.
 
 ---
 
+## Phase 3.5 — Design Challenge
+
+Before writing specs, Claude cross-examines the agent recommendations from
+Phase 3. This catches weak designs, missing edge cases, and unconsidered
+tradeoffs before they become committed code.
+
+### Challenge selection
+
+Activate challenge categories based on which domains the task touches.
+Run 2-3 targeted challenges per task — not all categories, only the
+relevant ones.
+
+**Backend tasks** — activate these challenges:
+- **Architecture**: "You recommended X pattern. What happens if we need to
+  change this interface in 6 months? What's the migration cost?"
+- **Performance**: "This query/operation runs on every request. What happens
+  at 10,000 concurrent users or 100,000 rows?"
+- **Migration safety**: "This changes a model/schema. What's the rollback
+  plan if the migration fails mid-deploy?"
+- **Security**: "This touches user data or auth. What's the attack surface?
+  What input is untrusted?"
+- **Testing**: "The test plan covers the happy path. What's the boundary
+  case that would break this? What's the regression risk to existing tests?"
+
+**Frontend tasks** — activate these challenges:
+- **Product/UX impact**: "This component has no empty state. What does the
+  user see when there's no data?"
+- **User flow**: "This action takes N clicks. Can it be done in fewer? Is
+  the most common action the most accessible?"
+- **Error experience**: "The user hits an error. What does the message say?
+  Can they recover or are they stuck?"
+- **Responsiveness**: "Does this layout work below 768px? What collapses,
+  what stacks, what disappears?"
+- **State management**: "This component fetches data on mount. What happens
+  if the user navigates away and back? Does it refetch or cache?"
+
+**AI tasks** — activate these challenges:
+- **Retrieval quality**: "The RAG pipeline returns top-K results. What
+  happens when the query is ambiguous or matches nothing?"
+- **Hallucination risk**: "The LLM generates an answer from retrieved
+  chunks. What happens when chunks contradict each other?"
+- **Latency**: "This pipeline chains N async calls. What's the total
+  latency under load? Where's the bottleneck?"
+- **Prompt robustness**: "What happens with adversarial input? Can a user
+  craft a query that bypasses the intent classifier?"
+
+**Cross-domain tasks** — add integration challenges:
+- **Contract alignment**: "Frontend expects X shape from the API. Backend
+  returns Y. Where's the validation boundary?"
+- **Failure propagation**: "If the backend returns a 500, what does the
+  user see? Is the error message helpful or generic?"
+
+### How challenges run
+
+1. Read the agent recommendation from Phase 3.
+2. Select 2-3 challenge categories based on the task's domains.
+3. For each challenge, Claude reads the relevant target files and
+   evaluates whether the recommendation holds up:
+   - **Holds up** → note what makes it solid, carry forward to Phase 4.
+   - **Weakness found** → identify the specific gap and revise the
+     approach. Add the gap to the spec's "Focused Tests" or "Contract"
+     sections so it's caught during implementation.
+   - **Critical flaw** → flag to the user before proceeding. Present the
+     flaw and the revised approach for approval.
+
+4. Present a compact challenge summary:
+
+```
+FORGE — Design Challenge
+
+Challenges run: Architecture, Performance, Testing
+Results:
+  ✓ Architecture: limit/offset pattern is appropriate for this data shape.
+  ⚠ Performance: list endpoint returns all columns including notes (text).
+    → Revised: add column selection to exclude large text fields from list view.
+  ✓ Testing: happy path + empty result + boundary (offset > total) covered.
+
+Revisions applied: 1
+Proceeding to commit decomposition.
+```
+
+### Auto-resolve vs. ask user
+
+**Auto-resolve**: weaknesses that can be addressed by adding a test case,
+tightening a contract, or adding a validation check. Claude revises the
+approach and notes the change.
+
+**Ask user**: critical flaws that change the fundamental approach (e.g.,
+"this pattern doesn't work for your data model — you need a different
+strategy"). Present the flaw and two options.
+
+### Budget
+
+The challenge phase should add ≤4 tool calls (reads of target files to
+verify claims). It does not invoke agents — Claude challenges the
+recommendations directly using the code it can read. Keep the summary
+compact (under 200 words).
+
+---
+
 ## Phase 4 — Commit Decomposition
 
 Run the commit planner with the target files from Phase 2:

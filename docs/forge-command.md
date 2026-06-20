@@ -9,10 +9,11 @@ and "here are the exact commits that build X."
 
 - [Quick Start](#quick-start)
 - [What It Does](#what-it-does)
-- [The 6 Phases](#the-6-phases)
+- [The Pipeline](#the-pipeline)
   - [Phase 1 — Intent Analysis](#phase-1--intent-analysis)
   - [Phase 2 — Codebase Scan](#phase-2--codebase-scan)
   - [Phase 3 — Agent Design Input](#phase-3--agent-design-input)
+  - [Phase 3.5 — Design Challenge](#phase-35--design-challenge)
   - [Phase 4 — Commit Decomposition](#phase-4--commit-decomposition)
   - [Phase 5 — Spec Generation](#phase-5--spec-generation)
   - [Phase 6 — Approval Presentation](#phase-6--approval-presentation)
@@ -52,17 +53,18 @@ and "here are the exact commits that build X."
 Plain-English task description
         │
         ▼
-┌───────────────────┐
-│  /forge pipeline  │
-│                   │
-│  1. Intent        │ ← What kind of task? Which domains?
-│  2. Scan          │ ← Which files? Which hubs? Which agents own them?
-│  3. Design        │ ← Agent input on approach (design only, no implementation)
-│  4. Decompose     │ ← Split into atomic commits with dependency ordering
-│  5. Generate      │ ← Full specs with all 14 required sections
-│  6. Present       │ ← Validation results + approval card
-│                   │
-└───────────────────┘
+┌────────────────────┐
+│  /forge pipeline   │
+│                    │
+│  1. Intent         │ ← What kind of task? Which domains?
+│  2. Scan           │ ← Which files? Which hubs? Which agents own them?
+│  3. Design         │ ← Agent input on approach (design only, no implementation)
+│  3.5 Challenge     │ ← Cross-examine recommendations before writing specs
+│  4. Decompose      │ ← Split into atomic commits with dependency ordering
+│  5. Generate       │ ← Full specs with all 14 required sections
+│  6. Present        │ ← Validation results + approval card
+│                    │
+└────────────────────┘
         │
         ▼
 Ready for /next-step execution
@@ -143,6 +145,45 @@ Which approach? [A/B/other]
 ```
 
 If no decision is needed, proceeds automatically.
+
+### Phase 3.5 — Design Challenge
+
+Before writing specs, Claude cross-examines the agent recommendations.
+This catches weak designs, missing edge cases, and unconsidered tradeoffs
+before they become committed code.
+
+Challenge categories activate based on which domains the task touches:
+
+- **Backend** → architecture, performance, migration safety, security, testing
+- **Frontend** → UX/product impact, user flow efficiency, error experience, responsiveness, state management
+- **AI** → retrieval quality, hallucination risk, latency, prompt robustness
+- **Cross-domain** → contract alignment, failure propagation
+
+Claude runs 2-3 targeted challenges per task, reads the relevant code,
+and evaluates whether the recommendation holds up:
+
+- **Holds up** → noted as solid, carried forward
+- **Weakness found** → approach revised, gap added to spec's test plan or contract
+- **Critical flaw** → flagged to user for approval before proceeding
+
+Output:
+
+```
+FORGE — Design Challenge
+
+Challenges run: Architecture, Performance, Testing
+Results:
+  ✓ Architecture: limit/offset pattern is appropriate for this data shape.
+  ⚠ Performance: list endpoint returns all columns including notes (text).
+    → Revised: add column selection to exclude large text fields from list view.
+  ✓ Testing: happy path + empty result + boundary (offset > total) covered.
+
+Revisions applied: 1
+Proceeding to commit decomposition.
+```
+
+Budget: ≤4 tool calls. No agent invocations — Claude challenges directly
+using the code it can read.
 
 ### Phase 4 — Commit Decomposition
 
