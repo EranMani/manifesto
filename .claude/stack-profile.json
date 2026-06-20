@@ -56,6 +56,53 @@
     }
   },
 
+  "human_in_the_loop": {
+    "principle": "HITL is not a safety fallback — it is a deployment accelerator. Automate the routine 50% immediately, gate the tricky 50% behind human judgment.",
+    "three_pillars": [
+      "1. deferred-execution: pause exactly before any function with side effects — capture intent, defer execution until approval",
+      "2. state-serialization: persist full agent context (message history, system prompt, pending tool arguments) to database — the agent must not lose state between halt and resume",
+      "3. stateless-resume: reload full context from database by unique ID — any worker can resume the task, weeks later if needed"
+    ],
+    "control_mechanisms": {
+      "llm_as_router": "structured output generates an action plan validated by Pydantic — backend enforces safety rules via model validators regardless of LLM reasoning",
+      "agentic_tool_calling": "intercept tool calls post-generation but pre-execution within the agent loop — inspect parameters against business logic before allowing side effects"
+    },
+    "domain_details": "Backend patterns in stack/backend.json, infrastructure patterns in stack/infrastructure.json, product strategy in stack/product.json"
+  },
+
+  "mcp": {
+    "principle": "MCP (Model Context Protocol) is the standard for bridging LLM reasoning with local execution. Expose Python functions as tools to make the system modular, extensible, and conversationally accessible.",
+    "value": [
+      "zero-ui-overhead: Claude serves as the unified interface — no custom front-ends for internal tools",
+      "direct-logic-injection: Python functions integrate into the LLM's reasoning loop via conversational intent",
+      "tool-chaining: multiple MCP servers chain together — a single prompt triggers a sequence of operations",
+      "accelerated-prototyping: script to production-ready tool in the LLM interface in minutes"
+    ],
+    "architecture": "server layer (protocol registration) → service layer (business logic) → utility layer (helpers). Swap providers without touching the protocol.",
+    "domain_details": "Server architecture in stack/backend.json, deployment in stack/infrastructure.json, tool engineering in stack/ai.json, permission model in stack/security.json"
+  },
+
+  "context_engineering": {
+    "principle": "Context engineering has replaced prompt engineering. The goal is not better instructions — it is curating the smallest set of high-signal tokens that maximize the likelihood of desired outcomes.",
+    "high_signal_tokens": [
+      "structured-instructions: precise background and behavioral constraints",
+      "retrieved-knowledge: contextually relevant data from RAG pipelines",
+      "tool-manifests: concise, non-overlapping descriptions of available functions",
+      "intermediate-reasoning: tool outputs and agent's internal thought process",
+      "environmental-feedback: real-time signals from system or user after an action"
+    ],
+    "token_economy": [
+      "prune: programmatically remove irrelevant, redundant, or outdated turns from conversation history",
+      "summarize: compress early segments of long-running interactions into high-density context blocks",
+      "rank: broad retrieval → reranker → top 5-10 high-relevance chunks (never dump 50 raw chunks)"
+    ],
+    "failure_modes": [
+      "needle-in-haystack: reasoning reliability drops as context window expands — even million-token models degrade",
+      "instruction-atrophy: bloated windows cause the model to neglect core system prompt rules, prioritizing recent tokens over foundational instructions"
+    ],
+    "domain_details": "Full implementation patterns in stack/ai.json (context_engineering section)"
+  },
+
   "ai_development_workflow": {
     "context_management": [
       "context-priming: point AI to 2-3 specific files and relevant documentation — prevents hallucinations and saves context window",

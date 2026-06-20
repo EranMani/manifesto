@@ -231,6 +231,73 @@
     ]
   },
 
+  "context_engineering": {
+    "description": "The strategic orchestration of the entire information environment at inference time. Not just what you prompt — everything that lands in the context window.",
+    "token_economy": {
+      "principle": "Treat the context window as a finite resource — like working memory. Never treat it as infinite storage.",
+      "degradation_modes": [
+        "needle-in-haystack: reasoning reliability drops as context expands — the model's ability to pinpoint specific facts becomes non-deterministic in large windows",
+        "instruction-atrophy: bloated windows cause the model to neglect core system prompt rules, prioritizing recent tokens over foundational instructions",
+        "rule-neglect: by Turn 10+, most agents begin to forget instructions or reason over outdated data"
+      ],
+      "smallest_set_mandate": [
+        "prune: programmatically remove irrelevant, redundant, or outdated turns from conversation history",
+        "summarize: compress early segments (e.g., replace first 20 messages with a single state summary) to free tokens for current reasoning",
+        "rank: broad retrieval (50 chunks) → reranker → inject only top 5-10 high-signal chunks into the prompt"
+      ]
+    },
+    "system_prompt_calibration": {
+      "description": "Avoid the Calibration Trap — don't fix every user complaint by hardcoding edge cases into the prompt.",
+      "specificity_spectrum": {
+        "too_vague": "insufficient constraints → off-brand behavior and hallucinations",
+        "too_specific": "every edge case hardcoded as if-else logic → unscalable context bloat, model ignores core rules",
+        "sweet_spot": "structured behavioral constraints with positive few-shot examples"
+      },
+      "positive_over_negative": {
+        "principle": "LLMs are statistically poor at processing negative constraints ('Don't do X'). Provide a picture of success instead.",
+        "pattern": "Replace lists of prohibitions with multi-turn positive examples that anchor the model's behavior",
+        "example": "Instead of 'Do not use technical jargon', provide a sample conversation showing the desired plain-language style"
+      }
+    },
+    "modular_architecture": {
+      "description": "Decompose complex tasks into modular sub-problems to reduce cognitive load on the model.",
+      "workflow_vs_agent": {
+        "strict_workflows": "deterministic routing and prompt chaining — for customer-facing support or backend automations where humans are not in the loop. Highly reliable.",
+        "autonomous_agents": "tools in a loop for open-ended problems — powerful for human-in-the-loop scenarios. WARNING: avoid fully autonomous agents for backend tasks without strict deterministic guards."
+      },
+      "tool_engineering": [
+        "concise-manifests: keep tool descriptions short — focused on 'what' and 'when' to call",
+        "eliminate-redundancy: tools must have non-overlapping purposes — overlapping tools create confusion during tool-selection inference",
+        "sub-agent-delegation: rather than exposing 10 tools to one agent, use a router to offload tasks to specialized sub-agents with limited, high-signal toolsets",
+        "mcp-first: expose Python functions as MCP tools for modular, composable, conversationally accessible capabilities",
+        "tool-chaining: design MCP servers as composable units — each does one thing well, chain them for complex workflows via a single prompt"
+      ]
+    },
+    "dynamic_context_management": {
+      "description": "Static context fails in long-running interactions. Context must be actively managed at runtime.",
+      "state_machine_injection": {
+        "pattern": "Track user journey state in database, not in LLM memory. Based on current state, pull only the relevant system prompt or context block at runtime.",
+        "benefit": "Prevents the model from being distracted by instructions for future or past states.",
+        "implementation": "Database-backed state with runtime context swapping — each state maps to a specific prompt fragment"
+      },
+      "memory_management": [
+        "conversation-pruning: replace old messages with state summaries as conversation grows",
+        "sliding-window: keep only the last N turns plus a compressed summary of everything before",
+        "selective-injection: only inject tool outputs and retrieved data relevant to the current reasoning step"
+      ]
+    },
+    "failure_analysis_hierarchy": {
+      "description": "When an agent fails, follow this checklist BEFORE attempting to fix the prompt.",
+      "steps": [
+        "1. analyze-trace: inspect the full message history to see what the model actually 'saw' at the moment of failure",
+        "2. reasoning-over-context: was the failure caused by too much noise, too little signal, or outdated information?",
+        "3. identify-source: is the issue in RAG retrieval, a tool description, the conversation history, or the system prompt?",
+        "4. inject-positive-examples: only after trace analysis should you refine the prompt, using positive few-shot examples"
+      ],
+      "principle": "Context is often hidden during development but explodes in production as interactions deepen. Trace before you prompt-fix."
+    }
+  },
+
   "key_libraries": [
     "langchain: LLM orchestration, chains, document loaders, text splitters",
     "langgraph: stateful agent workflows with cycles and branching",

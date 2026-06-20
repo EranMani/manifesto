@@ -61,7 +61,17 @@
       "success-measurement: specific KPIs for the first iteration",
       "ongoing-costs: estimates for API usage, infrastructure, and maintenance"
     ],
-    "turn_it_off_test": "If you turn the system off and nobody notices within an hour, it's not solving a real problem. The faster they call, the better your product."
+    "turn_it_off_test": "If you turn the system off and nobody notices within an hour, it's not solving a real problem. The faster they call, the better your product.",
+    "hitl_as_deployment_strategy": {
+      "principle": "Human-in-the-loop is not a safety fallback — it is a deployment accelerator.",
+      "strategy": "Identify the tricky 50% of edge cases requiring human judgment (high-value transfers, legal approvals, ambiguous intent). Automate the routine 50% immediately. This compresses time-to-market while maintaining risk management.",
+      "framing": [
+        "Don't sell 'full automation' — sell '50% automation today with a path to 80%'.",
+        "The 50/50 split builds trust: the human sees the agent working correctly on routine cases before expanding its authority.",
+        "Every HITL gate is a data collection point — approved/denied decisions become training signal for reducing the human-required percentage over time."
+      ],
+      "cost_of_failure_assessment": "When scoping automation, always ask: what is the cost if the agent gets this wrong? Low cost → automate fully. High cost → HITL gate. Unknown cost → HITL gate until you know."
+    }
   },
 
   "delivery": {

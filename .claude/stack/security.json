@@ -28,6 +28,13 @@
     "Persist raw payload to database before processing — leaves audit trail even if downstream logic fails.",
     "Rate limit webhook endpoints separately from user-facing API endpoints."
   ],
+  "mcp_security": [
+    "Allow Once vs. Always Allow permission model — user controls which tools execute and when.",
+    "Tool descriptions must not leak internal implementation details, API keys, or system paths.",
+    "Input sanitization in utility layer before reaching service layer — validate and clean all tool arguments.",
+    "Environment variables for all API credentials — never hardcode in server.py or service files.",
+    "Proxy configuration via environment variables for external API calls — prevents IP exposure."
+  ],
   "ai_security": [
     "Prompt injection detection on all user inputs that reach LLM calls.",
     "PII filtering on LLM outputs before returning to users.",

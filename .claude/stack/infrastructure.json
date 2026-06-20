@@ -26,6 +26,43 @@
     "Monitor cost, latency, and error rates post-deployment — not just 'is it up?'"
   ],
 
+  "mcp_deployment": {
+    "description": "Deployment and environment patterns for MCP servers — local and cloud.",
+    "uv_environment": {
+      "tool": "uv",
+      "role": "high-performance unified package manager — supersedes venv + pip for environment consistency",
+      "lifecycle": [
+        "uv init: create consistent project foundation",
+        "uv add 'mcp[cli]': core protocol and CLI tools",
+        "uv add --dev ipykernel: development tools kept separate from production",
+        "uv run server.py: execute with managed dependencies"
+      ],
+      "script_metadata": {
+        "description": "Embed dependencies directly in the script header for self-documenting, portable MCP servers.",
+        "format": "# /// script\\n# dependencies = [...]\\n# ///",
+        "benefit": "UV resolves and installs into a temporary cache during execution — the server is fully portable across any machine with UV installed",
+        "rule": "Every line within the metadata block must be commented with # — failure breaks execution"
+      }
+    },
+    "claude_integration": {
+      "desktop": {
+        "config": "Edit Claude Desktop config.json in developer settings",
+        "requirement": "absolute paths mandatory for enterprise stability — ensures correct initialization regardless of working directory",
+        "template": "command: uv, args: [run, --path, /absolute/path/to/project, server.py], env: {API_KEY: ...}"
+      },
+      "claude_code": {
+        "config": "Add MCP server to .claude/settings.json or user settings",
+        "verify": "claude mcp list — confirms registered servers",
+        "advantage": "LLM can execute tools AND modify local files based on output"
+      },
+      "security": "Allow Once vs. Always Allow permission model — user controls execution, proprietary scripts run only with explicit permission"
+    },
+    "tool_chaining": {
+      "description": "Multiple MCP servers chain together — a single natural language prompt triggers a sequence: data extraction → processing → report generation → file storage.",
+      "principle": "Each MCP server is a modular capability. Compose them like Unix pipes — each does one thing well."
+    }
+  },
+
   "system_design": {
     "rate_limiting": {
       "strategy": "token-bucket via Redis",
@@ -105,6 +142,45 @@
     }
   },
 
+  "hitl_patterns": {
+    "description": "Infrastructure patterns for human-in-the-loop agent execution — how to halt, persist state, notify, and resume.",
+    "real_time_sse": {
+      "name": "Server-Sent Events streaming",
+      "use_case": "user-facing applications — digital assistants, chat interfaces",
+      "flow": [
+        "1. user sends request → agent processes until requires_confirmation trigger",
+        "2. agent signals halt → immediately close SSE connection (do NOT hold connection open waiting for human)",
+        "3. persist full agent state to State Store (database)",
+        "4. frontend shows Approve/Deny buttons",
+        "5. user clicks → frontend hits dedicated Execute Endpoint (not the chat endpoint)",
+        "6. execute endpoint loads context by ID → runs pending action"
+      ],
+      "principle": "Never hold an active connection open waiting for human input — persist state and close. Humans take coffee breaks; connections don't survive them."
+    },
+    "async_event_driven": {
+      "name": "Asynchronous event-driven workflows",
+      "use_case": "background processing — invoice auditing, batch operations, no active user session",
+      "flow": [
+        "1. Celery worker executes agent logic until threshold requiring intervention",
+        "2. worker saves agent context and pending actions to database, then terminates",
+        "3. notification sent to approval surface (Slack message, email) with interactive buttons",
+        "4. user clicks button → hits callback API endpoint",
+        "5. callback endpoint loads serialized context by unique ID → executes approved action"
+      ],
+      "principle": "The notification surface is also the trigger surface. Workers don't wait idle — they save state and exit. Supports hours or days of human response latency."
+    },
+    "state_store": {
+      "description": "Database-backed persistence for halted agent executions. Enables thousands of concurrent pending approvals without degrading performance.",
+      "implementation": "PostgreSQL table or JSON schema — keyed by unique execution ID",
+      "cleanup": "TTL-based expiration for unclaimed halted states — prevent unbounded growth"
+    },
+    "metrics_additions": [
+      "hitl-approval-latency: time between halt and human response",
+      "hitl-approval-rate: percentage of halted actions that are approved vs. denied",
+      "hitl-pending-count: number of currently halted executions awaiting approval"
+    ]
+  },
+
   "observability": {
     "llm_tracing": "langfuse",
     "error_tracking": "sentry",
@@ -130,13 +206,31 @@
         "alert-thresholds: notify when daily/weekly spend exceeds configured percentage of budget"
       ]
     },
+    "trace_based_debugging": {
+      "description": "In non-deterministic AI systems, traditional unit tests are insufficient. Trace analysis is the primary debugging tool.",
+      "tool": "langfuse",
+      "reveals": [
+        "full conversation tree including system prompts, tool calls, and intermediate reasoning",
+        "whether the model is reasoning over outdated history",
+        "whether a tool output is providing contradictory information",
+        "whether a bloated prompt is causing instruction neglect at Turn 15+",
+        "where exactly in the context engineering the failure occurred"
+      ],
+      "failure_hierarchy": [
+        "1. analyze the actual trace — see what the model 'saw' at the moment of failure",
+        "2. check context quality — too much noise? too little signal? outdated information?",
+        "3. identify failure source — RAG retrieval? tool description? conversation history? system prompt?",
+        "4. only then refine the prompt — use positive few-shot examples, not more prohibitions"
+      ]
+    },
     "principles": [
       "Every LLM call is traced end-to-end: input, output, latency, tokens, cost.",
       "Structured logs (JSON) with correlation IDs across request lifecycle.",
       "Alerts on error rate spikes, not just individual errors.",
       "Health checks verify actual functionality (can query DB, can reach Redis), not just process uptime.",
       "Persist a trace of every event in the database — logs and DB traces are the only way to debug an evolving AI system.",
-      "Monitor cost as aggressively as you monitor errors — an uncontrolled agent loop is a financial DoS."
+      "Monitor cost as aggressively as you monitor errors — an uncontrolled agent loop is a financial DoS.",
+      "When an agent fails, trace before you prompt-fix — context is often hidden during development but explodes in production."
     ]
   },
 
