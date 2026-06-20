@@ -1,4 +1,4 @@
-# /ask — Domain-Routed Codebase Q&A
+# /ask — Codebase Q&A
 
 Parse `$ARGUMENTS` for a persona prefix and a question. Read-only — no code
 changes, no commit protocol updates.
@@ -28,9 +28,8 @@ preference. If found, map it to the closest persona key.
 `default` value from the profiles file (currently `engineer`).
 
 **Apply throughout.** The active persona's `prompt` field overrides the answer
-formatting rules in Phase 3 and Phase 5. Every answer — whether Claude-direct
-or agent-generated — must conform to the active persona's language, structure,
-and inclusion/exclusion rules.
+formatting rules. Every answer must conform to the active persona's language,
+structure, and inclusion/exclusion rules.
 
 If `$ARGUMENTS` (after stripping any persona prefix) is empty, ask: "What
 would you like to know about the codebase?"
@@ -41,7 +40,7 @@ would you like to know about the codebase?"
 
 If the remaining question (after persona stripping) is exactly `questions`
 or `q`, show the question bank instead of answering a question. This
-short-circuits the rest of the pipeline — Phases 1–5 do not run.
+short-circuits the rest of the pipeline.
 
 ### Step 1 — Load evergreen questions
 
@@ -70,590 +69,221 @@ from the active persona profile.
   `open_issue` template.
   - For engineer persona, substitute the specific issue ID.
   - For founder/PM persona, keep it general.
-- If `open_issues` is empty, skip — do not generate a "no issues" question.
+- If `open_issues` is empty, skip.
 
 **Source C — Recent changes** (`git log --oneline -5`):
 - Parse the commit subjects to identify the most recently touched area.
-- Map to an area name using the same rules as Source A.
 - Generate 1 question using the `recent_change` template.
 
 ### Step 3 — Assemble and deduplicate
 
-Combine evergreen + contextual questions. Remove near-duplicates (same
-area and same intent). Keep the contextual version over the evergreen
-version when they overlap, since contextual is more specific.
-
-Target: 6-8 total questions.
+Combine evergreen + contextual. Remove near-duplicates. Keep contextual
+over evergreen when they overlap. Target: 6-8 total questions.
 
 ### Step 4 — Present to the user
 
-Split the questions into two groups and present using the AskUserQuestion
-tool:
+Split into two groups and present using AskUserQuestion:
 
-**Group 1 — "Start here"**: pick the 3-4 best overview questions (product
-capabilities, feature status, what changed recently). These are the
-on-ramp for someone who doesn't know where to begin.
-
-**Group 2 — "Go deeper"**: pick the 3-4 most specific contextual
-questions (hub-specific, issue-specific, area-specific). These are for
-someone who wants to drill into a particular area.
-
-Present Group 1 as a single-select question: "What would you like to
-know?" with the questions as options. The user can also type their own
-question via "Other".
+**Group 1 — "Start here"**: 3-4 best overview questions.
+**Group 2 — "Go deeper"**: 3-4 most specific contextual questions.
 
 ### Step 5 — Run the selected question
 
-Take the user's selection (or custom input), prepend the active persona
-key, and execute it through the normal `/ask` pipeline starting at
-Phase 1. The persona carries forward — no need for the user to specify
-it again.
+Take the user's selection, carry the active persona forward, and execute
+through the pipeline starting at Phase 1.
 
 ---
 
-## Phase 1 — Question Classification & Route Selection
+## Phase 1 — Tier Decision
 
-Read the question and classify it into exactly one **answer route**. The route
-determines what data source answers the question and how it is presented.
+Read the question and pick exactly one tier. **This is the single most
+important decision in the pipeline** — it determines cost and process.
 
-### Session continuity check
+### Quick tier (~80% of questions)
 
-Before classifying, check if this is a **follow-up question** in an ongoing
-`/ask` session. A question is a follow-up if:
+**Signals**: yes/no question, single fact lookup, "where is X defined?",
+"what is the name of X?", "does X exist?", "how many X?", any question
+answerable by reading 1-2 files or running one grep/git command.
 
-- It references something from a previous `/ask` answer in this conversation
-  ("what about the chunking part?", "and how does that connect to X?",
-  "go deeper on the second point")
-- It uses pronouns that only make sense given a prior answer ("how does it
-  handle errors?", "what calls that function?")
-- It's in the same domain as the previous `/ask` and narrows scope
+→ Go to **Quick Path**.
 
-If it is a follow-up:
-1. **Carry forward** the previous route, domain, target files, and agent type
-   — do not re-scan or re-classify from scratch.
-2. **Narrow** the target files to only those relevant to the follow-up.
-3. **Extend context**: include a one-paragraph summary of the previous answer
-   in the agent prompt so the agent builds on it rather than repeating.
-4. **Re-classify only if** the follow-up shifts to a genuinely different route
-   (e.g., previous was `domain-expert`, follow-up is "is that secure?" →
-   switch to `review`).
+### Standard tier (~15% of questions)
 
-### Route table
+**Signals**: "how does X work?", "what does X do?", "what's the state of
+X?", single-concept explanation, feature status question, "what changed
+recently?", process/workflow question, enumeration ("list all X").
 
-| Route | Trigger signals | Data source | Agent? |
-|-------|----------------|-------------|--------|
-| `domain-expert` | Names a specific module, service, file, or technical concept that maps to application code | Graph-RAG scan → agent reads target files | Yes — domain owner |
-| `review` | "Is X safe?", "Is X correct?", "Does X handle Y?", "Review X" | Agent reads target files with a review lens | Yes — Viktor or Sage |
-| `process` | "How does the commit protocol work?", "How does delegation work?", "What is the workflow for X?" | CLAUDE.md, ORCHESTRATION.md, AGENTS.md, commit-protocol.md | No — Claude reads docs directly |
-| `historical` | "Why did we do X?", "What was decided about X?", "When was X changed?", references a commit number, decision ID, or past event | DECISIONS.md, project-state.json replan_history, git log | No — Claude reads docs + git |
-| `inventory` | "What X do we have?", "List all X", "How many X?", "Show me the X" — asking for an enumeration | Graph-RAG scan `report.json` + targeted grep | No — Claude computes from scan data |
-| `flow` | "How does X flow from A to B?", "What happens when a user does X end-to-end?", traces a path across 2+ domains | Graph-RAG scan → parallel agent invocations across domains | Yes — parallel: primary + secondary |
-| `diagnostic` | "Why is X failing?", "I get error Y when Z", "This test fails with X" — runtime behavior questions | Target files + command execution (read-only commands only: git log, git diff, pytest --collect-only) | Yes — domain owner |
-| `time-sensitive` | "What changed since X?", "What's different on this branch?", "Recent changes to X", any temporal framing | git log, git diff | No — Claude runs git commands |
-| `meta` | "What commands are available?", "What agents do we have?", "How does /ask work?" — questions about the tooling | .claude/commands/, AGENTS.md, agent-config.json | No — Claude reads config files |
-| `quantitative` | "How many lines/files/tests?", "How big is X?", "What's the coverage?" — numeric answers | Graph-RAG scan data + targeted commands (wc, pytest --collect-only) | No — Claude computes |
+→ Go to **Standard Path**.
+
+### Deep tier (~5% of questions)
+
+**Signals**: cross-domain architecture ("how does X flow from A to B?"),
+multi-step diagnostic ("why is X failing?"), full system review,
+comparison of approaches, anything spanning 2+ domains or requiring 5+
+files. Also: explicit review requests ("is X safe?", "review X").
+
+→ Go to **Deep Path**.
 
 ### Classification rules
 
-1. Check trigger signals in order. First match wins.
-2. If the question contains both a domain keyword AND a temporal word ("recently",
-   "since", "last week"), prefer `time-sensitive` over `domain-expert`.
-3. If the question contains "why" + a decision/commit reference, prefer
-   `historical` over `domain-expert`.
-4. If the question asks for a list/enumeration of things, prefer `inventory`
-   over `domain-expert` even if domain keywords are present.
-5. If genuinely ambiguous between two routes, pick the one with the cheaper
-   data source (docs before agents, scan data before git).
+1. Pick the cheapest tier that can fully answer the question.
+2. When ambiguous, prefer Quick over Standard, Standard over Deep.
+3. Follow-up questions always drop one tier from the original (Deep →
+   Standard, Standard → Quick) unless the follow-up asks for more depth.
+4. Follow-ups are always Claude-direct — never spawn a cold agent for a
+   follow-up since the prior answer is already in context.
 
-### Depth estimation & execution tier
+### Domain keywords (for identifying target files)
 
-Estimate the answer depth based on question complexity. Depth determines both
-the word budget AND whether an agent is invoked or Claude answers directly.
-This is the primary token-cost control.
-
-| Depth | Signals | Word budget | Inline snippets | Execution tier |
-|-------|---------|-------------|-----------------|----------------|
-| `brief` | Yes/no question, single fact lookup, one-word concept, "what is the name of X?", "where is X defined?" | 50–150 words | 0–1 snippet | **Claude-direct** — always. Read ≤2 target files, answer inline. ~3-5k tokens. |
-| `standard` | "How does X work?", "What does X do?", single-concept explanation, single-function scope | 200–500 words | 1–2 snippets | **Claude-direct** — Claude reads the target files (≤4) and answers with snippets + diagram. ~8-15k tokens. |
-| `deep` | Architecture questions, multi-step flows, "explain the full X", comparison of approaches, diagnostic with multiple possible causes | 500–1000 words | 2–4 snippets | **Agent** — invoke the domain expert. The question is complex enough that domain-specialist grounding justifies the cost. ~50-70k tokens. |
-| `comprehensive` | Cross-domain flows involving 2+ agents, full system architecture, "walk me through everything about X" | 800–1500 words | 3–6 snippets | **Parallel agents** — invoke 2+ agents in parallel. ~90-130k tokens. |
-
-**The rule: `brief` and `standard` never invoke an agent. `deep` and
-`comprehensive` do.** This means roughly 60-70% of questions (fact lookups,
-single-concept explanations, "where is X?") are answered at ~5-15k tokens
-instead of ~50-75k.
-
-The depth also scales with the number of domains involved:
-- 1 domain → cap at `deep`
-- 2+ domains → allow `comprehensive`
-
-Follow-up questions default to one depth level lower than the original unless
-the follow-up itself asks for more depth ("go deeper", "explain in detail").
-
-**Follow-ups are always Claude-direct** regardless of depth. Claude already
-has the previous answer in conversation context — spawning a cold agent that
-doesn't remember the prior answer is wasteful. Instead, Claude reads the
-specific files the follow-up targets (narrowed from the original target list)
-and builds on the prior answer directly. Exception: if a follow-up explicitly
-shifts route (e.g., from `domain-expert` to `review`), and the new route is
-`deep` or `comprehensive`, invoke the review agent since it brings a different
-analytical lens.
-
-### Token budget summary
-
-| Scenario | Estimated tokens |
-|----------|-----------------|
-| `brief` question | ~3-5k |
-| `standard` question | ~8-15k |
-| `deep` question (agent) | ~50-70k |
-| `comprehensive` question (parallel agents) | ~90-130k |
-| Follow-up (any depth) | ~5-15k |
-| 4-question session: standard → 3 follow-ups | ~25-55k total |
-| 4-question session: deep → 3 follow-ups | ~65-110k total |
-
-### Keywords for domain mapping (used by `domain-expert`, `review`, `flow`, `diagnostic`)
-
-- **backend**: routes, models, services, migrations, seed, alembic, FastAPI,
-  SQLAlchemy, CRUD, endpoints, database, schema
-- **frontend**: components, pages, state, hooks, UI, React, TypeScript, Vite,
-  Tailwind, layout, sidebar, form
-- **ai**: LLM, RAG, embeddings, ingestion, retrieval, chunks, vectors, policy,
-  logistics, prompts, citations
-- **devops**: Docker, Dockerfile, compose, scripts, hooks, CI, infrastructure,
-  deployment, containers, volumes
-- **security**: auth, JWT, secrets, tokens, passwords, input validation,
-  uploads, CORS, permissions, roles
+- **backend**: routes, models, services, migrations, seed, FastAPI, SQLAlchemy, endpoints, database
+- **frontend**: components, pages, state, hooks, UI, React, TypeScript, Vite, Tailwind
+- **ai**: LLM, RAG, embeddings, ingestion, retrieval, chunks, vectors, policy, logistics
+- **devops**: Docker, compose, scripts, hooks, CI, infrastructure, containers
+- **security**: auth, JWT, secrets, tokens, passwords, CORS, permissions, roles
 
 ---
 
-## Phase 2 — Data Gathering
+## Quick Path
 
-Each route has its own data-gathering step. Execute only the step matching
-the selected route. If this is a follow-up with a carried-forward route, skip
-the scan and reuse the previous target files (narrowed to the follow-up scope).
+**Budget**: ≤2 tool calls. ≤150 words output. No forge scan. No agents.
 
-### Route: `domain-expert` / `flow` / `diagnostic`
+1. Identify what to look up from the question keywords.
+2. Run one Grep or Read to find the answer.
+3. Answer directly — short, factual, no ceremony.
+4. Apply persona presentation frame. Suggest 1 follow-up.
 
-Check if `.forge/report.json` exists and is less than 1 hour old. If so, reuse
-it. Otherwise, run:
-
-```powershell
-python hooks/forge_scan.py --path . --out .forge/
-```
-
-Read `.forge/report.json` and cross-reference the question keywords against the
-file graph to identify:
-
-1. **Target files** — files whose names, categories, or import connections match
-   the question keywords. Prioritize:
-   - Direct keyword match (question mentions "ingestion" → `ingestion.py`)
-   - Hub proximity (target imports a hub → include the hub for context)
-   - Call-tree tracing (follow imports upstream/downstream)
-2. **Owner agent** — from `domain_ownership`, who owns the target files
-3. **Domain concentration** — which domain has the most target files
-
-Limit target files to the top 8 most relevant.
-
-For `flow` route, identify all domains in the path and collect target files
-from each domain. Do not limit to one domain — the whole point of `flow` is
-cross-domain tracing.
-
-For `diagnostic` route, also check `project-state.json` open_issues for any
-issue matching the reported symptom.
-
-### Route: `process`
-
-Read the following files (only the sections relevant to the question):
-- `CLAUDE.md`
-- `ORCHESTRATION.md`
-- `AGENTS.md`
-- `commit-protocol.md`
-
-No graph scan needed.
-
-### Route: `historical`
-
-Read:
-- `DECISIONS.md` — search for the referenced decision ID or topic
-- `project-state.json` — check `replan_history`, `open_issues`, `notes`,
-  `historical_notes`
-- Run `git log --oneline -20` if the question references a recent change
-
-No graph scan needed.
-
-### Route: `inventory`
-
-Check if `.forge/report.json` exists and is recent. If so, reuse it. Otherwise
-run the scan.
-
-Read `.forge/report.json` and extract the relevant category. Supplement with
-targeted grep if the scan data is too coarse (e.g., "list all API endpoints"
-→ grep for `@router` in `backend/app/api/`).
-
-### Route: `time-sensitive`
-
-Run the appropriate git command:
-- "What changed since X?" → `git log --oneline --since="X"`
-- "What's different on this branch?" → `git log --oneline main..HEAD`
-- "Recent changes to X" → `git log --oneline -10 -- path/to/X`
-- "What changed in file X?" → `git log --oneline -10 -- X` + `git diff HEAD~5 -- X`
-
-No graph scan needed.
-
-### Route: `meta`
-
-Read the relevant config files:
-- "What commands?" → list `.claude/commands/*.md` filenames
-- "What agents?" → read `hooks/agent-config.json` or `AGENTS.md`
-- "How does /X work?" → read `.claude/commands/X.md`
-
-No graph scan needed.
-
-### Route: `quantitative`
-
-Use `.forge/report.json` if available. Supplement with targeted commands:
-- "How many tests?" → `pytest --collect-only -q` (via docker compose if needed)
-- "How many files?" → count from scan data
-- "How big is X?" → line counts from scan data or `wc -l`
-
-### Route: `review`
-
-Same as `domain-expert` data gathering, but the agent selection differs
-(Phase 3).
+**Done. Do not continue to Standard or Deep Path.**
 
 ---
 
-## Phase 3 — Answer Generation
+## Standard Path
 
-### Execution tier: Claude-direct (`brief` / `standard` depth, or any follow-up)
+**Budget**: ≤6 tool calls. 200-500 words output. No agents.
 
-Claude answers the question directly without invoking an agent. Steps:
+### Data gathering
 
-1. Read the target files identified in Phase 2 (≤2 files for `brief`, ≤4 for
-   `standard`). For follow-ups, read only the files relevant to the narrowed
-   scope.
-2. Apply the same answer format rules as the agent prompt (inline snippets,
-   Mermaid diagrams, source citations, confidence rating).
-3. For follow-ups, build on the previous answer — reference it, don't repeat
-   it. If the previous answer was agent-generated (`deep`), Claude has that
-   full answer in context and can drill into specific parts without re-reading
-   everything.
+Pick the right data source based on the question:
 
-This tier handles the majority of questions at ~5-15k tokens each.
+- **Code question** (names a module, feature, or concept): identify target
+  files from question keywords (use domain keywords above). Read 2-4 files.
+  No forge scan needed — go directly to the files.
+- **Process question** ("how does the workflow/protocol work?"): read the
+  relevant doc (CLAUDE.md, ORCHESTRATION.md, AGENTS.md, commit-protocol.md).
+- **Historical question** ("why did we do X?", references a decision/commit):
+  read DECISIONS.md, project-state.json, or run `git log --oneline -10`.
+- **Time-sensitive** ("what changed recently?"): run the appropriate
+  `git log` or `git diff` command.
+- **Enumeration** ("list all X", "what X do we have?"): grep for the pattern
+  or read `.forge/report.json` if it exists and is recent.
+- **Meta** ("what commands exist?", "how does /X work?"): read the relevant
+  config files in `.claude/commands/` or `hooks/agent-config.json`.
+- **Quantitative** ("how many X?"): count from scan data or targeted commands.
 
-### Execution tier: Agent (`deep` / `comprehensive` depth, first question only)
+### Answer generation
 
-Invoke the domain expert agent. This tier is for questions complex enough that
-a cold agent reading 5-8 files and producing a grounded analysis is worth the
-~50-70k token cost.
+1. Read the target files.
+2. Start with a **one-sentence bold summary**.
+3. Structure the rest with headers, bullets, and short blocks. Apply the
+   active persona's language rules.
+4. For engineer persona: include `file:line` references, code snippets
+   (3-10 lines), and ASCII diagrams when the answer describes a flow or
+   architecture. Use definition-list format (bold label + description
+   bullets) instead of Markdown tables for structured data.
+5. Suggest 1-2 follow-up questions.
+6. Apply persona presentation frame.
 
-#### Agent routing table
+**Done. Do not continue to Deep Path.**
 
-| Route | Signal | Agent | Subagent type |
-|-------|--------|-------|---------------|
-| `domain-expert` | Target files in `backend/app/` (not AI services) | Rex | rex |
-| `domain-expert` | Target files in `frontend/src/` | Aria | aria |
-| `domain-expert` | Target files in AI services (`llm.py`, `rag_*.py`, `ingestion.py`) | Nova | nova |
-| `domain-expert` | Target files in `hooks/`, `scripts/`, `docker-compose*` | Adam | adam |
-| `review` | Correctness / quality focus | Viktor | viktor |
-| `review` | Security / auth / secrets focus | Sage | sage |
-| `flow` | All domains in the flow path | Multiple owners | Parallel |
-| `diagnostic` | Domain of the failing component | Domain owner | (varies) |
+---
 
-#### Agent prompt
+## Deep Path
 
-Invoke the selected agent with this structured brief:
+**Budget**: ≤15 tool calls for Claude-direct, or one agent invocation.
+500-1500 words output.
+
+### Data gathering
+
+1. Check if `.forge/report.json` exists and is less than 1 hour old. If
+   not, run: `python hooks/forge_scan.py --path . --out .forge/`
+2. Read `report.json` and cross-reference question keywords against the
+   file graph to identify target files (max 8), owner agent, and domain.
+3. For diagnostic questions, also check `project-state.json` open_issues.
+
+### Agent decision
+
+Invoke an agent only when the question spans enough complexity to justify
+the ~50-70k token cost of a cold agent. Otherwise answer directly.
+
+**Agent routing:**
+- `backend/app/` (not AI services) → Rex
+- `frontend/src/` → Aria
+- AI services (`llm.py`, `rag_*.py`, `ingestion.py`) → Nova
+- `hooks/`, `scripts/`, `docker-compose*` → Adam
+- Correctness / quality review → Viktor
+- Security / auth review → Sage
+- Cross-domain flow (2+ domains) → parallel agents, one per domain
+
+**Agent prompt** — invoke with this brief:
 
 ```
-You are answering a user question about the Manifesto codebase. This is a
-read-only Q&A — do not implement anything, do not suggest code changes unless
-the question is specifically asking for implementation guidance.
+Read-only Q&A about the Manifesto codebase. Do not implement anything.
 
 ## Persona
-{active persona name} — {paste the full persona prompt array, joined by newlines}
+{active persona name} — {persona prompt rules, joined by newlines}
 
 ## Question
 {user's question}
 
-## Route
-{domain-expert / review / flow / diagnostic}
+## Target Files (read these first)
+{list of target files, one per line}
 
-## Answer Depth
-{brief / standard / deep / comprehensive} — target {N–M} words.
-
-## Relevant Files (read these first)
-{list of target files from the graph scan, one per line}
-
-## Previous Answer Context (follow-up only)
-{one-paragraph summary of the previous /ask answer, if this is a follow-up
-question — omit entirely for first questions}
-
-## Project Context
-{relevant entries from project-state.json: open issues, handoffs, decisions
-that relate to the question — omit if none are relevant}
-
-## Answer Instructions
-
-**CRITICAL — Terminal formatting rules (this output renders in a CLI):**
-
-- **Never use Mermaid** — it renders as raw text in the terminal.
-- **Never write dense prose paragraphs.** Break everything into scannable
-  structures: tables, bullet lists, numbered steps, or short 1-2 sentence
-  blocks under bold headers.
-- **Use Markdown aggressively** — the terminal renders it:
-  - `**bold**` for key terms and emphasis
-  - `### Headers` for sections
-  - `- bullet points` for lists (never inline comma-separated lists)
-  - `` `inline code` `` for function names, file paths, variable names
-  - Fenced code blocks for snippets and ASCII diagrams
-- **One idea per bullet.** Each bullet should be one line, max two.
-- **Max 3 sentences in a row** before a visual break (header, table, list,
-  diagram, or code block). Walls of text are unreadable in a terminal.
-- **Structured data — use definition lists, not Markdown tables.**
-  Markdown `| tables |` render with misaligned columns in the terminal
-  because column width is content-dependent and uncontrollable. Instead,
-  use a **bold-label + description** bullet format:
-
-  Good (readable at any width):
-  ```
-  - **Policy RAG** (`rag_policy.py`) — Vector cosine similarity → top-k chunks
-  - **Logistics RAG** (`rag_logistics.py`) — SQL lookup → evidence graph
-  - **Intent Router** (`rag_logistics.py:862`) — Regex classification → route
-  ```
-
-  Bad (columns misalign in terminal):
-  ```
-  | System | File | Strategy |
-  |--------|------|----------|
-  | Policy RAG | `rag_policy.py` | Vector cosine similarity → top-k chunks |
-  ```
-
-  Only use Markdown tables when all columns have similar content width
-  (e.g., a status table with short values in every cell).
-
-1. Read every file listed above before answering.
-2. Ground your answer in actual code — reference specific functions, classes,
-   constants, and patterns you find. Use `file_path:line_number` format.
-3. Start with a **one-sentence summary** in bold, then break the rest into
-   sections with headers. No introductory paragraphs.
-4. Adapt the answer structure to the question:
-   - Conceptual → summary sentence → ASCII diagram → table of components → key details as bullets
-   - Procedural → summary sentence → numbered steps → "Prompt You Can Use" block
-   - Diagnostic → symptom → root cause (bold) → evidence as bullets with `file:line`
-   - Review → summary sentence → findings table (severity | finding | location) → details
-   - Flow → summary sentence → ASCII diagram → numbered step-by-step with `file:line` at each hop
-
-5. **Inline code snippets**: embed the actual snippet (3-10 lines) for the
-   most critical code. Select only what is essential — function signatures,
-   key logic blocks, configuration values. Use fenced code blocks with the
-   language identifier. Never dump entire files.
-
-6. **Visual diagrams**: when the answer describes a flow, architecture,
-   data path, request lifecycle, or component relationship, include an
-   ASCII diagram. This runs in a terminal — Mermaid does not render here.
-   Use only plain-text ASCII art inside a fenced code block. Rules:
-   - Use box-drawing characters: ┌ ┐ └ ┘ │ ─ ┬ ┴ ├ ┤ ┼
-   - Use arrows: → ← ↓ ↑ ──► ──▶
-   - Every box and arrow must be labeled — unlabeled diagrams are worthless
-   - Keep diagrams under 80 characters wide so they fit the terminal
-   - Use a one-line caption above the diagram
-
-   Diagram patterns:
-
-   **Top-down flow** (request lifecycle, data pipelines):
-   ```
-   ┌──────────┐
-   │  Upload   │
-   └────┬─────┘
-        │
-        ▼
-   ┌──────────┐
-   │ Validate  │
-   └────┬─────┘
-        │
-        ▼
-   ┌──────────┐
-   │  Store    │
-   └──────────┘
-   ```
-
-   **Left-right flow** (processing pipelines):
-   ```
-   [React Form] ──► [API Route] ──► [Service] ──► [LLM] ──► [Response]
-   ```
-
-   **Sequence interaction** (request/response between components):
-   ```
-   Client          Server          DB
-     │── POST /login ──►│               │
-     │                  │── query ──►   │
-     │                  │◄── user row ──│
-     │◄── 200 + JWT ───│               │
-   ```
-
-   **Grouped architecture** (multiple related subsystems):
-   ```
-   ┌─── Ingestion ────────────────────────────┐
-   │ Upload → Extract → Chunk → Embed → Store │
-   └──────────────────────────────────────────┘
-             │
-             ▼
-   ┌─── Retrieval ────────────────────────────┐
-   │ Query → Classify → RAG Pipeline → Top-K  │
-   └──────────────────────────────────────────┘
-             │
-             ▼
-   ┌─── Generation ───────────────────────────┐
-   │ Grounded Prompt → LLM → Cited Answer     │
-   └──────────────────────────────────────────┘
-   ```
-
-   Examples of when to include a diagram:
-   - "How does JWT auth work?" → sequence diagram showing client → route →
-     JWT decode → DB lookup → response
-   - "What does the ingestion endpoint do?" → top-down flow showing upload →
-     validate → extract text → chunk → embed → store
-   - "How does data flow from frontend to AI?" → left-right flow showing
-     React form → API route → service → LLM → response → UI
-
-7. Include a "Sources" section listing every file:line you referenced.
-8. Rate your confidence: HIGH (code clearly answers this), MEDIUM (some
-   inference needed), or LOW (significant gaps in what you could find).
-9. Suggest 1-2 natural follow-up questions the user might want to ask next.
-
-Stay within the word budget from the Answer Depth field.
-Cap your work at 12 tool calls (reads + searches). Do not scan the full repo.
+## Instructions
+1. Read every listed file before answering.
+2. Start with a bold one-sentence summary.
+3. Ground claims in actual code with file:line references.
+4. Use bullets, headers, and code snippets (3-10 lines). No dense prose.
+5. ASCII diagrams for flows/architecture (no Mermaid). Use box-drawing
+   characters. Keep under 80 chars wide.
+6. Suggest 1-2 follow-up questions.
+7. Cap at 12 tool calls total.
 ```
 
-#### Parallel invocation for `flow` route
+**Cross-domain flow**: decompose into domain sub-questions, invoke agents
+in parallel, then synthesize into one unified answer.
 
-When the `flow` route identifies 2+ domains, invoke agents **in parallel**
-rather than sequentially:
+**Circuit breaker**: if an agent is blocked, read the target files
+directly (up to 5) and answer with a note that the agent was unavailable.
 
-1. Decompose the flow question into domain-scoped sub-questions. Example:
-   - "How does document upload work end-to-end?"
-   - → Aria: "How does the frontend upload form submit the file and handle
-     the response?"
-   - → Rex: "How does the backend /documents endpoint receive, validate,
-     and persist the upload?"
-   - → Nova: "How does the ingestion service process the uploaded document
-     into chunks and embeddings?"
+### Verification (Deep Path only)
 
-2. Invoke all domain agents **in the same message** (parallel tool calls).
-   Each agent gets its domain's target files plus the sub-question.
+After generating the answer (especially agent-generated answers), verify
+the top 2-3 claims:
+- Glob cited file paths to confirm they exist.
+- Grep for cited function/class names in the cited files.
+- If a reference doesn't exist, correct it or flag it inline.
+- Downgrade confidence one level per failed check.
 
-3. After all agents return, **synthesize** the answers into one unified
-   step-by-step flow with a single Mermaid diagram tracing the full path
-   across all domains. Number each step and annotate with the domain
-   and agent who provided that leg.
-
-4. The synthesized answer must read as one coherent narrative, not three
-   separate answers stitched together.
-
-#### Circuit breaker fallback
-
-If the agent invocation is blocked by `tool_cap_start.py` or any circuit
-breaker:
-
-1. Read the target files directly (up to 5 files).
-2. Synthesize the answer from the code and graph scan data.
-3. Prefix the answer with: "Note: {Agent} was unavailable; answer synthesized
-   from code analysis."
-
-### Routes that Claude answers directly: `process`, `historical`, `inventory`, `time-sensitive`, `meta`, `quantitative`
-
-Claude answers the question directly from the data gathered in Phase 2. No
-agent invocation. Apply these format rules:
-
-| Route | Answer format | Visual |
-|-------|--------------|--------|
-| `process` | Step-by-step explanation with doc references (file:section) | ASCII flowchart of the process steps |
-| `historical` | Timeline or narrative with decision IDs and commit numbers | ASCII timeline if 3+ events |
-| `inventory` | Table or bullet list, sorted logically (alpha, by domain, etc.) | Table always; add ASCII tree for hierarchical items |
-| `time-sensitive` | Chronological list of changes with commit hashes | None usually |
-| `meta` | Direct factual answer, list or table if multiple items | Table for agent/command listings |
-| `quantitative` | Number first, then breakdown if useful | Table for breakdowns |
-
-For Claude-direct routes, apply the same terminal formatting rules from the
-agent prompt: no dense prose, use tables/bullets/headers/code blocks, max 3
-sentences before a visual break. If the answer describes a flow, architecture,
-or relationship, include an ASCII diagram.
+### Apply persona presentation frame. Include confidence rating for
+engineer persona.
 
 ---
 
-## Phase 4 — Answer Grounding Verification
-
-Before presenting the answer to the user, verify the key claims. This step
-catches hallucinations and stale references.
-
-### Verification tier (scales with depth)
-
-| Depth | Verification level | Budget | What to check |
-|-------|--------------------|--------|---------------|
-| `brief` | **None** — Claude read the files directly, no secondhand claims | 0 tool calls | Skip entirely |
-| `standard` | **Spot-check** — verify the single most critical claim | 1 tool call | One Grep for the key function/class cited |
-| `deep` | **Standard** — verify file existence + top claims | 3 tool calls | Glob cited paths + Grep top 2 functions |
-| `comprehensive` | **Full** — verify files, functions, and snippets | 4 tool calls | Glob paths + Grep functions + Read-verify 1 snippet |
-
-The rationale: `brief` and `standard` are Claude-direct — Claude already read
-the actual files, so its claims are grounded by construction. Verification
-matters most for agent-generated answers where the agent may have paraphrased
-or inferred across files.
-
-### Verification rules (for `deep` and `comprehensive`)
-
-1. **File existence**: for every file path cited in the answer, confirm it
-   exists using Glob. Remove or correct any dead references.
-
-2. **Function/class existence**: for the top 2-3 most critical function or
-   class names cited, grep for them in the cited file. If a cited function
-   does not exist in that file, either correct the reference or flag it:
-   "Note: {function} was not found at the cited location; the code may have
-   changed since the scan."
-
-3. **Inline snippet accuracy** (comprehensive only): for the most critical
-   embedded code snippet, verify it matches the actual file content. Read the
-   cited file:line range and compare. If the snippet diverges from the actual
-   code, replace it with the real code.
-
-4. **Confidence downgrade**: if any verification check fails, downgrade the
-   confidence by one level (HIGH → MEDIUM, MEDIUM → LOW). If 2+ checks fail,
-   set confidence to LOW and add a warning to the answer header.
-
-### What NOT to verify
-
-- Opinion or architectural commentary (the agent's analysis is the value)
-- Follow-up suggestions
-- Diagram accuracy (diagrams are derived from the code the agent read)
-- Word count compliance
-
----
-
-## Phase 5 — Present the Answer
-
-Adapt the presentation frame to the active persona.
+## Presentation Frames
 
 ### Engineer persona (default)
 
 ```
 ASK — {short question summary}
-Route: {route} | {Agent: name | or "Direct"} | Confidence: {HIGH/MEDIUM/LOW}
-Depth: {brief/standard/deep/comprehensive} | Follow-up: {#N or "—"}
+Route: {tier} | {Agent: name | or "Direct"} | Confidence: {HIGH/MEDIUM/LOW}
 ───────────────────────────────────────────────────────
 
-{answer — preserve all formatting, headers, code blocks, diagrams, and tables}
+{answer}
 
 ───────────────────────────────────────────────────────
-Sources: {file:line or doc:section references}
+Sources: {file:line references}
 Follow-up questions:
-  1. {suggested question}
-  2. {suggested question}
-```
-
-If any grounding verification failed, add after the confidence rating:
-
-```
-⚠ Verification: {N} of {M} references could not be confirmed — marked inline.
+  1. {question}
+  2. {question}
 ```
 
 ### Founder persona
@@ -662,15 +292,13 @@ If any grounding verification failed, add after the confidence rating:
 ASK — {short question summary}
 ───────────────────────────────────────────────────────
 
-{answer — plain English bullets, no technical metadata}
+{answer — plain English, no technical metadata}
 
 ───────────────────────────────────────────────────────
 You might also want to know:
   1. {plain-language follow-up}
   2. {plain-language follow-up}
 ```
-
-No route, depth, confidence, or sources lines. No verification warnings.
 
 ### PM persona
 
@@ -686,63 +314,27 @@ Related questions:
   2. {product-oriented follow-up}
 ```
 
-No route or depth lines. No file:line sources. No confidence ratings.
-
 ### Other personas
 
-Follow the `prompt` rules from the persona profile. Use the minimal frame
-(question summary + answer + follow-ups). Only include metadata lines
-(route, depth, confidence, sources) if the persona's prompt explicitly
-asks for them.
+Use the minimal frame (summary + answer + follow-ups). Only include
+metadata if the persona's prompt explicitly asks for it.
 
 ---
 
 ## Session Behavior
 
-`/ask` is designed for multi-turn sessions. After presenting an answer:
+After presenting an answer, if the user asks a follow-up (references the
+prior answer, narrows scope, uses "what about X?"), treat it as an
+implicit `/ask` with the same persona. Carry forward the domain context.
+Drop one tier from the original. Do not re-scan or re-classify.
 
-1. The user may ask a follow-up question with or without `/ask` prefix.
-   If the next user message is clearly a follow-up to the `/ask` answer
-   (references it, narrows it, asks "what about X?"), treat it as an
-   implicit `/ask` follow-up and apply the session continuity rules from
-   Phase 1.
-
-2. Track the follow-up count (Follow-up: #1, #2, #3...) in the header so
-   the user can see the conversation depth.
-
-3. Each follow-up reuses the cached scan data and carries forward the
-   domain context. Only re-scan if the follow-up shifts to a completely
-   different area of the codebase.
-
-4. If the follow-up chain reaches 5+ questions in the same domain, suggest:
-   "You're going deep on {domain}. Want me to run `/forge` to turn these
-   insights into a commit spec?"
+If the follow-up chain reaches 5+ questions in the same domain, suggest
+running `/forge` to turn the insights into a commit spec.
 
 ---
 
-## Error Handling
+## Constraints
 
-- **Empty question**: prompt the user to provide one
-- **Too vague** (no route signals match): ask the user to narrow down
-  — "Which layer? Which feature? Can you name a file, function, or concept?"
-- **Agent blocked**: Claude answers directly using the graph scan and file
-  reads, noting the fallback
-- **Agent returns a thin answer**: Claude supplements with its own file reads
-  and notes which parts came from the agent vs. orchestrator analysis
-- **Question spans routes**: prefer the route that gives a more complete answer
-  (e.g., "How many endpoints do we have and how does auth work on them?" is
-  `inventory` first, with a `domain-expert` follow-up suggestion)
-- **Grounding verification failure**: downgrade confidence, flag inline, but
-  still present the answer — a partially verified answer is better than no
-  answer
-
----
-
-## What This Command Does NOT Do
-
-- Does not write or modify any files
-- Does not create commits or update commit-protocol.md
-- Does not update project-state.json
-- Does not run destructive commands
-- Does not count toward any commit's tool budget
-- Does not trigger quality gates or preflight checks
+- Read-only. No file modifications, no commits, no state updates.
+- No repository-wide scans — use targeted reads and greps.
+- Does not count toward any commit's tool budget.
