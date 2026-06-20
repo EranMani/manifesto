@@ -1,0 +1,131 @@
+{
+  "domain": "product",
+  "owner": "mira",
+
+  "product_strategy": {
+    "description": "Discovery and validation methodology — determines what to build before any code is written.",
+    "discovery": {
+      "principle": "Discovery is a filter, not a sales pitch. If clear ROI cannot be established, the project is a non-starter.",
+      "protocol": [
+        "uncover-actual-problem: look past initial requests — the 'big pressing problem' often obscures simpler, high-impact opportunities",
+        "brutal-roi-honesty: do not proceed without clear, measurable return on investment",
+        "shadow-real-users: spend time watching actual employees work — hidden processes automatable with simple logic often offer the highest impact",
+        "quick-wins-first: select use cases that yield immediate results to build trust before tackling complex overhauls"
+      ],
+      "red_flags": [
+        "ai-for-ai-sake: no clear business problem → leads to pilot purgatory with no production path",
+        "no-success-criteria: without KPIs, the project will be perceived as failure regardless of technical quality",
+        "magic-expectations: expecting 100% accuracy on day one → will churn during inevitable iteration phase",
+        "restricted-data-access: security roadblocks stall development and kill momentum"
+      ],
+      "breakage_definition": "Look for processes that are painful, repetitive, costly, AND unfixed. If all four boxes are checked, there is a serious opportunity."
+    },
+    "proven_use_cases": [
+      "document-processing: automating extraction and validation against company standards",
+      "content-generation: structured, template-based creation for marketing or reporting",
+      "customer-support-agents: handling 80% of repetitive tickets with clear escalation paths for the 20%",
+      "internal-knowledge-assistants: RAG-based systems for proprietary documentation",
+      "data-extraction: transforming unstructured data into structured formats for downstream systems"
+    ],
+    "use_case_selection_checklist": [
+      "repeatability: is the task structured enough for automation?",
+      "human-escalation: is there a defined path for edge cases the AI cannot handle?",
+      "error-impact: what is the cost of a hallucination? (must be low for customer-facing, high-oversight for critical)",
+      "structured-rules: can success be defined by a set of logical rules?"
+    ],
+    "accuracy_paradigm": {
+      "v1_accuracy": "70-80% — frame as iterative development, not finished product",
+      "v2_accuracy": "90% — requires rigorous iteration with domain expert feedback",
+      "final_percent": "91-99% — disproportionately difficult and expensive",
+      "principle": "Shift mindset from 'perfection' to 'iteration' — clients must be hands-on domain experts, not outsource-and-forget."
+    },
+    "mvp_vs_poc": {
+      "proof_of_concept": {
+        "goal": "prove technical feasibility (gap analysis)",
+        "confidence": "used when technical path is unproven",
+        "deliverable": "local demo, script, or technical report",
+        "value": "educational — defines the path forward"
+      },
+      "minimum_viable_product": {
+        "goal": "deliver functional, deployed solution",
+        "confidence": "used when solution is repeatable and proven",
+        "deliverable": "deployed software in production environment",
+        "value": "operational — adds immediate business value"
+      },
+      "rule": "Never blur the lines between a demo and a product."
+    },
+    "proposal_framework": [
+      "problem-statement: rephrase the friction in the user's own words",
+      "scope-boundaries: explicitly list what the system will NOT do",
+      "technical-approach: architecture diagrams showing how the stack solves the problem",
+      "success-measurement: specific KPIs for the first iteration",
+      "ongoing-costs: estimates for API usage, infrastructure, and maintenance"
+    ],
+    "turn_it_off_test": "If you turn the system off and nobody notices within an hour, it's not solving a real problem. The faster they call, the better your product."
+  },
+
+  "delivery": {
+    "description": "High-velocity delivery methodology — how to ship fast, scope correctly, and maintain quality.",
+    "sprint_model": {
+      "duration": "2 weeks",
+      "rationale": "Deliver tangible value before internal bureaucracy has time to stall the project.",
+      "anatomy": [
+        "day-1: kickoff call — align on communication channels and finalize KPIs",
+        "day-2: scaffolding — fork the standard project template, establish repo structure",
+        "days-3-8: core development — build workflows, LLM integration, quality iteration",
+        "days-9-12: internal testing — edge cases, error handling, UI polish",
+        "days-13-14: final demo and ship to production"
+      ]
+    },
+    "scoping_discipline": {
+      "principle": "Fixed-boundary proposals prevent scope creep. Every proposal explicitly lists what the system will NOT do.",
+      "patterns": [
+        "outcome-based-pricing: charge per sprint or outcome, not hourly — shifts value from time spent to results delivered",
+        "value-based-pricing: tie price to measurable business impact (tickets resolved, hours saved, revenue generated)",
+        "recurring-sprints: software is never done — sell recurring sprints for new capabilities and maintenance"
+      ]
+    },
+    "communication": {
+      "principle": "Protect deep work — save meetings for kickoff and demo only.",
+      "patterns": [
+        "async-updates: progress via Slack/Markdown reports, not daily standups",
+        "meeting-discipline: only kickoff call and final demo — no status meetings",
+        "error-resolution: Sentry → extract trace as Markdown → feed to AI → generate and review fix"
+      ]
+    },
+    "rapid_fix_loop": {
+      "description": "Fix production bugs in minutes, not hours.",
+      "steps": [
+        "1. detect: Sentry alerts via Slack with production error",
+        "2. extract: copy error trace as Markdown",
+        "3. prompt: feed trace + relevant context into AI",
+        "4. execute: generate, review, and deploy fix immediately"
+      ]
+    },
+    "pipeline_management": {
+      "principle": "After sprint 1, clients often disappear for 2-8 weeks to test internally. This is a cash flow killer.",
+      "mitigation": [
+        "strategic-over-planning: assume 50% latency rate between sprints, fill schedule accordingly",
+        "pipeline-buffering: engineers move to internal tool development or waiting-list projects when clients go quiet"
+      ]
+    },
+    "standardization": {
+      "principle": "Same stack, same patterns, same file structure across every project. If you know where everything is in one project, you know where it is in all of them.",
+      "benefits": [
+        "a small team scales output 10x without proportional headcount increase",
+        "new projects start from a fork of the standard template — not from scratch",
+        "AI agents are more effective when codebase structure is predictable and consistent"
+      ]
+    },
+    "scaling_philosophy": {
+      "principle": "Scale through software leverage, not headcount. Recruiting and training overhead causes profits to plummet.",
+      "golden_era": "The market hasn't caught up to AI-native efficiency yet — use this gap to maximize output with minimal team size.",
+      "recurring_revenue": [
+        "recurring feature sprints for new capabilities",
+        "maintenance and monitoring contracts",
+        "API cost management and optimization"
+      ],
+      "long_game": "Models change every month, but processes must remain stable. Swap underlying LLMs as they improve without reinventing the delivery model."
+    }
+  }
+}

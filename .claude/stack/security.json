@@ -1,0 +1,39 @@
+{
+  "domain": "security",
+  "owner": "sage",
+  "authentication": "jwt",
+  "password_hashing": "bcrypt",
+  "session_management": "stateless-jwt-with-refresh-tokens",
+  "patterns": [
+    "defense-in-depth: multiple layers of security, not a single perimeter",
+    "least-privilege: every role gets minimum required permissions",
+    "fail-secure: on error, deny access rather than grant it",
+    "input-validation: validate all user input at the API boundary (Pydantic)",
+    "output-encoding: sanitize all output to prevent XSS"
+  ],
+  "principles": [
+    "Never store plaintext passwords — bcrypt with sufficient work factor.",
+    "JWT access tokens are short-lived (15-30 min), refresh tokens are long-lived and rotated.",
+    "CORS is restrictive by default — whitelist specific origins, not '*'.",
+    "Rate limit authentication endpoints aggressively (10/min per IP).",
+    "All secrets in environment variables, never in code or config files committed to git.",
+    "SQL injection is prevented by parameterized queries (SQLAlchemy handles this) — never raw string concatenation.",
+    "File uploads are validated (type, size, content) and stored outside the web root.",
+    "API keys are hashed in the database, not stored in plaintext.",
+    "HTTPS enforced everywhere — no HTTP endpoints in production.",
+    "Audit log for all authentication events and permission changes."
+  ],
+  "webhook_security": [
+    "Verify every incoming webhook against provider signatures (Stripe, Meta/WhatsApp, GitHub) — never trust unverified payloads.",
+    "Persist raw payload to database before processing — leaves audit trail even if downstream logic fails.",
+    "Rate limit webhook endpoints separately from user-facing API endpoints."
+  ],
+  "ai_security": [
+    "Prompt injection detection on all user inputs that reach LLM calls.",
+    "PII filtering on LLM outputs before returning to users.",
+    "Output validation — LLM responses are validated against expected schema before use.",
+    "Context isolation — user A's documents are never retrievable by user B.",
+    "Token budget enforcement — no single request can consume unbounded tokens.",
+    "Model output is never trusted as code execution input without sanitization."
+  ]
+}

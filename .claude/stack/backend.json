@@ -1,0 +1,115 @@
+{
+  "domain": "backend",
+  "owner": "rex",
+  "language": "python",
+  "version": "3.12+",
+  "package_manager": "uv",
+  "framework": "fastapi",
+  "validation": "pydantic",
+  "orm": "sqlalchemy",
+  "migrations": "alembic",
+  "async_workers": "celery",
+  "message_broker": "redis",
+  "task_scheduling": "celery-beat",
+  "testing": "pytest",
+  "patterns": [
+    "service-layer: business logic lives in services, not routes",
+    "repository-pattern: database access abstracted behind repository interfaces",
+    "dependency-injection: FastAPI Depends() for composable dependencies",
+    "separation-of-concerns: routes handle HTTP, services handle logic, models handle data",
+    "error-hierarchy: custom exception classes with typed error responses",
+    "async-by-default: async endpoints, sync only when forced by a blocking library"
+  ],
+  "principles": [
+    "Routes are thin — validate input, call service, return response.",
+    "Never import provider SDKs outside the service layer.",
+    "Background tasks go through Celery, not FastAPI BackgroundTasks (except fire-and-forget logging).",
+    "Every endpoint has input validation (Pydantic), output schema, and error responses documented.",
+    "Migrations are always reversible — every upgrade has a matching downgrade.",
+    "Environment variables for all configuration — never hardcode secrets, URLs, or feature flags."
+  ],
+  "validation_framework": {
+    "library": "pydantic",
+    "role": "runtime enforcement — not advisory type hints, but active validation that raises errors immediately on invalid data",
+    "principle": "Treat every external input as a potential failure point. Shift validation to the absolute source of data entry.",
+    "core_patterns": {
+      "basemodel_over_dataclass": "Replace all @dataclass with BaseModel for external data — dataclass type hints are advisory (silent failures), BaseModel enforces at runtime",
+      "strict_mode": "Use ConfigDict(strict=True) for high-integrity systems where type coercion ambiguity is a risk",
+      "field_governance": "Use Field() for business rule enforcement — gt/le for numeric bounds, min_length/max_length for strings, pattern for regex validation",
+      "literal_types": "Use Literal['draft', 'pending', 'shipped'] for categorical fields — eliminates magic string bugs across the application",
+      "nested_validation": "Pydantic validates the entire tree — parent models containing child models cascade validation down through all levels",
+      "reverse_validation": "Use model_validate() or ** unpacking to safely ingest raw data from databases and external APIs"
+    },
+    "lifecycle": [
+      "1. instantiation: User(id=1, ...) triggers validation engine immediately",
+      "2. validation: raises ValidationError if types or constraints fail",
+      "3. transformation: model_dump() exports to standard Python dict",
+      "4. serialization: model_dump_json() converts to API-ready JSON string"
+    ],
+    "settings_management": {
+      "library": "pydantic-settings",
+      "pattern": "Inherit from BaseSettings to auto-load environment variables at boot time",
+      "secret_handling": "Use SecretStr for sensitive data — values masked with asterisks in logs",
+      "boot_time_validation": "Instantiate settings at application boot — missing config fails immediately, preventing partial system starts",
+      "env_file": "ConfigDict(env_file='.env', env_file_encoding='utf-8')"
+    },
+    "ai_structured_outputs": {
+      "purpose": "Pydantic is the hard stop for LLM hallucinations — forces AI responses into deterministic structure",
+      "patterns": [
+        "response-format: pass Pydantic model into LLM response_format to force validated JSON output",
+        "field-descriptions-as-prompts: Field(description='...') serves as prompt metadata — guides LLM understanding during JSON generation, making code the single source of truth",
+        "self-correction-loop: feed ValidationError messages back to LLM programmatically — agent retries until producing valid schema"
+      ],
+      "principle": "Code is the source of truth for both Python logic and the AI's worldview — Field descriptions guide both validation and LLM generation."
+    },
+    "day_one_checklist": [
+      "map every external input (API, DB, webhook) to a BaseModel",
+      "replace all @dataclass structures handling external data with BaseModel",
+      "implement BaseSettings for all infrastructure credentials with boot-time validation",
+      "apply Literal types for all categorical variables — eliminate magic strings",
+      "add Field constraints (gt, le, min_length, pattern) for all business-rule-bound fields"
+    ]
+  },
+
+  "database": {
+    "primary": "postgresql",
+    "version": "15+",
+    "vector_extension": "pgvector",
+    "cache": "redis",
+    "patterns": [
+      "single-database: PostgreSQL handles relational data AND vectors (pgvector) — no separate vector DB needed to start",
+      "connection-pooling: use connection pool for all database access",
+      "migration-driven: all schema changes go through Alembic, never manual SQL",
+      "soft-delete: prefer soft deletes (is_deleted flag) over hard deletes for audit trail",
+      "indexed-queries: every query that filters or joins should have a supporting index"
+    ],
+    "principles": [
+      "PostgreSQL is enough — Instagram scaled to hundreds of millions on just Postgres.",
+      "Don't add a separate vector database until pgvector becomes a proven bottleneck.",
+      "Redis is for caching and message brokering, not as a primary data store.",
+      "Every table has created_at, updated_at timestamps.",
+      "Foreign keys are enforced at the database level, not just the application level.",
+      "Use UUIDs for public-facing IDs, auto-increment integers for internal references."
+    ],
+    "scaling_path": [
+      "Start: single PostgreSQL instance with pgvector",
+      "Growth: add read replicas, connection pooling (PgBouncer)",
+      "Scale: partition large tables, consider dedicated vector DB (Weaviate/Chroma) only when pgvector query time exceeds SLA"
+    ]
+  },
+
+  "key_libraries": [
+    "fastapi: API framework with automatic OpenAPI docs",
+    "pydantic: runtime data validation, schema enforcement, and settings management",
+    "sqlalchemy: ORM with async support",
+    "alembic: database migration management",
+    "celery: distributed task queue for background processing",
+    "redis: message broker for Celery + caching layer",
+    "uvicorn: ASGI server",
+    "httpx: async HTTP client for external API calls",
+    "tenacity: retry logic for external service calls",
+    "structlog: structured logging",
+    "pydantic-settings: environment variable loading with boot-time validation and SecretStr masking",
+    "email-validator: EmailStr and domain validation for Pydantic models"
+  ]
+}

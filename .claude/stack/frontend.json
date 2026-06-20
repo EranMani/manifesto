@@ -1,0 +1,43 @@
+{
+  "domain": "frontend",
+  "owner": "aria",
+  "language": "typescript",
+  "framework": "react",
+  "version": "18+",
+  "build_tool": "vite",
+  "styling": "tailwindcss",
+  "component_library": "shadcn-ui",
+  "state_management": "zustand",
+  "http_client": "axios",
+  "routing": "react-router",
+  "form_handling": "react-hook-form",
+  "form_validation": "zod",
+  "testing": "vitest",
+  "patterns": [
+    "component-composition: small, reusable components over monolithic pages",
+    "shadcn-imports: components are imported into the project (not node_modules) so AI agents can modify them",
+    "colocation: keep component, styles, types, and tests together",
+    "optimistic-ui: update UI immediately, reconcile with server response",
+    "loading-states: every async operation has loading, success, and error states"
+  ],
+  "principles": [
+    "shadcn/ui for all standard components — don't reinvent buttons, modals, tables, forms.",
+    "TypeScript strict mode — no any types except at external API boundaries.",
+    "Tailwind for styling — no CSS modules, no styled-components, no inline styles.",
+    "Every page works on mobile — responsive by default using Tailwind breakpoints.",
+    "API calls go through a centralized client with auth headers, error interceptors, and retry logic.",
+    "No direct DOM manipulation — everything through React state and refs."
+  ],
+  "key_libraries": [
+    "react: UI framework",
+    "vite: dev server and build tool",
+    "tailwindcss: utility-first CSS",
+    "shadcn-ui: importable component library (not a dependency — lives in your codebase)",
+    "zustand: lightweight state management",
+    "axios: HTTP client with interceptors",
+    "react-router: client-side routing",
+    "react-hook-form: performant form handling",
+    "zod: schema validation (shared patterns with Pydantic on backend)",
+    "lucide-react: icon library (pairs with shadcn)"
+  ]
+}

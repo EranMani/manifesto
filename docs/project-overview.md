@@ -137,36 +137,53 @@ Rex knows the backend is FastAPI + SQLAlchemy + Celery. Nova knows AI
 orchestration is LangChain + LangGraph with pgvector. Adam knows
 deployment is Docker Compose on a VPS with Nginx. No agent wastes time
 rediscovering the stack or recommending technologies that don't fit — the
-`.claude/stack-profile.json` is their shared source of truth.
+`.claude/stack-profile.json` is their shared source of truth — and each
+agent loads only their domain detail file, not the entire 50KB playbook.
 
 ---
 
 ## The Stack Profile
 
-The stack profile (`.claude/stack-profile.json`) defines the project's
-technology choices per domain. It's separate from agent config because
-the stack is a **project-level** decision — multiple agents reference the
-same technologies from different angles.
+The stack profile uses **tiered context loading** — the same pattern it
+recommends for AI systems:
 
-| Domain | Core Technologies |
-|--------|------------------|
-| **Backend** | Python 3.12+, FastAPI, Pydantic, SQLAlchemy, Alembic, Celery, Redis |
-| **Database** | PostgreSQL 15+ with pgvector, Redis for caching |
-| **Frontend** | TypeScript, React 18+, Vite, Tailwind CSS, shadcn/ui, Zustand |
-| **AI/ML** | LangChain, LangGraph, Langfuse, pgvector, structured outputs |
-| **Infrastructure** | Docker, Docker Compose, Nginx, GitHub Actions, VPS deployment |
-| **Security** | JWT with refresh tokens, bcrypt, rate limiting via Redis, CORS whitelist |
-| **Observability** | Langfuse (LLM tracing), Sentry (errors), structlog (application logs) |
+- **Level 0** (`.claude/stack-profile.json`, ~8KB): philosophy, engineering
+  methodology, testing mandates, and one-line summaries per domain. Every
+  agent reads this.
+- **Level 2** (`.claude/stack/{domain}.json`): full detail for one domain.
+  Each agent loads only their file when working.
 
-Each domain also includes **patterns** (how to use the technology) and
-**principles** (when and why). For example, the AI section includes
-"use as little AI as possible — combine deterministic logic with LLMs"
-as a guiding principle, and the infrastructure section includes a
-scaling path from single VPS to container orchestration.
+```
+.claude/
+├── stack-profile.json              ← Level 0: philosophy + abstracts
+├── stack/
+│   ├── backend.json                ← Rex: backend + database
+│   ├── frontend.json               ← Aria: frontend
+│   ├── ai.json                     ← Nova: AI, RAG, retrieval, context
+│   ├── infrastructure.json         ← Adam: infra, observability, tiers
+│   ├── security.json               ← Sage: auth, webhooks, AI security
+│   └── product.json                ← Mira: product strategy, delivery
+```
+
+| Domain | Owner | Core Technologies |
+|--------|-------|------------------|
+| **Backend** | Rex | Python 3.12+, FastAPI, Pydantic, SQLAlchemy, Alembic, Celery, Redis, PostgreSQL |
+| **Frontend** | Aria | TypeScript, React 18+, Vite, Tailwind CSS, shadcn/ui, Zustand |
+| **AI/ML** | Nova | LangChain, LangGraph, Langfuse, hybrid RAG (BM25 + vectors + RRF + cross-encoder), pgvector/numpy |
+| **Infrastructure** | Adam | Docker, Docker Compose, Nginx, GitHub Actions, VPS, Grafana, Celery Beat |
+| **Security** | Sage | JWT + refresh tokens, bcrypt, rate limiting, CORS whitelist, webhook signature verification |
+| **Product** | Mira | Discovery protocol, sprint model, scoping, accuracy paradigm, delivery methodology |
+
+Each domain file includes **technologies** (what to use), **patterns**
+(how to use them), and **principles** (when and why). The AI domain
+includes a complete hybrid RAG pipeline specification with BM25 sparse
+retrieval, dense embeddings, RRF fusion, cross-encoder reranking, and
+NDCG@10 evaluation. The infrastructure domain includes a three-tiered
+operational architecture (triggers → schedules → agents).
 
 The stack profile shapes every decision in the pipeline:
 - **`/ask`** answers reference the project's actual stack, not generic advice
-- **`/forge`** Phase 3 agents recommend within the chosen technologies
+- **`/forge`** Phase 3 agents load their domain file and recommend within the chosen technologies
 - **`/forge`** Phase 3.5 challenges validate against stack constraints
 - **`/next-step`** implementations use the patterns defined in the profile
 
@@ -332,7 +349,14 @@ also surfaces concrete work to strengthen the codebase.
 │   ├── forge.md                  ← /forge command (6-phase pipeline)
 │   └── next-step.md              ← /next-step command (execution engine)
 ├── persona-profiles.json         ← 6 personas with prompts, questions, forge templates
-├── stack-profile.json            ← Technology stack anchors — frameworks, patterns, principles per domain
+├── stack-profile.json            ← Level 0 abstract — philosophy, methodology, domain summaries
+├── stack/                        ← Level 2 domain details (loaded per agent)
+│   ├── backend.json              ← Rex: Python, FastAPI, Pydantic, SQLAlchemy, Celery, PostgreSQL
+│   ├── frontend.json             ← Aria: TypeScript, React, Vite, Tailwind, shadcn/ui
+│   ├── ai.json                   ← Nova: LangChain, LangGraph, hybrid RAG, context architecture
+│   ├── infrastructure.json       ← Adam: Docker, Nginx, CI/CD, operational tiers, observability
+│   ├── security.json             ← Sage: JWT, auth, webhook security, AI security
+│   └── product.json              ← Mira: discovery, sprint model, delivery, scaling
 └── settings.json                 ← Claude Code configuration
 
 hooks/                            ← Verification and automation pipeline
@@ -369,7 +393,8 @@ TOKEN_RECORDS.md                  ← Per-commit token records
 | [docs/forge-command.md](forge-command.md) | /forge in depth: 6 phases, decomposition rules, error recovery |
 | [docs/next-step-command.md](next-step-command.md) | /next-step in depth: execution modes, commit lifecycle, auto mode, hooks |
 | [docs/project-overview.md](project-overview.md) | This file — the why, the what, the how |
-| .claude/stack-profile.json | Technology stack anchors — frameworks, patterns, principles per domain |
+| .claude/stack-profile.json | Level 0 stack abstract — philosophy, methodology, domain summaries |
+| .claude/stack/*.json | Level 2 domain details — one file per agent, loaded only when active |
 | CLAUDE.md | Operating contract — boot sequence, approval rules, execution protocol |
 | AGENTS.md | Agent roster, domain boundaries, cross-agent communication |
 | DECISIONS.md | Architectural decision log with rationale |

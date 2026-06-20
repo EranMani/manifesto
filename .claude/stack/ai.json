@@ -1,0 +1,248 @@
+{
+  "domain": "ai",
+  "owner": "nova",
+  "orchestration": "langchain",
+  "agent_framework": "langgraph",
+  "provider_apis": ["anthropic", "openai"],
+  "default_provider": "anthropic",
+  "vector_store": "pgvector-or-numpy",
+  "observability": "langfuse",
+  "error_tracking": "sentry",
+  "patterns": [
+    "minimal-ai: use deterministic logic first, LLMs only when reasoning or generation is required",
+    "structured-outputs: always request structured (JSON) outputs from LLMs, validate with Pydantic",
+    "chain-of-responsibility: break complex tasks into sequential steps, each independently testable",
+    "hybrid-rag-pipeline: ingest → chunk → embed → index (sparse + dense) → parallel retrieve → RRF fuse → cross-encoder rerank → generate → validate",
+    "cognitive-architecture: design data flow diagrams before writing AI code",
+    "agentic-retrieval: for complex queries (3+ files), use iterative search → read → evaluate → repeat loop instead of single-pass retrieval",
+    "modular-primitives: expose discrete list/search/read tools to agent rather than monolithic retrieval blocks",
+    "guardrails: prompt injection detection, PII filtering, output validation on every LLM call",
+    "fallback-chains: if primary model fails, fall back to secondary, then to deterministic response",
+    "structured-citations: every AI-generated answer includes file name, quote, and line number for verifiable traceability"
+  ],
+  "principles": [
+    "The AI layer is a thin wrapper — most of the system is regular software engineering.",
+    "Every LLM call is traced (input, output, latency, token cost) via Langfuse.",
+    "Never expose raw LLM output to users without validation and sanitization.",
+    "Embeddings are generated once at ingestion time, not at query time (except for the query itself).",
+    "Hybrid retrieval is mandatory — BM25 for keyword precision + dense vectors for semantic recall, fused with RRF, refined with cross-encoder reranking.",
+    "Challenge the Vector Database Myth: for corpora under 1M documents, disk-based numpy arrays + BM25S outperform dedicated vector databases in latency and simplicity.",
+    "LLM-as-a-judge for automated evaluation, but always validate against human-annotated datasets.",
+    "Provider SDKs are isolated behind a service interface — switching providers should be a config change.",
+    "Context windows are finite — chunk documents intelligently, don't stuff everything in.",
+    "Start with semantic hybrid RAG — upgrade to agentic RAG only when query complexity demands multi-step reasoning.",
+    "Agent tools return errors as messages, never raise exceptions — the LLM interprets and course-corrects autonomously.",
+    "Enforce hard limits on agent tool calls and file read sizes to prevent context-window DoS."
+  ],
+
+  "rag": {
+    "pipeline": "ingest → chunk → embed → index → hybrid-retrieve → fuse → rerank → generate → validate",
+    "chunking": {
+      "strategy": "recursive-character-text-splitter",
+      "chunk_size_tokens": 1000,
+      "chunk_overlap_tokens": 200,
+      "hard_limit": "1000 tokens per chunk — enforced, not advisory. Preserves semantic locality and model compatibility.",
+      "metadata_preserved": ["source", "page", "section", "timestamp", "document_id"],
+      "principles": [
+        "Chunk boundaries should respect semantic units (paragraphs, sections) not just token counts.",
+        "Every chunk carries enough metadata to trace back to its source document and location.",
+        "Chunking strategy is an experimental variable — changes must be validated against NDCG@10."
+      ]
+    },
+    "retrieval": {
+      "architecture": "hybrid-parallel",
+      "description": "Vector-only retrieval is insufficient for production. The system dispatches queries concurrently to sparse (BM25) and dense (vector) retrievers, fuses results with RRF, then reranks with a cross-encoder.",
+      "sparse_layer": {
+        "algorithm": "BM25",
+        "library": "bm25s",
+        "scoring_method": "lucene",
+        "purpose": "Keyword precision — captures exact terms, identifiers, alphanumeric codes, and rare vocabulary that dense models ignore.",
+        "process": [
+          "tokenization: deterministic conversion to token IDs with English stop-word filtering",
+          "indexing: vocabulary lookup table with TF-style weighting (term frequency relative to corpus)"
+        ],
+        "limitation": "Cannot handle paraphrasing — serves as high-precision anchor, not standalone retriever."
+      },
+      "dense_layer": {
+        "model": "text-embedding-3-small",
+        "dimensions": 1536,
+        "provider": "openai",
+        "local_fallback": "sentence-transformers",
+        "batch_size": 256,
+        "purpose": "Semantic mapping — captures meaning and handles paraphrasing by mapping text to high-dimensional vector space.",
+        "optimization": {
+          "normalization": "L2 normalization — rescale vectors to unit Euclidean distance",
+          "similarity": "dot-product via numpy matrix multiplication (not cosine_similarity — L2 normalization makes them equivalent, dot product is faster)",
+          "rationale": "Pure matrix algebra provides near-instantaneous retrieval across the corpus without dedicated vector database overhead."
+        },
+        "persistence": {
+          "format": ".npy files for high-dimensional arrays",
+          "expected_footprint": "~350 MB for ~56,000 documents",
+          "loading": "indices loaded directly into memory from disk"
+        }
+      },
+      "fusion": {
+        "algorithm": "reciprocal-rank-fusion",
+        "abbreviation": "RRF",
+        "formula": "Score = sum(1 / (k + rank))",
+        "smoothing_factor_k": 60,
+        "purpose": "Scale-agnostic merging of BM25 scores and dense similarity scores (which exist on different numerical scales).",
+        "process": [
+          "1. concurrent-retrieval: retrieve top-K candidates (K=50) from both BM25 and dense index",
+          "2. list-aggregation: collate results into list-of-lists, maintaining original rank per document",
+          "3. fused-ranking: apply RRF formula to each document ID in the aggregated lists",
+          "4. final-sort: sort by fused scores to produce hybrid ranking"
+        ],
+        "rationale": "The smoothing factor k=60 prevents a single high-ranking result from one retriever from dominating the output, ensuring balanced contribution from both layers."
+      },
+      "reranking": {
+        "model": "cross-encoder",
+        "provider": "cohere",
+        "model_id": "rerank-english-v3.0",
+        "input": "top-N fused candidates (N=50)",
+        "output": "final top-5 ranked results",
+        "purpose": "Joint query-document analysis — unlike bi-encoders (which embed query and document separately), cross-encoders analyze them together to capture subtle contextual relevance.",
+        "effect": "Contextually mismatched but statistically relevant documents are downgraded; highly relevant documents are promoted to top positions."
+      },
+      "additional_techniques": [
+        "contextual-retrieval: add document context to chunks before embedding for better recall",
+        "query-expansion: rephrase user query into multiple variants for broader recall",
+        "self-query: extract metadata filters from natural language queries before retrieval"
+      ]
+    },
+    "index_persistence": {
+      "strategy": "cached-indexing to minimize latency and recurring API costs",
+      "vector_format": ".npy files (numpy arrays)",
+      "sparse_format": "BM25S native index format",
+      "principles": [
+        "Indices are stored locally and can be version-controlled.",
+        "Indices are loaded into memory from disk — no database server required for corpora under 1M documents.",
+        "Challenge the Vector Database Myth: for corpora under 1M documents, disk-based numpy arrays outperform dedicated vector databases in latency and operational simplicity.",
+        "Transition to managed vector DB (pgvector, Weaviate) only when corpus exceeds 1M documents or multi-tenant isolation is required."
+      ]
+    },
+    "evaluation": {
+      "primary_metric": "NDCG@10",
+      "description": "Normalized Discounted Cumulative Gain at Rank 10 — measures retrieval quality based on position of relevant documents in top 10 results.",
+      "benchmark_reference": "BEIR (Benchmarking IR) framework with domain-specific datasets",
+      "expected_performance": {
+        "bm25_only": "baseline (e.g., NDCG@10 ~28 on Financial QA)",
+        "dense_only": "improved semantic recall but misses keyword-dependent identifiers",
+        "hybrid_plus_reranking": "near 2x improvement over BM25-only (e.g., NDCG@10 ~47 on Financial QA)"
+      },
+      "metrics": [
+        "NDCG@10: primary — position-weighted relevance in top 10",
+        "retrieval-precision: are the retrieved chunks relevant?",
+        "retrieval-recall: did we miss relevant chunks?",
+        "answer-faithfulness: is the generated answer grounded in retrieved context?",
+        "answer-relevance: does the generated answer address the user's question?"
+      ],
+      "cold_start": {
+        "description": "When proprietary data lacks existing benchmarks, generate synthetic evaluation sets.",
+        "method": "Use high-reasoning LLM to generate BEIR-style (Query, Relationship, Corpus) pairs from document chunks.",
+        "principle": "Never ship a RAG pipeline without an evaluation dataset — synthetic is better than none."
+      },
+      "experimental_loop": [
+        "1. establish baseline NDCG@10 with current pipeline",
+        "2. change one variable (chunking strategy, embedding model, retrieval parameters)",
+        "3. re-evaluate against the same dataset",
+        "4. keep changes that improve NDCG@10, revert those that don't",
+        "5. repeat — every pipeline change is validated scientifically, not by vibes"
+      ]
+    }
+  },
+
+  "retrieval_paradigms": {
+    "description": "Two paradigms exist — choose based on query complexity, latency budget, and accuracy requirements.",
+    "semantic_rag": {
+      "flow": "retrieve → generate (single pass)",
+      "llm_calls": 1,
+      "latency": "milliseconds",
+      "correction_capability": "none — static output from single retrieval",
+      "best_for": "straightforward queries, high-volume low-latency, FAQ-style lookups",
+      "limitation": "fails when answer requires synthesizing from multiple sources or when initial retrieval misses the target"
+    },
+    "agentic_rag": {
+      "flow": "search → read → evaluate → repeat (iterative loop)",
+      "llm_calls": "3-7 per query (typical: 5 tool calls)",
+      "latency": "10-15 seconds",
+      "correction_capability": "high — autonomous recovery via feedback loop",
+      "best_for": "complex queries spanning 3+ files, engineering wikis, codebase navigation, multi-step reasoning",
+      "advantage": "mimics human engineer persistence — if first search is irrelevant, agent recognizes failure and pivots",
+      "toolkit": {
+        "description": "Modular primitives exposed to the LLM for autonomous file system navigation.",
+        "primitives": [
+          "list: pattern matching (glob) to identify relevant files — use relative paths for token optimization",
+          "search (grab): compiled regex for case-insensitive search across document lines — returns file names and line numbers",
+          "read: content extraction with path validation (is_relative_to) to prevent directory traversal attacks"
+        ],
+        "discovery_pattern": "list the big picture → search for the needle → read the context to verify",
+        "high_performance_search": "ripgrep via subprocess — Rust-based, respects .gitignore, ignores hidden directories, gold standard for codebase RAG"
+      },
+      "production_safety": {
+        "context_window_dos_prevention": [
+          "agent_request_limit: hard cap on tool calls per query to prevent infinite loops",
+          "read_max_lines: limit file ingestion size to prevent context exhaustion from large files",
+          "timeout: maximum wall-clock time per agent execution"
+        ],
+        "error_handling": "return human-readable error messages, never raise exceptions in agent tools — treat the LLM as a system administrator that interprets errors and course-corrects",
+        "structured_citations": {
+          "requirement": "every answer must include verifiable citations",
+          "fields": ["file_name", "quote", "line_number"],
+          "purpose": "enables downstream validation by human auditors and automated verification systems",
+          "implementation": "Pydantic models enforce citation structure in agent outputs"
+        }
+      }
+    },
+    "decision_framework": [
+      "1. does the answer require synthesizing from 3+ files? → agentic RAG",
+      "2. is target response time milliseconds? → semantic RAG. Can user wait 10-15 seconds? → agentic RAG",
+      "3. does deployment support subprocess execution (ripgrep)? If restricted serverless → semantic RAG",
+      "4. is there budget for multiple LLM calls per query? If constrained → semantic RAG with hybrid retrieval",
+      "5. default: start with semantic hybrid RAG, upgrade to agentic when query complexity demands it"
+    ]
+  },
+
+  "context_architecture": {
+    "description": "Context management is the single biggest lever for AI quality. Minimize token bloat while maximizing relevance.",
+    "tiered_loading": {
+      "description": "Three-tier hierarchy to minimize token consumption while preserving navigation ability.",
+      "levels": [
+        "level-0 (abstract): one-line summary per area — agent scans entire system architecture in under 2,000 tokens",
+        "level-1 (overview): short description of purpose, workflows, and inter-area relationships",
+        "level-2 (full): deep-level data accessed only when agent confirms relevance from level 0-1"
+      ],
+      "principle": "Load the minimum context needed for the agent to decide if it needs more. Never front-load full documents."
+    },
+    "context_hub_structure": [
+      "identity: mission, values, system personality — loaded into every system prompt",
+      "inbox: temporary staging for unprocessed ideas and tasks",
+      "areas: long-term responsibilities (e.g., clients, products, operations)",
+      "projects: active, time-bound work efforts",
+      "knowledge: permanent reference library — SOPs, documentation, domain guides",
+      "archive: stale data — agents are explicitly instructed to ignore this to prevent context clutter"
+    ],
+    "storage": "Git-versioned Markdown files — version-controlled, diffable, editable locally and synced to cloud",
+    "principles": [
+      "Context is King — the quality of AI output is determined by the quality of context, not the model.",
+      "Separate structured data (PostgreSQL) from unstructured context (Markdown/Git).",
+      "Agent skills and instructions are defined in version-controlled Markdown files — installable, removable, auditable.",
+      "Every agent interaction starts with identity context (who am I, what are my values) before task context."
+    ]
+  },
+
+  "key_libraries": [
+    "langchain: LLM orchestration, chains, document loaders, text splitters",
+    "langgraph: stateful agent workflows with cycles and branching",
+    "langfuse: LLM observability, tracing, prompt management",
+    "pydantic: structured output validation",
+    "tiktoken: token counting for context window management",
+    "sentence-transformers: local embedding models (fallback / offline)",
+    "bm25s: sparse retrieval with BM25 scoring (Lucene method)",
+    "numpy: high-performance vector operations, index persistence (.npy)",
+    "cohere: cross-encoder reranking API",
+    "pydantic-ai: tool-call orchestration with strict data validation for agent outputs",
+    "ripgrep: Rust-based high-performance search for agentic RAG (subprocess, respects .gitignore)",
+    "sentry-sdk: error and exception tracking"
+  ]
+}

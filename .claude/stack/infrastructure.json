@@ -1,0 +1,149 @@
+{
+  "domain": "infrastructure",
+  "owner": "adam",
+  "containerization": "docker",
+  "orchestration": "docker-compose",
+  "reverse_proxy": "nginx",
+  "ssl": "certbot",
+  "ci_cd": "github-actions",
+  "cloud_providers": ["hetzner", "digitalocean", "aws"],
+  "default_deployment": "vps-with-docker",
+  "patterns": [
+    "container-per-service: backend, frontend, worker, redis, postgres each in their own container",
+    "docker-compose-environments: separate compose files for dev, test, and production",
+    "health-checks: every service exposes a /health endpoint",
+    "twelve-factor: config in environment, logs to stdout, stateless processes",
+    "blue-green-deployment: zero-downtime deploys by running new version alongside old",
+    "load-balancing: Nginx as reverse proxy with upstream blocks for horizontal scaling"
+  ],
+  "principles": [
+    "Docker Compose for development and single-server production — Kubernetes only at true scale.",
+    "Every service has a health check that verifies its dependencies (DB connection, Redis ping).",
+    "Secrets are never in Docker images or git — use environment variables injected at runtime.",
+    "HTTPS everywhere — Certbot/Let's Encrypt for automated certificate management.",
+    "Logs are structured JSON to stdout — centralized logging is a layer on top, not baked in.",
+    "CI/CD runs tests, builds images, and deploys on merge to main — no manual deploys.",
+    "Monitor cost, latency, and error rates post-deployment — not just 'is it up?'"
+  ],
+
+  "system_design": {
+    "rate_limiting": {
+      "strategy": "token-bucket via Redis",
+      "defaults": {
+        "api": "100 requests/minute per user",
+        "auth": "10 attempts/minute per IP",
+        "ai_endpoints": "20 requests/minute per user"
+      }
+    },
+    "caching": {
+      "layer": "redis",
+      "patterns": [
+        "cache-aside: check cache first, fall back to DB, populate cache on miss",
+        "ttl-based: all cache entries have explicit TTL, no indefinite caching",
+        "cache-invalidation: invalidate on write, not on timer"
+      ]
+    },
+    "load_balancing": {
+      "layer": "nginx",
+      "strategy": "round-robin with health checks",
+      "scaling_path": "vertical first (bigger VPS), horizontal when CPU consistently >70%"
+    },
+    "background_processing": {
+      "queue": "redis",
+      "worker": "celery",
+      "patterns": [
+        "idempotent-tasks: every task can be safely retried",
+        "dead-letter-queue: failed tasks after N retries go to DLQ for manual inspection",
+        "priority-queues: separate queues for urgent (auth, notifications) vs. bulk (ingestion, reports)",
+        "task-timeout: every task has a max execution time"
+      ]
+    },
+    "event_driven": {
+      "pattern": "pub-sub via Redis",
+      "description": "Redis + Celery create a logical disconnect between API requests and processing — enables unattended 24/7 execution, absorbs traffic bursts without overwhelming the server.",
+      "use_cases": [
+        "document-ingested: triggers embedding generation",
+        "user-created: triggers welcome email and default settings",
+        "ai-response-generated: triggers logging and evaluation",
+        "webhook-received: raw payload persisted to DB, then async dispatched to worker"
+      ]
+    },
+    "webhook_handling": {
+      "pattern": "verify → persist → dispatch",
+      "steps": [
+        "1. signature-verification: verify incoming webhook against provider signatures (see security.json for details)",
+        "2. data-persistence: immediately save raw payload to PostgreSQL — leaves a trace for debugging even if downstream processing fails",
+        "3. async-dispatch: hand off to Celery worker, freeing the API to handle the next event instantly"
+      ],
+      "principle": "Never process webhook payloads synchronously — always persist first, process async."
+    }
+  },
+
+  "operational_tiers": {
+    "description": "Three-tiered model separating automated triggers, recurring schedules, and conversational agents. Start with Tiers 1-2 for reliability, add Tier 3 for dynamic intelligence.",
+    "tier_1_triggers": {
+      "name": "Trigger-Based Actions",
+      "mechanism": "webhooks and API endpoints",
+      "pattern": "if-this-then-that from external systems",
+      "examples": ["payment received → provision access", "form submitted → create record", "email received → classify and route"],
+      "reliability": "highest — deterministic logic, no LLM involved"
+    },
+    "tier_2_scheduled": {
+      "name": "Scheduled Workflows",
+      "mechanism": "Celery Beat cron jobs",
+      "pattern": "recurring logic on a schedule",
+      "examples": ["daily competitor analysis", "hourly CRM sync", "weekly report generation"],
+      "advanced": "DAG (Directed Acyclic Graph) system in Python for complex multi-step workflows — provides n8n/Zapier-style sequential logic within controlled code"
+    },
+    "tier_3_agents": {
+      "name": "Agent Layer",
+      "mechanism": "conversational interface (chat, Slack, API)",
+      "pattern": "dynamic, generative decision-making based on user input",
+      "capabilities": ["natural language understanding", "tool use (CLI, MCP, browser)", "multi-step reasoning", "sub-agent spawning"],
+      "reliability": "experimental — requires human-in-the-loop refinement and guardrails",
+      "principle": "Agents are powerful but volatile. Gate agent actions behind confirmation for anything destructive or irreversible."
+    }
+  },
+
+  "observability": {
+    "llm_tracing": "langfuse",
+    "error_tracking": "sentry",
+    "infrastructure_monitoring": "grafana",
+    "application_logs": "structlog",
+    "metrics": [
+      "request-latency: p50, p95, p99 per endpoint",
+      "error-rate: 5xx per endpoint per hour",
+      "llm-cost: tokens consumed and dollar cost per call and per session",
+      "llm-latency: time to first token, total generation time",
+      "retrieval-quality: precision and recall per RAG query",
+      "task-queue-depth: Celery queue length and processing time",
+      "cache-hit-rate: Redis hit/miss ratio",
+      "agent-budget: per-agent API cost tracking with hard caps",
+      "webhook-throughput: events received, processed, failed per provider"
+    ],
+    "budget_control": {
+      "description": "Without strict controls, a single autonomous agent loop can easily exceed $50 in API costs.",
+      "mechanisms": [
+        "max-turns: hard cap on agent reasoning iterations per session",
+        "per-session-budget: dollar limit per agent invocation",
+        "model-tiering: use cheaper models for classification/routing, expensive models only for final generation",
+        "alert-thresholds: notify when daily/weekly spend exceeds configured percentage of budget"
+      ]
+    },
+    "principles": [
+      "Every LLM call is traced end-to-end: input, output, latency, tokens, cost.",
+      "Structured logs (JSON) with correlation IDs across request lifecycle.",
+      "Alerts on error rate spikes, not just individual errors.",
+      "Health checks verify actual functionality (can query DB, can reach Redis), not just process uptime.",
+      "Persist a trace of every event in the database — logs and DB traces are the only way to debug an evolving AI system.",
+      "Monitor cost as aggressively as you monitor errors — an uncontrolled agent loop is a financial DoS."
+    ]
+  },
+
+  "scaling_path": [
+    "Start: single VPS with Docker Compose (backend + frontend + postgres + redis)",
+    "Growth: separate database to managed PostgreSQL, add Celery workers",
+    "Scale: load balancer (Nginx) + multiple backend instances, CDN for frontend",
+    "Enterprise: container orchestration (ECS/Kubernetes), managed Redis, read replicas"
+  ]
+}
