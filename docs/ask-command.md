@@ -793,11 +793,14 @@ senior-level thinking from mid-level execution.
 /ask ai q                 # Should: AI pipeline questions
 ```
 
-**Critical check — questions MUST appear (failed in 3/4 user tests):**
-- At least 5 questions presented via AskUserQuestion (Groups 1 + 2)
+**Critical check — questions MUST appear (failed in 3/4 user tests,
+now fixed by switching from AskUserQuestion to plain numbered text):**
+- At least 5 numbered questions rendered as plain text
 - Questions appear BEFORE any build prompts
-- If only forge prompts appear with no questions, the question bank is broken
+- If only forge/build prompts appear with no questions, the question bank is broken
 - The persona's evergreen list has 5 questions — at minimum those must appear
+- AskUserQuestion may be used additionally in interactive mode, but
+  plain text is the guaranteed delivery mechanism
 
 **Check:** questions should be contextual (reference real codebase state),
 not just generic templates.

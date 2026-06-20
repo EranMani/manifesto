@@ -73,22 +73,9 @@ technical terms, no file paths, no domain labels like "backend" or
 instead). For PM persona: use product vocabulary, no engineering jargon.
 This rule applies to every step below.
 
-**CRITICAL — THIS HAS FAILED IN 3 OUT OF 3 USER TESTS.**
-
-The question bank MUST present questions. It has repeatedly returned
-only forge/build prompts with zero questions, which defeats its purpose.
-
-The root cause: the model skips Part A (question generation) and jumps
-to Part B (forge prompts). To prevent this, Part A is now the ONLY
-mandatory part. Part B is optional and comes AFTER.
-
-**Hard constraint**: if your response to `/ask {persona} questions`
-does not contain an AskUserQuestion call with at least 5 questions,
-the response is WRONG. Stop and redo Part A before outputting anything.
-
-The question bank executes in two parts: FIRST generate and present
-questions (mandatory), THEN optionally append build prompts (optional).
-Never skip to build prompts without presenting questions first.
+The question bank executes in two parts: FIRST generate and render
+questions as plain numbered text (mandatory), THEN optionally append
+build suggestions below (optional).
 
 ### Part A — Generate questions (mandatory, do this FIRST)
 
@@ -133,29 +120,44 @@ contextual over evergreen when they overlap. Target: 6-8 total questions.
 contextual generation produced too few, keep more evergreen questions.
 Never present fewer than 5 questions.
 
-**A4. Present questions to the user — THIS IS THE PRIMARY OUTPUT.**
-
-Split into two groups and present using AskUserQuestion:
-
-**Group 1 — "Start here"**: 3-4 best overview questions.
-**Group 2 — "Go deeper"**: 3-4 most specific contextual questions.
+**A4. Render questions as plain text — THIS IS THE PRIMARY OUTPUT.**
 
 Self-check before outputting: count your questions. If you have fewer
-than 5, you MUST add more from the evergreen list. If you have zero
-contextual questions, use ALL evergreen questions as-is. The persona's
-evergreen list always has 5 — that alone satisfies the minimum.
+than 5, add more from the evergreen list. If you have zero contextual
+questions, use ALL evergreen questions as-is. The persona's evergreen
+list always has 5 — that alone satisfies the minimum.
 
-Call AskUserQuestion with these two groups NOW. This call is the primary
-output of the question bank. Everything after it is supplementary.
+Split into two groups and render as plain numbered text:
 
-**Failure mode to avoid**: generating only forge/build prompts with no
-questions. This has happened in 3 consecutive user tests. If your
-response does not include an AskUserQuestion call, it is wrong.
+```
+QUESTIONS — {persona name}
+───────────────────────────────────────────────────────
+
+Start here:
+  1. {overview question}
+  2. {overview question}
+  3. {overview question}
+
+Go deeper:
+  4. {specific contextual question}
+  5. {specific contextual question}
+  6. {contextual question}
+  7. {contextual question}
+
+───────────────────────────────────────────────────────
+Type a number to explore that question, or ask your own.
+```
+
+This plain-text format is the guaranteed output. It works in all modes
+(interactive, `claude -p`, Codex). If AskUserQuestion is available and
+the session is interactive, you MAY additionally use it to present the
+questions as selectable options — but the plain text above must always
+be rendered regardless.
 
 ### Part B — Append build prompts (optional, do this AFTER Part A)
 
-Only after the AskUserQuestion from Part A has been output, append build
-prompts below it.
+Only after the questions from Part A have been rendered, append build
+prompts below them.
 
 **B1. Generate forge prompts.**
 Using the **same contextual data** already gathered in A2 (hub files,
@@ -189,7 +191,7 @@ the active persona's `forge_templates` from the persona's individual file.
 - Each prompt must describe a **different** gap or opportunity.
 
 **B2. Present build prompts.**
-Render as a labeled text block AFTER the AskUserQuestion from Part A.
+Render as a labeled text block AFTER the questions from Part A.
 Build prompts are supplementary — they must never appear without
 questions above them.
 
@@ -220,8 +222,8 @@ If B1 produced no forge prompts, omit the build prompt section entirely.
 
 ### Part C — Run the selected question
 
-Take the user's selection from the AskUserQuestion, carry the active
-persona forward, and execute through the pipeline starting at Phase 1.
+When the user types a number or selects a question, carry the active
+persona forward and execute through the pipeline starting at Phase 1.
 
 ---
 
