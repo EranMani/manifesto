@@ -762,6 +762,13 @@ senior-level thinking from mid-level execution.
 - Claimed capabilities verified against actual components
 - Intended vs. observed behavior distinguished when they differ
 
+**Check spec vs. code (critical for AI domain):**
+- No capabilities from `.claude/stack/*.json` presented as implemented
+- Pipeline stages labeled as Implemented/Stored-but-unused/Planned/Missing
+- Radar does not contradict earlier Q&A answers in the same session
+- Forge prompts match the target system's actual architecture (relational
+  vs. vector retrieval — don't suggest reranking for SQL-based lookup)
+
 ### Test the readiness assessment
 
 ```bash
@@ -786,10 +793,11 @@ senior-level thinking from mid-level execution.
 /ask ai q                 # Should: AI pipeline questions
 ```
 
-**Critical check — questions MUST appear:**
+**Critical check — questions MUST appear (failed in 3/4 user tests):**
 - At least 5 questions presented via AskUserQuestion (Groups 1 + 2)
 - Questions appear BEFORE any build prompts
 - If only forge prompts appear with no questions, the question bank is broken
+- The persona's evergreen list has 5 questions — at minimum those must appear
 
 **Check:** questions should be contextual (reference real codebase state),
 not just generic templates.

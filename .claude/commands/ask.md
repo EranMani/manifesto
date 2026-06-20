@@ -73,10 +73,22 @@ technical terms, no file paths, no domain labels like "backend" or
 instead). For PM persona: use product vocabulary, no engineering jargon.
 This rule applies to every step below.
 
-The question bank executes in two mandatory phases: FIRST generate and
-present questions, THEN optionally append build prompts. Never skip to
-build prompts without presenting questions first. This has failed in
-testing twice — treat it as a hard constraint.
+**CRITICAL — THIS HAS FAILED IN 3 OUT OF 3 USER TESTS.**
+
+The question bank MUST present questions. It has repeatedly returned
+only forge/build prompts with zero questions, which defeats its purpose.
+
+The root cause: the model skips Part A (question generation) and jumps
+to Part B (forge prompts). To prevent this, Part A is now the ONLY
+mandatory part. Part B is optional and comes AFTER.
+
+**Hard constraint**: if your response to `/ask {persona} questions`
+does not contain an AskUserQuestion call with at least 5 questions,
+the response is WRONG. Stop and redo Part A before outputting anything.
+
+The question bank executes in two parts: FIRST generate and present
+questions (mandatory), THEN optionally append build prompts (optional).
+Never skip to build prompts without presenting questions first.
 
 ### Part A — Generate questions (mandatory, do this FIRST)
 
@@ -121,16 +133,24 @@ contextual over evergreen when they overlap. Target: 6-8 total questions.
 contextual generation produced too few, keep more evergreen questions.
 Never present fewer than 5 questions.
 
-**A4. Present questions to the user.**
+**A4. Present questions to the user — THIS IS THE PRIMARY OUTPUT.**
+
 Split into two groups and present using AskUserQuestion:
 
 **Group 1 — "Start here"**: 3-4 best overview questions.
 **Group 2 — "Go deeper"**: 3-4 most specific contextual questions.
 
-You MUST call AskUserQuestion with these two groups NOW, before doing
-anything else. If you find yourself about to output forge prompts without
-having presented questions first, STOP — go back to A1 and use the
-evergreen list directly.
+Self-check before outputting: count your questions. If you have fewer
+than 5, you MUST add more from the evergreen list. If you have zero
+contextual questions, use ALL evergreen questions as-is. The persona's
+evergreen list always has 5 — that alone satisfies the minimum.
+
+Call AskUserQuestion with these two groups NOW. This call is the primary
+output of the question bank. Everything after it is supplementary.
+
+**Failure mode to avoid**: generating only forge/build prompts with no
+questions. This has happened in 3 consecutive user tests. If your
+response does not include an AskUserQuestion call, it is wrong.
 
 ### Part B — Append build prompts (optional, do this AFTER Part A)
 
@@ -256,6 +276,12 @@ Read these data sources in parallel (skip any that don't exist):
 - Frontend pages: count page components vs. backend endpoints.
 - AI evaluation: check for eval/test files in the AI service area.
 - DevOps health: check for health check definitions in Docker/compose files.
+
+**WARNING — do NOT read `.claude/stack/*.json` to determine what is
+implemented.** Those are design specifications, not code inventory. The
+AI stack spec describes BM25, RRF, cross-encoder reranking, and other
+capabilities that may not be built yet. Read actual source files in
+`backend/app/services/` to determine what the AI pipeline actually does.
 
 ### Step 2 — Analyze and score domains
 
@@ -391,6 +417,8 @@ Read these data sources in parallel (skip any that don't exist):
 
 **Source A — Feature inventory**: read route files, model files, and
 frontend pages to identify what features exist at the code level.
+Do NOT read `.claude/stack/*.json` for this — those are design specs,
+not code inventory (see Verification Rules).
 
 **Source B — Test coverage**: count test files per feature area. A
 feature with no tests is "built but unverified."
@@ -808,6 +836,25 @@ You're going deep on {domain}. Ready to build?
 These rules prevent false status claims. They apply whenever the answer
 describes what works, what exists, or what users can do.
 
+### Specification vs. implementation
+
+`.claude/stack-profile.json` and `.claude/stack/*.json` describe the
+**intended design** — what the system SHOULD use, not what IS implemented.
+Never derive implementation status from these files. They describe BM25,
+RRF, cross-encoder reranking, SSE streaming, and other capabilities that
+may be planned but not yet built.
+
+To determine what is actually implemented:
+1. Read the actual source code files (e.g., `backend/app/services/*.py`).
+2. Check for imports, function definitions, and call sites.
+3. A capability is "implemented" only if executable code exists for it.
+4. A capability described in the stack spec but absent from source code
+   is "Planned" or "Not yet implemented" — never "Built" or "Ready."
+
+This is the single most important verification rule. Violating it causes
+the system to claim planned architecture is working code, which destroys
+user trust.
+
 ### Placeholder detection
 
 Before classifying a frontend page or component as "exists" or "built":
@@ -837,6 +884,18 @@ pages, upload capabilities):
    **observed** behavior (what the code actually does). When they differ,
    report observed behavior and note the discrepancy.
 
+### Cross-answer consistency
+
+Within the same session, later answers must not contradict earlier ones
+without explicit acknowledgment. This is especially critical between
+deep Q&A answers (which read actual code) and overview/radar answers
+(which scan more broadly and are more prone to error).
+
+If an earlier answer in the session established that a capability is
+missing (e.g., "BM25 is not implemented"), a later answer must not
+claim it exists. When in doubt, defer to the answer that read the
+actual source code.
+
 ### Self-correction
 
 When a follow-up answer contradicts or corrects something stated in a
@@ -845,6 +904,20 @@ previous answer in the same session:
    answer: I said X, but after reading the code, Y is actually the case."
 2. Never silently change a prior claim — the user may have already acted
    on the earlier answer.
+
+### Architecture-aware suggestions
+
+When generating forge prompts or build suggestions, verify that the
+suggestion matches the actual architecture of the target system:
+- If a system uses **relational/structured database queries** (SQL,
+  ORM), do not suggest adding vector-retrieval components (reranking,
+  cross-encoder) to it.
+- If a system uses **vector retrieval**, do not suggest relational
+  query optimizations.
+- Read the actual service file to determine which retrieval paradigm
+  it uses before suggesting improvements.
+- Each domain (policy RAG, logistics lookup, assistant) may use a
+  different retrieval strategy — do not assume they all work the same way.
 
 ---
 
