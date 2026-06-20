@@ -230,7 +230,47 @@
       "Health checks verify actual functionality (can query DB, can reach Redis), not just process uptime.",
       "Persist a trace of every event in the database — logs and DB traces are the only way to debug an evolving AI system.",
       "Monitor cost as aggressively as you monitor errors — an uncontrolled agent loop is a financial DoS.",
-      "When an agent fails, trace before you prompt-fix — context is often hidden during development but explodes in production."
+      "When an agent fails, trace before you prompt-fix — context is often hidden during development but explodes in production.",
+      "Manual trace inspection has the highest value-to-prestige ratio in AI engineering — automation does not replace the need to look at the data.",
+      "Capture raw events (exact JSON flowing through the system) — every production failure isolated as a Level 1 unit test becomes a permanent regression guard."
+    ],
+    "raw_event_capture": {
+      "description": "When a failure is identified via Langfuse or user feedback, capture the exact data that caused it.",
+      "workflow": [
+        "1. identify failure in production traces or user reports",
+        "2. extract the raw JSON event that triggered the failure",
+        "3. isolate as a Level 1 unit test with the exact input and expected output",
+        "4. fix the system locally, verify the test passes",
+        "5. redeploy — the same failure mode never recurs"
+      ],
+      "principle": "Every production failure becomes a permanent regression test. The test suite grows from real-world failures, not hypothetical scenarios."
+    }
+  },
+
+  "cloud_deployment": {
+    "description": "Production deployment patterns for AI applications — from MVP to scaled service.",
+    "infrastructure_as_code": {
+      "principle": "Infrastructure is versioned alongside code — environment definitions (render.yaml, docker-compose.yml, GitHub Actions) are committed to the repo.",
+      "tools": ["docker-compose: local dev and single-server production", "github-actions: CI/CD automation", "render.yaml / platform blueprints: managed deployment"]
+    },
+    "instance_sizing": {
+      "principle": "Test on target cloud instance before committing to architecture — heavy ML models cause OOM on standard tiers.",
+      "patterns": [
+        "start with the smallest viable instance — upgrade only when profiling proves the bottleneck",
+        "agent processing with concurrent LLM calls typically requires 2GB+ RAM",
+        "prefer lightweight tools (Rust-based parsers) over heavy Python ML models to stay on smaller instances"
+      ]
+    },
+    "cron_scheduling": {
+      "pattern": "Celery Beat for recurring pipeline runs (daily digest, hourly sync)",
+      "alternative": "platform-native cron (Render, Railway) for simpler schedules without Celery overhead"
+    },
+    "security_hardening": [
+      "inbound-ip-restrictions: only authorized services can access the database backend",
+      "firewall: strictly limit traffic to ports 80 and 443 — all others closed by default",
+      "internal-networking: use private Docker networks for DB-to-API communication",
+      "default-deny: all traffic blocked by default — whitelist only necessary services",
+      "rotating-proxies: for scraping or external API access, use rotating residential proxies to prevent IP blocking (WebShare or equivalent)"
     ]
   },
 

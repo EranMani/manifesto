@@ -70,6 +70,26 @@
     "domain_details": "Backend patterns in stack/backend.json, infrastructure patterns in stack/infrastructure.json, product strategy in stack/product.json"
   },
 
+  "blueprint_to_production": {
+    "description": "The lifecycle from vision to deployed product. Every application follows this arc — agents must understand where they are in it.",
+    "lifecycle": [
+      "1. vision-and-objectives: define the problem, target audience, and architectural mandates before any code",
+      "2. stack-justification: choose technologies based on deployment velocity and technical debt minimization, not novelty",
+      "3. pipeline-architecture: design as decoupled stages — an ingestion failure must not impede processing of cached data",
+      "4. persistence-strategy: no data exists solely in volatile memory — everything is grounded in the database for tracking and auditability",
+      "5. software-engineering: transition from scripts to OOP — base class inheritance, registry pattern, repository pattern",
+      "6. cloud-deployment: infrastructure-as-code, instance sizing, security hardening, cron scheduling",
+      "7. productization-path: MVP → multi-tenancy → custom presentation → tiered service levels"
+    ],
+    "architectural_mandates": [
+      "unify-heterogeneous-data: standardized ingestion layer to consolidate disparate sources into a common schema",
+      "absolute-grounding: all metadata and agent outputs stored in PostgreSQL for historical tracking — no ephemeral-only data",
+      "deterministic-control: prioritize deterministic pipelines over prompt-heavy scripting — move from vibe coding to agentic engineering",
+      "scalable-delivery: automated distribution (email, webhooks, APIs) so the product reaches users without manual friction"
+    ],
+    "domain_details": "Backend patterns in stack/backend.json, deployment in stack/infrastructure.json, agent pipelines in stack/ai.json, productization in stack/product.json"
+  },
+
   "mcp": {
     "principle": "MCP (Model Context Protocol) is the standard for bridging LLM reasoning with local execution. Expose Python functions as tools to make the system modular, extensible, and conversationally accessible.",
     "value": [
@@ -131,8 +151,32 @@
       "LLM outputs are tested for structure and constraints, not exact text.",
       "Every bug fix comes with a regression test.",
       "Tests run in Docker to match production environment.",
-      "CI blocks merge on test failure — no exceptions."
+      "CI blocks merge on test failure — no exceptions.",
+      "Binary-first: use Pass/Fail metrics before attempting scalar scores — binary outcomes are the only actionable engineering insight.",
+      "Every production failure becomes a Level 1 unit test — fix locally, redeploy, the same failure never recurs."
     ],
+    "llm_evaluation_hierarchy": {
+      "description": "Three-level evaluation for non-deterministic AI systems. Traditional Input→Output testing is insufficient. 40% of agentic AI projects will be canceled by 2027 — systematic evaluation is the differentiator.",
+      "level_1_unit_tests": {
+        "frequency": "on every code/prompt change",
+        "cost": "low — fast, automated Python assertions",
+        "what": "schema validation (Pydantic), category bounds (Enum), metric type checks (float, 0-1), content existence (min length)",
+        "catches": "structural failures — wrong types, missing fields, collapsed outputs"
+      },
+      "level_2_model_and_human_eval": {
+        "frequency": "bi-weekly",
+        "cost": "moderate — LLM-as-a-Judge + expert review",
+        "what": "subjective quality (tone, helpfulness, hallucination detection, constraint compliance)",
+        "catches": "specification gaps — the distance between developer intent and actual model behavior"
+      },
+      "level_3_ab_testing": {
+        "frequency": "major releases only",
+        "cost": "high — requires statistical significance from real users",
+        "what": "real-world user experiments comparing system variants",
+        "catches": "production behavior that lab testing cannot simulate"
+      },
+      "domain_details": "Full LLM-as-a-Judge implementation, HITL alignment protocol, and meta-prompting in stack/ai.json"
+    },
     "ai_optimism_defense": {
       "mandates": [
         "reject-mocking-trap: actively reject tests that mock away the logic being validated",

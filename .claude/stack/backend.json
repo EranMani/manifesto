@@ -14,7 +14,9 @@
   "testing": "pytest",
   "patterns": [
     "service-layer: business logic lives in services, not routes",
-    "repository-pattern: database access abstracted behind repository interfaces",
+    "repository-pattern: abstract CRUD operations — change the database or schema without modifying agent/service logic",
+    "registry-pattern: open for extension, closed for modification — new scrapers/processors register into a registry without touching pipeline orchestration (Open/Closed Principle)",
+    "base-class-inheritance: centralize common logic (API connections, parsing, error handling) in base classes — reduces duplication by 80%+ across scrapers and agents",
     "dependency-injection: FastAPI Depends() for composable dependencies",
     "separation-of-concerns: routes handle HTTP, services handle logic, models handle data",
     "error-hierarchy: custom exception classes with typed error responses",
@@ -81,7 +83,10 @@
       "connection-pooling: use connection pool for all database access",
       "migration-driven: all schema changes go through Alembic, never manual SQL",
       "soft-delete: prefer soft deletes (is_deleted flag) over hard deletes for audit trail",
-      "indexed-queries: every query that filters or joins should have a supporting index"
+      "indexed-queries: every query that filters or joins should have a supporting index",
+      "deduplication-at-db-level: use natural primary keys or unique constraints to prevent redundant entries — enforce at database level, not application level",
+      "state-management-flags: use fields like processed_at, delivered_at, sent_at to track pipeline state — prevents redundant processing across cron cycles",
+      "absolute-grounding: no data exists solely in volatile memory — all metadata, agent outputs, and intermediate results are persisted for auditability"
     ],
     "principles": [
       "PostgreSQL is enough — Instagram scaled to hundreds of millions on just Postgres.",

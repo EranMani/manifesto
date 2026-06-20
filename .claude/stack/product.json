@@ -136,6 +136,18 @@
         "API cost management and optimization"
       ],
       "long_game": "Models change every month, but processes must remain stable. Swap underlying LLMs as they improve without reinventing the delivery model."
+    },
+    "productization_path": {
+      "description": "The arc from local prototype to commercial product. Every application follows this progression.",
+      "stages": [
+        "1. local-prototype: script or notebook proving the core logic works with real data",
+        "2. containerized-service: Docker-based deployment with persistence and error handling",
+        "3. automated-delivery: pipeline runs unattended on a schedule, delivers output to users (email, API, webhook)",
+        "4. multi-tenancy: user accounts, individual profiles, isolated data — the product serves multiple customers",
+        "5. custom-presentation: web-based dashboards or landing pages alongside automated delivery",
+        "6. tiered-service: different frequencies, depths, or capabilities based on user tier or preference"
+      ],
+      "principle": "The modular design (registry pattern, base class inheritance, repository pattern) supports rapid evolution through these stages. Each stage adds capability without rewriting the core pipeline."
     }
   }
 }

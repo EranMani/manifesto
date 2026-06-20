@@ -18,7 +18,10 @@
     "modular-primitives: expose discrete list/search/read tools to agent rather than monolithic retrieval blocks",
     "guardrails: prompt injection detection, PII filtering, output validation on every LLM call",
     "fallback-chains: if primary model fails, fall back to secondary, then to deterministic response",
-    "structured-citations: every AI-generated answer includes file name, quote, and line number for verifiable traceability"
+    "structured-citations: every AI-generated answer includes file name, quote, and line number for verifiable traceability",
+    "multi-stage-pipeline: decouple ingestion → transformation → agent processing → delivery as independent stages — a failure in one stage must not impede others",
+    "specialized-agents: use dedicated agents per task (digest agent for summarization, curator agent for ranking) rather than one monolithic agent doing everything",
+    "lightweight-transformation: prefer lightweight tools (Rust-based parsers, native libraries) over heavy ML models for content extraction — avoid OOM on standard cloud instances"
   ],
   "principles": [
     "The AI layer is a thin wrapper — most of the system is regular software engineering.",
@@ -296,6 +299,95 @@
       ],
       "principle": "Context is often hidden during development but explodes in production as interactions deepen. Trace before you prompt-fix."
     }
+  },
+
+  "multi_stage_pipelines": {
+    "description": "Production AI applications are staged pipelines, not monolithic scripts. Each stage is independently deployable, testable, and recoverable.",
+    "stages": [
+      "1. ingestion: consolidate heterogeneous data sources (APIs, RSS, webhooks, scrapers) into a common schema — prioritize low-latency strategies (XML feeds over browser scraping)",
+      "2. transformation: convert raw data to LLM-ready format (HTML → Markdown, PDF → text) — use lightweight tools to avoid OOM on standard instances",
+      "3. agent-processing: specialized agents operate on transformed data — one agent per task (summarizer, ranker, curator, classifier)",
+      "4. persistence: store all outputs with state-management flags (processed_at, delivered_at) — enables idempotent reruns and prevents redundant processing",
+      "5. delivery: automated distribution (email/SMTP, webhooks, API responses) — close the loop without requiring user to check a dashboard"
+    ],
+    "design_principles": [
+      "decoupled-stages: an ingestion failure must not impede processing of previously cached data",
+      "common-schema: all sources normalized into a unified data model before agent processing",
+      "specialized-agents: Digest Agent (summarize), Curator Agent (rank against user profile) — never one monolithic agent doing everything",
+      "content-transformation-decisions: test on target cloud instance before committing to heavy tools — prefer Rust-based parsers over Python OCR libraries when memory is constrained",
+      "deterministic-over-generative: use deterministic logic for routing, deduplication, state management — reserve LLM calls for tasks that genuinely require reasoning"
+    ]
+  },
+
+  "llm_evaluation": {
+    "description": "Systematic evaluation framework for non-deterministic AI outputs. Moves from accidental success to controlled engineering.",
+    "virtuous_cycle": [
+      "1. evaluation-quality: systematic measurements via assertions, HITL reviews, and alignment metrics",
+      "2. debugging-traceability: Langfuse trace logging to diagnose whether failure originated in retrieval, logic, or prompting",
+      "3. behavior-change: iterative prompt and architecture refinement — failures converted into permanent improvements"
+    ],
+    "metric_selection": {
+      "reference_based": {
+        "description": "Used when a known correct answer (golden answer) exists — easily automated as Level 1 unit tests.",
+        "types": [
+          "exact-match: string or JSON matching against reference",
+          "semantic-similarity: vector distance between output and reference answer",
+          "code-correctness: generated queries/code are syntactically valid and produce expected results"
+        ]
+      },
+      "reference_free": {
+        "description": "Used for subjective quality where multiple valid answers exist — requires Level 2 judgment.",
+        "types": [
+          "tone-appropriateness: empathetic resonance or professional alignment",
+          "hallucination-detection: identifying factual fabrications",
+          "safety: toxic or harmful content detection",
+          "constraint-compliance: adherence to formatting, length, and structural limits"
+        ]
+      },
+      "binary_first_mandate": "Use Pass/Fail before scalar scores. Scalar scores (e.g., 4.2/5 helpfulness) introduce noise and make Human-Model Agreement impossible to calculate. Binary + qualitative reasoning is the only actionable engineering insight."
+    },
+    "llm_as_judge": {
+      "description": "Use a high-performing model to automate critique of application outputs. The judge model must be more capable than the generator.",
+      "recommended_models": "GPT-4, Claude Sonnet 4.6+ — always use the most powerful available model for judging",
+      "validation_workflow": [
+        "1. prediction-collection: gather model outputs from real or synthetic data",
+        "2. critique-generation: use Judge LLM to evaluate those outputs",
+        "3. human-evaluation: domain expert evaluates the same data independently",
+        "4. judgment-comparison: identify discrepancies between Model Judge and Human",
+        "5. evaluator-iteration: refine Judge instructions based on gaps",
+        "6. repeat: iterate until Model and Human consistently align"
+      ],
+      "judge_prompt_requirements": {
+        "dimensions": "specifically define Accuracy, Helpfulness, and Tone as separate evaluation axes",
+        "chain_of_thought": "mandate CoT reasoning before score — 'Analyze step-by-step against reference criteria. Provide reasoning first, then issue binary 1 (Pass) or 0 (Fail).'",
+        "structured_output": "judge must return JSON/Pydantic-validated output — never free-text scores"
+      }
+    },
+    "hitl_alignment_protocol": {
+      "description": "Domain experts provide the gold standard target. Tool-first thinking fails because it ignores business context that defines 'good'.",
+      "agreement_matrix": {
+        "purpose": "Track alignment between Judge model and Human expert. Human is always the ultimate authority.",
+        "columns": ["input (raw event)", "model response", "judge critique + outcome", "human critique + outcome", "alignment score (0/1)"],
+        "rule": "If alignment score is 0 (mismatch), the human is always right — the Judge prompt must be fixed."
+      },
+      "meta_prompting": {
+        "description": "Feed discrepancies (cases where Human and Judge disagreed) into a high-level model.",
+        "purpose": "Identify patterns in human critique and automatically suggest refinements to the Judge's system prompt.",
+        "result": "Sophisticated feedback loop that mathematically aligns the automated evaluator with expert intuition."
+      }
+    },
+    "failure_mode_collection": {
+      "description": "AI systems suffer from Data Drift — user behavior and model performance shift over time. The evaluation system must evolve.",
+      "raw_events": "Capture exact JSON data flowing through the system. When a production failure is identified via Langfuse or user feedback, isolate it as a Level 1 unit test.",
+      "principle": "Fix locally, redeploy, the same failure mode never recurs. Every production failure becomes a permanent regression test.",
+      "manual_inspection": "Manual trace inspection has the highest value-to-prestige ratio in AI engineering. Even at companies like Zapier, Principal Engineers spend up to 3 hours daily looking at traces. Automation does not replace the need to look at the data."
+    },
+    "key_principles": [
+      "Start simple: master binary Pass/Fail before complex scoring.",
+      "Build domain-specific: avoid generic off-the-shelf metrics — evaluations must reflect specific business logic.",
+      "Remove friction: viewing, labeling, and analyzing data must be effortless for engineers and experts.",
+      "Iterate systematically: use feedback loops to ensure improvements compound, not regress."
+    ]
   },
 
   "key_libraries": [
