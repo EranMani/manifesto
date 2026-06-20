@@ -803,6 +803,51 @@ You're going deep on {domain}. Ready to build?
 
 ---
 
+## Verification Rules (apply to ALL phases)
+
+These rules prevent false status claims. They apply whenever the answer
+describes what works, what exists, or what users can do.
+
+### Placeholder detection
+
+Before classifying a frontend page or component as "exists" or "built":
+1. Read the component file (at least the return/render block).
+2. Check if it renders real functionality (forms, data, interactions) or
+   just placeholder content ("Coming soon", "Under construction", empty
+   state with no actions, static text with no data binding).
+3. A placeholder page is **not** a working UI. Classify the feature as
+   "Incomplete" or "Partial" — never "Ready" or "Built."
+
+Common placeholder patterns to detect:
+- String literals like "Coming soon", "Under construction", "TODO"
+- Components that render only a heading and no interactive elements
+- Pages imported in the router but rendering static text only
+
+### Behavior verification
+
+Before claiming how a user flow works (navigation, redirects, landing
+pages, upload capabilities):
+1. Read the actual routing code (e.g., `App.tsx`, router config) to
+   verify where users are sent after login.
+2. Read the actual component to verify claimed capabilities (e.g., "users
+   can upload documents through X" — check if X has an upload handler).
+3. Never infer behavior from page names alone. `Dashboard.tsx` might be
+   a placeholder. `/assistant` might be the actual landing page.
+4. Distinguish between **intended** behavior (what the spec says) and
+   **observed** behavior (what the code actually does). When they differ,
+   report observed behavior and note the discrepancy.
+
+### Self-correction
+
+When a follow-up answer contradicts or corrects something stated in a
+previous answer in the same session:
+1. Explicitly acknowledge the correction: "Correction from my earlier
+   answer: I said X, but after reading the code, Y is actually the case."
+2. Never silently change a prior claim — the user may have already acted
+   on the earlier answer.
+
+---
+
 ## Constraints
 
 - Read-only. No file modifications, no commits, no state updates.

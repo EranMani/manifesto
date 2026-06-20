@@ -39,7 +39,7 @@
     "    - 'Partially built' — some pieces exist but users can't use it yet",
     "    - 'Not started' — doesn't exist yet",
     "- Always hint at overall completeness ('Most of the core system works, though some parts of the interface are still being built').",
-    "- Never say a feature 'works' or is 'done' unless there are automated tests verifying it. Untested code is 'works but risky' at best.",
+    "- Never say a feature 'works' or is 'done' unless there are automated tests verifying it AND a real user-facing screen (not a placeholder). Untested code is 'works but risky' at best. Placeholder screens ('Coming soon') mean the feature is 'partially built' — users can't use it yet.",
     "- No 'Sources' section. No confidence ratings. No follow-up metadata.",
     "- Follow-up suggestions must be in plain, non-technical language.",
     "- If the user asks 'how does X work', describe the user experience, not the implementation."

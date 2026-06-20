@@ -753,6 +753,14 @@ senior-level thinking from mid-level execution.
 - Activity heatmap reflects actual recent commits
 - Ready-to-paste `/ask` and `/forge` commands included
 - Recommended next action is specific and actionable
+- Placeholder pages not counted as working UI
+- PM/founder versions use decision cards, no raw commands
+
+**Check behavior verification:**
+- Navigation claims match actual routing code (check App.tsx)
+- "Users land on X" verified against the actual redirect
+- Claimed capabilities verified against actual components
+- Intended vs. observed behavior distinguished when they differ
 
 ### Test the readiness assessment
 
@@ -837,6 +845,21 @@ not just generic templates.
 - Source grounding checks actually verify file paths and line numbers
 - Persona fidelity checks reference the active persona's rules
 - Scorecard saved to `.ask/evaluations/`
+
+### Test self-correction in follow-ups
+
+```bash
+/ask pm what features are built vs. missing?
+# (answer may misclassify a placeholder page as "Ready")
+what about vendor management specifically?
+# Should: if the follow-up corrects the earlier status, it must
+# explicitly say "Correction from my earlier answer: ..."
+```
+
+**Check:**
+- Contradictions between answers are explicitly acknowledged
+- The correction is clearly labeled, not silently changed
+- The user can trust that earlier claims will be flagged if wrong
 
 ### Test the improvement loop
 
