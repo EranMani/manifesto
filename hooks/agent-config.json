@@ -36,6 +36,7 @@
         "commit-specs/",
         ".claude/agents/",
         ".claude/settings.json",
+        ".claude/persona-profiles.json",
         ".claude/commands/",
         "hooks/agent-config.json",
         "hooks/tool_cap_end.py",

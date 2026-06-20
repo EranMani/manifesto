@@ -1,12 +1,113 @@
 # /ask — Domain-Routed Codebase Q&A
 
-Parse `$ARGUMENTS` as the user's question. If empty, ask: "What would you like
-to know about the codebase?"
+Parse `$ARGUMENTS` for a persona prefix and a question. Read-only — no code
+changes, no commit protocol updates.
 
-This command answers questions about the Manifesto codebase by classifying what
-kind of answer is needed, then routing to the right source: a domain expert
-agent, project documents, git history, the codebase graph, or direct
-computation. Read-only — no code changes, no commit protocol updates.
+---
+
+## Phase 0 — Persona Selection
+
+Read `.claude/persona-profiles.json`.
+
+**Step 1 — Check for explicit persona flag.** If the first word of
+`$ARGUMENTS` matches any persona key or alias in the profiles file, set that
+as the active persona and strip it from the arguments. The remainder is the
+question.
+
+Examples:
+- `/ask founder what can the product do?` → persona = founder, question = "what can the product do?"
+- `/ask pm what's the state of shipments?` → persona = pm
+- `/ask eng how does auth work?` → persona = engineer
+- `/ask what's the state of shipments?` → no explicit flag, go to step 2
+
+**Step 2 — Check auto-memory.** If no explicit flag, check
+`~/.claude/projects/*/memory/` for a user memory that records a role or persona
+preference. If found, map it to the closest persona key.
+
+**Step 3 — Default.** If neither flag nor memory provides a persona, use the
+`default` value from the profiles file (currently `engineer`).
+
+**Apply throughout.** The active persona's `prompt` field overrides the answer
+formatting rules in Phase 3 and Phase 5. Every answer — whether Claude-direct
+or agent-generated — must conform to the active persona's language, structure,
+and inclusion/exclusion rules.
+
+If `$ARGUMENTS` (after stripping any persona prefix) is empty, ask: "What
+would you like to know about the codebase?"
+
+---
+
+## Phase 0.5 — Question Bank (triggered by `questions` or `q` keyword)
+
+If the remaining question (after persona stripping) is exactly `questions`
+or `q`, show the question bank instead of answering a question. This
+short-circuits the rest of the pipeline — Phases 1–5 do not run.
+
+### Step 1 — Load evergreen questions
+
+Read the active persona's `questions.evergreen` array from
+`.claude/persona-profiles.json`. These are the base options.
+
+### Step 2 — Generate contextual questions
+
+Read three data sources and generate persona-appropriate questions. Each
+source produces 1-2 questions using the `questions.contextual_templates`
+from the active persona profile.
+
+**Source A — Codebase structure** (`.forge/report.json`, reuse if exists):
+- Pick the top 2 hub files by `in_degree`.
+- Map each hub to a product area name:
+  - `database.py` → "the database layer"
+  - `rag_logistics.py` → "logistics / AI search"
+  - `security.py` → "the login and permissions system"
+  - `user.py` → "user management"
+  - Other hubs → use the parent directory or file stem as the area name
+- Generate 1-2 questions using the `hub_file` template, substituting the
+  area name (not the file path — keep it persona-appropriate).
+
+**Source B — Project state** (`project-state.json`):
+- Read `open_issues`. If any exist, generate 1 question using the
+  `open_issue` template.
+  - For engineer persona, substitute the specific issue ID.
+  - For founder/PM persona, keep it general.
+- If `open_issues` is empty, skip — do not generate a "no issues" question.
+
+**Source C — Recent changes** (`git log --oneline -5`):
+- Parse the commit subjects to identify the most recently touched area.
+- Map to an area name using the same rules as Source A.
+- Generate 1 question using the `recent_change` template.
+
+### Step 3 — Assemble and deduplicate
+
+Combine evergreen + contextual questions. Remove near-duplicates (same
+area and same intent). Keep the contextual version over the evergreen
+version when they overlap, since contextual is more specific.
+
+Target: 6-8 total questions.
+
+### Step 4 — Present to the user
+
+Split the questions into two groups and present using the AskUserQuestion
+tool:
+
+**Group 1 — "Start here"**: pick the 3-4 best overview questions (product
+capabilities, feature status, what changed recently). These are the
+on-ramp for someone who doesn't know where to begin.
+
+**Group 2 — "Go deeper"**: pick the 3-4 most specific contextual
+questions (hub-specific, issue-specific, area-specific). These are for
+someone who wants to drill into a particular area.
+
+Present Group 1 as a single-select question: "What would you like to
+know?" with the questions as options. The user can also type their own
+question via "Other".
+
+### Step 5 — Run the selected question
+
+Take the user's selection (or custom input), prepend the active persona
+key, and execute it through the normal `/ask` pipeline starting at
+Phase 1. The persona carries forward — no need for the user to specify
+it again.
 
 ---
 
@@ -268,6 +369,9 @@ You are answering a user question about the Manifesto codebase. This is a
 read-only Q&A — do not implement anything, do not suggest code changes unless
 the question is specifically asking for implementation guidance.
 
+## Persona
+{active persona name} — {paste the full persona prompt array, joined by newlines}
+
 ## Question
 {user's question}
 
@@ -527,7 +631,9 @@ or inferred across files.
 
 ## Phase 5 — Present the Answer
 
-Display the answer with this frame:
+Adapt the presentation frame to the active persona.
+
+### Engineer persona (default)
 
 ```
 ASK — {short question summary}
@@ -544,15 +650,50 @@ Follow-up questions:
   2. {suggested question}
 ```
 
-If the answer includes a "Prompt You Can Use" section, keep it clearly
-separated so the user can copy it.
-
-If any grounding verification failed, add a verification note after the
-confidence rating:
+If any grounding verification failed, add after the confidence rating:
 
 ```
 ⚠ Verification: {N} of {M} references could not be confirmed — marked inline.
 ```
+
+### Founder persona
+
+```
+ASK — {short question summary}
+───────────────────────────────────────────────────────
+
+{answer — plain English bullets, no technical metadata}
+
+───────────────────────────────────────────────────────
+You might also want to know:
+  1. {plain-language follow-up}
+  2. {plain-language follow-up}
+```
+
+No route, depth, confidence, or sources lines. No verification warnings.
+
+### PM persona
+
+```
+ASK — {short question summary}
+───────────────────────────────────────────────────────
+
+{answer — feature-oriented, status indicators, gap analysis}
+
+───────────────────────────────────────────────────────
+Related questions:
+  1. {product-oriented follow-up}
+  2. {product-oriented follow-up}
+```
+
+No route or depth lines. No file:line sources. No confidence ratings.
+
+### Other personas
+
+Follow the `prompt` rules from the persona profile. Use the minimal frame
+(question summary + answer + follow-ups). Only include metadata lines
+(route, depth, confidence, sources) if the persona's prompt explicitly
+asks for them.
 
 ---
 
