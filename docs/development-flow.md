@@ -88,9 +88,11 @@ what about vendor management?      # carries forward persona + domain context
 **Output**: answers, guided questions, forge-ready prompts, interview
 scorecards, overview radars. Read-only — no files modified.
 
-**Full alias list**: see [Persona Aliases](ask-command.md#persona-aliases)
-for all available shortcuts (e.g., `ml`/`nova` for AI, `fe`/`ui` for
-frontend, `infra`/`ops` for devops).
+**Deep dives**: [Personas](ask-command.md#personas) |
+[Overview Radar](ask-command.md#overview-radar) |
+[Question Bank](ask-command.md#question-bank) |
+[Interview Mode](ask-command.md#usage-reference) |
+[All Aliases](ask-command.md#persona-aliases)
 
 ### /forge — Plan
 
@@ -116,6 +118,8 @@ frontend, `infra`/`ops` for devops).
 **Output**: `commit-specs/commit-NN.md` files, updated protocol and
 state. No code changes — that's `/next-step`.
 
+**Deep dive**: [Forge Pipeline](forge-command.md#the-pipeline)
+
 ### /next-step — Execute
 
 ```bash
@@ -131,6 +135,9 @@ state. No code changes — that's `/next-step`.
 
 **Output**: committed code, advanced project state, token records.
 
+**Deep dive**: [Execution Modes](next-step-command.md#execution-modes) |
+[Commit Lifecycle](next-step-command.md#the-commit-lifecycle)
+
 ### /ask-eval — Evaluate Ask Quality
 
 ```bash
@@ -141,6 +148,9 @@ state. No code changes — that's `/next-step`.
 **Output**: scorecard saved to `.ask/evaluations/`. Read-only except for
 the evaluation file.
 
+**Deep dive**: [Evaluation](ask-command.md#evaluation) |
+[Rubric](ask-evaluation-rubric.md)
+
 ### /forge-eval — Evaluate Forge Quality
 
 ```bash
@@ -150,6 +160,9 @@ the evaluation file.
 
 **Output**: scorecard saved to `.forge/evaluations/`. Read-only except for
 the evaluation file.
+
+**Deep dive**: [Forge Evaluation](forge-command.md#evaluation) |
+[Rubric](forge-evaluation-rubric.md)
 
 ### Common Pipelines
 
