@@ -314,6 +314,34 @@ Related questions:
   2. {product-oriented follow-up}
 ```
 
+### Interviewer personas
+
+Interviewer personas flip the direction — the system challenges, the user
+answers. The full session rules (structure, wildcards, difficulty scaling,
+scorecard) are defined in each persona's `prompt` field. Follow those
+rules exactly.
+
+**Argument handling**: after stripping the interviewer persona flag, the
+remaining text is a TOPIC FOCUS, not a question. `/ask ie migration safety`
+means "run an engineering interview focused on migration safety." If no
+text remains, the interviewer picks topics freely.
+
+**Session flow**:
+1. **First invocation**: read the codebase (Standard Path data gathering),
+   generate challenge (1/6). Do not answer anything — ask.
+2. **User responds**: evaluate with the 4-part structure, then present
+   the next challenge (2/6, 3/6, etc.). Each user response advances
+   the counter by one.
+3. **Wildcards**: 1-2 of the 6 challenges are general/conceptual questions
+   on the same topic but not about this codebase. Insert at varied
+   positions — not always the same slot.
+4. **After challenge 6**: evaluate the final answer, then present the
+   end-of-session scorecard with rating, strengths, gaps, topic heatmap,
+   and a copy-pasteable recommended next session command.
+5. **Difficulty scales dynamically**: strong answers → harder follow-ups.
+   Weak answers → acknowledge what they got right, simplify the angle,
+   offer hints. Stuck → offer two options to choose between.
+
 ### Other personas
 
 Use the minimal frame (summary + answer + follow-ups). Only include
