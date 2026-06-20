@@ -320,7 +320,7 @@ files. Also: explicit review requests ("is X safe?", "review X").
 
 - **backend**: routes, models, services, migrations, seed, FastAPI, SQLAlchemy, endpoints, database
 - **frontend**: components, pages, state, hooks, UI, React, TypeScript, Vite, Tailwind
-- **ai**: LLM, RAG, embeddings, ingestion, retrieval, chunks, vectors, policy, logistics
+- **ai**: LLM, RAG, embeddings, ingestion, retrieval, chunks, vectors, policy, logistics, context engineering, structured outputs, reranking, cross-encoder, guardrails, prompt, pipeline, evaluation
 - **devops**: Docker, compose, scripts, hooks, CI, infrastructure, containers
 - **security**: auth, JWT, secrets, tokens, passwords, CORS, permissions, roles
 
@@ -368,10 +368,12 @@ Pick the right data source based on the question:
 2. Start with a **one-sentence bold summary**.
 3. Structure the rest with headers, bullets, and short blocks. Apply the
    active persona's language rules.
-4. For engineer persona: include `file:line` references, code snippets
-   (3-10 lines), and ASCII diagrams when the answer describes a flow or
-   architecture. Use definition-list format (bold label + description
-   bullets) instead of Markdown tables for structured data.
+4. For technical personas (engineer, AI, frontend, devops): include
+   `file:line` references, code snippets (3-10 lines), and ASCII diagrams
+   when the answer describes a flow or architecture. Use definition-list
+   format (bold label + description bullets) instead of Markdown tables.
+   For non-technical personas (founder, PM): omit code, file paths, and
+   diagrams — the persona's prompt rules take priority over these defaults.
 5. Suggest 1-2 follow-up questions.
 6. Apply persona presentation frame.
 
@@ -535,6 +537,26 @@ text remains, the interviewer picks topics freely.
 5. **Difficulty scales dynamically**: strong answers → harder follow-ups.
    Weak answers → acknowledge what they got right, simplify the angle,
    offer hints. Stuck → offer two options to choose between.
+
+### AI / Frontend / DevOps personas
+
+These domain personas use the same technical frame as the engineer
+persona — they request Sources, confidence ratings, and file:line
+references in their prompt rules.
+
+```
+ASK — {short question summary}
+Route: {tier} | {Agent: name | or "Direct"} | Confidence: {HIGH/MEDIUM/LOW}
+───────────────────────────────────────────────────────
+
+{answer — domain-specific vocabulary and concerns}
+
+───────────────────────────────────────────────────────
+Sources: {file:line references}
+Follow-up questions:
+  1. {domain-specific follow-up}
+  2. {domain-specific follow-up}
+```
 
 ### Other personas
 
