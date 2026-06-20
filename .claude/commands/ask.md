@@ -17,8 +17,15 @@ Check the first word of `$ARGUMENTS` against these known persona prefixes:
 `interviewer-ai`, `interview-ai`, `ia`, `interviewer-devops`,
 `interview-devops`, `id`.
 
+**Overview path** — if the first word (after optional persona prefix
+stripping) is `overview` or `ov`:
+- Skip to **Phase 0.7 — Overview Radar**. This short-circuits the
+  entire Q&A pipeline.
+- If a persona prefix was provided before `overview`, use that persona's
+  language rules for the output. Otherwise use the default engineer persona.
+
 **Fast path** — if the first word does NOT match any prefix AND the
-remaining text is not `questions` or `q`:
+remaining text is not `questions`, `q`, `overview`, or `ov`:
 - Use the default engineer persona behavior (full technical detail,
   `file:line` references, code snippets, ASCII diagrams, Sources section,
   confidence rating).
@@ -52,8 +59,9 @@ short-circuits the rest of the pipeline.
 
 ### Step 1 — Load evergreen questions
 
-Read the active persona's `questions.evergreen` array from
-`.claude/persona-profiles.json`. These are the base options.
+Read the active persona's `questions.evergreen` array from the persona's
+individual file (e.g., `.claude/personas/engineer.json`). These are the
+base options.
 
 ### Step 2 — Generate contextual questions
 
@@ -87,7 +95,7 @@ from the active persona profile.
 
 Using the **same contextual data** already gathered in Step 2 (hub files,
 project state, recent changes), generate 2-3 forge-ready prompts using
-the active persona's `forge_templates` from `persona-profiles.json`.
+the active persona's `forge_templates` from the persona's individual file.
 
 **How to generate each prompt:**
 
@@ -142,6 +150,130 @@ found), omit Group 3 entirely.
 
 Take the user's selection, carry the active persona forward, and execute
 through the pipeline starting at Phase 1.
+
+---
+
+## Phase 0.7 — Overview Radar (triggered by `overview` or `ov` keyword)
+
+If the remaining text (after persona stripping) starts with `overview` or
+`ov`, produce a cross-domain attention radar instead of answering a
+question. This short-circuits the rest of the pipeline.
+
+**Purpose:** Tell the user which hat needs attention right now — surface
+gaps, imbalances, and risks they wouldn't know to ask about.
+
+**Budget**: ≤12 tool calls. No agents.
+
+### Step 1 — Gather signals
+
+Read these data sources in parallel (skip any that don't exist):
+
+**Source A — Codebase structure** (`.forge/report.json`):
+- Read `category_summary` for file counts per domain.
+- Read hub files (top 3 by `in_degree`) to identify coupling hotspots.
+- Note any domain with zero files or disproportionately few files.
+
+**Source B — Project state** (`project-state.json`):
+- Read `open_issues` — count by priority, note unresolved ones.
+- Read `open_handoffs` — count unactioned handoffs.
+- Read `blockers` — any active blockers.
+- Read `tldr` and `next_commit` for current momentum.
+
+**Source C — Recent activity** (`git log --oneline -15`):
+- Parse commit subjects to count activity per domain (backend, frontend,
+  ai, devops, docs, workflow).
+- Identify domains with zero recent commits (cold domains).
+- Identify domains with heavy recent activity (hot domains).
+
+**Source D — Coverage gaps** (targeted greps, max 4):
+- Backend tests: count test files vs. route/model files.
+- Frontend pages: count page components vs. backend endpoints.
+- AI evaluation: check for eval/test files in the AI service area.
+- DevOps health: check for health check definitions in Docker/compose files.
+
+### Step 2 — Analyze and score domains
+
+For each domain, assign an attention level based on the signals:
+
+- **Needs attention** — has open high-priority issues, is a cold domain
+  with no recent commits, has significant coverage gaps, or has unactioned
+  handoffs waiting.
+- **Monitor** — has medium-priority issues, moderate activity, or minor
+  gaps.
+- **Healthy** — active recent work, no open issues, good coverage.
+
+### Step 3 — Generate the radar
+
+Present the overview using this format:
+
+```
+OVERVIEW — Attention Radar
+───────────────────────────────────────────────────────
+
+{One-sentence project status from project-state.json tldr}
+
+NEEDS ATTENTION
+  {domain icon} {Domain}  — {one-line reason}
+    → /ask {domain} {suggested question}
+    → /forge {suggested action}
+
+  {domain icon} {Domain}  — {one-line reason}
+    → /ask {domain} {suggested question}
+
+MONITOR
+  {domain icon} {Domain}  — {one-line reason}
+
+HEALTHY
+  {domain icon} {Domain}  — {one-line status}
+
+───────────────────────────────────────────────────────
+Activity (last 15 commits):
+  Backend  ████████░░  {N commits}
+  Frontend ██░░░░░░░░  {N commits}
+  AI       ████░░░░░░  {N commits}
+  DevOps   ░░░░░░░░░░  {N commits}
+  Docs     ██████░░░░  {N commits}
+
+Open issues: {N} ({H} high, {M} medium, {L} low)
+Unactioned handoffs: {N}
+Blockers: {N or "none"}
+───────────────────────────────────────────────────────
+```
+
+Domain icons (plain text, no emoji):
+- Backend: `[BE]`
+- Frontend: `[FE]`
+- AI/ML: `[AI]`
+- DevOps: `[OPS]`
+- Security: `[SEC]`
+- Product: `[PRD]`
+
+### Step 4 — Persona adaptation
+
+If a persona was specified before `overview`:
+- **Founder persona**: replace domain icons with plain names, replace
+  `/ask` and `/forge` commands with plain-language descriptions of what
+  needs attention and why it matters to the business.
+- **PM persona**: frame gaps as feature/capability gaps, use status
+  indicators (Built/Partial/Missing), replace technical details with
+  user-impact framing.
+- **Engineer/AI/Frontend/DevOps persona**: use the full technical format
+  above with file references where relevant.
+
+### Step 5 — Suggest next action
+
+End with one recommended action — the single most impactful thing to
+do next. Frame it as a ready-to-paste command:
+
+```
+Recommended next action:
+  /ask {domain} {specific question about the highest-priority gap}
+
+  or start building:
+  /forge {specific action to address the highest-priority gap}
+```
+
+**Done. Do not continue to Phase 1.**
 
 ---
 
