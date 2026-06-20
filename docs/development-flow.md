@@ -88,6 +88,10 @@ what about vendor management?      # carries forward persona + domain context
 **Output**: answers, guided questions, forge-ready prompts, interview
 scorecards, overview radars. Read-only — no files modified.
 
+**Full alias list**: see [Persona Aliases](ask-command.md#persona-aliases)
+for all available shortcuts (e.g., `ml`/`nova` for AI, `fe`/`ui` for
+frontend, `infra`/`ops` for devops).
+
 ### /forge — Plan
 
 ```bash
