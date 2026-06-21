@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 hardening continues. C81 done (product detail/form with create/edit modes, shipment dropdown). Full product CRUD UI complete.",
+  "tldr": "Phase 3 hardening continues. C81 done (product detail/form). C82 pending (vendor CRUD pages — list table + detail form following products pattern).",
   "phase": 3,
   "last_completed_commit": "81",
-  "next_commit": null,
-  "next_commit_name": null,
-  "next_commit_assignee": null,
+  "next_commit": "82",
+  "next_commit_name": "vendor-crud-pages",
+  "next_commit_assignee": "aria",
   "status": "active",
   "open_handoffs": [
     {
@@ -127,6 +127,13 @@
       "summary": "Added C80 (product-api-and-list-page, Aria, Claude-direct) and C81 (product-detail-form, Aria, Claude-direct). C80: typed API client (5 CRUD functions + listShipments), product list table with delete confirmation, /products route. C81: combined create/edit form with shipment dropdown, /products/new and /products/:id routes. Forge scanner identified 4 target files, planner produced 2 commits. Design challenge identified shipment dropdown requirement for ProductCreate — included listShipments() in API client.",
       "agents_activated": [],
       "files_updated": ["commit-protocol.md", "commit-specs/commit-80.md", "commit-specs/commit-81.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-21",
+      "trigger": "Eran requested via /forge: populate vendors list and detail pages following the products pattern with full CRUD support",
+      "summary": "Added C82 (vendor-crud-pages, Aria, Claude-direct). Single commit: typed API client additions (4 CRUD functions + 2 types), vendor list table with search/delete/409 handling, vendor detail create/edit form, /vendors/new route. Forge scanner identified 4 target files, planner produced 1 commit. Design challenge revised delete error handling to surface 409 detail. Aria unavailable (circuit breaker); perspective synthesized from code analysis.",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "commit-specs/commit-82.md", "project-state.json"]
     }
   ],
   "rollback_history": [],
