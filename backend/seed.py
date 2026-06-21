@@ -10,11 +10,13 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.category import Category
+from app.models.client import Client
 from app.models.policy import PolicyChunk, PolicyDocument
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.shipment import Shipment
 from app.models.shipment_event import ShipmentEvent
+from app.models.shipment_item import ShipmentItem
 from app.models.user import User
 from app.models.vendor import Vendor
 from app.services.llm import EmbeddingService
@@ -37,6 +39,14 @@ VENDORS = [
     {"name": "Falcon Freight Co", "contact": "Anna Schmidt", "email": "ops@falconfreightco.example", "country": "Germany"},
     {"name": "Granite Hardware", "contact": "James O'Brien", "email": "orders@granitehardware.example", "country": "Ireland"},
     {"name": "Horizon Textiles", "contact": "Mei Tanaka", "email": "sales@horizontextiles.example", "country": "Japan"},
+]
+
+CLIENTS = [
+    {"name": "Acme Corp", "contact": "John Smith", "email": "orders@acme.example", "country": "United States", "badge_color": "#ef4444"},
+    {"name": "Global Trade Ltd", "contact": "Maria Chen", "email": "procurement@globaltrade.example", "country": "Singapore", "badge_color": "#3b82f6"},
+    {"name": "Nordic Supply AS", "contact": "Erik Larsen", "email": "supply@nordicsupply.example", "country": "Norway", "badge_color": "#22c55e"},
+    {"name": "Pacific Rim Imports", "contact": "Yuki Tanaka", "email": "imports@pacificrim.example", "country": "Japan", "badge_color": "#f59e0b"},
+    {"name": "Sahara Logistics", "contact": "Ahmed Hassan", "email": "ops@saharalogistics.example", "country": "Egypt", "badge_color": "#8b5cf6"},
 ]
 
 CATEGORIES = [
@@ -196,6 +206,17 @@ async def _ensure_vendor(session, *, name: str, contact: str, email: str, countr
     return vendor.id
 
 
+async def _ensure_client(session, *, name: str, contact: str, email: str, country: str, badge_color: str) -> str:
+    result = await session.execute(select(Client).where(Client.name == name))
+    existing = result.scalar_one_or_none()
+    if existing:
+        return existing.id
+    client = Client(name=name, contact=contact, email=email, country=country, badge_color=badge_color)
+    session.add(client)
+    await session.flush()
+    return client.id
+
+
 async def _ensure_category(session, *, name: str) -> str:
     result = await session.execute(select(Category).where(Category.name == name))
     existing = result.scalar_one_or_none()
@@ -238,6 +259,7 @@ async def _ensure_shipment(
     *,
     tracking_code: str,
     vendor_id: str,
+    client_id: str | None = None,
     origin: str,
     destination: str,
     status: str,
@@ -253,6 +275,7 @@ async def _ensure_shipment(
     shipment = Shipment(
         tracking_code=tracking_code,
         vendor_id=vendor_id,
+        client_id=client_id,
         origin=origin,
         destination=destination,
         status=status,
@@ -266,8 +289,14 @@ async def _ensure_shipment(
     return shipment.id, True
 
 
-def _add_product(session, *, shipment_id: str, category_id: str, name: str, unit: str, quantity: int) -> None:
-    session.add(Product(shipment_id=shipment_id, category_id=category_id, name=name, unit=unit, quantity=quantity))
+def _add_product(session, *, category_id: str, name: str, unit: str, quantity: int) -> None:
+    product = Product(category_id=category_id, name=name, unit=unit, quantity=quantity)
+    session.add(product)
+    return product
+
+
+def _add_shipment_item(session, *, shipment_id: str, product_id: str, quantity: int) -> None:
+    session.add(ShipmentItem(shipment_id=shipment_id, product_id=product_id, quantity=quantity))
 
 
 def _add_shipment_event(
@@ -373,6 +402,7 @@ async def seed() -> None:
             buyer_ids.append(await _ensure_user(session, password="manager123", **manager))
 
         vendor_ids = [await _ensure_vendor(session, **vendor) for vendor in VENDORS]
+        client_ids = [await _ensure_client(session, **c) for c in CLIENTS]
 
         category_ids = []
         for category_name in CATEGORIES:
@@ -404,6 +434,7 @@ async def seed() -> None:
                 session,
                 tracking_code=shipment_tracking_code(index),
                 vendor_id=vendor_ids[index % len(vendor_ids)],
+                client_id=client_ids[index % len(client_ids)],
                 origin=origin,
                 destination=destination,
                 status=outcome["status"],
@@ -418,12 +449,18 @@ async def seed() -> None:
             product_count = 1 + (index % 4)
             for offset in range(product_count):
                 product_name, unit = PRODUCT_CATALOG[(index + offset) % len(PRODUCT_CATALOG)]
-                _add_product(
+                product = _add_product(
                     session,
-                    shipment_id=shipment_id,
                     category_id=category_ids[(index + offset) % len(category_ids)],
                     name=product_name,
                     unit=unit,
+                    quantity=50 + ((index + offset) % 5) * 10,
+                )
+                await session.flush()
+                _add_shipment_item(
+                    session,
+                    shipment_id=shipment_id,
+                    product_id=product.id,
                     quantity=10 + ((index + offset) % 5) * 5,
                 )
 
