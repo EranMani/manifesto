@@ -14181,6 +14181,169 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "record_schema_version": 2,
+      "date": "2026-06-21",
+      "commit": "C90",
+      "agent": "aria",
+      "execution": "claude-direct",
+      "identity": {
+        "owner": "aria",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Frontend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "frontend/src/pages/ShipmentForm.tsx",
+          "frontend/src/api/products.ts",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/Dashboard.tsx"
+        ],
+        "read_files": [
+          "frontend/src/api/products.ts",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/Dashboard.tsx",
+          "frontend/src/pages/VendorDetail.tsx"
+        ],
+        "written_files": [
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/ShipmentForm.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/Dashboard.tsx"
+        ],
+        "changed_files": [
+          "frontend/src/App.tsx",
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/Dashboard.tsx",
+          "frontend/src/pages/ShipmentForm.tsx"
+        ],
+        "coverage": {
+          "planned_files": 4,
+          "planned_files_changed": 4,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 4,
+        "planned_files_read": 3,
+        "planned_read_percent": 75.0,
+        "supporting_reads": [],
+        "expansion_reads": [
+          "frontend/src/pages/VendorDetail.tsx"
+        ],
+        "preselected_files": [],
+        "source": "spec-and-hook-derived"
+      },
+      "capture": {
+        "status": "complete",
+        "reason": null,
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-21T11:39:43+00:00",
+        "ended_at": "2026-06-21T11:41:45+00:00",
+        "zero_is_measured": true
+      },
+      "tokens": 1627248,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "schema_version": 2,
+          "owner": "aria",
+          "executor": "claude",
+          "execution_mode": "claude-direct",
+          "scope_kind": "execution",
+          "capture_window": "full-execution",
+          "started_at": "2026-06-21T11:39:43+00:00",
+          "ended_at": "2026-06-21T11:41:45+00:00",
+          "tool_calls": 15,
+          "read_paths": [
+            "frontend/src/api/products.ts",
+            "frontend/src/App.tsx",
+            "frontend/src/pages/Dashboard.tsx",
+            "frontend/src/pages/VendorDetail.tsx"
+          ],
+          "write_paths": [
+            "frontend/src/api/products.ts",
+            "frontend/src/pages/ShipmentForm.tsx",
+            "frontend/src/App.tsx",
+            "frontend/src/pages/Dashboard.tsx"
+          ],
+          "searches": [],
+          "commands": [
+            "npx --prefix frontend tsc --noEmit --project frontend/tsconfig.json",
+            "python hooks/verify_constraints.py --commit 90 --agent aria --execution claude-direct",
+            "git status --short",
+            "python hooks/finalize_commit.py --commit 90 --agent aria --execution claude-direct --notify-what \"Shipment form page wit"
+          ],
+          "token_usage": {
+            "status": "complete",
+            "source": "claude-transcript-jsonl",
+            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\0312ecf8-ec9f-4ec5-8bb3-c2240321555f.jsonl",
+            "start_offset": 176827,
+            "formula": "input + output + cache_creation_input + cache_read_input",
+            "excludes": "sidechain and separate delegated-agent transcripts",
+            "end_offset": 358583,
+            "assistant_turns": 27,
+            "components": {
+              "input_tokens": 41,
+              "output_tokens": 21997,
+              "cache_creation_input_tokens": 61946,
+              "cache_read_input_tokens": 1543264
+            },
+            "total_tokens": 1627248
+          },
+          "context_package": null,
+          "selected_read_paths": null,
+          "outside_read_paths": null
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          "frontend/src/App.tsx",
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/Dashboard.tsx",
+          "frontend/src/pages/ShipmentForm.tsx"
+        ]
+      },
+      "result": "PASS"
     }
   ]
 }
