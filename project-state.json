@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 hardening continues. C80 done (product API client, list page, dashboard grid, sidebar nav). C81 pending: product detail/form.",
+  "tldr": "Phase 3 hardening continues. C81 done (product detail/form with create/edit modes, shipment dropdown). Full product CRUD UI complete.",
   "phase": 3,
-  "last_completed_commit": "80",
-  "next_commit": "81",
-  "next_commit_name": "product-detail-form",
-  "next_commit_assignee": "aria",
+  "last_completed_commit": "81",
+  "next_commit": null,
+  "next_commit_name": null,
+  "next_commit_assignee": null,
   "status": "active",
   "open_handoffs": [
     {

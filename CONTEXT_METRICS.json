@@ -12541,6 +12541,218 @@
         ]
       },
       "result": "FAIL"
+    },
+    {
+      "record_schema_version": 2,
+      "date": "2026-06-21",
+      "commit": "C81",
+      "agent": "aria",
+      "execution": "claude-direct",
+      "identity": {
+        "owner": "aria",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Frontend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "frontend/src/pages/ProductDetail.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "read_files": [
+          "frontend/src/pages/ProductDetail.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/api/products.ts",
+          "backend/app/schemas/product.py"
+        ],
+        "written_files": [
+          "frontend/src/pages/ProductDetail.tsx"
+        ],
+        "changed_files": [
+          ".context/finalize/C80.json",
+          ".context/finalize/C81.json",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/ProductDetail.tsx"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".context/finalize/C80.json",
+            ".context/finalize/C81.json",
+            "CONSTRAINT_LOG.md",
+            "CONTEXT_METRICS.json"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 2,
+        "planned_read_percent": 100.0,
+        "supporting_reads": [],
+        "expansion_reads": [
+          "backend/app/schemas/product.py",
+          "frontend/src/api/products.ts"
+        ],
+        "preselected_files": [],
+        "source": "spec-and-hook-derived"
+      },
+      "capture": {
+        "status": "complete",
+        "reason": null,
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-21T07:21:33+00:00",
+        "ended_at": "2026-06-21T07:24:28+00:00",
+        "zero_is_measured": true
+      },
+      "tokens": 2657080,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "schema_version": 2,
+          "owner": "aria",
+          "executor": "claude",
+          "execution_mode": "claude-direct",
+          "scope_kind": "execution",
+          "capture_window": "full-execution",
+          "started_at": "2026-06-21T07:21:33+00:00",
+          "ended_at": "2026-06-21T07:24:28+00:00",
+          "tool_calls": 27,
+          "read_paths": [
+            "frontend/src/pages/ProductDetail.tsx",
+            "frontend/src/App.tsx",
+            "frontend/src/api/products.ts",
+            "backend/app/schemas/product.py"
+          ],
+          "write_paths": [
+            "frontend/src/pages/ProductDetail.tsx"
+          ],
+          "searches": [
+            {
+              "tool": "Grep",
+              "path": "hooks/verify_constraints.py",
+              "query": "actual scope exceeded|unplanned files"
+            },
+            {
+              "tool": "Grep",
+              "path": "hooks/verify_constraints.py",
+              "query": "changed_files.*=|def check_actual_scope\""
+            },
+            {
+              "tool": "Grep",
+              "path": "hooks/verify_constraints.py",
+              "query": "changed_files|check_actual_scope\""
+            },
+            {
+              "tool": "Grep",
+              "path": "hooks/verify_constraints.py",
+              "query": "git diff.*HEAD|git diff.*--name-only|git diff.*--cached\""
+            },
+            {
+              "tool": "Grep",
+              "path": "hooks/verify_constraints.py",
+              "query": "changed_files\""
+            },
+            {
+              "tool": "Grep",
+              "path": "hooks/verify_constraints.py",
+              "query": "check_actual_scope\\(\""
+            },
+            {
+              "tool": "Grep",
+              "path": "hooks/verify_constraints.py",
+              "query": "check_actual_scope\\("
+            },
+            {
+              "tool": "Grep",
+              "path": "hooks/verify_constraints.py",
+              "query": "def git_files_changed"
+            }
+          ],
+          "commands": [
+            "npx --prefix frontend tsc --noEmit --project frontend/tsconfig.json",
+            "python hooks/verify_constraints.py --commit 81 --agent aria --execution claude-direct",
+            "git status --short",
+            "git reset HEAD .context/finalize/C81.json CONSTRAINT_LOG.md CONTEXT_METRICS.json constraint-dashboard.html",
+            "git checkout -- CONSTRAINT_LOG.md CONTEXT_METRICS.json constraint-dashboard.html",
+            "git add frontend/src/pages/ProductDetail.tsx frontend/src/App.tsx",
+            "git status --short",
+            "python hooks/verify_constraints.py --commit 81 --agent aria --execution claude-direct",
+            "git diff --cached --name-only",
+            "python hooks/finalize_commit.py --commit 81 --agent aria --execution claude-direct --notify-what \"Product detail/form pa"
+          ],
+          "token_usage": {
+            "status": "complete",
+            "source": "claude-transcript-jsonl",
+            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\8bf9b7df-567e-4990-9582-f3bcbdb6334e.jsonl",
+            "start_offset": 232712,
+            "formula": "input + output + cache_creation_input + cache_read_input",
+            "excludes": "sidechain and separate delegated-agent transcripts",
+            "end_offset": 430540,
+            "assistant_turns": 42,
+            "components": {
+              "input_tokens": 42,
+              "output_tokens": 10656,
+              "cache_creation_input_tokens": 33685,
+              "cache_read_input_tokens": 2612697
+            },
+            "total_tokens": 2657080
+          },
+          "context_package": null,
+          "selected_read_paths": null,
+          "outside_read_paths": null
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          ".context/finalize/C80.json",
+          ".context/finalize/C81.json",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/ProductDetail.tsx"
+        ]
+      },
+      "result": "PASS"
     }
   ]
 }
