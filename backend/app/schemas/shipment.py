@@ -9,6 +9,7 @@ class ShipmentBase(BaseModel):
     tracking_code: str
     vendor_id: str
     purchase_order_id: str | None = None
+    client_id: str | None = None
     origin: str
     destination: str
     status: ShipmentStatus = "pending"
@@ -19,8 +20,13 @@ class ShipmentBase(BaseModel):
     notes: str | None = None
 
 
+class ShipmentItemCreate(BaseModel):
+    product_id: str
+    quantity: int
+
+
 class ShipmentCreate(ShipmentBase):
-    pass
+    items: list[ShipmentItemCreate] = []
 
 
 class ShipmentRead(ShipmentBase):

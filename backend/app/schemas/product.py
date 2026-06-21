@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 
 class ProductBase(BaseModel):
-    shipment_id: str
     category_id: str | None = None
     name: str
     description: str | None = None

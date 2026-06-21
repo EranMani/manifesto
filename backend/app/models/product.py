@@ -9,7 +9,6 @@ class Product(Base):
     __tablename__ = "products"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, server_default=text("gen_random_uuid()"))
-    shipment_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("shipments.id", ondelete="CASCADE"), nullable=False)
     category_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("categories.id"), nullable=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)

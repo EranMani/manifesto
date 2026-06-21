@@ -5,7 +5,6 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.dependencies import require_role
 from app.models.product import Product
-from app.models.shipment import Shipment
 from app.models.user import User
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 
@@ -40,9 +39,6 @@ async def create_product(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("admin", "manager")),
 ):
-    shipment_result = await db.execute(select(Shipment).where(Shipment.id == payload.shipment_id))
-    if shipment_result.scalars().first() is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shipment not found")
     product = Product(**payload.model_dump(), added_by=current_user.id)
     db.add(product)
     await db.commit()
