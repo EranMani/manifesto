@@ -1,0 +1,89 @@
+import apiClient from './client'
+
+export interface ProductRead {
+  id: string
+  shipment_id: string
+  category_id: string | null
+  name: string
+  description: string | null
+  quantity: number
+  unit: string | null
+  added_by: string | null
+  created_at: string
+}
+
+export interface ProductCreate {
+  shipment_id: string
+  category_id?: string | null
+  name: string
+  description?: string | null
+  quantity?: number
+  unit?: string | null
+}
+
+export interface ProductUpdate {
+  name?: string | null
+  description?: string | null
+  quantity?: number | null
+  unit?: string | null
+  category_id?: string | null
+}
+
+export interface ShipmentRead {
+  id: string
+  tracking_code: string
+  vendor_id: string
+  purchase_order_id: string | null
+  origin: string
+  destination: string
+  status: string
+  dispatched_at: string
+  expected_arrival_at: string
+  actual_arrival_at: string | null
+  delay_reason: string | null
+  notes: string | null
+  created_at: string
+}
+
+export async function listProducts(): Promise<ProductRead[]> {
+  const response = await apiClient.get<ProductRead[]>('/api/v1/products')
+  return response.data
+}
+
+export async function getProduct(id: string): Promise<ProductRead> {
+  const response = await apiClient.get<ProductRead>(`/api/v1/products/${id}`)
+  return response.data
+}
+
+export async function createProduct(data: ProductCreate): Promise<ProductRead> {
+  const response = await apiClient.post<ProductRead>('/api/v1/products', data)
+  return response.data
+}
+
+export async function updateProduct(id: string, data: ProductUpdate): Promise<ProductRead> {
+  const response = await apiClient.put<ProductRead>(`/api/v1/products/${id}`, data)
+  return response.data
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  await apiClient.delete(`/api/v1/products/${id}`)
+}
+
+export interface VendorRead {
+  id: string
+  name: string
+  contact: string | null
+  email: string | null
+  country: string | null
+  created_at: string
+}
+
+export async function listShipments(): Promise<ShipmentRead[]> {
+  const response = await apiClient.get<ShipmentRead[]>('/api/v1/shipments')
+  return response.data
+}
+
+export async function listVendors(): Promise<VendorRead[]> {
+  const response = await apiClient.get<VendorRead[]>('/api/v1/vendors')
+  return response.data
+}

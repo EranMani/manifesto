@@ -74,9 +74,11 @@ forbidden:
 
 | File | Type | Purpose |
 |---|---|---|
-| `frontend/src/api/products.ts` | add | Typed API client: listProducts, getProduct, createProduct, updateProduct, deleteProduct, listShipments |
-| `frontend/src/pages/ProductList.tsx` | add | Table page with product rows, delete button with confirm(), "New Product" navigation, empty state |
-| `frontend/src/App.tsx` | edit | Add `/products` route under manager+admin ProtectedRoute |
+| `frontend/src/api/products.ts` | add | Typed API client: listProducts, getProduct, createProduct, updateProduct, deleteProduct, listShipments, listVendors |
+| `frontend/src/pages/ProductList.tsx` | add | Flat searchable product table with delete confirmation |
+| `frontend/src/pages/Dashboard.tsx` | edit | Shipment-grouped product grid with filters (status, destination, origin, vendor, tracking code) |
+| `frontend/src/components/Sidebar.tsx` | add | Vertical sidebar navigation with role-gated links and sign-out |
+| `frontend/src/App.tsx` | edit | Add `/products` route, wrap authenticated routes in SidebarLayout |
 
 ---
 
