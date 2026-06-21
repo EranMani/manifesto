@@ -18,7 +18,8 @@
     "backend/DOMAIN_MAP.md",
     "frontend/DOMAIN_MAP.md",
     "claude_usage_data/",
-    "COMMIT_HEALTH_RUBRIC.md"
+    "COMMIT_HEALTH_RUBRIC.md",
+    "backend/uv.lock"
   ],
   "agents": {
     "claude@anthropic.com": {
