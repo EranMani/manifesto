@@ -2,10 +2,10 @@
   "project": "manifesto",
   "tldr": "Phase 4 started. C96-C97 pending (assistant action badges Phase 1). Badge selection engine + frontend chips.",
   "phase": 4,
-  "last_completed_commit": "95",
-  "next_commit": "96",
-  "next_commit_name": "badge-selection-engine",
-  "next_commit_assignee": "rex",
+  "last_completed_commit": "96",
+  "next_commit": "97",
+  "next_commit_name": "badge-chips-frontend",
+  "next_commit_assignee": "aria",
   "status": "active",
   "open_handoffs": [
     {
