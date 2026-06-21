@@ -35,3 +35,22 @@ class ShipmentRead(ShipmentBase):
     created_at: datetime.datetime
 
     model_config = {"from_attributes": True}
+
+
+class ShipmentItemDetail(BaseModel):
+    product_id: str
+    product_name: str
+    product_unit: str | None
+    quantity: int
+
+
+class ShipmentEventDetail(BaseModel):
+    event_type: str
+    occurred_at: datetime.datetime
+    location: str
+    details: str | None
+
+
+class ShipmentDetailRead(ShipmentRead):
+    items: list[ShipmentItemDetail] = []
+    events: list[ShipmentEventDetail] = []

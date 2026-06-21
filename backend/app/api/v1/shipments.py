@@ -9,7 +9,8 @@ from app.models.product import Product
 from app.models.shipment import Shipment
 from app.models.shipment_item import ShipmentItem
 from app.models.vendor import Vendor
-from app.schemas.shipment import ShipmentCreate, ShipmentRead
+from app.models.shipment_event import ShipmentEvent
+from app.schemas.shipment import ShipmentCreate, ShipmentDetailRead, ShipmentItemDetail, ShipmentEventDetail, ShipmentRead
 
 router = APIRouter()
 
@@ -34,6 +35,52 @@ async def get_shipment(
     if shipment is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shipment not found")
     return shipment
+
+
+@router.get("/{shipment_id}/detail", response_model=ShipmentDetailRead)
+async def get_shipment_detail(
+    shipment_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_role("admin", "manager")),
+):
+    result = await db.execute(select(Shipment).where(Shipment.id == shipment_id))
+    shipment = result.scalars().first()
+    if shipment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shipment not found")
+
+    items_result = await db.execute(
+        select(ShipmentItem, Product)
+        .join(Product, ShipmentItem.product_id == Product.id)
+        .where(ShipmentItem.shipment_id == shipment_id)
+    )
+    items = [
+        ShipmentItemDetail(
+            product_id=si.product_id,
+            product_name=p.name,
+            product_unit=p.unit,
+            quantity=si.quantity,
+        )
+        for si, p in items_result.all()
+    ]
+
+    events_result = await db.execute(
+        select(ShipmentEvent)
+        .where(ShipmentEvent.shipment_id == shipment_id)
+        .order_by(ShipmentEvent.occurred_at.asc())
+    )
+    events = [
+        ShipmentEventDetail(
+            event_type=e.event_type,
+            occurred_at=e.occurred_at,
+            location=e.location,
+            details=e.details,
+        )
+        for e in events_result.scalars().all()
+    ]
+
+    return ShipmentDetailRead.model_validate(
+        {**ShipmentRead.model_validate(shipment).model_dump(), "items": items, "events": events}
+    )
 
 
 @router.post("", response_model=ShipmentRead, status_code=status.HTTP_201_CREATED)
