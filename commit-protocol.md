@@ -123,7 +123,7 @@
 | 91 | add-status-reason-field | rex | done |
 | 92 | shipment-detail-endpoint | rex | done |
 | 93 | add-redis-service | adam | done |
-| 94 | redis-shipment-detail-cache | rex | pending |
+| 94 | redis-shipment-detail-cache | rex | done |
 | 95 | expandable-shipment-cards | aria | pending |
 
 ---

@@ -81,6 +81,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C91 | add-status-reason-field | Claude (direct) | sonnet | — (lost) | — (lost) | - | Added status_reason nullable field to shipments model, migration, schema, and seed data. verify_constraints all_pass: files=4/4, diff_lines=63/350. |
 | C92 | shipment-detail-endpoint | Claude (direct) | sonnet | — (lost) | — (lost) | - | Added GET /shipments/{id}/detail endpoint with nested items (product names) and chronological events. verify_constraints all_pass: files=2/4, diff_lines=68/350. |
 | C93 | add-redis-service | Claude (direct) | sonnet | — (lost) | — (lost) | - | Added Redis 7-alpine service to docker-compose with volume and backend dependency. verify_constraints all_pass: files=1/4, diff_lines=8/350. |
+| C94 | redis-shipment-detail-cache | Claude (direct) | sonnet | — (lost) | — (lost) | - | Redis caching on detail endpoint with 5-min TTL, invalidation on delete. verify_constraints all_pass: files=4/4, diff_lines=53/350. |
 | C01 | project-scaffold | Adam | sonnet | 25,870 | 17 | -34,130 ✅ | First commit; fresh agent, no prior worklog |
 | C02 | python-skeleton | Rex | sonnet | 23,116 | 25 | -36,884 ✅ | First Rex session; all 25 tool uses consumed — at cap |
 | C03 | frontend-scaffold | Aria | sonnet | 33,895 | 49 | -26,105 ✅ | First Aria session; 49 tool uses — **exceeded 25-use cap** ⚠️; also fixed hook bugs in Claude's domain |
