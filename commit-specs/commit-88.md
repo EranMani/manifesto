@@ -28,10 +28,10 @@ Client list page displays all clients in a searchable table with badge color ind
 ```yaml
 execution_budget:
   max_primary_files: 2
-  max_changed_files: 7
+  max_changed_files: 4
   max_context_files: 6
   max_context_chars: 15000
-  max_estimated_diff_lines: 550
+  max_estimated_diff_lines: 350
   max_agent_invocations: 1
   max_tool_calls: 18
   max_expansions: 2

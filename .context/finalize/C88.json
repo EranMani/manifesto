@@ -1,0 +1,8 @@
+{
+  "commit": "88",
+  "agent": "aria",
+  "execution": "claude-direct",
+  "checks_passed": true,
+  "timestamp": "2026-06-21T10:45:00.000000+00:00",
+  "override": "Eran approved scope override: cascading shipment_id removal requires 7 files"
+}
