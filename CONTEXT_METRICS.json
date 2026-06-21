@@ -13793,6 +13793,216 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "record_schema_version": 2,
+      "date": "2026-06-21",
+      "commit": "C88",
+      "agent": "aria",
+      "execution": "claude-direct",
+      "identity": {
+        "owner": "aria",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Frontend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/ClientList.tsx",
+          "frontend/src/pages/ClientDetail.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/Dashboard.tsx",
+          "frontend/src/pages/ProductDetail.tsx",
+          "frontend/src/pages/ProductList.tsx"
+        ],
+        "read_files": [
+          "frontend/src/pages/VendorList.tsx",
+          "frontend/src/pages/VendorDetail.tsx",
+          "frontend/src/api/products.ts",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/Dashboard.tsx",
+          "frontend/src/pages/ProductDetail.tsx",
+          "frontend/src/pages/ProductList.tsx"
+        ],
+        "written_files": [
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/ClientList.tsx",
+          "frontend/src/pages/ClientDetail.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/Dashboard.tsx",
+          "frontend/src/pages/ProductDetail.tsx",
+          "frontend/src/pages/ProductList.tsx"
+        ],
+        "changed_files": [
+          ".context/direct/C83-override.json",
+          ".context/direct/C84-override.json",
+          ".context/direct/C85-override.json",
+          ".context/direct/C86-override.json",
+          ".context/direct/C87-override.json",
+          ".context/direct/C88-override.json",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/src/App.tsx",
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/ClientDetail.tsx",
+          "frontend/src/pages/ClientList.tsx",
+          "frontend/src/pages/Dashboard.tsx",
+          "frontend/src/pages/ProductDetail.tsx",
+          "frontend/src/pages/ProductList.tsx"
+        ],
+        "coverage": {
+          "planned_files": 7,
+          "planned_files_changed": 7,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".context/direct/C83-override.json",
+            ".context/direct/C84-override.json",
+            ".context/direct/C85-override.json",
+            ".context/direct/C86-override.json",
+            ".context/direct/C87-override.json",
+            ".context/direct/C88-override.json",
+            "CONSTRAINT_LOG.md",
+            "CONTEXT_METRICS.json"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 7,
+        "planned_files_read": 5,
+        "planned_read_percent": 71.4,
+        "supporting_reads": [],
+        "expansion_reads": [
+          "frontend/src/pages/VendorDetail.tsx",
+          "frontend/src/pages/VendorList.tsx"
+        ],
+        "preselected_files": [],
+        "source": "spec-and-hook-derived"
+      },
+      "capture": {
+        "status": "complete",
+        "reason": null,
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-21T10:30:45+00:00",
+        "ended_at": "2026-06-21T10:35:18+00:00",
+        "zero_is_measured": true
+      },
+      "tokens": 6239369,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "schema_version": 2,
+          "owner": "aria",
+          "executor": "claude",
+          "execution_mode": "claude-direct",
+          "scope_kind": "execution",
+          "capture_window": "full-execution",
+          "started_at": "2026-06-21T10:30:45+00:00",
+          "ended_at": "2026-06-21T10:35:18+00:00",
+          "tool_calls": 31,
+          "read_paths": [
+            "frontend/src/pages/VendorList.tsx",
+            "frontend/src/pages/VendorDetail.tsx",
+            "frontend/src/api/products.ts",
+            "frontend/src/App.tsx",
+            "frontend/src/pages/Dashboard.tsx",
+            "frontend/src/pages/ProductDetail.tsx",
+            "frontend/src/pages/ProductList.tsx"
+          ],
+          "write_paths": [
+            "frontend/src/api/products.ts",
+            "frontend/src/pages/ClientList.tsx",
+            "frontend/src/pages/ClientDetail.tsx",
+            "frontend/src/App.tsx",
+            "frontend/src/pages/Dashboard.tsx",
+            "frontend/src/pages/ProductDetail.tsx",
+            "frontend/src/pages/ProductList.tsx"
+          ],
+          "searches": [],
+          "commands": [
+            "npx --prefix frontend tsc --noEmit --project frontend/tsconfig.json",
+            "npx --prefix frontend tsc --noEmit --project frontend/tsconfig.json",
+            "git add frontend/src/api/products.ts frontend/src/pages/ClientList.tsx frontend/src/pages/ClientDetail.tsx frontend/src/",
+            "python hooks/finalize_commit.py --commit 88 --agent aria --execution claude-direct --auto --notify-what \"Client CRUD pag"
+          ],
+          "token_usage": {
+            "status": "complete",
+            "source": "claude-transcript-jsonl",
+            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\be832929-8952-4186-8fc4-495a76f0ac52.jsonl",
+            "start_offset": 1064800,
+            "formula": "input + output + cache_creation_input + cache_read_input",
+            "excludes": "sidechain and separate delegated-agent transcripts",
+            "end_offset": 1416141,
+            "assistant_turns": 43,
+            "components": {
+              "input_tokens": 43,
+              "output_tokens": 28883,
+              "cache_creation_input_tokens": 60087,
+              "cache_read_input_tokens": 6150356
+            },
+            "total_tokens": 6239369
+          },
+          "context_package": null,
+          "selected_read_paths": null,
+          "outside_read_paths": null
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          ".context/direct/C83-override.json",
+          ".context/direct/C84-override.json",
+          ".context/direct/C85-override.json",
+          ".context/direct/C86-override.json",
+          ".context/direct/C87-override.json",
+          ".context/direct/C88-override.json",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/src/App.tsx",
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/ClientDetail.tsx",
+          "frontend/src/pages/ClientList.tsx",
+          "frontend/src/pages/Dashboard.tsx",
+          "frontend/src/pages/ProductDetail.tsx",
+          "frontend/src/pages/ProductList.tsx"
+        ]
+      },
+      "result": "FAIL"
     }
   ]
 }
