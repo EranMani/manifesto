@@ -120,6 +120,27 @@
 | 88 | client-crud-pages | aria | ✅ done · 2026-06-21 |
 | 89 | rename-dashboard-and-update-pages | aria | ✅ done · 2026-06-21 |
 | 90 | shipment-form-page | aria | ✅ done · 2026-06-21 |
+| 91 | add-status-reason-field | rex | pending |
+| 92 | shipment-detail-endpoint | rex | pending |
+| 93 | add-redis-service | adam | pending |
+| 94 | redis-shipment-detail-cache | rex | pending |
+| 95 | expandable-shipment-cards | aria | pending |
+
+---
+
+## Phase 3: Shipment Detail & Expandable Cards (planned 2026-06-21)
+
+C91-C95 add a general-purpose status reason field, a shipment detail endpoint
+returning products and events, Redis caching infrastructure, and an expandable
+card UI on the Shipments page for drill-down without navigation.
+
+| Range | Product result |
+|---|---|
+| C91 | Shipments carry a status_reason field explaining exception states |
+| C92 | Detail endpoint returns items with product names and event timeline |
+| C93 | Redis service available in Docker compose |
+| C94 | Detail response cached in Redis with 5-minute TTL and invalidation |
+| C95 | Clicking a shipment card expands it to show full detail inline |
 
 ---
 

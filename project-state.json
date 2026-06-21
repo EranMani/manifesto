@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 hardening continues. C82 done (vendor CRUD pages). C83-C90 pending: shipment management feature set (client entity with badge colors, product catalog refactor, shipment-item join with inventory deduction, client CRUD pages, dashboard rename, shipment form).",
+  "tldr": "Phase 3 continues. C90 done (shipment form). C91-C95 pending: status_reason field, shipment detail endpoint with items/events, Redis caching, and expandable shipment cards UI.",
   "phase": 3,
   "last_completed_commit": "90",
-  "next_commit": null,
-  "next_commit_name": null,
-  "next_commit_assignee": null,
+  "next_commit": "91",
+  "next_commit_name": "add-status-reason-field",
+  "next_commit_assignee": "rex",
   "status": "active",
   "open_handoffs": [
     {
@@ -141,6 +141,13 @@
       "summary": "Added C83-C90 (8 commits, all Claude-direct). C83: Client model+API with badge_color (Rex, 4 files). C84: migration creating clients table, shipment_items join, client_id on shipments (Rex, 4 files). C85: product catalog refactor removing shipment_id (Rex, 4 files). C86: shipment create with items + inventory deduction + seed update (Rex, 2 files). C87: rag_logistics join rewrite (Nova, 1 file). C88: client CRUD pages with badge color picker (Aria, 4 files). C89: dashboard→Shipments rename + badge colors on cards + product form cleanup (Aria, 4 files). C90: shipment form page with vendor/client/product picker (Aria, 4 files). Design challenge revised inventory deduction to use SELECT FOR UPDATE locking. All agent perspectives synthesized from code analysis.",
       "agents_activated": [],
       "files_updated": ["commit-protocol.md", "commit-specs/commit-83.md", "commit-specs/commit-84.md", "commit-specs/commit-85.md", "commit-specs/commit-86.md", "commit-specs/commit-87.md", "commit-specs/commit-88.md", "commit-specs/commit-89.md", "commit-specs/commit-90.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-21",
+      "trigger": "Eran requested via /forge: add status_reason field to shipments, shipment detail endpoint with items/events, Redis caching for detail responses, and expandable shipment cards on the Dashboard",
+      "summary": "Added C91-C95 (5 commits, all Claude-direct). C91: status_reason field + migration + schema + seed (Rex, 4 files). C92: shipment detail endpoint returning items with product names and event timeline (Rex, 2 files). C93: Redis service in docker-compose (Adam, 1 file). C94: Redis client utility + cache/invalidate on detail endpoint (Rex, 4 files). C95: expandable shipment cards with on-demand detail fetch and local cache (Aria, 2 files). Design challenge confirmed new-field approach over rename (9+ file rename would span 3 domains), revised card state to single-expanded with local cache. All agent perspectives synthesized from code analysis.",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "commit-specs/commit-91.md", "commit-specs/commit-92.md", "commit-specs/commit-93.md", "commit-specs/commit-94.md", "commit-specs/commit-95.md", "project-state.json"]
     }
   ],
   "rollback_history": [],
