@@ -130,7 +130,7 @@ The route handler passes `current_user.role` to `_to_response` (signature change
 ## Verification Command
 
 ```powershell
-docker compose run --rm backend uv run python -c "from app.services.badge_engine import select_badges; badges = select_badges('delayed', 'delay_reported', 'manager'); assert len(badges) > 0 and len(badges) <= 3; assert all(hasattr(b, 'label') and hasattr(b, 'prompt') for b in badges); print(f'PASS: {len(badges)} badges for delayed shipment')"
+docker compose run --rm backend uv run python -c "from app.services.badge_engine import select_badges; badges = select_badges('delayed', 'delay_reported', 'manager'); assert badges; assert len(badges) in (1, 2, 3); assert all(hasattr(b, 'label') and hasattr(b, 'prompt') for b in badges); print(f'PASS: {len(badges)} badges for delayed shipment')"
 ```
 
 ---
