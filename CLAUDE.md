@@ -221,5 +221,55 @@ Delegated implementors then return:
 9. Stop on scope ambiguity rather than silently broadening work.
 10. Keep founder-facing summaries plain and outcome-oriented.
 
+## Hard-Learned Operational Rules
+
+Rules below were derived from real failures. Violating them wastes tokens and alarms
+Eran. They override any temptation to "try a quick workaround."
+
+### Commit mechanics
+
+- **Always export GIT_MESSAGE.** Every primary commit (Commit #NN + Execution:) MUST use:
+  ```bash
+  export GIT_MESSAGE="$(cat <<'EOF'
+  ...full message...
+  EOF
+  )" && CLAUDE_COMMIT=1 git commit -m "$GIT_MESSAGE"
+  ```
+  Without `export GIT_MESSAGE`, the pre-commit hook cannot read the message at pre-commit
+  stage, fails to detect `Execution: Claude-direct`, and rejects files outside Claude's
+  domain. Recurred in C34, C71, C76, C83. No exceptions.
+
+- **Commit forge results before auto-mode starts.** If `git status` shows untracked
+  commit-specs or modified protocol/state files from a prior `/forge` run, commit them as
+  `chore(state): commit forge output...` BEFORE running any preflight. The
+  `finalize_commit.py --worktree` scope check counts ALL dirty files against the active
+  commit's budget. Never stash user-generated content.
+
+### Scope verification
+
+- **Grep consumers before removing a shared type field.** Before removing ANY field from
+  a shared TypeScript interface or Python schema, grep for all references. If affected
+  files exceed the spec's `max_changed_files`, STOP and report to Eran BEFORE touching
+  code. The LOCKED_BUDGET cap (4 files) has no override mechanism — fighting it wastes
+  tokens. (Lesson: C88, 6+ failed attempts.)
+
+- **Stop after one attempt on system constraint blocks.** When `finalize_commit.py` or
+  `verify_constraints.py` fails due to LOCKED_BUDGET caps or structural limits (not a
+  real code error), stop and report: "Spec scope insufficient — need override or split."
+  Do not attempt workarounds on hard-coded system constraints.
+
+### Environment patterns
+
+- **Alembic revision IDs ≤ 32 characters.** The `alembic_version.version_num` column is
+  `varchar(32)`. Verify length before writing migration files. Pattern: `NNNN_short_name`.
+  (See D57.)
+
+- **Docker for all Python verification.** Use
+  `docker compose run --rm backend uv run python -c "..."` for every import check. Local
+  Python fails on `Settings()` validation (missing env vars). No exceptions.
+
+- **`npx --prefix frontend tsc`** — never bare `npx tsc` from repo root. TypeScript is
+  installed only in `frontend/node_modules`.
+
 Detailed rationale, rollback, replanning, context selection, slash commands, and examples
 live in `ORCHESTRATION.md`.
