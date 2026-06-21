@@ -112,6 +112,32 @@
 | 80 | product-api-and-list-page | aria | ✅ done · 2026-06-21 |
 | 81 | product-detail-form | aria | done |
 | 82 | vendor-crud-pages | aria | done |
+| 83 | client-model-and-api | rex | pending |
+| 84 | shipment-refactor-migration | rex | pending |
+| 85 | product-catalog-refactor | rex | pending |
+| 86 | shipment-items-api-and-seed | rex | pending |
+| 87 | update-rag-logistics-join | nova | pending |
+| 88 | client-crud-pages | aria | pending |
+| 89 | rename-dashboard-and-update-pages | aria | pending |
+| 90 | shipment-form-page | aria | pending |
+
+---
+
+## Phase 3: Shipment Management (planned 2026-06-21)
+
+C83-C90 implement the shipment management feature set: client entity with badge
+colors, product-to-inventory-catalog refactor (products are standalone stock items),
+shipment-product join table with inventory deduction on shipment creation, client
+CRUD pages, dashboard rename to "Shipments" with badge color integration, and a
+full shipment creation form.
+
+| Range | Product result |
+|---|---|
+| C83-C84 | Client model with badge colors and database schema for shipment items |
+| C85-C86 | Products become standalone catalog; shipments accept items and deduct stock |
+| C87 | AI assistant retrieves shipment products through the new join model |
+| C88-C89 | Client pages with badge colors; dashboard renamed to Shipments |
+| C90 | Create Shipment form with vendor, client, product picker, and all fields |
 
 ---
 
