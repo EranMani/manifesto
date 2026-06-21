@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 4 started. C96-C97 pending (assistant action badges Phase 1). Badge selection engine + frontend chips.",
+  "tldr": "Phase 4 complete. C96-C97 shipped (assistant action badges Phase 1). Badge selection engine + frontend chips. No pending commits.",
   "phase": 4,
-  "last_completed_commit": "96",
-  "next_commit": "97",
-  "next_commit_name": "badge-chips-frontend",
-  "next_commit_assignee": "aria",
+  "last_completed_commit": "97",
+  "next_commit": null,
+  "next_commit_name": null,
+  "next_commit_assignee": null,
   "status": "active",
   "open_handoffs": [
     {

@@ -126,7 +126,7 @@
 | 94 | redis-shipment-detail-cache | rex | done |
 | 95 | expandable-shipment-cards | aria | done |
 | 96 | badge-selection-engine | rex | ✅ done · 2026-06-21 |
-| 97 | badge-chips-frontend | aria | pending |
+| 97 | badge-chips-frontend | aria | ✅ done · 2026-06-21 |
 
 ---
 
