@@ -10,6 +10,7 @@ from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder, PurchaseOrderStatus
 from app.models.shipment import Shipment, ShipmentStatus
 from app.models.shipment_event import ShipmentEvent, ShipmentEventType
+from app.models.shipment_item import ShipmentItem
 from app.models.user import User
 from app.models.vendor import Vendor
 
@@ -254,13 +255,14 @@ async def lookup_procurement(db: AsyncSession, tracking_code: str) -> Procuremen
             if buyer is not None:
                 buyer_evidence = BuyerEvidence(id=buyer.id, name=buyer.name)
 
-    products = (
+    products_with_qty = (
         await db.execute(
-            select(Product)
-            .where(Product.shipment_id == shipment.id)
+            select(Product, ShipmentItem.quantity)
+            .join(ShipmentItem, ShipmentItem.product_id == Product.id)
+            .where(ShipmentItem.shipment_id == shipment.id)
             .order_by(Product.name, Product.id)
         )
-    ).scalars().all()
+    ).all()
 
     timeline = await _load_timeline(db, shipment.id)
 
@@ -274,10 +276,10 @@ async def lookup_procurement(db: AsyncSession, tracking_code: str) -> Procuremen
                 id=product.id,
                 name=product.name,
                 description=product.description,
-                quantity=product.quantity,
+                quantity=item_qty,
                 unit=product.unit,
             )
-            for product in products
+            for product, item_qty in products_with_qty
         ],
         timeline=timeline,
         delay=_delay_evidence(shipment, timeline),
