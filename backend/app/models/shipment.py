@@ -33,6 +33,7 @@ class Shipment(Base):
     expected_arrival_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     actual_arrival_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     delay_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+    status_reason: Mapped[str | None] = mapped_column(String, nullable=True)
     notes: Mapped[str | None] = mapped_column(String, nullable=True)
     client_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))

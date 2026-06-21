@@ -94,62 +94,71 @@ PRODUCT_CATALOG = [
 
 # Each outcome's "events" entries are (event_type, day_offset_from_dispatch, location_role, details).
 SHIPMENT_OUTCOMES = [
-    dict(kind="delivered", status="delivered", delay_reason=None, arrival_offset=6, events=[
+    dict(kind="delivered", status="delivered", delay_reason=None, status_reason=None, arrival_offset=6, events=[
         ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None),
         ("departed", 0, "origin", None), ("arrived_hub", 3, "hub", None), ("delivered", 6, "destination", None),
     ]),
-    dict(kind="in_transit", status="in_transit", delay_reason=None, arrival_offset=None, events=[
+    dict(kind="in_transit", status="in_transit", delay_reason=None, status_reason=None, arrival_offset=None, events=[
         ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None),
         ("departed", 0, "origin", None), ("arrived_hub", 3, "hub", None),
     ]),
-    dict(kind="pending", status="pending", delay_reason=None, arrival_offset=None, events=[
+    dict(kind="pending", status="pending", delay_reason=None, status_reason=None, arrival_offset=None, events=[
         ("ordered", -2, "origin", None),
     ]),
     dict(kind="weather_delay", status="delayed", arrival_offset=None,
-         delay_reason="Severe weather conditions delayed transit", events=[
+         delay_reason="Severe weather conditions delayed transit",
+         status_reason="Shipment is delayed due to weather conditions along the route", events=[
         ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
         ("delay_reported", 4, "route", "Severe winter storm closed the transit corridor"),
     ]),
     dict(kind="customs_hold", status="delayed", arrival_offset=None,
-         delay_reason="Shipment held for customs inspection", events=[
+         delay_reason="Shipment held for customs inspection",
+         status_reason="Shipment is delayed due to customs clearance requirements", events=[
         ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
         ("arrived_hub", 3, "hub", None), ("customs_hold", 4, "border", "Held pending customs documentation review"),
     ]),
     dict(kind="carrier_delay", status="delayed", arrival_offset=None,
-         delay_reason="Carrier capacity shortage delayed pickup and transit", events=[
+         delay_reason="Carrier capacity shortage delayed pickup and transit",
+         status_reason="Shipment is delayed due to carrier scheduling issues", events=[
         ("ordered", -7, "origin", None), ("dispatched", 2, "origin", None), ("departed", 2, "origin", None),
         ("delay_reported", 5, "route", "Carrier rescheduled the pickup due to a capacity shortage"),
     ]),
     dict(kind="vendor_delay", status="delayed", arrival_offset=None,
-         delay_reason="Vendor production delay pushed back the shipment date", events=[
+         delay_reason="Vendor production delay pushed back the shipment date",
+         status_reason="Shipment is delayed due to vendor production issues", events=[
         ("ordered", -7, "origin", None),
         ("delay_reported", -1, "origin", "Vendor reported a production delay before dispatch"),
         ("dispatched", 3, "origin", None), ("departed", 3, "origin", None),
     ]),
     dict(kind="partial", status="partial", arrival_offset=6,
-         delay_reason="Partial shipment due to inventory shortage at origin", events=[
+         delay_reason="Partial shipment due to inventory shortage at origin",
+         status_reason="Only partial quantity was available for shipment", events=[
         ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
         ("arrived_hub", 3, "hub", None),
         ("partial_delivery", 6, "destination", "Only part of the order quantity was available for shipment"),
     ]),
     dict(kind="damaged", status="damaged", arrival_offset=None,
-         delay_reason="Cargo damaged in transit", events=[
+         delay_reason="Cargo damaged in transit",
+         status_reason="Cargo found damaged during hub inspection", events=[
         ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
         ("arrived_hub", 3, "hub", None),
         ("damaged", 5, "hub", "Inspection found damaged packaging on arrival at the hub"),
     ]),
     dict(kind="cancelled", status="cancelled", arrival_offset=None,
-         delay_reason="Order cancelled before dispatch", events=[
+         delay_reason="Order cancelled before dispatch",
+         status_reason="Order was cancelled before dispatch", events=[
         ("ordered", -7, "origin", None), ("cancelled", -1, "origin", "Buyer cancelled the order before dispatch"),
     ]),
     dict(kind="returned", status="returned", arrival_offset=None,
-         delay_reason="Recipient refused delivery; shipment returned to vendor", events=[
+         delay_reason="Recipient refused delivery; shipment returned to vendor",
+         status_reason="Delivery refused by recipient; returning to origin", events=[
         ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
         ("arrived_hub", 3, "hub", None), ("delivered", 6, "destination", None),
         ("returned", 8, "destination", "Recipient refused delivery; shipment returned to origin"),
     ]),
     dict(kind="lost", status="lost", arrival_offset=None,
-         delay_reason="Shipment lost in transit; carrier investigation opened", events=[
+         delay_reason="Shipment lost in transit; carrier investigation opened",
+         status_reason="Shipment reported lost; investigation in progress", events=[
         ("ordered", -7, "origin", None), ("dispatched", 0, "origin", None), ("departed", 0, "origin", None),
         ("lost", 5, "route", "Carrier reported the shipment lost in transit and opened an investigation"),
     ]),
@@ -267,6 +276,7 @@ async def _ensure_shipment(
     expected_arrival_at: datetime.datetime,
     actual_arrival_at: datetime.datetime | None,
     delay_reason: str | None,
+    status_reason: str | None,
 ) -> tuple[str, bool]:
     result = await session.execute(select(Shipment).where(Shipment.tracking_code == tracking_code))
     existing = result.scalar_one_or_none()
@@ -285,6 +295,7 @@ async def _ensure_shipment(
         expected_arrival_at=expected_arrival_at,
         actual_arrival_at=actual_arrival_at,
         delay_reason=delay_reason,
+        status_reason=status_reason,
     )
     session.add(shipment)
     await session.flush()
@@ -444,6 +455,7 @@ async def seed() -> None:
                 expected_arrival_at=expected_arrival_at,
                 actual_arrival_at=actual_arrival_at,
                 delay_reason=outcome["delay_reason"],
+                status_reason=outcome["status_reason"],
             )
             if not created:
                 continue

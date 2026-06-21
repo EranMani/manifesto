@@ -17,6 +17,7 @@ class ShipmentBase(BaseModel):
     expected_arrival_at: datetime.datetime
     actual_arrival_at: datetime.datetime | None = None
     delay_reason: str | None = None
+    status_reason: str | None = None
     notes: str | None = None
 
 
