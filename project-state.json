@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 hardening continues. C79 done (fix-chat-scroll-regression). No pending commits.",
+  "tldr": "Phase 3 hardening continues. C79 done. C80-C81 pending: product management UI (list page, detail/form). Forged 2026-06-21.",
   "phase": 3,
   "last_completed_commit": "79",
-  "next_commit": null,
-  "next_commit_name": null,
-  "next_commit_assignee": null,
+  "next_commit": "80",
+  "next_commit_name": "product-api-and-list-page",
+  "next_commit_assignee": "aria",
   "status": "active",
   "open_handoffs": [
     {
@@ -120,6 +120,13 @@
       "summary": "Added C79 (fix-chat-scroll-regression, Aria, Claude-direct). Single-class fix to Assistant.tsx: add min-h-0 to inner flex column so the overflow-y-auto messages area is height-constrained and actually scrolls. Visually verified by Eran in browser before commit. Added feedback memory requiring browser verification for all UI commits with manual check requirements.",
       "agents_activated": [],
       "files_updated": ["commit-protocol.md", "commit-specs/commit-79.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-21",
+      "trigger": "Eran requested via /forge: build product management UI — React pages for the existing GET/POST/PUT/DELETE /api/v1/products endpoints with list table, detail view, create/edit forms, and delete confirmation",
+      "summary": "Added C80 (product-api-and-list-page, Aria, Claude-direct) and C81 (product-detail-form, Aria, Claude-direct). C80: typed API client (5 CRUD functions + listShipments), product list table with delete confirmation, /products route. C81: combined create/edit form with shipment dropdown, /products/new and /products/:id routes. Forge scanner identified 4 target files, planner produced 2 commits. Design challenge identified shipment dropdown requirement for ProductCreate — included listShipments() in API client.",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "commit-specs/commit-80.md", "commit-specs/commit-81.md", "project-state.json"]
     }
   ],
   "rollback_history": [],
