@@ -1,10 +1,10 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 continues. C90 done (shipment form). C91-C95 pending: status_reason field, shipment detail endpoint with items/events, Redis caching, and expandable shipment cards UI.",
+  "tldr": "Phase 3 continues. C91 done (status_reason field). C92-C95 pending: shipment detail endpoint with items/events, Redis caching, and expandable shipment cards UI.",
   "phase": 3,
-  "last_completed_commit": "90",
-  "next_commit": "91",
-  "next_commit_name": "add-status-reason-field",
+  "last_completed_commit": "91",
+  "next_commit": "92",
+  "next_commit_name": "shipment-detail-endpoint",
   "next_commit_assignee": "rex",
   "status": "active",
   "open_handoffs": [
