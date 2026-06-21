@@ -9,6 +9,7 @@ from app.api.v1.chat import router as chat_router
 from app.api.v1.documents import router as documents_router
 from app.api.v1.products import router as product_router
 from app.api.v1.shipments import router as shipment_router
+from app.api.v1.clients import router as client_router
 from app.api.v1.vendors import router as vendor_router
 
 logger = structlog.get_logger()
@@ -30,6 +31,7 @@ async def health():
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(vendor_router, prefix="/api/v1/vendors", tags=["vendors"])
+app.include_router(client_router, prefix="/api/v1/clients", tags=["clients"])
 app.include_router(shipment_router, prefix="/api/v1/shipments", tags=["shipments"])
 app.include_router(product_router, prefix="/api/v1/products", tags=["products"])
 app.include_router(assistant_router, prefix="/api/v1/assistant", tags=["assistant"])
