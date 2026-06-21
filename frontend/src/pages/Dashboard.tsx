@@ -188,7 +188,7 @@ export default function Dashboard() {
       )}
 
       {groups.length === 0 ? (
-        <p className="text-gray-500">No shipments with products yet.</p>
+        <p className="text-gray-500">No shipments yet.</p>
       ) : filteredGroups.length === 0 ? (
         <p className="text-gray-500">No shipments match the current filters.</p>
       ) : (

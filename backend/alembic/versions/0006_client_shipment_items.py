@@ -1,6 +1,6 @@
 """client shipment items refactor
 
-Revision ID: 0006_client_shipment_items_refactor
+Revision ID: 0006_client_shipment_items
 Revises: 0005_shipment_event_storage
 Create Date: 2026-06-21 00:00:00.000000
 
@@ -16,7 +16,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 
 # revision identifiers, used by Alembic.
-revision: str = "0006_client_shipment_items_refactor"
+revision: str = "0006_client_shipment_items"
 down_revision: Union[str, None] = "0005_shipment_event_storage"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
