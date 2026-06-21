@@ -83,7 +83,40 @@ export async function listShipments(): Promise<ShipmentRead[]> {
   return response.data
 }
 
+export interface VendorCreate {
+  name: string
+  contact?: string | null
+  email?: string | null
+  country?: string | null
+}
+
+export interface VendorUpdate {
+  name?: string | null
+  contact?: string | null
+  email?: string | null
+  country?: string | null
+}
+
 export async function listVendors(): Promise<VendorRead[]> {
   const response = await apiClient.get<VendorRead[]>('/api/v1/vendors')
   return response.data
+}
+
+export async function getVendor(id: string): Promise<VendorRead> {
+  const response = await apiClient.get<VendorRead>(`/api/v1/vendors/${id}`)
+  return response.data
+}
+
+export async function createVendor(data: VendorCreate): Promise<VendorRead> {
+  const response = await apiClient.post<VendorRead>('/api/v1/vendors', data)
+  return response.data
+}
+
+export async function updateVendor(id: string, data: VendorUpdate): Promise<VendorRead> {
+  const response = await apiClient.put<VendorRead>(`/api/v1/vendors/${id}`, data)
+  return response.data
+}
+
+export async function deleteVendor(id: string): Promise<void> {
+  await apiClient.delete(`/api/v1/vendors/${id}`)
 }
