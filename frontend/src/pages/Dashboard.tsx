@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  getShipmentDetail,
   listClients,
   listShipments,
   listVendors,
   type ClientRead,
+  type ShipmentDetailRead,
   type ShipmentRead,
   type VendorRead,
 } from '../api/products'
@@ -39,6 +41,10 @@ export default function Dashboard() {
   const [originFilter, setOriginFilter] = useState('')
   const [vendorFilter, setVendorFilter] = useState('')
   const [clientFilter, setClientFilter] = useState('')
+
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [detailCache, setDetailCache] = useState<Map<string, ShipmentDetailRead>>(new Map())
+  const [detailLoading, setDetailLoading] = useState(false)
 
   useEffect(() => {
     Promise.all([listShipments(), listVendors(), listClients()])
@@ -92,6 +98,23 @@ export default function Dashboard() {
       return true
     })
   }, [groups, search, statusFilter, destinationFilter, originFilter, vendorFilter, clientFilter])
+
+  const handleCardClick = (id: string) => {
+    if (expandedId === id) {
+      setExpandedId(null)
+      return
+    }
+    setExpandedId(id)
+    if (!detailCache.has(id)) {
+      setDetailLoading(true)
+      getShipmentDetail(id)
+        .then((detail) => {
+          setDetailCache((prev) => new Map(prev).set(id, detail))
+        })
+        .catch(() => {})
+        .finally(() => setDetailLoading(false))
+    }
+  }
 
   const activeFilterCount = [statusFilter, destinationFilter, originFilter, vendorFilter, clientFilter, search].filter(Boolean).length
 
@@ -203,10 +226,14 @@ export default function Dashboard() {
         <p className="text-gray-500">No shipments match the current filters.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredGroups.map((group) => (
+          {filteredGroups.map((group) => {
+            const isExpanded = expandedId === group.shipment.id
+            const detail = detailCache.get(group.shipment.id)
+            return (
             <div
               key={group.shipment.id}
-              className="border border-gray-200 rounded-lg overflow-hidden flex flex-col"
+              className="border border-gray-200 rounded-lg overflow-hidden flex flex-col cursor-pointer"
+              onClick={() => handleCardClick(group.shipment.id)}
             >
               <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                 <div className="flex items-center justify-between">
@@ -248,8 +275,82 @@ export default function Dashboard() {
                 )}
               </div>
 
+              {isExpanded && (
+                <div className="border-t border-gray-200 px-4 py-3 text-sm space-y-3">
+                  {detailLoading && !detail ? (
+                    <p className="text-gray-400">Loading detail...</p>
+                  ) : detail ? (
+                    <>
+                      <div>
+                        <h4 className="font-medium text-gray-700 mb-1">Products</h4>
+                        {detail.items.length === 0 ? (
+                          <p className="text-gray-400">No products</p>
+                        ) : (
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-left text-gray-500 border-b">
+                                <th className="pb-1">Product</th>
+                                <th className="pb-1">Quantity</th>
+                                <th className="pb-1">Unit</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {detail.items.map((item) => (
+                                <tr key={item.product_id} className="border-b border-gray-100">
+                                  <td className="py-1">{item.product_name}</td>
+                                  <td className="py-1">{item.quantity}</td>
+                                  <td className="py-1">{item.product_unit ?? '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+
+                      <div className="text-xs text-gray-600 space-y-0.5">
+                        <div><span className="font-medium">Dispatched:</span> {new Date(detail.dispatched_at).toLocaleDateString()}</div>
+                        <div><span className="font-medium">Expected:</span> {new Date(detail.expected_arrival_at).toLocaleDateString()}</div>
+                        {detail.actual_arrival_at && (
+                          <div><span className="font-medium">Arrived:</span> {new Date(detail.actual_arrival_at).toLocaleDateString()}</div>
+                        )}
+                      </div>
+
+                      {detail.status_reason && (
+                        <div className="text-xs">
+                          <span className="font-medium text-gray-700">Status reason:</span>{' '}
+                          <span className="text-gray-600">{detail.status_reason}</span>
+                        </div>
+                      )}
+
+                      {detail.notes && (
+                        <div className="text-xs">
+                          <span className="font-medium text-gray-700">Notes:</span>{' '}
+                          <span className="text-gray-600">{detail.notes}</span>
+                        </div>
+                      )}
+
+                      {detail.events.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-700 mb-1">Timeline</h4>
+                          <ul className="space-y-1 text-xs">
+                            {detail.events.map((event, i) => (
+                              <li key={i} className="flex gap-2">
+                                <span className="text-gray-400 whitespace-nowrap">{new Date(event.occurred_at).toLocaleDateString()}</span>
+                                <span className="font-medium">{event.event_type.replace(/_/g, ' ')}</span>
+                                <span className="text-gray-500">— {event.location}</span>
+                                {event.details && <span className="text-gray-400 italic">({event.details})</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </>
+                  ) : null}
+                </div>
+              )}
+
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>

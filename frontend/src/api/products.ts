@@ -40,8 +40,28 @@ export interface ShipmentRead {
   expected_arrival_at: string
   actual_arrival_at: string | null
   delay_reason: string | null
+  status_reason: string | null
   notes: string | null
   created_at: string
+}
+
+export interface ShipmentItemDetail {
+  product_id: string
+  product_name: string
+  product_unit: string | null
+  quantity: number
+}
+
+export interface ShipmentEventDetail {
+  event_type: string
+  occurred_at: string
+  location: string
+  details: string | null
+}
+
+export interface ShipmentDetailRead extends ShipmentRead {
+  items: ShipmentItemDetail[]
+  events: ShipmentEventDetail[]
 }
 
 export async function listProducts(): Promise<ProductRead[]> {
@@ -97,6 +117,11 @@ export interface ShipmentCreate {
 
 export async function listShipments(): Promise<ShipmentRead[]> {
   const response = await apiClient.get<ShipmentRead[]>('/api/v1/shipments')
+  return response.data
+}
+
+export async function getShipmentDetail(id: string): Promise<ShipmentDetailRead> {
+  const response = await apiClient.get<ShipmentDetailRead>(`/api/v1/shipments/${id}/detail`)
   return response.data
 }
 
