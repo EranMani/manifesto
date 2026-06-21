@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import {
   queryAssistant,
+  type ActionBadge,
   type AssistantQueryResponse,
   type CitationSchema,
   type ContextTurn,
@@ -20,6 +21,7 @@ interface AssistantState {
   graph: GraphSchema | null
   citations: CitationSchema[]
   suggestedQuestions: string[]
+  actionBadges: ActionBadge[]
   loading: boolean
   error: string | null
   send: (message: string) => Promise<void>
@@ -32,6 +34,7 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
   graph: null,
   citations: [],
   suggestedQuestions: [],
+  actionBadges: [],
   loading: false,
   error: null,
 
@@ -64,6 +67,7 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
         graph: response.graph,
         citations: response.citations,
         suggestedQuestions: response.suggested_questions,
+        actionBadges: response.action_badges,
         loading: false,
       }))
     } catch (err) {
@@ -80,6 +84,7 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
       graph: null,
       citations: [],
       suggestedQuestions: [],
+      actionBadges: [],
       loading: false,
       error: null,
     }),

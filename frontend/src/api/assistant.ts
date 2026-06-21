@@ -35,12 +35,18 @@ export interface GraphSchema {
   highlighted_path: string[]
 }
 
+export interface ActionBadge {
+  label: string
+  prompt: string
+}
+
 export interface AssistantQueryResponse {
   intent: string
   answer: string
   graph: GraphSchema | null
   citations: CitationSchema[]
   suggested_questions: string[]
+  action_badges: ActionBadge[]
 }
 
 export async function queryAssistant(

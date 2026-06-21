@@ -72,6 +72,7 @@ export default function Assistant() {
     loading,
     error,
     suggestedQuestions,
+    actionBadges,
     send,
     reset,
   } = useAssistantStore()
@@ -205,6 +206,21 @@ export default function Assistant() {
 
           <div ref={messagesEndRef} />
         </div>
+
+        {messages.length > 0 && actionBadges.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {actionBadges.map((badge) => (
+              <button
+                key={badge.label}
+                onClick={() => setInput(badge.prompt)}
+                disabled={loading}
+                className="px-3 py-1 text-sm border border-blue-600 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+              >
+                {badge.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {messages.length > 0 && suggestedQuestions.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">
