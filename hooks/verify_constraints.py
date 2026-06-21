@@ -349,6 +349,8 @@ def check_actual_scope(spec_result: dict, changed_files: list[str], worktree: bo
     # updates it automatically, so treat it as planned when package.json is.
     if "frontend/package.json" in planned:
         planned.add("frontend/package-lock.json")
+    if "backend/pyproject.toml" in planned:
+        planned.add("backend/uv.lock")
     unplanned = sorted(path for path in changed_files if path not in planned)
     # spec_result["budget"] is the effective budget: validate_commit_spec already
     # merges any bootstrap_exception overrides for max_changed_files and
