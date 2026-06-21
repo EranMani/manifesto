@@ -76,6 +76,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C86 | shipment-items-api-and-seed | Claude (direct) | sonnet | — (lost) | — (lost) | - | Shipment create accepts items with FOR UPDATE locking and inventory deduction. Seed creates clients and uses shipment_items. Docker imports pass. verify_constraints all_pass: files=2/4, diff_lines=78/350. |
 | C87 | update-rag-logistics-join | Claude (direct) | sonnet | — (lost) | — (lost) | - | RAG logistics loads products via ShipmentItem join with per-shipment quantity. Docker imports pass. verify_constraints all_pass: files=1/4, diff_lines=14/350. |
 | C88 | client-crud-pages | Claude (direct) | sonnet | — (lost) | — (lost) | - | Client CRUD pages with badge color dots and color picker. Removed shipment_id from product types/pages. tsc passes. Scope override: 7 files (3 cascading fixes from type removal). |
+| C89 | rename-dashboard-and-update-pages | Claude (direct) | sonnet | — (lost) | — (lost) | - | Dashboard→Shipments rename, client badge colors on cards, Clients sidebar link, /dashboard redirect. tsc passes. verify_constraints all_pass: files=3/4, diff_lines=73/350. |
 | C01 | project-scaffold | Adam | sonnet | 25,870 | 17 | -34,130 ✅ | First commit; fresh agent, no prior worklog |
 | C02 | python-skeleton | Rex | sonnet | 23,116 | 25 | -36,884 ✅ | First Rex session; all 25 tool uses consumed — at cap |
 | C03 | frontend-scaffold | Aria | sonnet | 33,895 | 49 | -26,105 ✅ | First Aria session; 49 tool uses — **exceeded 25-use cap** ⚠️; also fixed hook bugs in Claude's domain |
