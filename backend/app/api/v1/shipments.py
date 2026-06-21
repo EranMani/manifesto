@@ -1,8 +1,12 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
+from app.core.redis import cache_delete, cache_get, cache_set
 from app.dependencies import require_role
 from app.models.client import Client
 from app.models.product import Product
@@ -43,6 +47,11 @@ async def get_shipment_detail(
     db: AsyncSession = Depends(get_db),
     _: object = Depends(require_role("admin", "manager")),
 ):
+    cache_key = f"shipment:detail:{shipment_id}"
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return Response(content=cached, media_type="application/json")
+
     result = await db.execute(select(Shipment).where(Shipment.id == shipment_id))
     shipment = result.scalars().first()
     if shipment is None:
@@ -78,9 +87,11 @@ async def get_shipment_detail(
         for e in events_result.scalars().all()
     ]
 
-    return ShipmentDetailRead.model_validate(
+    detail = ShipmentDetailRead.model_validate(
         {**ShipmentRead.model_validate(shipment).model_dump(), "items": items, "events": events}
     )
+    await cache_set(cache_key, detail.model_dump_json())
+    return detail
 
 
 @router.post("", response_model=ShipmentRead, status_code=status.HTTP_201_CREATED)
@@ -139,3 +150,4 @@ async def delete_shipment(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shipment not found")
     await db.delete(shipment)
     await db.commit()
+    await cache_delete(f"shipment:detail:{shipment_id}")
