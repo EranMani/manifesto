@@ -125,6 +125,8 @@
 | 93 | add-redis-service | adam | done |
 | 94 | redis-shipment-detail-cache | rex | done |
 | 95 | expandable-shipment-cards | aria | done |
+| 96 | badge-selection-engine | rex | pending |
+| 97 | badge-chips-frontend | aria | pending |
 
 ---
 

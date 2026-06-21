@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 complete. C95 done (expandable shipment cards). All C83-C95 shipment management commits delivered.",
-  "phase": 3,
+  "tldr": "Phase 4 started. C96-C97 pending (assistant action badges Phase 1). Badge selection engine + frontend chips.",
+  "phase": 4,
   "last_completed_commit": "95",
-  "next_commit": null,
-  "next_commit_name": null,
-  "next_commit_assignee": null,
+  "next_commit": "96",
+  "next_commit_name": "badge-selection-engine",
+  "next_commit_assignee": "rex",
   "status": "active",
   "open_handoffs": [
     {
@@ -148,6 +148,13 @@
       "summary": "Added C91-C95 (5 commits, all Claude-direct). C91: status_reason field + migration + schema + seed (Rex, 4 files). C92: shipment detail endpoint returning items with product names and event timeline (Rex, 2 files). C93: Redis service in docker-compose (Adam, 1 file). C94: Redis client utility + cache/invalidate on detail endpoint (Rex, 4 files). C95: expandable shipment cards with on-demand detail fetch and local cache (Aria, 2 files). Design challenge confirmed new-field approach over rename (9+ file rename would span 3 domains), revised card state to single-expanded with local cache. All agent perspectives synthesized from code analysis.",
       "agents_activated": [],
       "files_updated": ["commit-protocol.md", "commit-specs/commit-91.md", "commit-specs/commit-92.md", "commit-specs/commit-93.md", "commit-specs/commit-94.md", "commit-specs/commit-95.md", "project-state.json"]
+    },
+    {
+      "date": "2026-06-21",
+      "trigger": "Eran requested via /forge: implement assistant action badges Phase 1 from docs/product-concepts/assistant-action-badges.md to improve product moat",
+      "summary": "Added C96-C97 (2 commits, all Claude-direct). C96: badge selection engine — new backend/app/services/badge_engine.py with deterministic status+event+role→badges mapping, ActionBadgeSchema in schemas, route integration (Rex, 3 files). C97: badge chips frontend — ActionBadge type in API client, store state, clickable chips in Assistant.tsx with pre-fill behavior (Aria, 3 files). Design challenge confirmed no change needed to Nova's rag_logistics.py — badge engine extracts status/event from existing graph nodes. Planner's 3-commit plan revised to 2 commits.",
+      "agents_activated": [],
+      "files_updated": ["commit-protocol.md", "commit-specs/commit-96.md", "commit-specs/commit-97.md", "project-state.json"]
     }
   ],
   "rollback_history": [],
