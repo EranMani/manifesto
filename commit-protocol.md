@@ -122,7 +122,7 @@
 | 90 | shipment-form-page | aria | ✅ done · 2026-06-21 |
 | 91 | add-status-reason-field | rex | done |
 | 92 | shipment-detail-endpoint | rex | done |
-| 93 | add-redis-service | adam | pending |
+| 93 | add-redis-service | adam | done |
 | 94 | redis-shipment-detail-cache | rex | pending |
 | 95 | expandable-shipment-cards | aria | pending |
 

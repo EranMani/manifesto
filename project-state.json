@@ -1,11 +1,11 @@
 {
   "project": "manifesto",
-  "tldr": "Phase 3 continues. C92 done (detail endpoint). C93-C95 pending: Redis service, Redis caching, and expandable shipment cards UI.",
+  "tldr": "Phase 3 continues. C93 done (Redis service). C94-C95 pending: Redis caching and expandable shipment cards UI.",
   "phase": 3,
-  "last_completed_commit": "92",
-  "next_commit": "93",
-  "next_commit_name": "add-redis-service",
-  "next_commit_assignee": "adam",
+  "last_completed_commit": "93",
+  "next_commit": "94",
+  "next_commit_name": "redis-shipment-detail-cache",
+  "next_commit_assignee": "rex",
   "status": "active",
   "open_handoffs": [
     {
