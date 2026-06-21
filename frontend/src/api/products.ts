@@ -2,7 +2,6 @@ import apiClient from './client'
 
 export interface ProductRead {
   id: string
-  shipment_id: string
   category_id: string | null
   name: string
   description: string | null
@@ -13,7 +12,6 @@ export interface ProductRead {
 }
 
 export interface ProductCreate {
-  shipment_id: string
   category_id?: string | null
   name: string
   description?: string | null
@@ -34,6 +32,7 @@ export interface ShipmentRead {
   tracking_code: string
   vendor_id: string
   purchase_order_id: string | null
+  client_id: string | null
   origin: string
   destination: string
   status: string
@@ -119,4 +118,54 @@ export async function updateVendor(id: string, data: VendorUpdate): Promise<Vend
 
 export async function deleteVendor(id: string): Promise<void> {
   await apiClient.delete(`/api/v1/vendors/${id}`)
+}
+
+export interface ClientRead {
+  id: string
+  name: string
+  contact: string | null
+  email: string | null
+  country: string | null
+  badge_color: string
+  created_at: string
+}
+
+export interface ClientCreate {
+  name: string
+  contact?: string | null
+  email?: string | null
+  country?: string | null
+  badge_color?: string
+}
+
+export interface ClientUpdate {
+  name?: string | null
+  contact?: string | null
+  email?: string | null
+  country?: string | null
+  badge_color?: string | null
+}
+
+export async function listClients(): Promise<ClientRead[]> {
+  const response = await apiClient.get<ClientRead[]>('/api/v1/clients')
+  return response.data
+}
+
+export async function getClient(id: string): Promise<ClientRead> {
+  const response = await apiClient.get<ClientRead>(`/api/v1/clients/${id}`)
+  return response.data
+}
+
+export async function createClient(data: ClientCreate): Promise<ClientRead> {
+  const response = await apiClient.post<ClientRead>('/api/v1/clients', data)
+  return response.data
+}
+
+export async function updateClient(id: string, data: ClientUpdate): Promise<ClientRead> {
+  const response = await apiClient.put<ClientRead>(`/api/v1/clients/${id}`, data)
+  return response.data
+}
+
+export async function deleteClient(id: string): Promise<void> {
+  await apiClient.delete(`/api/v1/clients/${id}`)
 }

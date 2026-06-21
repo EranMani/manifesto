@@ -2,36 +2,20 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   listProducts,
-  listShipments,
   deleteProduct,
   type ProductRead,
-  type ShipmentRead,
 } from '../api/products'
-
-interface ProductRow extends ProductRead {
-  trackingCode: string
-}
 
 export default function ProductList() {
   const navigate = useNavigate()
-  const [rows, setRows] = useState<ProductRow[]>([])
+  const [rows, setRows] = useState<ProductRead[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    Promise.all([listProducts(), listShipments()])
-      .then(([products, shipments]) => {
-        const shipmentMap = new Map<string, ShipmentRead>(
-          shipments.map((s) => [s.id, s])
-        )
-        setRows(
-          products.map((p) => ({
-            ...p,
-            trackingCode: shipmentMap.get(p.shipment_id)?.tracking_code ?? '—',
-          }))
-        )
-      })
+    listProducts()
+      .then(setRows)
       .catch(() => setError('Failed to load products.'))
       .finally(() => setLoading(false))
   }, [])
@@ -42,7 +26,6 @@ export default function ProductList() {
     return rows.filter(
       (r) =>
         r.name.toLowerCase().includes(q) ||
-        r.trackingCode.toLowerCase().includes(q) ||
         (r.description?.toLowerCase().includes(q) ?? false)
     )
   }, [rows, search])
@@ -84,7 +67,7 @@ export default function ProductList() {
         <div className="mb-5">
           <input
             type="text"
-            placeholder="Search by name, description, or shipment..."
+            placeholder="Search by name or description..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="border border-gray-300 rounded px-3 py-1.5 text-sm w-80 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -113,7 +96,6 @@ export default function ProductList() {
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Description</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Quantity</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Unit</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Shipment</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Created</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Actions</th>
               </tr>
@@ -125,7 +107,6 @@ export default function ProductList() {
                   <td className="px-4 py-2 text-sm text-gray-500">{row.description ?? '—'}</td>
                   <td className="px-4 py-2 text-sm">{row.quantity}</td>
                   <td className="px-4 py-2 text-sm">{row.unit ?? '—'}</td>
-                  <td className="px-4 py-2 text-sm text-gray-500">{row.trackingCode}</td>
                   <td className="px-4 py-2 text-sm text-gray-500">
                     {new Date(row.created_at).toLocaleDateString()}
                   </td>

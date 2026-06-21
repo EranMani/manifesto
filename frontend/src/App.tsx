@@ -10,6 +10,8 @@ import Assistant from './pages/Assistant'
 import Admin from './pages/Admin'
 import ProductList from './pages/ProductList'
 import ProductDetail from './pages/ProductDetail'
+import ClientList from './pages/ClientList'
+import ClientDetail from './pages/ClientDetail'
 
 function RootRedirect() {
   const token = useAuthStore((state) => state.token)
@@ -48,6 +50,9 @@ function App() {
             <Route path="/products" element={<ProductList />} />
             <Route path="/products/new" element={<ProductDetail />} />
             <Route path="/products/:id" element={<ProductDetail />} />
+            <Route path="/clients" element={<ClientList />} />
+            <Route path="/clients/new" element={<ClientDetail />} />
+            <Route path="/clients/:id" element={<ClientDetail />} />
           </Route>
 
           {/* all authenticated roles */}

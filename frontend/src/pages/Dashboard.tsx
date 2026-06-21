@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  listProducts,
   listShipments,
   listVendors,
   type ProductRead,
@@ -38,23 +37,15 @@ export default function Dashboard() {
   const [vendorFilter, setVendorFilter] = useState('')
 
   useEffect(() => {
-    Promise.all([listProducts(), listShipments(), listVendors()])
-      .then(([products, shipments, vendors]) => {
+    Promise.all([listShipments(), listVendors()])
+      .then(([shipments, vendors]) => {
         const vendorMap = new Map(vendors.map((v) => [v.id, v]))
-        const productsByShipment = new Map<string, ProductRead[]>()
-        for (const p of products) {
-          const list = productsByShipment.get(p.shipment_id) ?? []
-          list.push(p)
-          productsByShipment.set(p.shipment_id, list)
-        }
 
-        const grouped: ShipmentGroup[] = shipments
-          .filter((s) => productsByShipment.has(s.id))
-          .map((s) => ({
-            shipment: s,
-            vendor: vendorMap.get(s.vendor_id) ?? null,
-            products: productsByShipment.get(s.id)!,
-          }))
+        const grouped: ShipmentGroup[] = shipments.map((s) => ({
+          shipment: s,
+          vendor: vendorMap.get(s.vendor_id) ?? null,
+          products: [],
+        }))
 
         setGroups(grouped)
       })
