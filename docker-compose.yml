@@ -17,12 +17,19 @@ services:
     ports: ["11434:11434"]
     volumes: [ollama_data:/root/.ollama]
 
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    volumes: [redis_data:/data]
+
   backend:
     build: ./backend
     ports: ["8000:8000"]
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     env_file: .env
     volumes: [./backend:/app]
     command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -30,3 +37,4 @@ services:
 volumes:
   postgres_data:
   ollama_data:
+  redis_data:
