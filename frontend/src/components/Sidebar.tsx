@@ -2,8 +2,9 @@ import { NavLink } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', roles: ['manager', 'admin'] },
+  { to: '/shipments', label: 'Shipments', roles: ['manager', 'admin'] },
   { to: '/products', label: 'Products', roles: ['manager', 'admin'] },
+  { to: '/clients', label: 'Clients', roles: ['manager', 'admin'] },
   { to: '/vendors', label: 'Vendors', roles: ['manager', 'admin'] },
   { to: '/assistant', label: 'Assistant', roles: ['manager', 'admin', 'employee'] },
   { to: '/admin', label: 'Admin', roles: ['admin'] },

@@ -43,7 +43,7 @@ function App() {
         <Route element={<SidebarLayout />}>
           {/* manager + admin */}
           <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/shipments" element={<Dashboard />} />
             <Route path="/vendors" element={<VendorList />} />
             <Route path="/vendors/new" element={<VendorDetail />} />
             <Route path="/vendors/:id" element={<VendorDetail />} />
@@ -66,7 +66,8 @@ function App() {
           </Route>
         </Route>
 
-        {/* legacy chat redirects */}
+        {/* legacy redirects */}
+        <Route path="/dashboard" element={<Navigate to="/shipments" replace />} />
         <Route path="/chat/policy" element={<Navigate to="/assistant" replace />} />
         <Route path="/chat/logistics" element={<Navigate to="/assistant" replace />} />
       </Routes>
