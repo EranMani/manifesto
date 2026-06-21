@@ -271,5 +271,14 @@ Eran. They override any temptation to "try a quick workaround."
 - **`npx --prefix frontend tsc`** — never bare `npx tsc` from repo root. TypeScript is
   installed only in `frontend/node_modules`.
 
+- **Remind Eran about migrations and seeds after committing.** When a commit adds an
+  Alembic migration file (`backend/alembic/versions/`), remind Eran to run
+  `docker compose run --rm backend uv run alembic upgrade head` before testing. When
+  seed data changes (new fields populated in `SHIPMENT_OUTCOMES` or new entity arrays),
+  note that re-seeding only creates new records — existing records are skipped by
+  `_ensure_*` functions. To see updated seed values on existing data, Eran must nuke and
+  recreate: `docker compose down -v && docker compose up -d`, then migrate + seed.
+  (Lesson: C91 — "Failed to load data" because migration wasn't applied locally.)
+
 Detailed rationale, rollback, replanning, context selection, slash commands, and examples
 live in `ORCHESTRATION.md`.

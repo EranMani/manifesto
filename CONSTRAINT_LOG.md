@@ -118,3 +118,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-21 | C92 | rex | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
 | 2026-06-21 | C93 | adam | 515,616 | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-21 | C94 | rex | 1,435,520 | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
+| 2026-06-21 | C95 | aria | 2,234,574 | PASS | PASS | PASS r=0 w=0 t=0 | PASS |

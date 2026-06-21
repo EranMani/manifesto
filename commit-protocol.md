@@ -124,7 +124,7 @@
 | 92 | shipment-detail-endpoint | rex | done |
 | 93 | add-redis-service | adam | done |
 | 94 | redis-shipment-detail-cache | rex | done |
-| 95 | expandable-shipment-cards | aria | pending |
+| 95 | expandable-shipment-cards | aria | done |
 
 ---
 
