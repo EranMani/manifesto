@@ -111,7 +111,7 @@
 | 79 | fix-chat-scroll-regression | aria | ✅ done · 2026-06-19 |
 | 80 | product-api-and-list-page | aria | ✅ done · 2026-06-21 |
 | 81 | product-detail-form | aria | done |
-| 82 | vendor-crud-pages | aria | pending |
+| 82 | vendor-crud-pages | aria | done |
 
 ---
 
