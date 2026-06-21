@@ -271,6 +271,8 @@ async def _ensure_shipment(
     result = await session.execute(select(Shipment).where(Shipment.tracking_code == tracking_code))
     existing = result.scalar_one_or_none()
     if existing:
+        if client_id and not existing.client_id:
+            existing.client_id = client_id
         return existing.id, False
     shipment = Shipment(
         tracking_code=tracking_code,
