@@ -77,8 +77,31 @@ export interface VendorRead {
   created_at: string
 }
 
+export interface ShipmentItemCreate {
+  product_id: string
+  quantity: number
+}
+
+export interface ShipmentCreate {
+  tracking_code: string
+  vendor_id: string
+  client_id?: string | null
+  origin: string
+  destination: string
+  status?: string
+  dispatched_at: string
+  expected_arrival_at: string
+  notes?: string | null
+  items: ShipmentItemCreate[]
+}
+
 export async function listShipments(): Promise<ShipmentRead[]> {
   const response = await apiClient.get<ShipmentRead[]>('/api/v1/shipments')
+  return response.data
+}
+
+export async function createShipment(data: ShipmentCreate): Promise<ShipmentRead> {
+  const response = await apiClient.post<ShipmentRead>('/api/v1/shipments', data)
   return response.data
 }
 

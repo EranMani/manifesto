@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   listClients,
   listShipments,
@@ -27,6 +28,7 @@ interface ShipmentGroup {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const [groups, setGroups] = useState<ShipmentGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -104,7 +106,15 @@ export default function Dashboard() {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Shipments</h1>
+        <button
+          onClick={() => navigate('/shipments/new')}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          New Shipment
+        </button>
+      </div>
 
       {error && <p className="text-red-600 mb-4">{error}</p>}
 

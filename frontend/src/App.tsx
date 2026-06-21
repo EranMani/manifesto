@@ -12,6 +12,7 @@ import ProductList from './pages/ProductList'
 import ProductDetail from './pages/ProductDetail'
 import ClientList from './pages/ClientList'
 import ClientDetail from './pages/ClientDetail'
+import ShipmentForm from './pages/ShipmentForm'
 
 function RootRedirect() {
   const token = useAuthStore((state) => state.token)
@@ -43,6 +44,7 @@ function App() {
         <Route element={<SidebarLayout />}>
           {/* manager + admin */}
           <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
+            <Route path="/shipments/new" element={<ShipmentForm />} />
             <Route path="/shipments" element={<Dashboard />} />
             <Route path="/vendors" element={<VendorList />} />
             <Route path="/vendors/new" element={<VendorDetail />} />
