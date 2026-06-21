@@ -105,3 +105,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-19 | C79 | aria | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
 | 2026-06-21 | C80 | aria | - | PASS | FAIL | PASS r=0 w=0 t=0 | FAIL |
 | 2026-06-21 | C81 | aria | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
+| 2026-06-21 | C82 | aria | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |

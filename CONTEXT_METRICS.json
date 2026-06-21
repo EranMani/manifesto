@@ -12753,6 +12753,189 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "record_schema_version": 2,
+      "date": "2026-06-21",
+      "commit": "C82",
+      "agent": "aria",
+      "execution": "claude-direct",
+      "identity": {
+        "owner": "aria",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Frontend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/VendorList.tsx",
+          "frontend/src/pages/VendorDetail.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "read_files": [
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/ProductList.tsx",
+          "frontend/src/pages/ProductDetail.tsx",
+          "frontend/src/pages/VendorList.tsx",
+          "frontend/src/pages/VendorDetail.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "written_files": [
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/VendorList.tsx",
+          "frontend/src/pages/VendorDetail.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "changed_files": [
+          ".context/direct/C82-override.json",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/src/App.tsx",
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/VendorDetail.tsx",
+          "frontend/src/pages/VendorList.tsx"
+        ],
+        "coverage": {
+          "planned_files": 4,
+          "planned_files_changed": 4,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".context/direct/C82-override.json",
+            "CONSTRAINT_LOG.md",
+            "CONTEXT_METRICS.json"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 4,
+        "planned_files_read": 4,
+        "planned_read_percent": 100.0,
+        "supporting_reads": [],
+        "expansion_reads": [
+          "frontend/src/pages/ProductDetail.tsx",
+          "frontend/src/pages/ProductList.tsx"
+        ],
+        "preselected_files": [],
+        "source": "spec-and-hook-derived"
+      },
+      "capture": {
+        "status": "complete",
+        "reason": null,
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-21T09:14:36+00:00",
+        "ended_at": "2026-06-21T09:30:01+00:00",
+        "zero_is_measured": true
+      },
+      "tokens": 2060561,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "schema_version": 2,
+          "owner": "aria",
+          "executor": "claude",
+          "execution_mode": "claude-direct",
+          "scope_kind": "execution",
+          "capture_window": "full-execution",
+          "started_at": "2026-06-21T09:14:36+00:00",
+          "ended_at": "2026-06-21T09:30:01+00:00",
+          "tool_calls": 20,
+          "read_paths": [
+            "frontend/src/api/products.ts",
+            "frontend/src/pages/ProductList.tsx",
+            "frontend/src/pages/ProductDetail.tsx",
+            "frontend/src/pages/VendorList.tsx",
+            "frontend/src/pages/VendorDetail.tsx",
+            "frontend/src/App.tsx"
+          ],
+          "write_paths": [
+            "frontend/src/api/products.ts",
+            "frontend/src/pages/VendorList.tsx",
+            "frontend/src/pages/VendorDetail.tsx",
+            "frontend/src/App.tsx"
+          ],
+          "searches": [],
+          "commands": [
+            "npx tsc --noEmit --project frontend/tsconfig.json 2>&1",
+            "npx --prefix frontend tsc --noEmit --project frontend/tsconfig.json 2>&1",
+            "python hooks/verify_constraints.py --commit 82 --agent aria --execution claude-direct",
+            "git diff --name-only HEAD -- frontend/",
+            "python hooks/verify_constraints.py --commit 82 --agent aria --execution claude-direct --worktree --no-persist",
+            "git diff HEAD -- frontend/ | wc -l",
+            "git diff HEAD -- frontend/ --stat",
+            "python hooks/context_telemetry.py --stop-orchestrator",
+            "python hooks/context_telemetry.py --stop-orchestrator C82"
+          ],
+          "token_usage": {
+            "status": "complete",
+            "source": "claude-transcript-jsonl",
+            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\d7b27c2d-5022-46ea-8c3b-182892084796.jsonl",
+            "start_offset": 174411,
+            "formula": "input + output + cache_creation_input + cache_read_input",
+            "excludes": "sidechain and separate delegated-agent transcripts",
+            "end_offset": 374850,
+            "assistant_turns": 35,
+            "components": {
+              "input_tokens": 60,
+              "output_tokens": 34404,
+              "cache_creation_input_tokens": 67098,
+              "cache_read_input_tokens": 1958999
+            },
+            "total_tokens": 2060561
+          },
+          "context_package": null,
+          "selected_read_paths": null,
+          "outside_read_paths": null
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          ".context/direct/C82-override.json",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "frontend/src/App.tsx",
+          "frontend/src/api/products.ts",
+          "frontend/src/pages/VendorDetail.tsx",
+          "frontend/src/pages/VendorList.tsx"
+        ]
+      },
+      "result": "PASS"
     }
   ]
 }
