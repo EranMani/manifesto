@@ -113,7 +113,7 @@
 | 81 | product-detail-form | aria | done |
 | 82 | vendor-crud-pages | aria | done |
 | 83 | client-model-and-api | rex | ✅ done · 2026-06-21 |
-| 84 | shipment-refactor-migration | rex | pending |
+| 84 | shipment-refactor-migration | rex | ✅ done · 2026-06-21 |
 | 85 | product-catalog-refactor | rex | pending |
 | 86 | shipment-items-api-and-seed | rex | pending |
 | 87 | update-rag-logistics-join | nova | pending |
