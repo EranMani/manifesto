@@ -2231,4 +2231,24 @@ Tier decision happens in ~15 lines instead of the old 45-line route table + 30-l
 
 ---
 
+## D57 — Alembic Revision IDs Must Be ≤ 32 Characters
+
+- **Date:** 2026-06-21
+- **Decided by:** Eran (discovered), Claude (fixed)
+- **Context:** C84's migration used revision ID `0006_client_shipment_items_refactor` (38 characters). Running `alembic upgrade head` raised `asyncpg.exceptions.StringDataRightTruncationError: value too long for type character varying(32)` because the `alembic_version` table's `version_num` column is `varchar(32)`.
+
+### Root cause
+
+Alembic's default `alembic_version` table schema uses `VARCHAR(32)` for the `version_num` column. This is a well-known constraint but easy to overlook when naming migrations descriptively. Previous migrations stayed under the limit by coincidence (e.g. `0005_shipment_event_storage` = 27 chars).
+
+### Fix applied
+
+Renamed the revision ID from `0006_client_shipment_items_refactor` (38 chars) to `0006_client_shipment_items` (25 chars). Both the filename and the `revision` string inside the file were updated.
+
+### Rule going forward
+
+All Alembic migration revision IDs must be ≤ 32 characters. Use the naming pattern `NNNN_short_description`. When in doubt, count characters before committing a new migration file.
+
+---
+
 *This document records decisions as they are made. Update it before every Team Lead approval prompt when a non-obvious choice was made.*
