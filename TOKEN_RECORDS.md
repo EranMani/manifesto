@@ -79,6 +79,7 @@ The delta column is the signal — positive means over budget, negative means un
 | C89 | rename-dashboard-and-update-pages | Claude (direct) | sonnet | — (lost) | — (lost) | - | Dashboard→Shipments rename, client badge colors on cards, Clients sidebar link, /dashboard redirect. tsc passes. verify_constraints all_pass: files=3/4, diff_lines=73/350. |
 | C90 | shipment-form-page | Claude (direct) | sonnet | — (lost) | — (lost) | - | Shipment creation form with vendor/client dropdowns, product picker with quantity limits, New Shipment button on Shipments page. tsc passes. verify_constraints all_pass: files=4/4, diff_lines=243/350. Manual browser verification by Eran. |
 | C91 | add-status-reason-field | Claude (direct) | sonnet | — (lost) | — (lost) | - | Added status_reason nullable field to shipments model, migration, schema, and seed data. verify_constraints all_pass: files=4/4, diff_lines=63/350. |
+| C92 | shipment-detail-endpoint | Claude (direct) | sonnet | — (lost) | — (lost) | - | Added GET /shipments/{id}/detail endpoint with nested items (product names) and chronological events. verify_constraints all_pass: files=2/4, diff_lines=68/350. |
 | C01 | project-scaffold | Adam | sonnet | 25,870 | 17 | -34,130 ✅ | First commit; fresh agent, no prior worklog |
 | C02 | python-skeleton | Rex | sonnet | 23,116 | 25 | -36,884 ✅ | First Rex session; all 25 tool uses consumed — at cap |
 | C03 | frontend-scaffold | Aria | sonnet | 33,895 | 49 | -26,105 ✅ | First Aria session; 49 tool uses — **exceeded 25-use cap** ⚠️; also fixed hook bugs in Claude's domain |

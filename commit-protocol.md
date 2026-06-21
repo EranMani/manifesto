@@ -121,7 +121,7 @@
 | 89 | rename-dashboard-and-update-pages | aria | ✅ done · 2026-06-21 |
 | 90 | shipment-form-page | aria | ✅ done · 2026-06-21 |
 | 91 | add-status-reason-field | rex | done |
-| 92 | shipment-detail-endpoint | rex | pending |
+| 92 | shipment-detail-endpoint | rex | done |
 | 93 | add-redis-service | adam | pending |
 | 94 | redis-shipment-detail-cache | rex | pending |
 | 95 | expandable-shipment-cards | aria | pending |

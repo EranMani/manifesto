@@ -14518,6 +14518,173 @@
         ]
       },
       "result": "PASS"
+    },
+    {
+      "record_schema_version": 2,
+      "date": "2026-06-21",
+      "commit": "C92",
+      "agent": "rex",
+      "execution": "claude-direct",
+      "identity": {
+        "owner": "rex",
+        "executor": "claude",
+        "execution_mode": "claude-direct",
+        "domain": "Backend",
+        "source": "spec-and-runtime"
+      },
+      "evidence": {
+        "planned_files": [
+          "backend/app/schemas/shipment.py",
+          "backend/app/api/v1/shipments.py"
+        ],
+        "read_files": [
+          "backend/app/api/v1/shipments.py",
+          "backend/app/models/shipment_item.py",
+          "backend/app/models/shipment_event.py"
+        ],
+        "written_files": [
+          "backend/app/schemas/shipment.py",
+          "backend/app/api/v1/shipments.py"
+        ],
+        "changed_files": [
+          ".context/direct/C92-override.json",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "backend/app/api/v1/shipments.py",
+          "backend/app/schemas/shipment.py"
+        ],
+        "coverage": {
+          "planned_files": 2,
+          "planned_files_changed": 2,
+          "planned_change_percent": 100.0,
+          "missing_planned_files": [],
+          "supporting_changes": [
+            ".context/direct/C92-override.json",
+            "CONSTRAINT_LOG.md",
+            "CONTEXT_METRICS.json"
+          ],
+          "source": "spec-and-git-derived"
+        },
+        "provenance": {
+          "planned_files": "spec-derived",
+          "read_files": "hook-measured",
+          "written_files": "hook-measured",
+          "changed_files": "git-derived"
+        }
+      },
+      "scope": {
+        "kind": "execution-scope",
+        "planned_files": 2,
+        "planned_files_read": 1,
+        "planned_read_percent": 50.0,
+        "supporting_reads": [],
+        "expansion_reads": [
+          "backend/app/models/shipment_event.py",
+          "backend/app/models/shipment_item.py"
+        ],
+        "preselected_files": [],
+        "source": "spec-and-hook-derived"
+      },
+      "capture": {
+        "status": "complete",
+        "reason": null,
+        "scope_kind": "execution",
+        "capture_window": "full-execution",
+        "started_at": "2026-06-21T14:03:02+00:00",
+        "ended_at": "2026-06-21T14:04:08+00:00",
+        "zero_is_measured": true
+      },
+      "tokens": 1044378,
+      "package": {},
+      "telemetry": {
+        "agent": {
+          "source": "unavailable",
+          "status": "unavailable",
+          "tool_calls": null,
+          "read_paths": null,
+          "write_paths": null,
+          "searches": null,
+          "commands": null,
+          "expansions": null
+        },
+        "orchestrator": {
+          "source": "hooks",
+          "status": "available",
+          "schema_version": 2,
+          "owner": "rex",
+          "executor": "claude",
+          "execution_mode": "claude-direct",
+          "scope_kind": "execution",
+          "capture_window": "full-execution",
+          "started_at": "2026-06-21T14:03:02+00:00",
+          "ended_at": "2026-06-21T14:04:08+00:00",
+          "tool_calls": 10,
+          "read_paths": [
+            "backend/app/api/v1/shipments.py",
+            "backend/app/models/shipment_item.py",
+            "backend/app/models/shipment_event.py"
+          ],
+          "write_paths": [
+            "backend/app/schemas/shipment.py",
+            "backend/app/api/v1/shipments.py"
+          ],
+          "searches": [
+            {
+              "tool": "Grep",
+              "path": "backend/app/models/product.py",
+              "query": "class Product"
+            }
+          ],
+          "commands": [
+            "docker compose run --rm backend uv run python -c \"from app.schemas.shipment import ShipmentDetailRead; print(ShipmentDet",
+            "python hooks/verify_constraints.py --commit 92 --agent rex --execution claude-direct",
+            "python hooks/finalize_commit.py --commit 92 --agent rex --execution claude-direct --auto --notify-what \"Added GET /api/v"
+          ],
+          "token_usage": {
+            "status": "complete",
+            "source": "claude-transcript-jsonl",
+            "transcript_path": "C:\\Users\\eranm\\.claude\\projects\\D--AI--My-Projects-manifesto\\54700835-eacc-4548-8fdf-ed4576e086ba.jsonl",
+            "start_offset": 360880,
+            "formula": "input + output + cache_creation_input + cache_read_input",
+            "excludes": "sidechain and separate delegated-agent transcripts",
+            "end_offset": 428582,
+            "assistant_turns": 16,
+            "components": {
+              "input_tokens": 16,
+              "output_tokens": 3992,
+              "cache_creation_input_tokens": 10483,
+              "cache_read_input_tokens": 1029887
+            },
+            "total_tokens": 1044378
+          },
+          "context_package": null,
+          "selected_read_paths": null,
+          "outside_read_paths": null
+        }
+      },
+      "usage": {
+        "telemetry_status": "unavailable",
+        "tool_calls": null,
+        "read_calls": null,
+        "searches": null,
+        "write_calls": null,
+        "selected_files_read": null,
+        "selected_utilization_percent": null,
+        "unused_selected_files": null,
+        "outside_files_read": null,
+        "expansions": null
+      },
+      "boundaries": {
+        "forbidden_clean": true,
+        "changed_files": [
+          ".context/direct/C92-override.json",
+          "CONSTRAINT_LOG.md",
+          "CONTEXT_METRICS.json",
+          "backend/app/api/v1/shipments.py",
+          "backend/app/schemas/shipment.py"
+        ]
+      },
+      "result": "PASS"
     }
   ]
 }
