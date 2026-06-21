@@ -140,14 +140,14 @@ def _spec_planned_files(commit: str, repo_root: Path = REPO_ROOT) -> set[str]:
     if not spec.is_file():
         return set()
     text = spec.read_text(encoding="utf-8", errors="replace")
-    section = re.search(
-        r"^## Files To Modify Or Add\s*$\n(.*?)(?=^## |\Z)",
+    matches = re.findall(
+        r"^## (?:Updated )?Files To Modify Or Add\s*$\n(.*?)(?=^## |\Z)",
         text,
         re.MULTILINE | re.DOTALL,
     )
-    if not section:
+    if not matches:
         return set()
-    return set(re.findall(r"\|\s*`([^`]+)`\s*\|", section.group(1)))
+    return set(re.findall(r"\|\s*`([^`]+)`\s*\|", matches[-1]))
 
 
 def is_spec_write(event: dict[str, Any], scope: dict[str, Any]) -> bool:

@@ -134,7 +134,11 @@ def yaml_list(block: str, name: str) -> list[str]:
 
 
 def changed_file_rows(text: str) -> list[str]:
-    files = section(text, "Files To Modify Or Add") or section(text, "Files to Create / Change")
+    files = (
+        section(text, "Updated Files To Modify Or Add")
+        or section(text, "Files To Modify Or Add")
+        or section(text, "Files to Create / Change")
+    )
     return re.findall(r"^\|\s*`([^`]+)`\s*\|", files, re.MULTILINE)
 
 

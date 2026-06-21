@@ -70,16 +70,16 @@ def _planned_files(repo_root: Path, commit: str) -> list[str]:
         text = spec.read_text(encoding="utf-8")
     except OSError:
         return []
-    section = re.search(
-        r"^## Files To Modify Or Add\s*$\n(.*?)(?=^## |\Z)",
+    matches = re.findall(
+        r"^## (?:Updated )?Files To Modify Or Add\s*$\n(.*?)(?=^## |\Z)",
         text,
         re.MULTILINE | re.DOTALL,
     )
-    if not section:
+    if not matches:
         return []
     return [
         _normalize_path(path, repo_root)
-        for path in re.findall(r"\|\s*`([^`]+)`\s*\|", section.group(1))
+        for path in re.findall(r"\|\s*`([^`]+)`\s*\|", matches[-1])
     ]
 
 

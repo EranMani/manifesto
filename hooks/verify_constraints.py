@@ -67,6 +67,8 @@ def _is_excluded_artifact(path: str) -> bool:
         return True
     if path.startswith(".context/direct/C") and path.endswith(".md"):
         return True
+    if path.startswith("commit-specs/"):
+        return True
     return False
 
 

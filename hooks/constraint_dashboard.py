@@ -116,15 +116,16 @@ def _planned_files_from_spec(path: Path | None) -> list[str]:
     if path is None or not path.is_file():
         return []
     text = path.read_text(encoding="utf-8", errors="replace")
-    match = re.search(
-        r"^## Files To Modify Or Add\s*$\n(.*?)(?=^## |\Z)",
+    matches = re.findall(
+        r"^## (?:Updated )?Files To Modify Or Add\s*$\n(.*?)(?=^## |\Z)",
         text,
         re.MULTILINE | re.DOTALL,
     )
-    if not match:
+    if not matches:
         return []
+    match_text = matches[-1]
     planned: list[str] = []
-    for line in match.group(1).splitlines():
+    for line in match_text.splitlines():
         if not line.strip().startswith("|"):
             continue
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]

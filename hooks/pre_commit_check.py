@@ -121,17 +121,17 @@ def planned_files_for_commit(git_root: Path, msg: str) -> set[str]:
             f"'{DIRECT_EXECUTION_MARKER}' present but commit-specs/commit-{commit_id}.md does not exist."
         )
     content = spec_path.read_text(encoding="utf-8")
-    section_match = re.search(
-        r"^## Files To Modify Or Add\s*$\n(.*?)(?=^##\s+|\Z)",
+    section_matches = re.findall(
+        r"^## (?:Updated )?Files To Modify Or Add\s*$\n(.*?)(?=^##\s+|\Z)",
         content,
         re.MULTILINE | re.DOTALL | re.IGNORECASE,
     )
-    if not section_match:
+    if not section_matches:
         raise DirectExecutionResolutionError(
             f"'{DIRECT_EXECUTION_MARKER}' present but commit-specs/commit-{commit_id}.md has no "
             f"'## Files To Modify Or Add' section."
         )
-    files = set(re.findall(r"\|\s*`([^`]+)`\s*\|", section_match.group(1)))
+    files = set(re.findall(r"\|\s*`([^`]+)`\s*\|", section_matches[-1]))
     if not files:
         raise DirectExecutionResolutionError(
             f"'{DIRECT_EXECUTION_MARKER}' present but commit-specs/commit-{commit_id}.md's "

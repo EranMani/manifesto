@@ -60,6 +60,8 @@
         "hooks/tests/test_telemetry_scopes.py",
         "hooks/verify_constraints.py",
         "hooks/tests/test_verify_constraints.py",
+        "hooks/validate_commit_spec.py",
+        "hooks/tests/test_validate_commit_spec.py",
         "hooks/preflight_commit.py",
         "hooks/tests/test_preflight_commit.py",
         "hooks/prepare_agent_delegation.py",

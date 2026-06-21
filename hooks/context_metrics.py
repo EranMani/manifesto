@@ -76,15 +76,16 @@ def _planned_files(commit: str, repo_root: Path = REPO_ROOT) -> list[str]:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return []
-    section = re.search(
-        r"^## Files To Modify Or Add\s*$\n(.*?)(?=^## |\Z)",
+    matches = re.findall(
+        r"^## (?:Updated )?Files To Modify Or Add\s*$\n(.*?)(?=^## |\Z)",
         text,
         re.MULTILINE | re.DOTALL,
     )
-    if not section:
+    if not matches:
         return []
+    section_text = matches[-1]
     files: list[str] = []
-    for line in section.group(1).splitlines():
+    for line in section_text.splitlines():
         if not line.strip().startswith("|"):
             continue
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]

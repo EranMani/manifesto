@@ -150,6 +150,20 @@ def main() -> int:
     PROTOCOL_FILE.write_text(updated_protocol, encoding="utf-8")
     print(f">> commit-protocol.md: Commit {commit_number} marked done - {today}")
 
+    # Auto-stage governance artifacts written by finalize_commit.py so the
+    # chore(state) sweep cannot miss them.
+    _GOVERNANCE_ARTIFACTS = [
+        "CONSTRAINT_LOG.md",
+        "CONTEXT_METRICS.json",
+        "constraint-dashboard.html",
+    ]
+    finalize_marker = ROOT / ".context" / "finalize" / f"C{commit_number}.json"
+    to_stage = [f for f in _GOVERNANCE_ARTIFACTS if (ROOT / f).exists()]
+    if finalize_marker.exists():
+        to_stage.append(str(finalize_marker.relative_to(ROOT)))
+    if to_stage:
+        subprocess.run(["git", "add"] + to_stage, cwd=ROOT)
+
     # Consume-once signal for generate_domain_map.py: only regenerate domain
     # maps after a real protocol step advances.
     RUNTIME_FLAG.parent.mkdir(parents=True, exist_ok=True)
