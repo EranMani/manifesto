@@ -72,9 +72,15 @@ class GraphSchema(BaseModel):
     highlighted_path: list[str]
 
 
+class ActionBadgeSchema(BaseModel):
+    label: str
+    prompt: str
+
+
 class AssistantQueryResponse(BaseModel):
     intent: str
     answer: str
     graph: GraphSchema | None = None
     citations: list[CitationSchema] = []
     suggested_questions: list[str] = []
+    action_badges: list[ActionBadgeSchema] = []

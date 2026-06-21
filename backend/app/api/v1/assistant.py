@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.assistant import (
+    ActionBadgeSchema,
     AssistantQueryRequest,
     AssistantQueryResponse,
     CitationSchema,
@@ -23,6 +24,7 @@ from app.services.assistant import (
     DeniedAnswer,
     answer_question,
 )
+from app.services.badge_engine import select_badges
 from app.services.llm import EmbeddingService, LLMError, LLMService
 from app.services.rag_logistics import LogisticsAnswer
 from app.services.rag_policy import MixedAnswer, PolicyAnswer
@@ -91,7 +93,33 @@ def _citations_from_policy(evidence: list) -> list[CitationSchema]:
     ]
 
 
-def _to_response(result: AssistantAnswer) -> AssistantQueryResponse:
+def _extract_badge_context(result: AssistantAnswer) -> tuple[str, str | None]:
+    graph = None
+    if isinstance(result, LogisticsAnswer):
+        graph = result.graph
+    elif isinstance(result, MixedAnswer) and hasattr(result.graph, "nodes"):
+        graph = result.graph
+
+    if graph is None:
+        return "", None
+
+    shipment_status = ""
+    latest_event_type = None
+    for node in graph.nodes:
+        if node.type == "shipment" and hasattr(node, "status") and node.status:
+            shipment_status = node.status
+    for node in graph.nodes:
+        if node.type == "event":
+            latest_event_type = node.label
+
+    return shipment_status, latest_event_type
+
+
+def _to_response(result: AssistantAnswer, role: str) -> AssistantQueryResponse:
+    shipment_status, latest_event_type = _extract_badge_context(result)
+    badges = select_badges(shipment_status, latest_event_type, role)
+    badge_schemas = [ActionBadgeSchema(label=b.label, prompt=b.prompt) for b in badges]
+
     if isinstance(result, DeniedAnswer):
         return AssistantQueryResponse(intent="denied", answer=result.message)
 
@@ -100,6 +128,7 @@ def _to_response(result: AssistantAnswer) -> AssistantQueryResponse:
             intent="policy",
             answer=result.answer,
             citations=_citations_from_policy(result.citations),
+            action_badges=badge_schemas,
         )
 
     if isinstance(result, LogisticsAnswer):
@@ -108,6 +137,7 @@ def _to_response(result: AssistantAnswer) -> AssistantQueryResponse:
             answer=result.answer,
             graph=_graph_from_logistics(result),
             suggested_questions=list(result.follow_ups),
+            action_badges=badge_schemas,
         )
 
     if isinstance(result, MixedAnswer):
@@ -137,6 +167,7 @@ def _to_response(result: AssistantAnswer) -> AssistantQueryResponse:
             answer=result.answer,
             graph=graph,
             citations=_citations_from_policy(result.citations),
+            action_badges=badge_schemas,
         )
 
     return AssistantQueryResponse(intent="unknown", answer="Unexpected response type.")
@@ -171,7 +202,7 @@ async def query_assistant(
             detail="Something went wrong processing your question. Please try again.",
         )
     try:
-        return _to_response(result)
+        return _to_response(result, role=current_user.role)
     except Exception:
         logger.exception("Error converting assistant response")
         raise HTTPException(
