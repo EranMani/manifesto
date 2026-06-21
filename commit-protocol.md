@@ -119,7 +119,7 @@
 | 87 | update-rag-logistics-join | nova | ✅ done · 2026-06-21 |
 | 88 | client-crud-pages | aria | ✅ done · 2026-06-21 |
 | 89 | rename-dashboard-and-update-pages | aria | ✅ done · 2026-06-21 |
-| 90 | shipment-form-page | aria | pending |
+| 90 | shipment-form-page | aria | ✅ done · 2026-06-21 |
 
 ---
 

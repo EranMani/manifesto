@@ -2,10 +2,10 @@
   "project": "manifesto",
   "tldr": "Phase 3 hardening continues. C82 done (vendor CRUD pages). C83-C90 pending: shipment management feature set (client entity with badge colors, product catalog refactor, shipment-item join with inventory deduction, client CRUD pages, dashboard rename, shipment form).",
   "phase": 3,
-  "last_completed_commit": "89",
-  "next_commit": "90",
-  "next_commit_name": "shipment-form-page",
-  "next_commit_assignee": "aria",
+  "last_completed_commit": "90",
+  "next_commit": null,
+  "next_commit_name": null,
+  "next_commit_assignee": null,
   "status": "active",
   "open_handoffs": [
     {
