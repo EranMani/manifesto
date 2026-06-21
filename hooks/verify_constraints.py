@@ -69,6 +69,8 @@ def _is_excluded_artifact(path: str) -> bool:
         return True
     if path.startswith("commit-specs/"):
         return True
+    if path in ("backend/uv.lock", "frontend/package-lock.json"):
+        return True
     return False
 
 
