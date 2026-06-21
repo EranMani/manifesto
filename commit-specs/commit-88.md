@@ -28,10 +28,10 @@ Client list page displays all clients in a searchable table with badge color ind
 ```yaml
 execution_budget:
   max_primary_files: 2
-  max_changed_files: 4
+  max_changed_files: 7
   max_context_files: 6
   max_context_chars: 15000
-  max_estimated_diff_lines: 350
+  max_estimated_diff_lines: 550
   max_agent_invocations: 1
   max_tool_calls: 18
   max_expansions: 2
@@ -70,6 +70,9 @@ forbidden:
 | `frontend/src/pages/ClientList.tsx` | add | Client list table with badge color dots, search, delete (409 handling), create button |
 | `frontend/src/pages/ClientDetail.tsx` | add | Combined create/edit form with color picker for badge_color |
 | `frontend/src/App.tsx` | edit | Add /clients, /clients/new, /clients/:id routes; import ClientList and ClientDetail |
+| `frontend/src/pages/Dashboard.tsx` | edit | Remove product-by-shipment grouping (shipment_id removed from ProductRead) |
+| `frontend/src/pages/ProductDetail.tsx` | edit | Remove shipment dropdown (products are now standalone catalog items) |
+| `frontend/src/pages/ProductList.tsx` | edit | Remove shipment tracking code column (shipment_id removed) |
 
 ---
 
