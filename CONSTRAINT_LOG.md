@@ -109,3 +109,4 @@ View the live dashboard: open `constraint-dashboard.html` in your browser.
 | 2026-06-21 | C83 | rex | - | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
 | 2026-06-21 | C84 | rex | - | PASS | PASS | PASS r=0 w=0 t=0 | FAIL |
 | 2026-06-21 | C85 | rex | 1,609,879 | PASS | PASS | PASS r=0 w=0 t=0 | PASS |
+| 2026-06-21 | C86 | rex | 2,228,205 | PASS | PASS | PASS r=0 w=0 t=0 | PASS |

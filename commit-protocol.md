@@ -115,7 +115,7 @@
 | 83 | client-model-and-api | rex | ✅ done · 2026-06-21 |
 | 84 | shipment-refactor-migration | rex | ✅ done · 2026-06-21 |
 | 85 | product-catalog-refactor | rex | ✅ done · 2026-06-21 |
-| 86 | shipment-items-api-and-seed | rex | pending |
+| 86 | shipment-items-api-and-seed | rex | ✅ done · 2026-06-21 |
 | 87 | update-rag-logistics-join | nova | pending |
 | 88 | client-crud-pages | aria | pending |
 | 89 | rename-dashboard-and-update-pages | aria | pending |
