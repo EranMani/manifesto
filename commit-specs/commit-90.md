@@ -67,8 +67,9 @@ forbidden:
 | File | Type | Purpose |
 |---|---|---|
 | `frontend/src/pages/ShipmentForm.tsx` | add | Create Shipment form with vendor/client dropdowns, product picker, all shipment fields |
-| `frontend/src/api/products.ts` | edit | Add createShipmentWithItems function and ShipmentItemCreate type, update ShipmentRead with client_id |
+| `frontend/src/api/products.ts` | edit | Add createShipment function, ShipmentCreate and ShipmentItemCreate types |
 | `frontend/src/App.tsx` | edit | Add /shipments/new route, import ShipmentForm |
+| `frontend/src/pages/Dashboard.tsx` | edit | Add "New Shipment" button in page header |
 
 ---
 
